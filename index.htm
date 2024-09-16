@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>國曆轉農曆</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: center;
+            border: 1px solid black;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>八字重量計算器</h1>
+
+    <label for="yearInput">年: </label>
+    <input type="number" id="yearInput" value="1987" min="1900" max="2100">
+    <br>
+
+    <label for="monthInput">月: </label>
+    <input type="number" id="monthInput" value="04" min="1" max="12">
+    <br>
+
+    <label for="dayInput">日: </label>
+    <input type="number" id="dayInput" value="20" min="1" max="31">
+    <br>
+
+    <label for="hourInput">時: </label>
+    <input type="number" id="hourInput" value="07" min="0" max="23">
+    <br>
+
+    <button onclick="convertToLunar()">轉換</button>
+
+    <div id="result"></div>
+
+    <script language="javascript" type="text/javascript">
+    /*****************************************************************************
+    日期資料
+    *****************************************************************************/
+
+    var lunarInfo = [
+        0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,//1900-1909
+        0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,//1910-1919
+        0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,//1920-1929
+        0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,//1930-1939
+        0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,//1940-1949
+        0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5d0, 0x14573, 0x052d0, 0x0a9a8, 0x0e950, 0x06aa0,//1950-1959
+        0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,//1960-1969
+        0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b5a0, 0x195a6,//1970-1979
+        0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,//1980-1989
+        0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,//1990-1999
+        0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,//2000-2009
+        0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,//2010-2019
+        0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,//2020-2029
+        0x05aa0, 0x076a3, 0x096d0, 0x04bd7, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,//2030-2039
+        0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,//2040-2049
+        0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,//2050-2059
+        0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,//2060-2069
+        0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,//2070-2079
+        0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,//2080-2089
+        0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252, 0x0d520,//2090-2099
+        ];
+
+
+
+    function lYearDays(y) {
+        var i, sum = 348;
+        for (i = 0x8000; i > 0x8; i >>= 1) sum += (lunarInfo[y - 1900] & i) ? 1 : 0;
+        return (sum + leapDays(y));
+    }
+
+    function leapDays(y) {
+        if (leapMonth(y)) return ((lunarInfo[y - 1900] & 0x10000) ? 30 : 29);
+        else return 0;
+    }
+
+    function leapMonth(y) {
+        return (lunarInfo[y - 1900] & 0xf);
+    }
+
+    function monthDays(y, m) {
+        return ((lunarInfo[y - 1900] & (0x10000 >> m)) ? 30 : 29);
+    }
+
+    var solarMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+    function solarDays(y, m) {
+        if (m == 1)
+            return (((y % 4 == 0) && (y % 100 != 0) || (y % 400 == 0)) ? 29 : 28);
+        else
+            return (solarMonth[m - 1]);
+    }
+
+    function Lunar(objDate) {
+        var i, leap = 0, temp = 0;
+        var baseDate = new Date(1900, 0, 31);
+        var offset = (objDate - baseDate) / 86400000;
+
+        this.dayCyl = offset + 40;
+        this.monCyl = 14;
+
+        for (i = 1900; i < 2100 && offset > 0; i++) {
+            temp = lYearDays(i);
+            offset -= temp;
+            this.monCyl += 12;
+        }
+
+        if (offset < 0) {
+            offset += temp;
+            i--;
+            this.monCyl -= 12;
+        }
+
+        this.year = i;
+        this.yearCyl = i - 1864;
+
+        leap = leapMonth(i);
+        this.isLeap = false;
+
+        for (i = 1; i < 13 && offset > 0; i++) {
+            if (leap > 0 && i == (leap + 1) && this.isLeap == false) {
+                --i;
+                this.isLeap = true;
+                temp = leapDays(this.year);
+            } else {
+                temp = monthDays(this.year, i);
+            }
+
+            if (this.isLeap == true && i == (leap + 1))
+                this.isLeap = false;
+
+            offset -= temp;
+            this.monCyl++;
+        }
+
+        if (offset == 0 && leap > 0 && i == leap + 1)
+            if (this.isLeap) {
+                this.isLeap = false;
+            } else {
+                this.isLeap = true;
+                --i;
+            }
+
+        if (offset < 0) {
+            offset += temp;
+            --i;
+        }
+
+        this.month = i;
+        this.day = offset + 1;
+    }
+
+    function convertToLunar() {
+        var year = parseInt(document.getElementById('yearInput').value, 10);
+        var month = parseInt(document.getElementById('monthInput').value, 10);
+        var day = parseInt(document.getElementById('dayInput').value, 10);
+        var hour = parseInt(document.getElementById('hourInput').value, 10);
+
+        var date = new Date(year, month - 1, day, hour);
+        var lunar = new Lunar(date);
+
+        // Calculation of Heavenly Stems and Earthly Branches
+        var stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
+        var branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戊", "亥"];
+
+        var stemIndex = (year - 4) % 10;
+        var branchIndex = (year - 4) % 12;
+
+        var stem = stems[stemIndex];
+        var branch = branches[branchIndex];
+
+        var chineseYear = stem + branch;
+
+        // 時辰計算
+        var hours = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戊", "亥"];
+        var hourIndex = Math.ceil(hour / 2)% 12;
+        var chineseHour = hours[hourIndex];
+
+        // 將農曆日期的日數轉換成中文數字
+        var chineseDays = ["初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十",
+                        "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "廿",
+                        "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"];
+        var lunarDay = chineseDays[parseInt(lunar.day, 10)-1];
+
+        // 獲取八字重量
+        var eightCharacterWeight = getEightCharacterWeight(stem, branch, lunar.month, lunarDay);
+        var monthWeight = getMonthWeight(lunar.month);
+        var dayWeight = getDayWeight(lunarDay);
+        var hourWeight = getHourWeight(chineseHour);
+
+        // 農曆月份轉國字
+        var chineseMonths = ["正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"];
+        var chineseMonth = chineseMonths[parseInt(lunar.month, 10)-1];
+
+        // 生成表格 HTML
+        var resultHtml = '<table>' +
+                          '<tr>' +
+                            '<th>重量</th>' +
+                            '<th>年</th>' +
+                            '<th>月</th>' +
+                            '<th>日</th>' +
+                            '<th>時辰</th>' +
+                          '</tr>' +
+                          '<tr>' +
+                            '<td>國曆日期</td>' +
+                            '<td>' + year + '</td>' +
+                            '<td>' + month + '</td>' +
+                            '<td>' + day + '</td>' +
+                            '<td>' + hour + '</td>' +
+                          '</tr>' +
+                          '<tr>' +
+                            '<td>農曆日期</td>' +
+                            '<td>' + chineseYear + '</td>' +
+                            '<td>' + chineseMonth + '</td>' +
+                            '<td>' + lunarDay + '</td>' +
+                            '<td>' + chineseHour + ' 時</td>' +
+                          '</tr>' +
+                          '<tr>' +
+                            '<td>八字重量</td>' +
+                            '<td>' + eightCharacterWeight + '</td>' +
+                            '<td>' + monthWeight + '</td>' +
+                            '<td>' + dayWeight + '</td>' +
+                            '<td>' + hourWeight + '</td>' +
+                          '</tr>';
+
+        // 計算八字總重
+        var totalWeight = calculateTotalWeight(eightCharacterWeight, monthWeight, dayWeight, hourWeight);
+        resultHtml += '<tr>' +
+                      '<td>八字總重</td>' +
+                      '<td colspan="5">' + totalWeight + '</td>' +
+                    '</tr>';
+
+        // 獲取八字命評
+        var eightCharacterPrediction = getEightCharacterPrediction(totalWeight);
+        resultHtml += '<tr>' +
+                      '<td>八字命評</td>' +
+                      '<td colspan="5">' + eightCharacterPrediction + '</td>' +
+                    '</tr>';
+
+        resultHtml += '</table>';
+
+        document.getElementById('result').innerHTML = resultHtml;
+    }
+
+    // 獲取八字重量
+    function getEightCharacterWeight(stem, branch, month, day) {
+        var weight = '';
+        // 使用字典查找八字重量
+        var eightCharacterWeights = {
+            "甲子": "一兩二錢",
+            "丙子": "一兩六錢",
+            "戊子": "一兩五錢",
+            "庚子": "七錢",
+            "壬子": "五錢",
+            "乙丑": "九錢",
+            "丁丑": "八錢",
+            "己丑": "八錢",
+            "辛丑": "七錢",
+            "癸丑": "七錢",
+            "丙寅": "六錢",
+            "戊寅": "八錢",
+            "庚寅": "九錢",
+            "壬寅": "九錢",
+            "甲寅": "一兩二錢",
+            "丁卯": "七錢",
+            "己卯": "一兩二錢",
+            "辛卯": "一兩二錢",
+            "癸卯": "一兩二錢",
+            "乙卯": "八錢",
+            "戊辰": "一兩二錢",
+            "庚辰": "一兩二錢",
+            "壬辰": "一兩",
+            "甲辰": "八錢",
+            "丙辰": "八錢",
+            "己巳": "五錢",
+            "辛巳": "六錢",
+            "癸巳": "七錢",
+            "乙巳": "七錢",
+            "丁巳": "六錢",
+            "庚午": "九錢",
+            "壬午": "八錢",
+            "甲午": "一兩五錢",
+            "丙午": "一兩三錢",
+            "戊午": "一兩九錢",
+            "辛未": "八錢",
+            "癸未": "七錢",
+            "乙未": "六錢",
+            "丁未": "五錢",
+            "己未": "六錢",
+            "壬申": "七錢",
+            "甲申": "五錢",
+            "丙申": "五錢",
+            "戊申": "一兩四錢",
+            "庚申": "八錢",
+            "癸酉": "八錢",
+            "乙酉": "一兩五錢",
+            "丁酉": "一兩四錢",
+            "己酉": "五錢",
+            "辛酉": "一兩六錢",
+            "甲戊": "一兩五錢",
+            "丙戊": "六錢",
+            "戊戊": "一兩四錢",
+            "庚戊": "九錢",
+            "壬戊": "一兩",
+            "乙亥": "九錢",
+            "丁亥": "一兩六錢",
+            "己亥": "九錢",
+            "辛亥": "一兩七錢",
+            "癸亥": "七錢"
+        };
+
+        // 查找八字重量
+        var eightCharacterKey = stem + branch;
+        if (eightCharacterWeights.hasOwnProperty(eightCharacterKey)) {
+            weight = eightCharacterWeights[eightCharacterKey];
+        } else {
+            weight = "未知";
+        }
+
+        return weight;
+    }
+
+    // 獲取月份重量
+    function getMonthWeight(month) {
+        var weight = '';
+        // 使用字典查找月份重量
+		var monthWeights = {
+			1: "六錢",
+			2: "七錢",
+			3: "一兩八錢",
+			4: "九錢",
+			5: "五錢",
+			6: "一兩六錢",
+			7: "九錢",
+			8: "一兩五錢",
+			9: "一兩八錢",
+			10: "八錢",
+			11: "九錢",
+			12: "五錢"
+		};
+
+        // 查找月份重量
+        if (monthWeights.hasOwnProperty(month)) {
+            weight = monthWeights[month];
+        } else {
+            weight = "未知";
+        }
+
+        return weight;
+    }
+
+    // 獲取日重量
+    function getDayWeight(day) {
+        var weight = '';
+        // 使用字典查找日重量
+        var dayWeights = {
+            "初一": "五錢",
+            "初二": "一兩",
+            "初三": "八錢",
+            "初四": "一兩五錢",
+            "初五": "一兩六錢",
+            "初六": "一兩五錢",
+            "初七": "八錢",
+            "初八": "一兩六錢",
+            "初九": "八錢",
+            "初十": "一兩六錢",
+            "十一": "九錢",
+            "十二": "一兩七錢",
+            "十三": "八錢",
+            "十四": "一兩七錢",
+            "十五": "一兩",
+            "十六": "八錢",
+            "十七": "九錢",
+            "十八": "一兩八錢",
+            "十九": "五錢",
+            "廿": "一兩五錢",
+            "廿一": "一兩",
+            "廿二": "九錢",
+            "廿三": "八錢",
+            "廿四": "九錢",
+            "廿五": "一兩五錢",
+            "廿六": "一兩八錢",
+            "廿七": "七錢",
+            "廿八": "八錢",
+            "廿九": "一兩六錢",
+            "三十": "六錢"
+        };
+
+        // 查找日重量
+        if (dayWeights.hasOwnProperty(day)) {
+            weight = dayWeights[day];
+        } else {
+            weight = "未知";
+        }
+
+        return weight;
+    }
+
+    // 獲取時辰重量
+    function getHourWeight(hour) {
+        var weight = '';
+        // 使用字典查找時辰重量
+        var hourWeights = {
+            "子": "一兩六錢",
+            "丑": "六錢",
+            "寅": "七錢",
+            "卯": "一兩",
+            "辰": "九錢",
+            "巳": "一兩六錢",
+            "午": "一兩",
+            "未": "八錢",
+            "申": "八錢",
+            "酉": "九錢",
+            "戊": "六錢",
+            "亥": "六錢"
+        };
+
+        // 查找時辰重量
+        if (hourWeights.hasOwnProperty(hour)) {
+            weight = hourWeights[hour];
+        } else {
+            weight = "未知";
+        }
+
+        return weight;
+    }
+
+    // 計算八字總重
+    function calculateTotalWeight(eightCharacterWeight, monthWeight, dayWeight, hourWeight) {
+        // 使用字典將文字重量轉換為數位
+        var weightMapping = {
+            "一兩": 1,
+            "一兩六錢": 1.6,
+            "一兩五錢": 1.5,
+            "一兩七錢": 1.7,
+            "一兩四錢": 1.4,
+            "一兩八錢": 1.8,
+            "一兩二錢": 1.2,
+            "一兩九錢": 1.9,
+            "一兩三錢": 1.3,
+            "九錢": 0.9,
+            "八錢": 0.8,
+            "七錢": 0.7,
+            "六錢": 0.6,
+            "五錢": 0.5,
+            "未知": 0
+        };
+
+        // 轉換每個重量為數位並相加
+        var totalWeight = (weightMapping[eightCharacterWeight] || 0) +
+                         (weightMapping[monthWeight] || 0) +
+                         (weightMapping[dayWeight] || 0) +
+                         (weightMapping[hourWeight] || 0);
+
+        // 格式化總重量
+        var weightInLian = Math.floor(totalWeight);
+        var weightInQian = Math.round((totalWeight - weightInLian) * 10);
+
+        // 將數位轉換為中文數位
+        var chineseLian = chineseNumber(weightInLian);
+        var chineseQian = chineseNumber(weightInQian);
+
+        // 整數不需要加上錢
+        if (weightInQian === 0) {
+            return chineseLian + "兩";
+        } else {
+            return chineseLian + "兩" + chineseQian + "錢";
+        }
+    }
+
+    // 獲取八字命評
+    function getEightCharacterPrediction(totalWeight) {
+        var prediction = "";
+        // 使用字典查找八字命評
+        var eightCharacterPredictions = {
+            "二兩一錢": "一生衣食奔波勞碌之命\n短命非業謂大凶，平生災難事重重；凶禍頻臨陷逆境，終世困苦事不成。",
+            "二兩二錢": "幼年勞碌中年清泰之命\n身寒骨冷苦伶仃，此命推來行乞人；勞勞碌碌難度日，終年打拱過平生。",
+            "二兩三錢": "先難後易出外求人之命\n此命推來骨格輕，求謀作事事難成；妻兒子女應難許，別處他鄉作散人。",
+            "二兩四錢": "智巧多能離家求食之命\n此命推來福祿無，門庭困苦總難榮；六親骨肉皆無靠，流浪他鄉作老翁。",
+            "二兩五錢": "身閒心不閒九流藝術之命\n命推來福祖業微，庭困營度似稀奇；六親骨肉如冰炭，一世勤勞自把持。",
+            "二兩六錢": "先貧後富勞碌之命\n平生衣祿苦中求，獨自營謀事不休；離祖出門宜早計，晚來衣食自無憂。",
+            "二兩七錢": "聰明近貴衣祿之命\n一生作事少商量，難靠祖宗作主張；獨馬單槍空做去，早年晚歲總無長。",
+            "二兩八錢": "自卓為人才能近貴之命\n一生行事似飄蓬，祖宗產業在夢中；若不過房改名姓，也當移徙二三通。",
+            "二兩九錢": "客商才能達變智慧之命\n初年運限未能通，縱有功名在後成；須過四旬才可立，移居改姓始為良。",
+            "三兩": "衣食有餘近貴成家之命\n勞勞碌碌苦中求，東奔西走何日休；若能終身勤與儉，老來稍可免憂愁。",
+            "三兩一錢": "先貧後富近貴衣食足用之命\n忙忙碌碌苦中求，何日雲開見日頭；難得祖基家可立，中年衣食漸無憂。",
+            "三兩二錢": "性巧過人衣食到老近貴之命\n初年運蹇事難謀，漸有財源如水流；到得中年衣食旺，那時名利一齊收。",
+            "三兩三錢": "衣食豐滿富貴根基之命\n早年做事事難成，百計勤勞枉費心；半世自如流水去，後來運到始得金。",
+            "三兩四錢": "財穀有餘主得內助富貴之命\n此命福氣果如何，僧道門中衣祿多；離祖出家方為妙，朝晚拜佛念彌陀。",
+            "三兩五錢": "先難後易過房入贅近貴之命\n生平福量不周全，祖業根基覺少傳；營事生涯宜守舊，時來衣食勝從前。",
+            "三兩六錢": "超群拔類衣祿厚重之命\n不須勞碌過平生，獨自成家福不輕；早有福星常照命， 任 君行去百般成。",
+            "三兩七錢": "聰明富貴有福壽之命\n此命般般事不成，弟兄少力自孤行；縱然祖業雖微有，來得明時去不明。",
+            "三兩八錢": "財帛豐厚宜稱之命\n一生骨肉最清高，早入黌門姓名標；待到年將三十六，藍衣脫去換紅袍。",
+            "三兩九錢": "利上近貴有福有祿之命\n此命終身運不通，勞勞作事盡皆空；苦心竭力成家計，到得那時在夢中。",
+            "四兩": "富貴近益生匯鼎盛機關之命\n平生衣祿是綿長，件件心中自主張；前面風霜多受過，後來必定享安康。",
+            "四兩一錢": "稅戶近貴專才衣祿之命\n此命推來是不同，為人能幹異凡庸；中年還有逍遙福，不比前年運未通。",
+            "四兩二錢": "兵權有職富貴才能之命\n得寬懷處且寬懷，何用雙眉皺不開；若使中年命運濟，那時名利一齊來。",
+			"四兩三錢": "財祿厚重白手成家之命\n為人心性最聰明，作事軒昂近貴人；衣祿一生天數定，不須勞碌是豐享。",
+			"四兩四錢": "才能好學近貴財祿之命\n萬事由天莫苦求，須知福祿賴人修；中年財帛難如意，晚景欣然便不憂。",
+			"四兩五錢": "福祿豐盈極富且貴之命\n名利推來竟若何，前番辛苦後奔波；命中難養男與女，骨肉扶持也不多。",
+			"四兩六錢": "富貴有餘福壽雙全之命\n東南西北盡皆通，出姓移居更覺隆；衣祿無虧天數定，中年晚景一般同。",
+			"四兩七錢": "高官厚祿學業飽滿之命\n此命推來旺末年，妻榮子貴自怡然；平生原有滔滔福，可有財源若水泉。",
+			"四兩八錢": "官員財祿厚重之命\n幼年運道未能通，若是蹉跎命不同；兄弟六親皆無靠，一身事業晚來隆。",
+			"四兩九錢": "性巧精乖倉庫財祿之命\n此命推來福不輕，自成自立顯門庭；從來富貴人親近，使婢差奴過一生。",
+			"五兩": "文武才能財穀豐富之命\n為利為名終日勞，中年福祿也多遭；老年自有財星照，不比前番目下高。",
+			"五兩一錢": "官職財祿榮民富貴之命\n一世榮華事事通，不須勞苦自亨通；弟兄取侄皆如意，家業成時福祿宏。",
+			"五兩二錢": "掌握兵權富貴長壽之命\n一世亨通事事能，不須勞苦自然寧；宗族欣然福祿多，家業豐亨自稱心。",
+			"五兩三錢": "僧道門中近貴之命\n此格推來福祿宏，興家發達在其中；一生衣食安排定，卻是人間一富翁。",
+			"五兩四錢": "有權威富貴財祿之命\n此命推來厚且清，詩書滿腹功業成；豐衣足食自然穩，正是人間有福人。",
+			"五兩五錢": "官職財祿豐堅之命\n走馬揚鞭爭利名，少年做事費評論；一朝福祿源源至，富貴榮華顯六親。",
+			"五兩六錢": "官職長享榮華富貴之命\n此格推來禮義通，一生福祿用無窮；甜酸苦辣皆嚐過，財源滾滾穩且通。",
+			"五兩七錢": "官職文章壓眾精通之命\n福祿豐盈萬事全，一生榮耀顯雙親；名揚威振人欽敬，處世逍遙似神仙。",
+			"五兩八錢": "官祿旺相才能性直富貴之命\n平生福祿自然來，名利兼全福壽偕；雁塔題名為貴客，紫袍玉帶走金階。",
+			"五兩九錢": "官職財祿厚重之命\n細推此格秀且清，必定財高學業成；甲第之中應有分，揚鞭走馬顯威榮。",
+			"六兩": "官職榮華福壽財祿之命\n一朝金榜快題名，顯祖榮官大器成；衣食自然豐裕足，田園財帛更豐盈。",
+			"六兩一錢": "官掌風雷權柄之命\n不作朝中金榜客，官為世上一財翁；聰明天賦經書熟，名顯高科自是榮。",
+			"六兩二錢": "官職有權柄之命\n此命生來福不窮，讀書必定顯親族；紫衣金帶為卿相，富貴榮華皆可同。",
+			"六兩三錢": "指揮太守萬戶封侯之命\n命主為官福祿長，得來富貴定非常；名題雁塔傳金榜，顯耀門庭天下揚。",
+			"六兩四錢": "官職尚書侍郎之命\n此命威權不可當，紫袍金帶坐高堂；榮華富貴誰能及，百世留名姓氏揚。",
+			"六兩五錢": "威權無盡財福祿全之命\n細推此命福不輕，富貴榮華孰與爭；定國安邦榮品人，威聲顯赫四方聞。",
+			"六兩六錢": "公侯駙馬丞相之命\n此格人間一福人，堆金積玉滿堂春；從來富貴由天定，金榜題名謁聖君。",
+			"六兩七錢": "冠世萬國來朝上格之命\n此命生來福自宏，田園家業最高隆；平生衣食豐盈足，一世榮華萬事通。",
+			"六兩八錢": "溫和幸福富貴極吉之命\n福貴由天莫苦求，萬金家計不須謀；十年不比前番事，祖業根基水上舟。",
+			"六兩九錢": "受職高位功名顯達之命\n君是人間衣祿星，一生富貴眾人欽；縱然福祿由天定，安享榮華過一生。",
+			"七兩": "權力共備志望上流之命\n此命推來福非輕，不須愁慮苦勞心；一生天定衣興祿，富貴榮華主一生。",
+			"七兩一錢": "大志大業勢如破竹之命\n此命生成大不同，公侯卿相在其中；一生自有逍遙福，富貴榮華極品隆。",
+			"七兩二錢": "號令天下統禦萬民帝王之命\n此格世界罕有生，十代積善產此人；天上紫微來照命，統治萬民樂太平。"
+        };
+
+        // 查找八字命評
+        if (eightCharacterPredictions.hasOwnProperty(totalWeight)) {
+            prediction = eightCharacterPredictions[totalWeight];
+        } else {
+            prediction = "未知";
+        }
+
+        return prediction;
+    }
+
+    // 將阿拉伯數字轉換為中文數位
+    function chineseNumber(number) {
+        var chineseNumbers = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+        return chineseNumbers[number];
+    }
+
+    </script>
+</body>
+</html>
