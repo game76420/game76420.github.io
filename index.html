@@ -159,7 +159,7 @@
             text-align: left;
         }
 
-        /* 响应式设计 */
+        /* 回應式設計 */
         @media (max-width: 768px) {
             .services, .portfolio, .testimonials, .blog {
                 flex-direction: column;
@@ -187,7 +187,7 @@
             }
         }
 
-        /* 调整部分元素在移动设备上的显示方式 */
+        /* 調整部分元素在移動設備上的顯示方式 */
         @media (max-width: 480px) {
             .service, .portfolio-item, .testimonial, .blog-post {
                 flex-basis: 100%;
@@ -247,7 +247,7 @@
                 </div>
                 <div class="service">
                     <h3>AI 生成圖片</h3>
-                    <p>使用 AI 技術快速生成高质量图片，节省您在设计上的时间和精力。</p>
+                    <p>使用 AI 技術快速生成高品質圖片，節省您在設計上的時間和精力。</p>
                 </div>
                 <div class="service">
                     <h3>AI 繪圖</h3>
@@ -260,7 +260,7 @@
             <div class="portfolio">
                 <div class="portfolio-item">
                     <h3>八字重量計算器</h3>
-                    <p>用 Html + JavaScript 開發的八字重量計算器，可以根據用户的八字信息計算重量。</p>
+                    <p>用 Html + JavaScript 開發的八字重量計算器，可以根據使用者的八字資訊計算重量。</p>
                     <button onclick="openCalculator()">開啟八字重量計算器</button>
                 </div>
                 <div class="portfolio-item">
@@ -274,6 +274,11 @@
                 <div class="portfolio-item">
                     <h3>數據分析案例</h3>
                     <p>為零售客戶提供銷售數據分析，優化商品庫存管理。</p>
+                </div>
+                <div class="portfolio-item">
+                    <h3>台灣身分證字號產生器</h3>
+                    <p>用 JavaScript 開發的台灣身分證字號產生器，可以快速生成台灣身分證字號。</p>
+                    <button onclick="openTwMap()">開啟台灣身分證字號產生器</button>
                 </div>
             </div>
         </section>
@@ -297,7 +302,7 @@
                 </div>
                 <div class="blog-post">
                     <h3>雲端解決方案：如何選擇適合您的企業</h3>
-                    <p>了解不同雲端平台的優缺點，選擇最適合您的業務需求。</p>
+                    <p>瞭解不同雲端平臺的優缺點，選擇最適合您的業務需求。</p>
                 </div>
             </div>
         </section>
@@ -323,8 +328,12 @@
     <script>
         // 開啟八字重量計算器
         function openCalculator() {
-            // 打开新窗口并加载 bazi_weight_calculator.html
             window.open("bazi_weight_calculator.html", "_blank"); 
+        }
+
+        // 開啟台灣身分證字號產生器
+        function openTwMap() {
+            window.open("tw_id.html", "_blank"); 
         }
     </script>
 
