@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>台灣身分證字號產生器</title>
+    <title>台灣身分證字號產生器與檢查器</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -20,7 +20,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
-        h1 {
+        h1, h2 {
             text-align: center;
             color: #007bff;
         }
@@ -75,6 +75,14 @@
         }
         .copy-btn:disabled {
             background: #cccccc;
+        }
+        .result {
+            font-weight: bold;
+            color: green;
+            text-align: center;
+        }
+        .error {
+            color: red;
         }
         @media (max-width: 600px) {
             .container {
@@ -136,9 +144,21 @@
 
         <h2>產生的身分證字號：</h2>
         <ul id="idList"></ul>
+
+        <h1>台灣身分證字號檢查器</h1>
+        <label for="idInput">請填入身分證字號：</label>
+        <input type="text" id="idInput" maxlength="10" placeholder="輸入身分證字號">
+        <button type="button" onclick="checkID()">檢查</button>
+        <p id="checkResult" class="result"></p>
     </div>
 
     <script>
+        const cityCodeMap = {
+            A: 10, B: 11, C: 12, D: 13, E: 14, F: 15, G: 16, H: 17, I: 34,
+            J: 18, K: 19, L: 20, M: 21, N: 22, O: 35, P: 23, Q: 24, R: 25,
+            S: 26, T: 27, U: 28, V: 29, W: 32, X: 30, Y: 31, Z: 33
+        };
+
         function generateIDs() {
             const cityCode = document.getElementById('city').value;
             const gender = document.getElementById('gender').value;
@@ -148,32 +168,73 @@
             idList.innerHTML = '';
 
             for (let i = 0; i < count; i++) {
-                const randomNumber = generateRandomNumber(8);
-                const checkDigit = generateRandomNumber(1);
-                const idNumber = `${cityCode}${gender}${randomNumber}${checkDigit}`;
+                const idNumber = generateID(cityCode, gender);
                 const listItem = document.createElement('li');
                 listItem.textContent = idNumber;
                 idList.appendChild(listItem);
             }
 
-            // Enable copy button after IDs are generated
             copyButton.disabled = idList.children.length === 0;
+        }
+
+        function generateID(cityCode, gender) {
+            const serialNumber = generateRandomNumber(7);
+            const checkDigit = calculateCheckDigit(cityCode, gender, serialNumber);
+            return `${cityCode}${gender}${serialNumber}${checkDigit}`;
         }
 
         function generateRandomNumber(length) {
             let result = '';
             const characters = '0123456789';
-            const charactersLength = characters.length;
             for (let i = 0; i < length; i++) {
-                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                result += characters.charAt(Math.floor(Math.random() * characters.length));
             }
             return result;
+        }
+
+        function calculateCheckDigit(cityCode, gender, serialNumber) {
+            const fullNumber = `${cityCodeMap[cityCode]}${gender}${serialNumber}`;
+            const weights = [1, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            let sum = 0;
+
+            for (let i = 0; i < 10; i++) {
+                sum += parseInt(fullNumber.charAt(i)) * weights[i];
+            }
+
+            const remainder = sum % 10;
+            return remainder === 0 ? 0 : (10 - remainder);
         }
 
         function copyIDs() {
             const idList = document.getElementById('idList');
             const ids = Array.from(idList.children).map(li => li.textContent).join('\n');
             navigator.clipboard.writeText(ids);
+        }
+
+        // 檢查器功能
+        function checkID() {
+            const id = document.getElementById('idInput').value.toUpperCase();
+            const resultElement = document.getElementById('checkResult');
+
+            if (!/^[A-Z][12]\d{8}$/.test(id)) {
+                resultElement.textContent = '格式不正確';
+                resultElement.classList.add('error');
+                return;
+            }
+
+            const cityCode = id[0];
+            const gender = id[1];
+            const serialNumber = id.slice(2, 9);
+            const checkDigit = id[9];
+
+            const calculatedCheckDigit = calculateCheckDigit(cityCode, gender, serialNumber);
+            if (checkDigit == calculatedCheckDigit) {
+                resultElement.textContent = '有效的身分證字號';
+                resultElement.classList.remove('error');
+            } else {
+                resultElement.textContent = '無效的身分證字號';
+                resultElement.classList.add('error');
+            }
         }
     </script>
 </body>
