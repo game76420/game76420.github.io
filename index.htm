@@ -175,7 +175,7 @@
 
         // Calculation of Heavenly Stems and Earthly Branches
         var stems = ["甲", "乙", "丙", "丁", "戊", "己", "庚", "辛", "壬", "癸"];
-        var branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戊", "亥"];
+        var branches = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
 
         var stemIndex = (year - 4) % 10;
         var branchIndex = (year - 4) % 12;
@@ -186,7 +186,7 @@
         var chineseYear = stem + branch;
 
         // 時辰計算
-        var hours = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戊", "亥"];
+        var hours = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
         var hourIndex = Math.ceil(hour / 2)% 12;
         var chineseHour = hours[hourIndex];
 
