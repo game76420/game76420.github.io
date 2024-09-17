@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <base href="https://websim.example.com/我的工作室/">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>張書維工作室 - 程式開發、網站設計、Python 爬蟲、電腦維修</title>
+    <title>張書維工作室 - 作品集</title>
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -23,7 +22,7 @@
         }
 
         h1 {
-            color: #fff; /* 设置网站大标题颜色为白色 */
+            color: #fff; 
         }
 
         nav {
@@ -36,9 +35,9 @@
             padding: 0;
             margin: 0;
             display: flex;
-            flex-wrap: wrap; /* 允許菜單項目換行 */
-            justify-content: center; /* 水平居中 */
-            align-items: center; /* 垂直居中 */
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
         }
 
         nav ul li {
@@ -99,7 +98,7 @@
             padding: 0.5rem;
             border: 1px solid #ccc;
             border-radius: 4px;
-            width: 100%; /* 佔滿父元素宽度 */
+            width: 100%;
         }
 
         button {
@@ -126,7 +125,7 @@
         .social-icons {
             display: flex;
             justify-content: center;
-            flex-wrap: wrap; /* 允许社交图标换行 */
+            flex-wrap: wrap; 
         }
 
         .social-icons a {
@@ -170,27 +169,22 @@
                 flex-basis: 100%;
             }
 
-            /* 菜单调整 */
             nav ul li {
-                margin: 0 0.5rem; /* 调整菜单项间距 */
+                margin: 0 0.5rem; 
             }
 
-            /* 内容调整 */
             main {
-                padding: 1rem; /* 调整主内容区填充 */
+                padding: 1rem;
             }
 
             section {
-                padding: 1rem; /* 调整内容区块填充 */
+                padding: 1rem; 
             }
 
-            /* 图片响应式 */
             img {
-                width: 100%; /* 图片宽度自适应 */
-                height: auto; /* 图片高度自动调整 */
+                width: 100%;
+                height: auto; 
             }
-
-            /* 其他媒体查询，根据需要进行调整 */
         }
 
         /* 调整部分元素在移动设备上的显示方式 */
@@ -198,8 +192,6 @@
             .service, .portfolio-item, .testimonial, .blog-post {
                 flex-basis: 100%;
             }
-
-            /* 其他媒体查询，根据需要进行调整 */
         }
     </style>
 </head>
@@ -267,8 +259,9 @@
             <h2>作品集</h2>
             <div class="portfolio">
                 <div class="portfolio-item">
-                    <h3>網站設計案例</h3>
-                    <p>某科技公司企業網站設計，突顯現代化與專業形象。</p>
+                    <h3>八字重量計算器</h3>
+                    <p>用 Html + JavaScript 開發的八字重量計算器，可以根據用户的八字信息計算重量。</p>
+                    <button onclick="openCalculator()">開啟八字重量計算器</button>
                 </div>
                 <div class="portfolio-item">
                     <h3>程式開發案例</h3>
@@ -328,32 +321,11 @@
     </footer>
 
     <script>
-        // 取得所有導航連結元素
-        const navLinks = document.querySelectorAll('nav ul li a');
-
-        // 遍歷所有導航連結
-        navLinks.forEach(link => {
-            // 為每個導航連結添加點擊事件監聽器
-            link.addEventListener('click', (event) => {
-                // 阻止預設行為 (跳轉到 #contact 的頂部)
-                event.preventDefault();
-
-                // 取得連結的目标 ID
-                const targetId = link.getAttribute('href');
-
-                // 取得目标區塊元素
-                const targetSection = document.querySelector(targetId);
-
-                // 計算目标區塊頂端距離頁面頂端的距離
-                const targetTop = targetSection.offsetTop;
-
-                // 平滑滾動到目标區塊
-                window.scrollTo({
-                    top: targetTop,
-                    behavior: 'smooth' // 設定滾動行為為平滑
-                });
-            });
-        });
+        // 開啟八字重量計算器
+        function openCalculator() {
+            // 打开新窗口并加载 bazi_weight_calculator.html
+            window.open("bazi_weight_calculator.html", "_blank"); 
+        }
     </script>
 
 </body>
