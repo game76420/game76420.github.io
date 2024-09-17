@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灣身分證字號產生器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            background-color: #007bff;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .copy-btn {
+            background: #28a745;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+        .copy-btn:disabled {
+            background: #cccccc;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 15px;
+            }
+            button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>台灣身分證字號產生器</h1>
+        <form id="idForm">
+            <label for="city">縣市：</label>
+            <select id="city">
+                <option value="A">臺北市</option>
+                <option value="B">臺中市</option>
+                <option value="C">基隆市</option>
+                <option value="D">臺南市</option>
+                <option value="E">高雄市</option>
+                <option value="F">臺北縣</option>
+                <option value="G">宜蘭縣</option>
+                <option value="H">桃園縣</option>
+                <option value="I">嘉義市</option>
+                <option value="J">新竹縣</option>
+                <option value="K">苗栗縣</option>
+                <option value="L">臺中縣</option>
+                <option value="M">南投縣</option>
+                <option value="N">彰化縣</option>
+                <option value="O">新竹市</option>
+                <option value="P">雲林縣</option>
+                <option value="Q">嘉義縣</option>
+                <option value="R">臺南縣</option>
+                <option value="S">高雄縣</option>
+                <option value="T">屏東縣</option>
+                <option value="U">花蓮縣</option>
+                <option value="V">臺東縣</option>
+                <option value="W">金門縣</option>
+                <option value="X">澎湖縣</option>
+                <option value="Y">陽明山</option>
+                <option value="Z">連江縣</option>
+            </select>
+
+            <label for="gender">性別：</label>
+            <select id="gender">
+                <option value="1">男性</option>
+                <option value="2">女性</option>
+            </select>
+
+            <label for="count">數量：</label>
+            <input type="number" id="count" min="1" value="1" required>
+
+            <button type="button" onclick="generateIDs()">生成</button>
+            <button type="button" id="copyButton" onclick="copyIDs()" disabled class="copy-btn">複製</button>
+        </form>
+
+        <h2>產生的身分證字號：</h2>
+        <ul id="idList"></ul>
+    </div>
+
+    <script>
+        function generateIDs() {
+            const cityCode = document.getElementById('city').value;
+            const gender = document.getElementById('gender').value;
+            const count = parseInt(document.getElementById('count').value);
+            const idList = document.getElementById('idList');
+            const copyButton = document.getElementById('copyButton');
+            idList.innerHTML = '';
+
+            for (let i = 0; i < count; i++) {
+                const randomNumber = generateRandomNumber(8);
+                const checkDigit = generateRandomNumber(1);
+                const idNumber = `${cityCode}${gender}${randomNumber}${checkDigit}`;
+                const listItem = document.createElement('li');
+                listItem.textContent = idNumber;
+                idList.appendChild(listItem);
+            }
+
+            // Enable copy button after IDs are generated
+            copyButton.disabled = idList.children.length === 0;
+        }
+
+        function generateRandomNumber(length) {
+            let result = '';
+            const characters = '0123456789';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+        function copyIDs() {
+            const idList = document.getElementById('idList');
+            const ids = Array.from(idList.children).map(li => li.textContent).join('\n');
+            navigator.clipboard.writeText(ids);
+        }
+    </script>
+</body>
+</html>
