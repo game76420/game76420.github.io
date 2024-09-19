@@ -218,6 +218,16 @@
                 font-size: 16px; /* 縮小講師名字字體 */
             }
         }
+        
+@media print {
+    /* 確保背景顏色會列印 */
+    * {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+        
     </style>
 </head>
 <body>
