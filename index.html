@@ -193,6 +193,49 @@
                 flex-basis: 100%;
             }
         }
+
+        /* 行事曆產生器樣式 */
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        #calendar {
+            width: 300px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #calendar h2 {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .calendar-table th,
+        .calendar-table td {
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .calendar-table th {
+            background-color: #f0f0f0;
+        }
+
+        .today {
+            background-color: #f5f5f5;
+        }
+
+        .event {
+            background-color: #ffdddd;
+            padding: 2px;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -286,6 +329,11 @@
                     <p>用 Python 開發的 Youtube MP3 下載器，可以快速將 Youtube 影片下載為 MP3 音樂檔。</p>
                     <button onclick="window.open('https://drive.google.com/file/d/1bxkTsRdjAua9j9rMlh4-grk6qPwlw9Q3/view?usp=sharing')">下載連結</button>
                 </div>
+                <div class="portfolio-item">
+                    <h3>行事曆產生器</h3>
+                    <p>用 JavaScript 開發的行事曆產生器，可以產生每個月的月曆，並可以在上面新增備註事項。</p>
+                    <button onclick="openCalendar()">開啟行事曆產生器</button>
+                </div>
             </div>
         </section>
         <section id="testimonials">
@@ -340,6 +388,11 @@
         // 開啟台灣身分證字號產生器
         function openTwMap() {
             window.open("tw_id.html", "_blank"); 
+        }
+
+        // 開啟行事曆產生器
+        function openCalendar() {
+            window.open("class.html", "_blank");
         }
     </script>
 
