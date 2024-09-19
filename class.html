@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月曆</title>
+    <style>
+        .calendar {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .calendar th, .calendar td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            width: 14.28%; /* 7 columns (including header) */
+            box-sizing: border-box;
+        }
+
+        .calendar th {
+            background-color: #333; /* 深灰色背景 */
+            color: white; /* 白色字體 */
+        }
+
+        .calendar .date-row {
+            background-color: #f2f2f2; /* 淺灰色背景 */
+            height: 50px; /* 日期列的高度 */
+        }
+
+        .calendar .course-row {
+            background-color: white; /* 白色背景 */
+            height: 70px; /* 课程列的高度 */
+        }
+
+        .day {
+            cursor: pointer;
+            vertical-align: middle; /* Align text to the middle of the cell */
+        }
+
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            z-index: 1000;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px; /* 統一字體大小 */
+            margin: 0 10px; /* 按鈕間距 */
+            transition: background-color 0.3s ease; /* 顏色轉場效果 */
+        }
+
+        .button:hover {
+            background-color: #45a049; /* 顏色變暗 */
+        }
+
+        .popup input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .popup .highlight {
+            background-color: black;
+            color: white;
+        }
+
+        .popup .highlight.checked {
+            background-color: black;
+            color: white;
+        }
+
+        .popup .highlight:not(.checked) {
+            background-color: #f2f2f2; /* 非選中狀態 */
+        }
+
+        .popup .course-info {
+            margin-top: 10px;
+        }
+
+        .popup .course-name {
+            font-size: 16px; /* 課程名稱正常大小 */
+        }
+
+        .popup .instructor-name {
+            font-size: 20px; /* 講師名字大字 */
+            font-weight: bold; /* 粗體 */
+        }
+
+        .popup .highlight-cell {
+            background-color: black;
+            color: white;
+        }
+
+        .popup .highlight-cell .instructor-name {
+            color: white;
+        }
+
+        .calendar .course-row .instructor-name { /* 课程格子里的講師名字 */
+            font-size: 20px; /* 講師名字大字 */
+            font-weight: bold; /* 粗體 */
+        }
+
+        /* Highlight cells based on row type */
+        .calendar .course-row .highlight-cell { /* 課程格子里的反白 */
+            background-color: #333; /* 深灰色背景 */
+            color: white;
+        }
+
+        .calendar .course-row .highlight-cell .instructor-name {
+            color: white;
+        }
+
+        .calendar .date-row .highlight-cell { /* 日期格子里的反白 */
+            background-color: #333; /* 深灰色背景 */
+            color: white;
+        }
+
+        .calendar .date-row .highlight-cell .instructor-name {
+            color: white;
+        }
+
+        .calendar .empty-row .highlight-cell { /* 空白格子里的反白 */
+            background-color: #333; /* 深灰色背景 */
+            color: white;
+        }
+
+        .calendar .empty-row .highlight-cell .instructor-name {
+            color: white;
+        }
+
+        @media print {
+            /* 隐藏选择框和按钮 */
+            .print-button, #popup, #overlay, h1, label, input, .button-container {
+                display: none;
+            }
+
+            /* 打印时表格的样式 */
+            .calendar {
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            .calendar th, .calendar td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: center;
+                width: 14.28%; /* 7 columns (including header) */
+                box-sizing: border-box;
+            }
+
+            .calendar th {
+                background-color: #333; /* 深灰色背景 */
+                color: white; /* 白色字體 */
+            }
+
+            .calendar .date-row {
+                background-color: #f2f2f2; /* 淺灰色背景 */
+                height: 50px; /* 保持日期列高度 */
+            }
+
+            .calendar .course-row {
+                background-color: white; /* 白色背景 */
+                height: 70px; /* 保持課程列高度 */
+            }
+
+            .calendar .course-row .highlight-cell,
+            .calendar .date-row .highlight-cell,
+            .calendar .empty-row .highlight-cell {
+                background-color: #333;
+                color: white;
+            }
+        }
+
+        /* Responsive design for smaller screens */
+        @media screen and (max-width: 768px) {
+            .button {
+                font-size: 14px; /* 縮小字體大小 */
+                margin: 0 5px; /* 減少按鈕間距 */
+            }
+
+            .calendar th, .calendar td {
+                font-size: 12px; /* 縮小表格字體大小 */
+            }
+
+            .popup .course-name {
+                font-size: 14px; /* 縮小課程名稱字體 */
+            }
+
+            .popup .instructor-name {
+                font-size: 16px; /* 縮小講師名字字體 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>月曆</h1>
+    <label for="year">年份:</label>
+    <input type="number" id="year" value="2024">
+    <label for="month">月份:</label>
+    <input type="number" id="month" value="9">
+
+    <div class="button-container">
+        <button class="button" onclick="generateCalendar()">生成月曆</button>
+        <button class="button print-button" onclick="printCalendar()">列印月曆</button>
+    </div>
+    
+    <table id="calendar" class="calendar"></table>
+    
+    <div id="overlay" class="overlay" onclick="closePopup()"></div>
+    <div id="popup" class="popup">
+        <h2>新增課程</h2>
+        <label for="highlight">反白:</label>
+        <input type="checkbox" id="highlight">
+        <div class="course-info">
+            <label for="timeLocation">時間地點:</label>
+            <input type="text" id="timeLocation" class="course-name">
+            <br>
+            <label for="courseName">課程名稱:</label>
+            <input type="text" id="courseName" class="course-name">
+            <br>
+            <label for="instructorName">講師名字:</label>
+            <input type="text" id="instructorName" class="instructor-name">
+        </div>
+        <button class="button" onclick="addCourse()">新增</button>
+        <button class="button" onclick="closePopup()">取消</button>
+    </div>
+
+    <script>
+        let selectedCell = null;
+
+        function generateCalendar() {
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value) - 1; // JS 月份从 0 开始
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';  // 清空之前生成的日曆
+
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // 調整第一天是從星期一開始
+            let startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+
+            // 表头
+            let html = '<tr>';
+            const daysOfWeek = ['一', '二', '三', '四', '五', '六', '日'];
+            for (let day of daysOfWeek) {
+                html += `<th>${day}</th>`;
+            }
+            html += '</tr>';
+
+            // 生成日期行
+            let day = 1;
+            while (day <= daysInMonth) {
+                html += '<tr class="date-row">';
+                for (let col = 0; col < 7; col++) {
+                    if (day > daysInMonth) {
+                        html += `<td></td>`; // 超过当月天数
+                    } else if (col < startDay && day === 1) {
+                        html += `<td></td>`; // 前置空白格
+                    } else {
+                        html += `<td class="day" onclick="showPopup('day-${col}-${day}')">${day}</td>`;
+                        day++;
+                    }
+                }
+                html += '</tr>';
+
+                // 生成课程行
+                html += '<tr class="course-row">';
+                for (let col = 0; col < 7; col++) {
+                    if (day > daysInMonth) {
+                        html += `<td></td>`; // 超过当月天数
+                    } else {
+                        html += `<td id="day-${col}-${day}" data-day="${day}" onclick="showPopup('day-${col}-${day}')"></td>`;
+                    }
+                }
+                html += '</tr>';
+            }
+
+            calendar.innerHTML = html;
+        }
+
+        function showPopup(id) {
+            selectedCell = document.getElementById(id);
+            document.getElementById('popup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('timeLocation').value = ''; // Clear timeLocation input
+            document.getElementById('courseName').value = '';
+            document.getElementById('instructorName').value = '';
+            document.getElementById('highlight').checked = false;
+        }
+
+        function closePopup() {
+            document.getElementById('popup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        function addCourse() {
+            const courseName = document.getElementById('courseName').value;
+            const instructorName = document.getElementById('instructorName').value;
+            const isHighlighted = document.getElementById('highlight').checked;
+            const timeLocation = document.getElementById('timeLocation').value;
+
+            if (selectedCell) {
+                selectedCell.innerHTML = `
+                    <div class="course-info">
+                        <div class="course-name">${timeLocation}</div> <div class="course-name">${courseName}</div>
+                        <div class="instructor-name">${instructorName}</div>
+                    </div>
+                `;
+
+                if (isHighlighted) {
+                    selectedCell.classList.add('highlight-cell');
+                } else {
+                    selectedCell.classList.remove('highlight-cell');
+                }
+                closePopup();
+            }
+        }
+
+        function printCalendar() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
