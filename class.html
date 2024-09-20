@@ -87,73 +87,22 @@
             margin-right: 10px;
         }
 
-        .popup .highlight {
+        .highlight {
             background-color: black;
             color: white;
         }
 
-        .popup .highlight.checked {
-            background-color: black;
-            color: white;
-        }
-
-        .popup .highlight:not(.checked) {
-            background-color: #f2f2f2; /* 非選中狀態 */
-        }
-
-        .popup .course-info {
+        .course-info {
             margin-top: 10px;
         }
 
-        .popup .course-name {
+        .course-name {
             font-size: 16px; /* 課程名稱正常大小 */
         }
 
-        .popup .instructor-name {
+        .instructor-name {
             font-size: 20px; /* 講師名字大字 */
             font-weight: bold; /* 粗體 */
-        }
-
-        .popup .highlight-cell {
-            background-color: black;
-            color: white;
-        }
-
-        .popup .highlight-cell .instructor-name {
-            color: white;
-        }
-
-        .calendar .course-row .instructor-name { /* 课程格子里的講師名字 */
-            font-size: 20px; /* 講師名字大字 */
-            font-weight: bold; /* 粗體 */
-        }
-
-        /* Highlight cells based on row type */
-        .calendar .course-row .highlight-cell { /* 課程格子里的反白 */
-            background-color: #333; /* 深灰色背景 */
-            color: white;
-        }
-
-        .calendar .course-row .highlight-cell .instructor-name {
-            color: white;
-        }
-
-        .calendar .date-row .highlight-cell { /* 日期格子里的反白 */
-            background-color: #333; /* 深灰色背景 */
-            color: white;
-        }
-
-        .calendar .date-row .highlight-cell .instructor-name {
-            color: white;
-        }
-
-        .calendar .empty-row .highlight-cell { /* 空白格子里的反白 */
-            background-color: #333; /* 深灰色背景 */
-            color: white;
-        }
-
-        .calendar .empty-row .highlight-cell .instructor-name {
-            color: white;
         }
 
         @media print {
@@ -163,11 +112,6 @@
             }
 
             /* 打印时表格的样式 */
-            .calendar {
-                border-collapse: collapse;
-                width: 100%;
-            }
-
             .calendar th, .calendar td {
                 border: 1px solid #ddd;
                 padding: 8px;
@@ -181,20 +125,8 @@
                 color: white; /* 白色字體 */
             }
 
-            .calendar .date-row {
-                background-color: #f2f2f2; /* 淺灰色背景 */
-                height: 50px; /* 保持日期列高度 */
-            }
-
-            .calendar .course-row {
-                background-color: white; /* 白色背景 */
-                height: 70px; /* 保持課程列高度 */
-            }
-
-            .calendar .course-row .highlight-cell,
-            .calendar .date-row .highlight-cell,
-            .calendar .empty-row .highlight-cell {
-                background-color: #333;
+            .highlight {
+                background-color: black;
                 color: white;
             }
         }
@@ -210,24 +142,22 @@
                 font-size: 12px; /* 縮小表格字體大小 */
             }
 
-            .popup .course-name {
+            .course-name {
                 font-size: 14px; /* 縮小課程名稱字體 */
             }
 
-            .popup .instructor-name {
+            .instructor-name {
                 font-size: 16px; /* 縮小講師名字字體 */
             }
         }
-        
-@media print {
-    /* 確保背景顏色會列印 */
-    * {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-    }
-}
 
-        
+        @media print {
+            /* 確保背景顏色會列印 */
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
     </style>
 </head>
 <body>
@@ -266,93 +196,106 @@
     <script>
         let selectedCell = null;
 
-        function generateCalendar() {
-            const year = parseInt(document.getElementById('year').value);
-            const month = parseInt(document.getElementById('month').value) - 1; // JS 月份从 0 开始
-            const calendar = document.getElementById('calendar');
-            calendar.innerHTML = '';  // 清空之前生成的日曆
+		function generateCalendar() {
+			const year = parseInt(document.getElementById('year').value);
+			const month = parseInt(document.getElementById('month').value) - 1; // JS 月份從 0 開始
+			const calendar = document.getElementById('calendar');
+			calendar.innerHTML = '';  // 清空之前生成的日曆
 
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+			// 計算當月的第一天是星期幾，並將其轉換為從星期一開始
+			let firstDayOfMonth = new Date(year, month, 1).getDay();
+			firstDayOfMonth = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1; // 將星期日(0)移至最後
 
-            // 調整第一天是從星期一開始
-            let startDay = (firstDayOfMonth === 0) ? 6 : firstDayOfMonth - 1;
+			const daysInMonth = new Date(year, month + 1, 0).getDate(); // 當月天數
+			let day = 1;
 
-            // 表头
-            let html = '<tr>';
-            const daysOfWeek = ['一', '二', '三', '四', '五', '六', '日'];
-            for (let day of daysOfWeek) {
-                html += `<th>${day}</th>`;
-            }
-            html += '</tr>';
+			// 更新表頭，星期一到星期日
+			const headerRow = document.createElement('tr');
+			const daysOfWeek = ['一', '二', '三', '四', '五', '六', '日'];
+			daysOfWeek.forEach(day => {
+				const th = document.createElement('th');
+				th.textContent = day;
+				headerRow.appendChild(th);
+			});
+			calendar.appendChild(headerRow);
 
-            // 生成日期行
-            let day = 1;
-            while (day <= daysInMonth) {
-                html += '<tr class="date-row">';
-                for (let col = 0; col < 7; col++) {
-                    if (day > daysInMonth) {
-                        html += `<td></td>`; // 超过当月天数
-                    } else if (col < startDay && day === 1) {
-                        html += `<td></td>`; // 前置空白格
-                    } else {
-                        html += `<td class="day" onclick="showPopup('day-${col}-${day}')">${day}</td>`;
-                        day++;
-                    }
-                }
-                html += '</tr>';
+			// 生成日期和課程行
+			for (let i = 0; day <= daysInMonth; i++) {
+				const dateRow = document.createElement('tr');
+				dateRow.classList.add('date-row'); // 加入日期行的 class
+				const courseRow = document.createElement('tr');
+				courseRow.classList.add('course-row'); // 加上課程行的 class
 
-                // 生成课程行
-                html += '<tr class="course-row">';
-                for (let col = 0; col < 7; col++) {
-                    if (day > daysInMonth) {
-                        html += `<td></td>`; // 超过当月天数
-                    } else {
-                        html += `<td id="day-${col}-${day}" data-day="${day}" onclick="showPopup('day-${col}-${day}')"></td>`;
-                    }
-                }
-                html += '</tr>';
-            }
+				// 生成每行的 7 天
+				for (let j = 0; j < 7; j++) {
+					const dateCell = document.createElement('td');
+					const courseCell = document.createElement('td');
 
-            calendar.innerHTML = html;
-        }
+					if (i === 0 && j < firstDayOfMonth) {
+						// 填充空白日期儲存格
+						dateCell.classList.add('empty-cell');
+						courseCell.classList.add('empty-cell');
+					} else if (day <= daysInMonth) {
+						dateCell.textContent = day;
+						dateCell.classList.add('day');
+						dateCell.onclick = function() {
+							openPopup(courseCell);
+						};
+						courseCell.onclick = function() {
+							openPopup(courseCell);
+						};
+						day++;
+					} else {
+						// 超出天數範圍的空白單元格
+						dateCell.classList.add('empty-cell');
+						courseCell.classList.add('empty-cell');
+					}
 
-        function showPopup(id) {
-            selectedCell = document.getElementById(id);
+					dateRow.appendChild(dateCell);
+					courseRow.appendChild(courseCell);
+				}
+
+				calendar.appendChild(dateRow);
+				calendar.appendChild(courseRow);
+			}
+		}
+
+
+
+        function openPopup(cell) {
+            selectedCell = cell;
             document.getElementById('popup').style.display = 'block';
             document.getElementById('overlay').style.display = 'block';
-            document.getElementById('timeLocation').value = ''; // Clear timeLocation input
-            document.getElementById('courseName').value = '';
-            document.getElementById('instructorName').value = '';
-            document.getElementById('highlight').checked = false;
         }
 
         function closePopup() {
             document.getElementById('popup').style.display = 'none';
             document.getElementById('overlay').style.display = 'none';
+            selectedCell = null;
         }
 
         function addCourse() {
+            if (!selectedCell) return;
+            const highlight = document.getElementById('highlight').checked;
+            const timeLocation = document.getElementById('timeLocation').value;
             const courseName = document.getElementById('courseName').value;
             const instructorName = document.getElementById('instructorName').value;
-            const isHighlighted = document.getElementById('highlight').checked;
-            const timeLocation = document.getElementById('timeLocation').value;
 
-            if (selectedCell) {
-                selectedCell.innerHTML = `
-                    <div class="course-info">
-                        <div class="course-name">${timeLocation}</div> <div class="course-name">${courseName}</div>
-                        <div class="instructor-name">${instructorName}</div>
-                    </div>
-                `;
+            selectedCell.innerHTML = `
+                <div>
+                    <span class="course-name">${timeLocation}</span><br>
+                    <span class="course-name">${courseName}</span><br>
+                    <span class="instructor-name">${instructorName}</span>
+                </div>
+            `;
 
-                if (isHighlighted) {
-                    selectedCell.classList.add('highlight-cell');
-                } else {
-                    selectedCell.classList.remove('highlight-cell');
-                }
-                closePopup();
+            if (highlight) {
+                selectedCell.classList.add('highlight');
+            } else {
+                selectedCell.classList.remove('highlight');
             }
+
+            closePopup();
         }
 
         function printCalendar() {
