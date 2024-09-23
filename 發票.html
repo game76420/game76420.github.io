@@ -72,8 +72,8 @@
         const capturedImage = document.getElementById('capturedImage');
         const winningNumbersDiv = document.getElementById('winningNumbers');
 
-        // 設置前置攝像頭
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }) // 使用前置攝像頭
+        // 設置後置攝像頭
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }) // 使用後置攝像頭
             .then(stream => {
                 video.srcObject = stream;
             })
