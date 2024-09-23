@@ -64,7 +64,7 @@
     <button id="capture">拍攝發票</button>
     <img id="capturedImage" src="" alt="Captured Invoice" style="display:none;">
     <div id="result"></div>
-    <div id="winningNumbers"></div> <!-- 新增顯示中獎號碼的區域 -->
+    <div id="winningNumbers"></div>
 
     <script>
         const video = document.getElementById('video');
@@ -72,8 +72,8 @@
         const capturedImage = document.getElementById('capturedImage');
         const winningNumbersDiv = document.getElementById('winningNumbers');
 
-        // 設置攝像頭
-        navigator.mediaDevices.getUserMedia({ video: true })
+        // 設置前置攝像頭
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } }) // 使用前置攝像頭
             .then(stream => {
                 video.srcObject = stream;
             })
