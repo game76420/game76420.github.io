@@ -73,7 +73,7 @@
         const winningNumbersDiv = document.getElementById('winningNumbers');
 
         // 設置後置攝像頭
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }) // 使用後置攝像頭
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
             .then(stream => {
                 video.srcObject = stream;
             })
@@ -99,10 +99,16 @@
                     canvas.toDataURL(),
                     'eng',
                     {
-                        logger: info => console.log(info) // 可用於查看識別過程
+                        logger: info => console.log(info)
                     }
                 ).then(({ data: { text } }) => {
-                    checkWinning(text.trim());
+                    const invoiceNumber = text.trim();
+                    if (invoiceNumber) {
+                        resultDiv.textContent = `辨識出發票號碼為: ${invoiceNumber}`;
+                        checkWinning(invoiceNumber);
+                    } else {
+                        resultDiv.textContent = '無法辨識，請重試。';
+                    }
                 }).catch(err => {
                     console.error("識別發生錯誤:", err);
                     resultDiv.textContent = '識別發生錯誤，請重試。';
@@ -126,9 +132,9 @@
             const prize = winningData[invoiceNumber];
 
             if (prize) {
-                resultDiv.textContent = `恭喜中獎! 獎金: ${prize} 元`;
+                resultDiv.textContent += `\n恭喜中獎! 獎金: ${prize} 元`;
             } else {
-                resultDiv.textContent = '未中獎';
+                resultDiv.textContent += '\n未中獎';
             }
         }
 
