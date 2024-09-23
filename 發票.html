@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>發票中獎檢查</title>
+    <script src="https://cdn.rawgit.com/naptha/tesseract.js/0.2.0/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        #video {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        #capturedImage {
+            width: 100%;
+            max-width: 600px;
+            height: auto;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result, #winningNumbers {
+            margin-top: 20px;
+            font-size: 18px;
+            text-align: center;
+        }
+        @media (max-width: 600px) {
+            button {
+                width: 100%;
+            }
+            #result {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>發票中獎檢查</h1>
+    <video id="video" autoplay></video>
+    <button id="capture">拍攝發票</button>
+    <img id="capturedImage" src="" alt="Captured Invoice" style="display:none;">
+    <div id="result"></div>
+    <div id="winningNumbers"></div> <!-- 新增顯示中獎號碼的區域 -->
+
+    <script>
+        const video = document.getElementById('video');
+        const resultDiv = document.getElementById('result');
+        const capturedImage = document.getElementById('capturedImage');
+        const winningNumbersDiv = document.getElementById('winningNumbers');
+
+        // 設置攝像頭
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("攝像頭啟用失敗:", err);
+                resultDiv.textContent = '無法啟用攝像頭，請檢查權限設定。錯誤: ' + err.message;
+            });
+
+        // 捕獲圖片並識別文本
+        document.getElementById('capture').addEventListener('click', () => {
+            if (video.srcObject) {
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // 更新顯示捕獲的圖片
+                capturedImage.src = canvas.toDataURL();
+                capturedImage.style.display = 'block';
+
+                Tesseract.recognize(
+                    canvas.toDataURL(),
+                    'eng',
+                    {
+                        logger: info => console.log(info) // 可用於查看識別過程
+                    }
+                ).then(({ data: { text } }) => {
+                    checkWinning(text.trim());
+                }).catch(err => {
+                    console.error("識別發生錯誤:", err);
+                    resultDiv.textContent = '識別發生錯誤，請重試。';
+                });
+            } else {
+                resultDiv.textContent = '請檢查攝像頭是否已啟用。';
+            }
+        });
+
+        // 獲取最新的中獎號碼
+        async function fetchWinningNumbers() {
+            // 假設這是一個API端點，實際上應根據財政部提供的API來修改
+            const response = await fetch('https://example.com/winning_numbers'); // 更改為實際的API URL
+            const data = await response.json();
+            return data.winningNumbers; // 假設返回格式中有這樣的字段
+        }
+
+        // 檢查中獎
+        async function checkWinning(invoiceNumber) {
+            const winningData = await fetchWinningNumbers();
+            const prize = winningData[invoiceNumber];
+
+            if (prize) {
+                resultDiv.textContent = `恭喜中獎! 獎金: ${prize} 元`;
+            } else {
+                resultDiv.textContent = '未中獎';
+            }
+        }
+
+        // 顯示中獎號碼
+        async function displayWinningNumbers() {
+            const winningNumbers = await fetchWinningNumbers();
+            winningNumbersDiv.innerHTML = `<strong>本期中獎號碼:</strong> ${Object.keys(winningNumbers).join(', ')}`;
+        }
+
+        // 初始化時顯示中獎號碼
+        displayWinningNumbers();
+    </script>
+</body>
+</html>
