@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo 遊戲</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden; 
+            width: 100%;
+            max-width: none;
+        }
+
+        .cell {
+            background-color: #fff;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 3vw; /* 調整字體大小 */
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            width: 22.5vw; /* 增加寬度 */
+            height: 22.5vw; /* 增加高度 */
+            max-width: 150px; /* 調整最大寬度 */
+            max-height: 150px; /* 調整最大高度 */
+        }
+
+        .cell:hover {
+            background-color: #f0f0f0;
+        }
+
+        .selected {
+            background-color: #f08080;
+            color: #fff;
+        }
+
+        #selected-number {
+            font-size: 28px;
+            margin-top: 20px;
+            color: #333;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #restart-btn {
+            background-color: #f44336;
+            display: inline;
+        }
+
+        @media (max-width: 768px) {
+            .cell {
+                height: 22.5vw; /* 維持比例 */
+                width: 22.5vw; /* 維持比例 */
+                font-size: 24px; /* 調整字體大小 */
+            }
+        }
+
+        @media (max-width: 480px) {
+            .cell {
+                height: 15vw; /* 維持比例 */
+                width: 15vw; /* 維持比例 */
+                font-size: 18px; /* 調整字體大小 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1>Bingo 遊戲</h1>
+<div id="board"></div>
+<div id="selected-number">請按下「選擇號碼」開始遊戲</div>
+<div>
+    <button id="draw-number-btn">選擇號碼</button>
+    <button id="restart-btn">重新開始遊戲</button>
+</div>
+
+<script>
+    const boardElement = document.getElementById('board');
+    const selectedNumberElement = document.getElementById('selected-number');
+    const drawNumberBtn = document.getElementById('draw-number-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    let numbers = Array.from({length: 25}, (_, i) => i + 1);
+    let availableNumbers = [...numbers];
+    let selectedNumbers = new Set();
+    let intervalId;
+    let isDrawing = false;
+    let isEnterPressed = false;
+
+    function initBoard() {
+        boardElement.innerHTML = '';
+        numbers.forEach(number => {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.textContent = number;
+            cell.onclick = () => toggleNumberSelection(number, cell);
+            boardElement.appendChild(cell);
+        });
+    }
+
+    function toggleNumberSelection(number, cell) {
+        if (selectedNumbers.has(number)) {
+            return;
+        }
+
+        selectedNumbers.add(number);
+        cell.classList.add('selected');
+    }
+
+    function drawNumber() {
+        if (isDrawing) return;
+        isDrawing = true;
+
+        if (availableNumbers.length === 0) {
+            selectedNumberElement.textContent = "所有號碼均已選擇，請重新開始遊戲！";
+            drawNumberBtn.style.display = "none";
+            isDrawing = false;
+            return;
+        }
+
+        let number;
+        let count = 0;
+
+        intervalId = setInterval(() => {
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            number = availableNumbers[randomIndex];
+            selectedNumberElement.textContent = `選擇的號碼: ${number}`;
+
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                if (parseInt(cell.textContent) === number) {
+                    cell.style.backgroundColor = '#f08080';
+                } else if (selectedNumbers.has(parseInt(cell.textContent))) {
+                    cell.style.backgroundColor = '#f08080';
+                } else {
+                    cell.style.backgroundColor = '#fff';
+                }
+            });
+
+            count++;
+            // 停止跑號碼的條件 (改成跑 20 次)
+            if (count >= 20) { 
+                clearInterval(intervalId);
+                revealNumber(number);
+            }
+        }, 100); 
+    }
+
+    function revealNumber(number) {
+        availableNumbers = availableNumbers.filter(num => num !== number);
+
+        selectedNumbers.add(number);
+        selectedNumberElement.textContent = `最終選擇的號碼: ${number}`;
+
+        const cells = document.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            if (selectedNumbers.has(parseInt(cell.textContent))) {
+                cell.classList.add('selected');
+                cell.style.backgroundColor = '#f08080';
+            } else {
+                cell.style.backgroundColor = '#fff';
+            }
+        });
+
+        setTimeout(() => {
+            cells.forEach(cell => {
+                if (!selectedNumbers.has(parseInt(cell.textContent))) {
+                    cell.style.backgroundColor = '';
+                }
+            });
+        }, 1000);
+
+        isDrawing = false;
+    }
+
+    function restartGame() {
+        selectedNumbers.clear();
+        availableNumbers = [...numbers];
+        selectedNumberElement.textContent = "請按下「選擇號碼」開始遊戲";
+        drawNumberBtn.style.display = "inline";
+        initBoard();
+    }
+
+    drawNumberBtn.addEventListener('click', drawNumber);
+    restartBtn.addEventListener('click', restartGame);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !isEnterPressed) {
+            isEnterPressed = true;
+            drawNumber();
+        }
+    });
+
+    document.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            isEnterPressed = false;
+        }
+    });
+
+    initBoard();
+</script>
+
+</body>
+</html>
