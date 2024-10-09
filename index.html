@@ -236,6 +236,53 @@
             padding: 2px;
             margin-bottom: 2px;
         }
+
+        /* Bingo 遊戲樣式 */
+        #bingo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        #bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            grid-template-rows: repeat(5, 50px);
+            gap: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .bingo-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .bingo-cell.marked {
+            background-color: #f0f0f0;
+        }
+
+        #bingo-numbers {
+            margin-top: 1rem;
+        }
+
+        #bingo-number {
+            font-size: 24px;
+            margin-bottom: 1rem;
+        }
+
+        #bingo-message {
+            font-size: 18px;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -339,6 +386,11 @@
                     <p>可制定關鍵字，獎項、名額，自動化抽獎過程，方便快捷。</p>
                     <button onclick="window.open('https://game76420.github.io/FB%E6%8A%BD%E7%8D%8E_python.rar')" download>下載程式碼</button>
                 </div>
+                <div class="portfolio-item">
+                    <h3>Bingo 遊戲</h3>
+                    <p>用 JavaScript 和 HTML 開發的 Bingo 遊戲，您可以與電腦對戰，體驗趣味十足的遊戲體驗。</p>
+                    <button onclick="openBingo()">開啟 Bingo 遊戲</button>
+                </div>
             </div>
         </section>
         <section id="testimonials">
@@ -398,6 +450,11 @@
         // 開啟行事曆產生器
         function openCalendar() {
             window.open("class.html", "_blank");
+        }
+
+        // 開啟 Bingo 遊戲
+        function openBingo() {
+            window.open("https://game76420.github.io/bingo.html", "_blank");
         }
     </script>
 
