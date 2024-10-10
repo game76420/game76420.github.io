@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <base href="https://game76420.github.io/" />
@@ -79,8 +80,8 @@
         box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
         aspect-ratio: 1 / 1;
         text-align: center;
-        width: 12vh; /* 修改為相對於視口高度的大小 */
-        height: 12vh; /* 修改為相對於視口高度的大小 */
+        /* width: 12vh;  */ /* 移除原本設定的固定大小 */
+        /* height: 12vh;  */ /* 移除原本設定的固定大小 */
         border-radius: 50%; /* 确保为圆形 */
       }
 
@@ -122,6 +123,11 @@
         justify-content: center;
         gap: 10px;
         margin-top: 20px;
+        position: fixed; /* 设置固定定位 */
+        bottom: 20px; /* 设置底部距离屏幕底部的距离 */
+        left: 50%;
+        transform: translateX(-50%); /* 水平居中 */
+        width: 90%; /* 按钮区域的宽度 */
       }
 
       button {
