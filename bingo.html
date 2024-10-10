@@ -1,462 +1,456 @@
-<html><head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html>
+  <head>
+    <base href="https://game76420.github.io/" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bingo 遊戲</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
 
-        html, body {
-            height: 100%; /* 设置 html 和 body 的高度为 100% */
-            margin: 0;    /* 移除默认的 margin */
-            overflow: hidden; /* 隐藏滚动条 */
+      :root {
+        --main-bg-color: #0080ff;
+        --secondary-bg-color: #003366;
+        --highlight-color: #ffd700;
+        --cell-bg-color: #ffa500;
+        --selected-cell-color: #00bfff;
+        --text-color: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        margin: 0; /* 确保没有默认的边距 */
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Poppins", "Arial", sans-serif;
+        background: radial-gradient(
+          circle,
+          var(--main-bg-color) 0%,
+          var(--secondary-bg-color) 100%
+        );
+        color: var(--text-color);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+      }
+
+      .game-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh; /* 新增此行以確保容器至少填滿視口高度 */
+      }
+
+      #board {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1vh;
+        width: 90%;
+        height: 90%;
+        margin: 20px auto;
+        aspect-ratio: 1 / 1;
+      }
+
+      .cell {
+        background-color: var(--cell-bg-color);
+        border: 2px solid var(--highlight-color);
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: clamp(1.5rem, 5vw, 2rem); /* 调整最大字体大小 */
+        font-weight: bold;
+        color: var(--secondary-bg-color);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+        aspect-ratio: 1 / 1;
+        text-align: center;
+        width: 12vh; /* 修改為相對於視口高度的大小 */
+        height: 12vh; /* 修改為相對於視口高度的大小 */
+        border-radius: 50%; /* 确保为圆形 */
+      }
+
+      .cell:hover {
+        transform: scale(1.05);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      .selected {
+        background-color: var(--selected-cell-color);
+        color: var(--text-color);
+        animation: pulse 1s infinite;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
         }
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            text-align: center;
-            background: linear-gradient(135deg, #FF9D6C 0%, #BB4E75 100%);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #333;
+        50% {
+          transform: scale(1.05);
         }
-
-        .container {
-            /*  height: 100%;  */ /* 取消容器高度為 100% */
-            display: flex; /* 使用 flexbox 以便内容居中 */
-            flex-direction: column; /* 垂直排列内容 */
-            justify-content: center; /* 垂直居中内容 */
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            max-width: 90%;
-            width: 600px;
-            /* 新增以下設定 */
-            height: 95vh;  /* 設定容器高度為視窗高度的 95% */
+        100% {
+          transform: scale(1);
         }
+      }
 
-        /* 以下代码保持不变 */
-        h1 {
-            color: #FF6B6B;
-            margin-bottom: 30px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      #selected-number {
+        font-size: clamp(1rem, 3vw, 1.5rem);
+        margin: 20px 0;
+        font-weight: bold;
+        color: var(--highlight-color);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        text-align: center; /* 新增此行以置中對齊文字 */
+      }
+
+      .button-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      button {
+        padding: 8px 16px;
+        font-size: clamp(0.7rem, 2vw, 0.9rem);
+        font-weight: bold;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: var(--highlight-color);
+        color: var(--secondary-bg-color);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        outline: none; /* 新增此行以隱藏焦點樣式 */
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      #draw-number-btn {
+        background-color: var(--selected-cell-color);
+        color: var(--text-color);
+      }
+
+      #restart-btn {
+        background-color: var(--cell-bg-color);
+        color: var(--secondary-bg-color);
+      }
+
+      .zoom-effect {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        font-size: 10vw;
+        color: red;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(255, 255, 255, 1);
+        opacity: 1;
+        transition: transform 0.5s ease, opacity 0.5s ease;
+        pointer-events: none;
+        text-shadow: 
+          2px 2px 0 white,  
+          -2px -2px 0 white,
+          2px -2px 0 white,
+          -2px 2px 0 white; /* 增加偏移量以加粗外框笔画效果 */
+      }
+
+      .zoom-effect.show {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+
+      .zoom-effect.hide {
+        opacity: 0;
+      }
+
+      @media (max-width: 480px) {
+        .game-container {
+          padding: 10px;
         }
 
         #board {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 10px;
-            margin: 20px auto; /* 添加上边距 */
-            width: 100%;
-            max-width: 500px;
-        }
-
-        .cell {
-            background-color: #FFF7ED;
-            border: 2px solid #FF9D6C;
-            border-radius: 50%;
-            aspect-ratio: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #BB4E75;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .cell:hover {
-            background-color: #FFE4D6;
-        }
-
-        .selected {
-            background-color: #FF6B6B;
-            color: #fff;
-            border-color: #FF4757;
-        }
-
-        #selected-number {
-            font-size: 1.5rem;
-            margin: 20px 0;
-            padding: 10px;
-            background-color: #FFE4D6;
-            border-radius: 10px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            color: #BB4E75;
+          width: 90vw;
+          height: 90vw;
         }
 
         .button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
+          flex-direction: column;
+          align-items: center;
         }
 
         button {
-            padding: 12px 24px;
-            font-size: 1rem;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 0 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+          width: 100%;
+          margin-bottom: 5px;
         }
-
-        #draw-number-btn {
-            background-color: #FF9D6C;
-            color: #fff;
-        }
-
-        #draw-number-btn:hover {
-            background-color: #FF6B6B;
-            box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
-        }
-
-        #restart-btn {
-            background-color: #BB4E75;
-            color: #fff;
-        }
-
-        #restart-btn:hover {
-            background-color: #A13E62;
-            box-shadow: 0 4px 8px rgba(187, 78, 117, 0.4);
-        }
-
-        #toggle-bgm {
-            background-color: #FF6B6B;
-            color: #fff;
-            margin-top: 20px;
-        }
-
-        #toggle-bgm:hover {
-            background-color: #FF4757;
-            box-shadow: 0 4px 8px rgba(255, 107, 107, 0.4);
-        }
-
-        .zoom-effect {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            font-size: 20vw;
-            opacity: 0;
-            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none;
-            background: linear-gradient(45deg, #FF6B6B, #FFD700);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
-            border: 4px solid #FFD700;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            animation: pulseText 2s infinite;
-        }
-
-        @keyframes pulseText {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(1.1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-        }
-
-        .zoom-effect.show {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 1;
-        }
-
-        .zoom-effect.hide {
-            opacity: 0;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 2rem;
-            }
-
-            .cell {
-                font-size: 1.4rem;
-            }
-
-            button {
-                padding: 10px 20px;
-                font-size: 0.9rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 15px;
-            }
-
-            h1 {
-                font-size: 1.8rem;
-            }
-
-            .cell {
-                font-size: 1.2rem;
-            }
-
-            button {
-                padding: 8px 16px;
-                font-size: 0.8rem;
-            }
-        }
-
-        @media (min-width: 1024px) {
-            .container {
-                max-width: 80%;
-                width: 900px;
-            }
-
-            h1 {
-                font-size: 3.5rem;
-            }
-
-            #board {
-                max-width: 800px;
-            }
-
-            .cell {
-                font-size: 2.5rem;
-            }
-
-            #selected-number {
-                font-size: 2rem;
-            }
-
-            button {
-                font-size: 1.2rem;
-                padding: 15px 30px;
-            }
-        }
+      }
     </style>
-</head>
-<body>
-<div class="container">
-    <!-- <h1>Bingo 遊戲</h1> -->
-    <div id="board"></div>
-    <div id="selected-number">請按下「選擇號碼」開始遊戲</div>
-    <div class="button-container">
-        <button id="draw-number-btn">選擇號碼</button>
-        <button id="restart-btn">重新開始</button>
+  </head>
+  <body>
+    <div>
+      <div id="board"></div>
+      <div id="selected-number">請按下「選擇號碼」開始遊戲</div>
+      <div class="button-container">
+        <button id="draw-number-btn">開始擇號碼</button>
+        <button id="restart-btn">重新開始遊戲</button>
+        <button id="toggle-bgm">播放背景音樂</button>
+      </div>
     </div>
-    <button id="toggle-bgm">播放背景音樂</button>
-</div>
 
-<audio id="number-sound" src="sound01.mp3" preload="auto"></audio>
-<audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+    <audio id="number-sound" src="sound01.mp3" preload="auto"></audio>
+    <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
 
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-<script>
-    const boardElement = document.getElementById('board');
-    const selectedNumberElement = document.getElementById('selected-number');
-    const drawNumberBtn = document.getElementById('draw-number-btn');
-    const restartBtn = document.getElementById('restart-btn');
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script>
+      const boardElement = document.getElementById("board");
+      const selectedNumberElement = document.getElementById("selected-number");
+      const drawNumberBtn = document.getElementById("draw-number-btn");
+      const restartBtn = document.getElementById("restart-btn");
 
-    let numbers = Array.from({length: 25}, (_, i) => i + 1);
-    let availableNumbers = [...numbers];
-    let selectedNumbers = new Set();
-    let intervalId;
-    let isDrawing = false;
-    let isEnterPressed = false;
+      let numbers = Array.from({ length: 25 }, (_, i) => i + 1);
+      let availableNumbers = [...numbers];
+      let selectedNumbers = new Set();
+      let intervalId;
+      let isDrawing = false;
+      let isEnterPressed = false;
+      let isGameRestarted = false; // 增此行
 
-    function initBoard() {
-        boardElement.innerHTML = '';
-        numbers.forEach(number => {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            cell.textContent = number;
-            cell.onclick = () => toggleNumberSelection(number, cell);
-            boardElement.appendChild(cell);
+      function initBoard() {
+        boardElement.innerHTML = "";
+        numbers.forEach((number) => {
+          const cell = document.createElement("div");
+          cell.classList.add("cell");
+          cell.textContent = number;
+          cell.onclick = () => toggleNumberSelection(number, cell);
+          boardElement.appendChild(cell);
         });
-    }
+      }
 
-    function toggleNumberSelection(number, cell) {
-        if (selectedNumbers.has(number)) {
-            return;
-        }
+      function toggleNumberSelection(number, cell) {
+        if (selectedNumbers.has(number)) return;
 
         selectedNumbers.add(number);
-        cell.classList.add('selected');
+        cell.classList.add("selected");
 
         setTimeout(() => {
-            const selectSound = new Audio('sound02.mp3');
-            selectSound.play();
+          const selectSound = new Audio("sound02.mp3");
+          selectSound.play();
         }, 500);
 
-        const effectElement = document.createElement('div');
-        effectElement.className = 'zoom-effect show';
+        const effectElement = document.createElement("div");
+        effectElement.className = "zoom-effect show";
         effectElement.textContent = number;
         document.body.appendChild(effectElement);
 
         setTimeout(() => {
-            effectElement.classList.remove('show');
-            effectElement.classList.add('hide');
-            setTimeout(() => {
-                document.body.removeChild(effectElement);
-            }, 500);
+          effectElement.classList.remove("show");
+          effectElement.classList.add("hide");
+          setTimeout(() => {
+            document.body.removeChild(effectElement);
+          }, 500);
         }, 2000);
-    }
+      }
 
-    function celebrateNumber() {
+      function celebrateNumber() {
         confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#FFD700", "#FFA500", "#00BFFF", "#0080FF"],
         });
 
         confetti({
-            particleCount: 50,
-            spread: 70,
-            origin: { y: 0.6 },
-            colors: ['#FFD700', '#FFA500', '#FFFF00'],
-            shapes: ['circle'],
-            scalar: 0.7
+          particleCount: 50,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#FFD700", "#FFA500", "#00BFFF"],
+          shapes: ["circle"],
+          scalar: 0.7,
         });
-    }
+      }
 
-    function drawNumber() {
+      function drawNumber() {
         if (isDrawing) return;
         isDrawing = true;
 
         if (availableNumbers.length === 0) {
-            selectedNumberElement.textContent = "所有號碼均已選擇，請重新開始遊戲！";
-            drawNumberBtn.style.display = "none";
-            isDrawing = false;
-            return;
+          selectedNumberElement.textContent =
+            "所有號碼均已選擇，請重新開始遊戲！";
+          drawNumberBtn.style.display = "none";
+          isDrawing = false;
+          return;
         }
 
         let number;
         let count = 0;
 
         intervalId = setInterval(() => {
-            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-            number = availableNumbers[randomIndex];
-            selectedNumberElement.textContent = `選擇的號碼: ${number}`;
+          const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+          number = availableNumbers[randomIndex];
+          selectedNumberElement.textContent = `選擇的碼: ${number}`;
 
-            const sound = document.getElementById('number-sound');
-            sound.currentTime = 0;
-            sound.play();
+          const sound = document.getElementById("number-sound");
+          sound.currentTime = 0;
+          sound.play();
 
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach(cell => {
-                if (parseInt(cell.textContent) === number) {
-                    cell.style.backgroundColor = '#FF6B6B';
-                    cell.style.color = '#fff';
-                } else if (selectedNumbers.has(parseInt(cell.textContent))) {
-                    cell.style.backgroundColor = '#FF6B6B';
-                    cell.style.color = '#fff';
-                } else {
-                    cell.style.backgroundColor = '';
-                    cell.style.color = '';
-                }
-            });
-
-            count++;
-            if (count >= 20) {
-                clearInterval(intervalId);
-                revealNumber(number);
+          const cells = document.querySelectorAll(".cell");
+          cells.forEach((cell) => {
+            if (parseInt(cell.textContent) === number) {
+              cell.style.backgroundColor = "#00BFFF";
+              cell.style.color = "#fff";
+            } else if (selectedNumbers.has(parseInt(cell.textContent))) {
+              cell.style.backgroundColor = "#00BFFF";
+              cell.style.color = "#fff";
+            } else {
+              cell.style.backgroundColor = "";
+              cell.style.color = "";
             }
+          });
+
+          count++;
+          if (count >= 20) {
+            clearInterval(intervalId);
+            revealNumber(number);
+          }
         }, 100);
 
-        document.getElementById('number-sound').play();
-    }
+        document.getElementById("number-sound").play();
+      }
 
-    function revealNumber(number) {
-        availableNumbers = availableNumbers.filter(num => num !== number);
-
+      function revealNumber(number) {
+        availableNumbers = availableNumbers.filter((num) => num !== number);
         selectedNumbers.add(number);
-        selectedNumberElement.textContent = `最終選擇的號碼: ${number}`;
-
+        selectedNumberElement.textContent = `幸運號碼是: ${number}`;
         celebrateNumber();
 
-        const selectSound = new Audio('sound02.mp3');
-        selectSound.play().catch(error => {
-            console.error("播放音效時出錯:", error);
+        const selectSound = new Audio("sound02.mp3");
+        selectSound.play().catch((error) => {
+          console.error("播放音效時出錯:", error);
         });
 
-        const effectElement = document.createElement('div');
-        effectElement.className = 'zoom-effect show';
+        const effectElement = document.createElement("div");
+        effectElement.className = "zoom-effect show";
         effectElement.textContent = number;
         document.body.appendChild(effectElement);
 
         setTimeout(() => {
-            effectElement.classList.remove('show');
-            effectElement.classList.add('hide');
-            setTimeout(() => {
-                document.body.removeChild(effectElement);
-            }, 500);
+          effectElement.classList.remove("show");
+          effectElement.classList.add("hide");
+          setTimeout(() => {
+            document.body.removeChild(effectElement);
+          }, 500);
         }, 2000);
 
-        const cells = document.querySelectorAll('.cell');
-        cells.forEach(cell => {
-            if (selectedNumbers.has(parseInt(cell.textContent))) {
-                cell.classList.add('selected');
-            }
+        const cells = document.querySelectorAll(".cell");
+        cells.forEach((cell) => {
+          if (selectedNumbers.has(parseInt(cell.textContent))) {
+            cell.classList.add("selected");
+          }
         });
 
         isDrawing = false;
-    }
+      }
 
-    function restartGame() {
+      function restartGame() {
         selectedNumbers.clear();
         availableNumbers = [...numbers];
         selectedNumberElement.textContent = "請按下「選擇號碼」開始遊戲";
         drawNumberBtn.style.display = "inline-block";
         initBoard();
-    }
+        isGameRestarted = true; // 新增此行
+        restartBtn.blur(); // 移除焦點
+      }
 
-    drawNumberBtn.addEventListener('click', drawNumber);
-    restartBtn.addEventListener('click', restartGame);
+      drawNumberBtn.addEventListener("click", drawNumber);
+      restartBtn.addEventListener("click", () => {
+        restartGame();
+        restartBtn.blur(); // 移除焦點
+      });
 
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' && !isEnterPressed) {
-            isEnterPressed = true;
-            drawNumber();
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !isEnterPressed) {
+          isEnterPressed = true;
+          drawNumber(); // 直接調用 drawNumber 函數
         }
-    });
+      });
 
-    document.addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') {
-            isEnterPressed = false;
+      document.addEventListener("keyup", (event) => {
+        if (event.key === "Enter") {
+          isEnterPressed = false;
+          isGameRestarted = false; // 新增此行
         }
-    });
+      });
 
-    initBoard();
+      const toggleBgmBtn = document.getElementById("toggle-bgm");
+      const bgm = document.getElementById("bgm");
 
-    const toggleBgmBtn = document.getElementById('toggle-bgm');
-    const bgm = document.getElementById('bgm');
-
-    toggleBgmBtn.addEventListener('click', () => {
+      toggleBgmBtn.addEventListener("click", () => {
         if (bgm.paused) {
-            bgm.play().then(() => {
-                toggleBgmBtn.textContent = "停止背景音樂";
-            }).catch(error => {
-                console.error("播放背景音樂時出錯:", error);
+          bgm.play()
+            .then(() => {
+              toggleBgmBtn.textContent = "停止背景音樂";
+            })
+            .catch((error) => {
+              console.error("播放背景音樂時出錯:", error);
             });
         } else {
-            bgm.pause();
-            bgm.currentTime = 0;
-            toggleBgmBtn.textContent = "播放背景音樂";
+          bgm.pause();
+          bgm.currentTime = 0;
+          toggleBgmBtn.textContent = "播放背景音樂";
         }
-    });
-</script>
+        toggleBgmBtn.blur(); // 移除焦點
+      });
 
-</body></html>
+      //   动播放背景音乐
+      window.onload = () => {
+        bgm.play()
+          .then(() => {
+            toggleBgmBtn.textContent = "停止背景音樂"; // 更新按鈕文本
+          })
+          .catch((error) => {
+            console.error("自動播放背景音樂時出錯:", error);
+          });
+      };
+
+      initBoard();
+
+      window.addEventListener("resize", function () {
+        const gameContainer = document.querySelector(".game-container");
+        const board = document.getElementById("board");
+        const buttons = document.querySelectorAll("button");
+
+        gameContainer.style.height = `${window.innerHeight * 0.95}px`;
+
+        const containerWidth = gameContainer.clientWidth;
+        const containerHeight = gameContainer.clientHeight;
+        const boardSize = Math.min(containerWidth * 0.9, containerHeight * 0.7);
+        board.style.width = `${boardSize}px`;
+        board.style.height = `${boardSize}px`;
+
+        const buttonSize = Math.min(containerWidth * 0.2, 150);
+        buttons.forEach((button) => {
+          button.style.width = `${buttonSize}px`;
+        });
+      });
+
+      window.dispatchEvent(new Event("resize"));
+    </script>
+  </body>
+</html>
