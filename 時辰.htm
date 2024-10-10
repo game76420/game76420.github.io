@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>時間轉換為時辰</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            margin-top: 50px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>輸入時間轉換為時辰</h1>
+    
+    <label for="timeInput">請輸入時間 (24小時制, 例如: 14:00):</label><br>
+    <input type="time" id="timeInput" required>
+    <br><br>
+    
+    <button onclick="convertToShichen()">轉換時辰</button>
+    
+    <h2 id="result"></h2>
+    
+    <script>
+        function convertToShichen() {
+            const time = document.getElementById('timeInput').value;
+            if (!time) {
+                document.getElementById('result').innerHTML = "請輸入有效的時間";
+                return;
+            }
+
+            const hour = parseInt(time.split(":")[0], 10);
+            const shichen = getShichen(hour);
+            document.getElementById('result').innerHTML = `對應的時辰是：${shichen}`;
+        }
+
+        function getShichen(hour) {
+            const shichenTable = [
+                { name: "子時", start: 23, end: 1 },
+                { name: "丑時", start: 1, end: 3 },
+                { name: "寅時", start: 3, end: 5 },
+                { name: "卯時", start: 5, end: 7 },
+                { name: "辰時", start: 7, end: 9 },
+                { name: "巳時", start: 9, end: 11 },
+                { name: "午時", start: 11, end: 13 },
+                { name: "未時", start: 13, end: 15 },
+                { name: "申時", start: 15, end: 17 },
+                { name: "酉時", start: 17, end: 19 },
+                { name: "戌時", start: 19, end: 21 },
+                { name: "亥時", start: 21, end: 23 }
+            ];
+
+            for (const shichen of shichenTable) {
+                if ((hour >= shichen.start && hour < shichen.end) || (shichen.name === "子時" && (hour >= 23 || hour < 1))) {
+                    return shichen.name;
+                }
+            }
+            return "無效的時間";
+        }
+    </script>
+
+</body>
+</html>
