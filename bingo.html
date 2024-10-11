@@ -7,7 +7,7 @@
     <title>Bingo 遊戲</title>
     <style>
       /* 導入 Google Fonts 的 Poppins 字體 */
-      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
+      @import url("css2.css");
 
       /* 定義 CSS 變數，方便管理顏色和樣式 */
       :root {
@@ -235,7 +235,7 @@
     <audio id="number-sound" src="sound01.mp3" preload="auto"></audio> <!-- 抽号音效 -->
     <audio id="bgm" src="bgm.mp3" loop preload="auto"></audio> <!-- 背景音乐 -->
 
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script> <!-- 引入 confetti.js 库 -->
+    <script src="confetti.browser.min.js"></script> <!-- 引入 confetti.js 库 -->
     <script>
       // 取得頁面元素
       const boardElement = document.getElementById("board"); // 宾果盘元素
