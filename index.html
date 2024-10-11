@@ -1,66 +1,35 @@
-<html><head><base href="https://game76420.github.io/"></head>
-<body>
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>張書維工作室 - 作品集</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/ScrollTrigger.min.js"></script>
     <style>
         body {
-            font-family: 'Noto Sans TC', sans-serif;
+            font-family: 'Roboto', sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #444; /* 更柔和的文字顏色 */
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
+            background-color: #eaeaea; /* 更柔和的背景顏色 */
         }
 
         header {
-            background: linear-gradient(135deg, #3498db, #8e44ad);
+            background-color: #2c3e50;
             color: #ecf0f1;
             text-align: center;
-            padding: 3rem 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        header::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 10%, transparent 40%);
-            transform: rotate(30deg);
-            animation: headerAnimation 20s linear infinite;
-        }
-
-        @keyframes headerAnimation {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); /* 增加陰影效果 */
         }
 
         h1 {
-            color: #fff;
-            font-size: 3rem;
-            margin: 0;
-            position: relative;
-            z-index: 1;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            color: #fff; 
+            font-size: 2.5rem; /* 增加字體大小 */
         }
 
         nav {
             background-color: #34495e;
-            padding: 1rem;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0.5rem;
         }
 
         nav ul {
@@ -68,6 +37,7 @@
             padding: 0;
             margin: 0;
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
             align-items: center;
         }
@@ -81,214 +51,297 @@
             text-decoration: none;
             padding: 0.5rem 1rem;
             border-radius: 5px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s; /* 增加過渡效果 */
         }
 
         nav ul li a:hover {
-            background-color: #2980b9;
+            background-color: #3498db; /* 更柔和的懸停顏色 */
         }
 
         main {
-            max-width: 1200px;
+            max-width: 90%;
             margin: 0 auto;
             padding: 2rem;
         }
 
         section {
             background-color: #fff;
-            margin-bottom: 3rem;
+            margin-bottom: 2rem;
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 10px; /* 更圓的邊角 */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* 增加陰影效果 */
         }
 
-        section:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-        }
-
-        h2 {
+        h1, h2 {
             color: #2c3e50;
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            position: relative;
-            padding-bottom: 0.5rem;
-        }
-
-        h2::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 50px;
-            height: 3px;
-            background: linear-gradient(to right, #3498db, #8e44ad);
+            font-size: 2rem; /* 增加字體大小 */
+            margin-bottom: 1rem; /* 增加下邊距 */
         }
 
         .services, .portfolio, .testimonials, .blog {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
         }
 
         .service, .portfolio-item, .testimonial, .blog-post {
-            background-color: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            flex-basis: calc(50% - 1rem);
+            margin-bottom: 2rem;
         }
 
-        .service:hover, .portfolio-item:hover, .testimonial:hover, .blog-post:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .service h3, .portfolio-item h3, .blog-post h3 {
+        .service h3 {
             color: #3498db;
-            margin-top: 0;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input, textarea {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
         }
 
         button {
             background-color: #3498db;
             color: #fff;
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 0.5rem 1rem;
             cursor: pointer;
             border-radius: 5px;
-            font-size: 1rem;
-            transition: background-color 0.3s ease, transform 0.3s ease;
+            transition: background-color 0.3s; /* 增加過渡效果 */
         }
 
         button:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
+            background-color: #2980b9; /* 更柔和的懸停顏色 */
         }
 
         footer {
             background-color: #2c3e50;
             color: #ecf0f1;
             text-align: center;
-            padding: 2rem;
-            margin-top: 3rem;
+            padding: 1rem;
+            margin-top: 2rem;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); /* 增加陰影效果 */
         }
 
         .social-icons {
             display: flex;
             justify-content: center;
-            margin-top: 1rem;
+            flex-wrap: wrap; 
         }
 
         .social-icons a {
-            margin: 0 1rem;
+            margin: 0 0.5rem;
             color: #ecf0f1;
             text-decoration: none;
-            font-size: 1.2rem;
-            transition: color 0.3s ease;
-        }
-
-        .social-icons a:hover {
-            color: #3498db;
         }
 
         .contact-info {
-            background-color: #f8f9fa;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
             margin-bottom: 2rem;
         }
 
         .contact-info p {
             margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
         }
 
-        .contact-info p::before {
-            content: '•';
-            color: #3498db;
-            margin-right: 10px;
-            font-size: 1.2rem;
+        table {
+            border-collapse: collapse;
+            width: 100%;
         }
 
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f0f0f0;
+            text-align: left;
+        }
+
+        /* 回應式設計 */
         @media (max-width: 768px) {
-            header {
-                padding: 2rem 0;
+            .services, .portfolio, .testimonials, .blog {
+                flex-direction: column;
             }
 
-            h1 {
-                font-size: 2.5rem;
-            }
-
-            nav ul {
-                flex-wrap: wrap;
+            .service, .portfolio-item, .testimonial, .blog-post {
+                flex-basis: 100%;
             }
 
             nav ul li {
-                margin: 0.5rem;
+                margin: 0 0.5rem; 
             }
 
             main {
                 padding: 1rem;
             }
 
+            section {
+                padding: 1rem; 
+            }
+
+            img {
+                width: 100%;
+                height: auto; 
+            }
+
+            nav ul {
+                flex-direction: column; /* 將導航列改為垂直排列 */
+                align-items: flex-start; /* 對齊到左側 */
+            }
+
+            nav ul li {
+                margin: 0.5rem 0; /* 增加上下邊距 */
+            }
+
             .services, .portfolio, .testimonials, .blog {
-                grid-template-columns: 1fr;
+                flex-direction: column; /* 垂直排列服務、作品集、推薦和部落格 */
+            }
+
+            .service, .portfolio-item, .testimonial, .blog-post {
+                flex-basis: 100%; /* 每個項目佔滿整行 */
+            }
+
+            main {
+                padding: 1rem; /* 減少主內容的內邊距 */
+            }
+
+            section {
+                padding: 1rem; /* 減少每個區塊的內邊距 */
+            }
+
+            img {
+                width: 100%; /* 圖片寬度100% */
+                height: auto; /* 高度自動 */
             }
         }
 
-        /* Animation classes */
-        .fade-in {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: opacity 0.5s ease, transform 0.5s ease;
+        /* 新增更小屏幕的樣式 */
+        @media (max-width: 480px) {
+            .service, .portfolio-item, .testimonial, .blog-post {
+                flex-basis: 100%;
+            }
+
+            h1 {
+                font-size: 1.8rem; /* 調整標題字體大小 */
+            }
+
+            h2 {
+                font-size: 1.5rem; /* 調整副標題字體大小 */
+            }
+
+            button {
+                padding: 0.5rem; /* 調整按鈕內邊距 */
+                font-size: 16px; /* 調整按鈕字體大小 */
+            }
         }
 
-        .fade-in.active {
-            opacity: 1;
-            transform: translateY(0);
+        /* 行事曆產生器樣式 */
+        body {
+            font-family: Arial, sans-serif;
         }
 
-        /* Skill Bar Styles */
-        .skill-bars {
-            width: 100%;
-            padding: 0 20px;
-        }
-
-        .skill-bar {
-            margin-bottom: 20px;
-        }
-
-        .skill-bar-title {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .skill-bar-bg {
-            background-color: #e0e0e0;
-            height: 10px;
+        #calendar {
+            width: 300px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
             border-radius: 5px;
-            overflow: hidden;
         }
 
-        .skill-bar-fill {
-            height: 100%;
-            background-color: #3498db;
-            width: 0;
-            transition: width 1s ease-in-out;
+        #calendar h2 {
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .calendar-table th,
+        .calendar-table td {
+            text-align: center;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .calendar-table th {
+            background-color: #f0f0f0;
+        }
+
+        .today {
+            background-color: #f5f5f5;
+        }
+
+        .event {
+            background-color: #ffdddd;
+            padding: 2px;
+            margin-bottom: 2px;
+        }
+
+        /* Bingo 遊戲樣式 */
+        #bingo-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        #bingo-board {
+            display: grid;
+            grid-template-columns: repeat(5, 50px);
+            grid-template-rows: repeat(5, 50px);
+            gap: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .bingo-cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .bingo-cell.marked {
+            background-color: #f0f0f0;
+        }
+
+        #bingo-numbers {
+            margin-top: 1rem;
+        }
+
+        #bingo-number {
+            font-size: 24px;
+            margin-bottom: 1rem;
+        }
+
+        #bingo-message {
+            font-size: 18px;
+            margin-top: 1rem;
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>張書維工作室</h1>
+        <h1 style="color: #fff;">書維個人工作室</h1>
     </header>
     <nav>
         <ul>
             <li><a href="#about">關於我</a></li>
-            <li><a href="#skills">技能專長</a></li>
             <li><a href="#services">我的服務</a></li>
             <li><a href="#portfolio">作品集</a></li>
             <li><a href="#testimonials">客戶推薦</a></li>
@@ -297,48 +350,11 @@
         </ul>
     </nav>
     <main>
-        <section id="about" class="fade-in">
+        <section id="about">
             <h2>關於我</h2>
             <p>我是張書維，擁有多年經驗的程式開發與網站設計專家，專注於數位解決方案。我擅長 VB、VB.NET、Python 爬蟲、電腦維修、數據分析、AI 程式生成、AI 圖片生成和 AI 繪圖，並精通按鍵精靈等工具，可提供量身定制的軟體、網站及爬蟲開發服務，幫助客戶在數位世界中脫穎而出。</p>
         </section>
-
-        <section id="skills" class="fade-in">
-            <h2>技能專長</h2>
-            <div class="skill-bars">
-                <div class="skill-bar">
-                    <div class="skill-bar-title">程式開發 (VB, VB.NET)</div>
-                    <div class="skill-bar-bg">
-                        <div class="skill-bar-fill" style="width: 0%;" data-width="90%"></div>
-                    </div>
-                </div>
-                <div class="skill-bar">
-                    <div class="skill-bar-title">Python 爬蟲</div>
-                    <div class="skill-bar-bg">
-                        <div class="skill-bar-fill" style="width: 0%;" data-width="85%"></div>
-                    </div>
-                </div>
-                <div class="skill-bar">
-                    <div class="skill-bar-title">數據分析</div>
-                    <div class="skill-bar-bg">
-                        <div class="skill-bar-fill" style="width: 0%;" data-width="80%"></div>
-                    </div>
-                </div>
-                <div class="skill-bar">
-                    <div class="skill-bar-title">AI 程式生成</div>
-                    <div class="skill-bar-bg">
-                        <div class="skill-bar-fill" style="width: 0%;" data-width="75%"></div>
-                    </div>
-                </div>
-                <div class="skill-bar">
-                    <div class="skill-bar-title">網站設計</div>
-                    <div class="skill-bar-bg">
-                        <div class="skill-bar-fill" style="width: 0%;" data-width="85%"></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="services" class="fade-in">
+        <section id="services">
             <h2>我的服務</h2>
             <div class="services">
                 <div class="service">
@@ -379,8 +395,7 @@
                 </div>
             </div>
         </section>
-
-        <section id="portfolio" class="fade-in">
+        <section id="portfolio">
             <h2>作品集</h2>
             <div class="portfolio">
                 <div class="portfolio-item">
@@ -428,41 +443,31 @@
                 </div>
             </div>
         </section>
-
-        <section id="testimonials" class="fade-in">
+        <section id="testimonials">
             <h2>客戶推薦</h2>
             <div class="testimonials">
                 <div class="testimonial">
-                    <p>"張書維的服務非常專業，幫我們打造了一個美觀且高效的網站。他的技術實力和創意思維給我們留下了深刻的印象。" - 張先生, XYZ科技公司</p>
+                    <p>"張書維的服務非常專業，幫我們打造了一個美觀且高效的網站。" - 張先生, XYZ科技公司</p>
                 </div>
                 <div class="testimonial">
-                    <p>"通過他開發的自動化爬蟲，我們能更快地做出競爭決策。張書維不僅提供了優質的技術支持，還給出了寶貴的業務建議。" - 李小姐, ABC電商公司</p>
-                </div>
-                <div class="testimonial">
-                    <p>"張書維設計的AI程式生成工具大大提高了我們的開發效率。他對新技術的掌握和應用能力令人欽佩。" - 王經理, 創新軟體公司</p>
+                    <p>"通過他開發的自動化爬蟲，我們能更快地做出競爭決策。" - 李小姐, ABC電商公司</p>
                 </div>
             </div>
         </section>
-
-        <section id="blog" class="fade-in">
+        <section id="blog">
             <h2>部落格</h2>
             <div class="blog">
                 <div class="blog-post">
                     <h3>最新技術趨勢：Python 爬蟲的未來</h3>
-                    <p>隨著數據需求不斷增加，Python 爬蟲正迅速成為商業領域不可或缺的工具。本文將探討Python爬蟲的最新發展趨勢，以及如何在企業中有效應用這項技術。</p>
+                    <p>隨著數據需求不斷增加，Python 爬蟲正迅速成為商業領域不可或缺的工具。</p>
                 </div>
                 <div class="blog-post">
                     <h3>雲端解決方案：如何選擇適合您的企業</h3>
-                    <p>瞭解不同雲端平臺的優缺點，選擇最適合您的業務需求。我們將深入分析各大雲服務提供商的特點，幫助您做出明智的選擇。</p>
-                </div>
-                <div class="blog-post">
-                    <h3>AI 在程式開發中的應用與挑戰</h3>
-                    <p>AI輔助程式開發正在改變軟體工程的格局。本文將討論AI在程式開發中的最新應用，以及開發者需要面對的挑戰和機遇。</p>
+                    <p>瞭解不同雲端平臺的優缺點，選擇最適合您的業務需求。</p>
                 </div>
             </div>
         </section>
-
-        <section id="contact" class="fade-in">
+        <section id="contact">
             <h2>聯繫我</h2>
             <div class="contact-info">
                 <p>Line：game76420</p>
@@ -472,13 +477,12 @@
             </div>
         </section>
     </main>
-
     <footer>
         <p>© 2024 張書維工作室. 版權所有.</p>
         <div class="social-icons">
-            <a href="https://www.facebook.com/changshuwei/" target="_blank">Facebook</a>
-            <a href="https://twitter.com" target="_blank">Twitter</a>
-            <a href="https://instagram.com" target="_blank">Instagram</a>
+            <a href="https://www.facebook.com/changshuwei/">Facebook</a>
+            <a href="https://twitter.com">Twitter</a>
+            <a href="https://instagram.com">Instagram</a>
         </div>
     </footer>
 
@@ -503,53 +507,24 @@
             window.open("https://game76420.github.io/bingo.html", "_blank");
         }
 
-        // Scroll animation
-        function isElementInViewport(el) {
-            var rect = el.getBoundingClientRect();
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-            );
-        }
-
-        function handleScrollAnimation() {
-            var elements = document.querySelectorAll('.fade-in');
-            elements.forEach(function(element) {
-                if (isElementInViewport(element)) {
-                    element.classList.add('active');
+        document.addEventListener("scroll", function() {
+            const sections = document.querySelectorAll("section");
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top < window.innerHeight && rect.bottom > 0) {
+                    section.style.opacity = 1; // 顯示區域
+                } else {
+                    section.style.opacity = 0; // 隱藏區域
                 }
             });
-        }
-
-        // Skill bar animation
-        function animateSkillBars() {
-            var skillBars = document.querySelectorAll('.skill-bar-fill');
-            skillBars.forEach(function(bar) {
-                var width = bar.getAttribute('data-width');
-                bar.style.width = width;
-            });
-        }
-
-        window.addEventListener('scroll', handleScrollAnimation);
-        window.addEventListener('load', function() {
-            handleScrollAnimation();
-            setTimeout(animateSkillBars, 500);
         });
 
-        // Smooth scrolling for navigation
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
+        // 初始設置
+        document.querySelectorAll("section").forEach(section => {
+            section.style.opacity = 0; // 隱藏所有區域
+            section.style.transition = "opacity 0.5s"; // 添加過渡效果
         });
     </script>
 
 </body>
 </html>
-</body></html>
