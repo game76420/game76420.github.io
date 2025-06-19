@@ -138,11 +138,17 @@ function resizeCanvas() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(ratio, ratio);
 }
+
+// 不要用 const WIDTH/HEIGHT，改成 function
+function getWidth() {
+  return canvas.width / (window.devicePixelRatio || 1);
+}
+function getHeight() {
+  return canvas.height / (window.devicePixelRatio || 1);
+}
+
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
-
-const WIDTH = canvas.width;
-const HEIGHT = canvas.height;
 
 let player, platforms, keys, lastPlatformTouched;
 let gameSpeed = 1;
@@ -176,8 +182,8 @@ function initGame() {
       else type = "conveyorR";
     }
     platforms.push({
-      x: Math.random() * (WIDTH - platformWidth),
-      y: i * (HEIGHT / numPlatforms),
+      x: Math.random() * (getWidth() - platformWidth),
+      y: i * (getHeight() / numPlatforms),
       width: platformWidth,
       height: platformHeight,
       type: type,
@@ -246,7 +252,7 @@ function drawPlayer() {
 
 function drawTopSpikes() {
   ctx.fillStyle = "#cccccc"; // 灰色
-  for (let i = 0; i < WIDTH; i += 10) {
+  for (let i = 0; i < getWidth(); i += 10) {
     ctx.beginPath();
     ctx.moveTo(i, 0);
     ctx.lineTo(i + 5, 12);
@@ -410,7 +416,7 @@ function updatePlayer() {
 
   player.x += player.vx;
   if (player.x < 0) player.x = 0;
-  if (player.x + player.width > WIDTH) player.x = WIDTH - player.width;
+  if (player.x + player.width > getWidth()) player.x = getWidth() - player.width;
 
   player.onGround = false;
   // 若在穿透狀態，跳過平台碰撞
@@ -466,7 +472,7 @@ function updatePlayer() {
     }
   }
 
-  if (player.y > HEIGHT || (player.hp <= 0 && !player.fallThrough)) {
+  if (player.y > getHeight() || (player.hp <= 0 && !player.fallThrough)) {
     setTimeout(() => {
       // 更新最高分數
       if (player.score > highScore) {
@@ -487,8 +493,8 @@ function updatePlatforms() {
       // 平台重生時避免與精靈重疊
       let tryCount = 0;
       do {
-        p.y = HEIGHT;
-        p.x = Math.random() * (WIDTH - 60);
+        p.y = getHeight();
+        p.x = Math.random() * (getWidth() - 60);
         tryCount++;
       } while (
         tryCount < 10 &&
@@ -517,13 +523,13 @@ function updatePlatforms() {
 }
 
 function gameLoop() {
-  ctx.clearRect(0, 0, WIDTH, HEIGHT);
+  ctx.clearRect(0, 0, getWidth(), getHeight());
   // 畫深藍色漸層背景（更接近原作）
-  let grad = ctx.createLinearGradient(0, 0, 0, HEIGHT);
+  let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
   grad.addColorStop(0, "#001a33");
   grad.addColorStop(1, "#003366");
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, WIDTH, HEIGHT);
+  ctx.fillRect(0, 0, getWidth(), getHeight());
   drawTopSpikes(); // 畫頂端尖刺
   if (!updatePlayer()) return;
   updatePlatforms();
@@ -533,7 +539,7 @@ function gameLoop() {
   // 加上遊戲區域邊框
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 4;
-  ctx.strokeRect(0, 0, WIDTH, HEIGHT);
+  ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
   requestAnimationFrame(gameLoop);
 }
