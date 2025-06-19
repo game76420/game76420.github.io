@@ -549,6 +549,25 @@ function setKey(key, val) {
   keys[key] = val;
 }
 
+// 移除 canvas 上的滑動偵測（原本的 canvas.addEventListener('touchstart'...) 及 touchend 事件）
+// 改為全畫面觸控偵測
+function handleTouch(e) {
+  let left = false, right = false;
+  const half = window.innerWidth / 2;
+  for (let i = 0; i < e.touches.length; i++) {
+    const x = e.touches[i].clientX;
+    if (x < half) left = true;
+    if (x >= half) right = true;
+  }
+  setKey('ArrowLeft', left);
+  setKey('ArrowRight', right);
+}
+
+document.body.addEventListener('touchstart', handleTouch);
+document.body.addEventListener('touchmove', handleTouch);
+document.body.addEventListener('touchend', handleTouch);
+document.body.addEventListener('touchcancel', handleTouch);
+
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
 btnLeft.addEventListener('mousedown', e => { setKey('ArrowLeft', true); });
@@ -560,34 +579,6 @@ btnRight.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowRi
 btnRight.addEventListener('mousedown', e => { setKey('ArrowRight', true); });
 btnRight.addEventListener('mouseup', e => { setKey('ArrowRight', false); });
 btnRight.addEventListener('mouseleave', e => { setKey('ArrowRight', false); });
-
-// 支援螢幕直接滑動
-let touchStartX = null;
-canvas.addEventListener('touchstart', e => {
-  if (e.touches.length === 1) {
-    touchStartX = e.touches[0].clientX;
-  }
-});
-canvas.addEventListener('touchmove', e => {
-  if (e.touches.length === 1 && touchStartX !== null) {
-    const dx = e.touches[0].clientX - touchStartX;
-    if (dx < -20) {
-      setKey('ArrowLeft', true);
-      setKey('ArrowRight', false);
-    } else if (dx > 20) {
-      setKey('ArrowRight', true);
-      setKey('ArrowLeft', false);
-    } else {
-      setKey('ArrowLeft', false);
-      setKey('ArrowRight', false);
-    }
-  }
-});
-canvas.addEventListener('touchend', e => {
-  setKey('ArrowLeft', false);
-  setKey('ArrowRight', false);
-  touchStartX = null;
-});
 
 // 遊戲結束自訂彈窗
 function showGameOverModal(score, isNewRecord) {
