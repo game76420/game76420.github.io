@@ -6,12 +6,18 @@
   <title>NS-Shaft 簡化版</title>
   <style>
     html, body {
+      width: 100vw;
+      height: 100vh;
       margin: 0;
       padding: 0;
-      background: black;
       overflow: hidden;
-      height: 100%;
-      width: 100%;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-width: 100vw;
+      justify-content: flex-start;
+      align-items: center;
     }
     body {
       display: flex;
@@ -59,10 +65,10 @@
       text-align: center;
     }
     #game {
-      width: 95vw;
-      max-width: 420px;
-      height: 70vw;
-      max-height: 630px;
+      width: 100vw;
+      max-width: 480px;
+      height: 177vw;         /* 16:9 比例，或改 160vw 為 2:3 比例 */
+      max-height: 90vh;
       background: #002244;
       display: block;
       margin: 0 auto;
@@ -130,7 +136,6 @@ const ctx = canvas.getContext("2d");
 // 響應式調整canvas解析度
 function resizeCanvas() {
   const ratio = window.devicePixelRatio || 1;
-  // 取得CSS實際顯示的寬高
   const w = canvas.offsetWidth;
   const h = canvas.offsetHeight;
   canvas.width = w * ratio;
@@ -376,14 +381,6 @@ function updatePlayer() {
   player.vy += player.gravity;
   player.y += player.vy;
 
-  // 樓層計算：只有當玩家下到新的一層時才加分
-  if (player.y > lastPlayerFloorY + 20) { // 20為一層高度
-    player.score++;
-    lastPlayerFloorY = player.y;
-    // 遊戲速度隨樓層提升
-    gameSpeed = 1 + player.score * 0.03;
-  }
-
   // 頂端尖刺碰撞
   if (player.y <= 0) {
     if (lastPlatformTouched !== 'topSpike') {
@@ -513,7 +510,7 @@ function updatePlatforms() {
       else p.type = "conveyorR";
       p.vanishTimer = null;
       platformPassedCount++;
-      if (platformPassedCount % 5 === 0) {
+      if (!player.fallThrough && platformPassedCount % 5 === 0) {
         player.score++;
         // 遊戲速度隨樓層提升
         gameSpeed = 1 + player.score * 0.03;
