@@ -2,6 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>NS-Shaft 簡化版</title>
   <style>
     html, body {
@@ -111,7 +112,7 @@
 </head>
 <body>
 <div id="hud"></div>
-<canvas id="game" width="320" height="480"></canvas>
+<canvas id="game"></canvas>
 <div id="controls">
   <button class="ctrl-btn" id="btn-left">◀️</button>
   <button class="ctrl-btn" id="btn-right">▶️</button>
@@ -129,8 +130,9 @@ const ctx = canvas.getContext("2d");
 // 響應式調整canvas解析度
 function resizeCanvas() {
   const ratio = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
+  // 取得CSS實際顯示的寬高
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
   canvas.width = w * ratio;
   canvas.height = h * ratio;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
