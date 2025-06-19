@@ -456,7 +456,11 @@ function updatePlayer() {
           lastPlatformTouched = p;
         } else if (p.type === "conveyorL" || p.type === "conveyorR") {
           player.vy = 0;
-          player.x -= 1.5;
+          if (p.type === "conveyorL") {
+            player.x -= 1.5;
+          } else {
+            player.x += 1.5;
+          }
           if (lastPlatformTouched !== p) {
             player.hp = Math.min(player.hp + 1, 12);
             lastPlatformTouched = p;
@@ -484,8 +488,14 @@ function updatePlayer() {
 }
 
 function updatePlatforms() {
+  // 固定平台數量，移動速度固定
+  const platformSpeed = 1.5; // 可調整速度
   for (let p of platforms) {
-    p.y -= gameSpeed;
+    p.y -= platformSpeed;
+  }
+  // 處理消失與重生
+  for (let i = 0; i < platforms.length; i++) {
+    let p = platforms[i];
     if (p.y + p.height < 0) {
       // 平台重生時避免與精靈重疊
       let tryCount = 0;
@@ -512,8 +522,7 @@ function updatePlatforms() {
       platformPassedCount++;
       if (!player.fallThrough && platformPassedCount % 5 === 0) {
         player.score++;
-        // 遊戲速度隨樓層提升
-        gameSpeed = 1 + player.score * 0.03;
+        // 遊戲速度不再變化
       }
     }
   }
