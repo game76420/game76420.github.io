@@ -121,6 +121,7 @@
 <canvas id="game"></canvas>
 <div id="controls">
   <button class="ctrl-btn" id="btn-left">◀️</button>
+  <button class="ctrl-btn" id="pause-btn">⏯️</button>
   <button class="ctrl-btn" id="btn-right">▶️</button>
 </div>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
@@ -160,6 +161,7 @@ let gameSpeed = 1;
 let lastPlayerFloorY = null;
 let platformPassedCount = 0; // 記錄經過的平台數
 let highScore = 0;
+let paused = false;
 
 // 讀取最高分數
 if (localStorage.getItem('ns_shaft_highscore')) {
@@ -204,7 +206,8 @@ function initGame() {
       width: platformWidth,
       height: platformHeight,
       type: type,
-      vanishTimer: null
+      vanishTimer: null,
+      hidden: false
     });
   }
 
@@ -398,6 +401,7 @@ function drawTopSpikes() {
 function drawPlatforms() {
   for (let idx = 0; idx < platforms.length; idx++) {
     let p = platforms[idx];
+    if (p.hidden) continue;
     if (p.type === "normal") {
       // 藍色平台，陰影深藍
       ctx.fillStyle = "#3399ff";
@@ -522,17 +526,16 @@ function updatePlayer() {
       lastPlatformTouched = 'topSpike';
       player.isHurt = true;
       player.hurtTimer = 1000;
-      // 移除精靈正下方的普通平台與尖刺平台
-      platforms = platforms.filter(p => {
+      // 將正下方平台設為 hidden
+      platforms.forEach(p => {
         const overlap =
           player.x + player.width > p.x &&
           player.x < p.x + p.width &&
           player.y + player.height <= p.y + p.height &&
           player.y + player.height >= p.y;
         if (overlap && (p.type === 'normal' || p.type === 'spike' || p.type === 'conveyorL' || p.type === 'conveyorR')) {
-          return false; // 移除
+          p.hidden = true;
         }
-        return true;
       });
     }
     player.y = 12; // 將精靈帽子頂端停在尖刺下方
@@ -555,6 +558,7 @@ function updatePlayer() {
   // 若在穿透狀態，跳過平台碰撞
   if (!player.fallThrough) {
     for (let p of platforms) {
+      if (p.hidden) continue;
       if (player.vy >= 0 &&
           player.x + player.width > p.x &&
           player.x < p.x + p.width &&
@@ -582,13 +586,11 @@ function updatePlayer() {
           }
         } else if (p.type === "vanish") {
           player.vy = 0;
-          // vanish 平台計時
           if (p.vanishTimer === null) {
             p.vanishTimer = Date.now();
-            player.hp = Math.min(player.hp + 1, 12); // 跳到消失平台時補一滴血
+            player.hp = Math.min(player.hp + 1, 12);
           } else if (Date.now() - p.vanishTimer >= 200) {
-            // 站滿1秒，移除平台
-            platforms = platforms.filter(pl => pl !== p);
+            p.hidden = true;
             break;
           }
           lastPlatformTouched = p;
@@ -626,8 +628,11 @@ function updatePlayer() {
 }
 
 function updatePlatforms() {
-  // 固定平台數量，移動速度固定
-  const platformSpeed = 1.5; // 可調整速度
+  // 平台速度隨分數增加而變快
+  const baseSpeed = 1.5;
+  const speedIncrement = 0.05; // 每層增加的速度
+  const platformSpeed = baseSpeed + (player.score * speedIncrement);
+  
   for (let p of platforms) {
     p.y -= platformSpeed;
   }
@@ -636,7 +641,12 @@ function updatePlatforms() {
   for (let i = 0; i < platforms.length; i++) {
     let p = platforms[i];
     if (p.y + p.height < 0) {
-      // 平台重生時使用固定的間距和位置
+      // 只要平台（不論 hidden 與否）離開畫面頂端就計數
+      platformPassedCount++;
+      if (platformPassedCount % 5 === 0) {
+        player.score++;
+      }
+      // 平台重生
       const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
       const platformHeight = 10;
       const platformSpacing = getHeight() / 8; // 固定間距
@@ -684,11 +694,7 @@ function updatePlatforms() {
       else p.type = "conveyorR";              // 10% 右傳輸帶
       
       p.vanishTimer = null;
-      platformPassedCount++;
-      if (!player.fallThrough && platformPassedCount % 5 === 0) {
-        player.score++;
-        // 遊戲速度不再變化
-      }
+      p.hidden = false; // 重生時恢復顯示
     }
   }
   
@@ -736,7 +742,8 @@ function updatePlatforms() {
       width: platformWidth,
       height: platformHeight,
       type: "normal", // 預設為普通平台
-      vanishTimer: null
+      vanishTimer: null,
+      hidden: false
     };
     
     // 平均分配平台類型
@@ -752,7 +759,15 @@ function updatePlatforms() {
   }
 }
 
+function togglePause() {
+  paused = !paused;
+  if (!paused) requestAnimationFrame(gameLoop);
+  // 可加暫停提示
+  document.getElementById('pause-btn').innerText = paused ? '⏸️' : '⏯️';
+}
+
 function gameLoop() {
+  if (paused) return;
   ctx.clearRect(0, 0, getWidth(), getHeight());
   // 畫深藍色漸層背景（更接近原作）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
@@ -784,6 +799,7 @@ function gameLoop() {
 // 觸控與按鈕操作
 const btnLeft = document.getElementById('btn-left');
 const btnRight = document.getElementById('btn-right');
+const pauseBtn = document.getElementById('pause-btn');
 
 function setKey(key, val) {
   keys[key] = val;
@@ -820,6 +836,8 @@ btnRight.addEventListener('mousedown', e => { setKey('ArrowRight', true); });
 btnRight.addEventListener('mouseup', e => { setKey('ArrowRight', false); });
 btnRight.addEventListener('mouseleave', e => { setKey('ArrowRight', false); });
 
+pauseBtn.addEventListener('click', togglePause);
+
 // 遊戲結束自訂彈窗
 function showGameOverModal(score, isNewRecord) {
   const modal = document.getElementById('gameover-modal');
@@ -839,6 +857,26 @@ window.addEventListener('keydown', function(e) {
   if (modal.style.display === 'flex' && (e.key === 'Enter' || e.keyCode === 13)) {
     modal.style.display = 'none';
     initGame();
+  }
+  if (e.key === 'p' || e.key === 'P') {
+    togglePause();
+  }
+});
+
+let lastTap = 0, lastTapX = 0, lastTapY = 0;
+document.body.addEventListener('touchend', function(e) {
+  if (e.touches.length === 0 && e.changedTouches.length === 1) {
+    const now = Date.now();
+    const x = e.changedTouches[0].clientX;
+    const y = e.changedTouches[0].clientY;
+    if (now - lastTap < 350 && Math.abs(x - lastTapX) < 40 && Math.abs(y - lastTapY) < 40) {
+      togglePause();
+      lastTap = 0;
+    } else {
+      lastTap = now;
+      lastTapX = x;
+      lastTapY = y;
+    }
   }
 });
 
