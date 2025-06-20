@@ -221,7 +221,7 @@ function initGame() {
     vy: 0,
     speed: 4.0,
     gravity: 0.3,
-    jumpForce: -6,
+    jumpForce: -8,
     onGround: false,
     hp: 12,
     score: 0,
@@ -514,8 +514,9 @@ function updatePlayer() {
   player.vy += player.gravity;
   player.y += player.vy;
 
-  // 頂端尖刺碰撞
-  if (player.y <= 0) {
+  // 頂端尖刺碰撞 - 精靈帽子頂端碰到尖刺就受傷
+  const hatTopY = player.y; // 帽子頂端位置（精靈的y座標就是帽子頂端）
+  if (hatTopY <= 12) { // 尖刺高度是12像素
     if (lastPlatformTouched !== 'topSpike') {
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
@@ -534,7 +535,7 @@ function updatePlayer() {
         return true;
       });
     }
-    player.y = 0; // 不讓角色超出畫面
+    player.y = 12; // 將精靈帽子頂端停在尖刺下方
     player.vy = 0;
     player.fallThrough = true; // 開啟穿透狀態
   } else if (lastPlatformTouched === 'topSpike') {
