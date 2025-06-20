@@ -874,23 +874,6 @@ window.addEventListener('keydown', function(e) {
   }
 });
 
-let lastTap = 0, lastTapX = 0, lastTapY = 0;
-document.body.addEventListener('touchend', function(e) {
-  if (e.touches.length === 0 && e.changedTouches.length === 1) {
-    const now = Date.now();
-    const x = e.changedTouches[0].clientX;
-    const y = e.changedTouches[0].clientY;
-    if (now - lastTap < 350 && Math.abs(x - lastTapX) < 40 && Math.abs(y - lastTapY) < 40) {
-      togglePause();
-      lastTap = 0;
-    } else {
-      lastTap = now;
-      lastTapX = x;
-      lastTapY = y;
-    }
-  }
-});
-
 initGame();
 </script>
 </body>
