@@ -179,6 +179,30 @@ if (localStorage.getItem('ns_shaft_highscore')) {
   highScore = parseInt(localStorage.getItem('ns_shaft_highscore')) || 0;
 }
 
+// 平台類型與上限
+const PLATFORM_TYPES = ["normal", "jump", "spike", "vanish", "conveyorL", "conveyorR"];
+const PLATFORM_TYPE_LIMIT = {
+  normal: 99,      // 普通平台不限制
+  jump: 3,
+  spike: 3,
+  vanish: 3,
+  conveyorL: 2,
+  conveyorR: 2
+};
+
+function countPlatformTypes() {
+  const count = {normal:0, jump:0, spike:0, vanish:0, conveyorL:0, conveyorR:0};
+  for (let p of platforms) {
+    if (!p.hidden && count.hasOwnProperty(p.type)) count[p.type]++;
+  }
+  return count;
+}
+
+function getAvailablePlatformTypes() {
+  const counts = countPlatformTypes();
+  return PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
+}
+
 function initGame() {
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
@@ -661,7 +685,6 @@ function updatePlatforms() {
       const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
       const platformHeight = 10;
       const platformSpacing = getHeight() / 8; // 固定間距
-      
       // 找到最下方的平台，在其下方固定間距處生成新平台
       let lowestPlatform = null;
       for (let otherP of platforms) {
@@ -669,17 +692,12 @@ function updatePlatforms() {
           lowestPlatform = otherP;
         }
       }
-      
       let newY, newX;
       if (lowestPlatform) {
-        // 在最下方平台下方固定間距處生成
         newY = lowestPlatform.y + platformSpacing;
       } else {
-        // 如果沒有其他平台，在畫面底部生成
         newY = getHeight();
       }
-      
-      // 生成X位置，避免與玩家重疊
       let tryCount = 0;
       do {
         newX = Math.random() * (getWidth() - platformWidth);
@@ -691,19 +709,12 @@ function updatePlatforms() {
         player.y + player.height <= newY + platformHeight &&
         player.y + player.height >= newY
       );
-      
       p.y = newY;
       p.x = newX;
-      
-      // 平均的平台類型分配
-      let rand = Math.random();
-      if (rand < 0.2) p.type = "normal";      // 20% 普通平台
-      else if (rand < 0.4) p.type = "jump";   // 20% 彈跳平台
-      else if (rand < 0.6) p.type = "spike";  // 20% 尖刺平台
-      else if (rand < 0.8) p.type = "vanish"; // 20% 消失平台
-      else if (rand < 0.9) p.type = "conveyorL"; // 10% 左傳輸帶
-      else p.type = "conveyorR";              // 10% 右傳輸帶
-      
+      // 平台類型分配（更平均）
+      const availableTypes = getAvailablePlatformTypes();
+      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)] || "normal";
+      p.type = type;
       p.vanishTimer = null;
       p.hidden = false; // 重生時恢復顯示
     }
@@ -756,16 +767,9 @@ function updatePlatforms() {
       vanishTimer: null,
       hidden: false
     };
-    
-    // 平均分配平台類型
-    let rand = Math.random();
-    if (rand < 0.2) newPlatform.type = "normal";      // 20% 普通平台
-    else if (rand < 0.4) newPlatform.type = "jump";   // 20% 彈跳平台
-    else if (rand < 0.6) newPlatform.type = "spike";  // 20% 尖刺平台
-    else if (rand < 0.8) newPlatform.type = "vanish"; // 20% 消失平台
-    else if (rand < 0.9) newPlatform.type = "conveyorL"; // 10% 左傳輸帶
-    else newPlatform.type = "conveyorR";              // 10% 右傳輸帶
-    
+    // 平台類型分配（更平均）
+    const availableTypes2 = getAvailablePlatformTypes();
+    newPlatform.type = availableTypes2[Math.floor(Math.random() * availableTypes2.length)] || "normal";
     platforms.push(newPlatform);
   }
 }
