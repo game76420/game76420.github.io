@@ -830,10 +830,10 @@ function handleTouch(e) {
   setKey('ArrowRight', right);
 }
 
-document.body.addEventListener('touchstart', handleTouch);
-document.body.addEventListener('touchmove', handleTouch);
-document.body.addEventListener('touchend', handleTouch);
-document.body.addEventListener('touchcancel', handleTouch);
+canvas.addEventListener('touchstart', handleTouch);
+canvas.addEventListener('touchmove', handleTouch);
+canvas.addEventListener('touchend', handleTouch);
+canvas.addEventListener('touchcancel', handleTouch);
 
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
