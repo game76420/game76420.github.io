@@ -53,11 +53,11 @@
     }
     #hud .hud-hp {
       display: flex;
-      gap: 2px;
+      gap: 1px;
       flex-wrap: nowrap;
-      min-width: 60px;
-      max-width: 152px;
-      height: 18px;
+      min-width: 36px;
+      max-width: 72px;
+      height: 14px;
     }
     #hud .hud-score {
       font-weight: bold;
@@ -128,12 +128,28 @@
   </style>
 </head>
 <body>
+<!-- 音效與背景音樂 -->
+<audio id="sfx-normal" src="Data_1.wav" preload="auto"></audio>
+<audio id="sfx-jump" src="Data_3.wav" preload="auto"></audio>
+<audio id="sfx-spike" src="Data_4.wav" preload="auto"></audio>
+<audio id="sfx-vanish" src="Data_5.wav" preload="auto"></audio>
+<audio id="sfx-dead" src="Data_6.wav" preload="auto"></audio>
+<audio id="bgm" src="BGM.mp3" preload="auto" loop></audio>
 <div id="hud"></div>
 <canvas id="game"></canvas>
 <div id="controls">
   <button class="ctrl-btn" id="btn-left">◀️</button>
   <button class="ctrl-btn" id="pause-btn">⏯️</button>
   <button class="ctrl-btn" id="btn-right">▶️</button>
+</div>
+<!-- 可收合的音效與音樂開關面板 -->
+<div id="audio-panel" style="position:fixed;top:60px;right:12px;z-index:1001;display:flex;flex-direction:column;align-items:flex-end;">
+  <button id="audio-panel-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:50%;padding:8px 12px;font-size:1.3rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🎵</button>
+  <div id="audio-panel-content" style="display:none;flex-direction:row;gap:8px;margin-top:8px;background:rgba(34,34,34,0.98);border-radius:14px;padding:12px 10px 10px 10px;box-shadow:0 2px 12px #000a;align-items:center;">
+    <button id="sfx-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:8px 12px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🔇 音效</button>
+    <button id="bgm-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:8px 12px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🔇 音樂</button>
+    <button id="audio-panel-close" style="background:#444;color:#fff;border:none;border-radius:50%;padding:2px 8px;font-size:1.1rem;margin-left:2px;cursor:pointer;">→</button>
+  </div>
 </div>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;">
@@ -203,6 +219,38 @@ function getAvailablePlatformTypes() {
   return PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
 }
 
+// 取得音效元素
+const sfxNormal = document.getElementById('sfx-normal');
+const sfxJump = document.getElementById('sfx-jump');
+const sfxSpike = document.getElementById('sfx-spike');
+const sfxVanish = document.getElementById('sfx-vanish');
+const sfxDead = document.getElementById('sfx-dead');
+const bgm = document.getElementById('bgm');
+
+// 新增音效與音樂靜音狀態
+let sfxMuted = true;
+let bgmMuted = true;
+
+// 音效播放輔助（可重疊播放）
+function playSfx(audio) {
+  if (!audio || sfxMuted) return;
+  try {
+    audio.currentTime = 0;
+    audio.play();
+  } catch (e) {}
+}
+
+// 背景音樂自動播放（需用戶互動後觸發）
+function tryPlayBgm() {
+  if (bgm.paused && !bgmMuted) {
+    bgm.volume = 0.5;
+    bgm.play().catch(()=>{
+      // 不再顯示提示
+    });
+  }
+  bgm.muted = bgmMuted;
+}
+
 function initGame() {
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
@@ -265,7 +313,9 @@ function initGame() {
     score: 0,
     fallThrough: false, // 新增穿透狀態
     hurtTimer: 0, // 受傷計時器
-    isHurt: false // 受傷狀態
+    isHurt: false, // 受傷狀態
+    direction: "front", // "left", "right", "front"
+    runAnim: 0, // 跑步動畫用
   };
 
   lastPlatformTouched = null;
@@ -281,27 +331,33 @@ function initGame() {
 
   drawHUD();
   requestAnimationFrame(gameLoop);
+  tryPlayBgm();
 }
 
 function drawPlayer() {
-  // --- COLOR DEFINITIONS to match the image ---
+  ctx.save();
+  ctx.translate(player.x, player.y);
+
+  const pW = player.width;
+  const pH = player.height;
+
+  // 顏色定義
   const hatColor = "#FFFFFF";
   const hatStripeColor = "#FF0000";
   const hatLightColor = "#FFFF00";
-  const skinColor = "#F2D1B3"; // Skin tone from image
+  const skinColor = "#F2D1B3";
   const shirtColor = "#FFFF00";
   const collarColor = "#000000";
   const pantsColor = "#FFFFFF";
-  const shoeColor = "#D2691E"; // Brown for shoes/sandals
-  
-  // --- HURT FLASH EFFECT ---
+  const shoeColor = "#D2691E";
+
+  // 受傷閃爍
   let useHurtColors = false;
   if (player.isHurt && player.hurtTimer > 0) {
     if (Math.floor(player.hurtTimer / 50) % 2 === 0) {
       useHurtColors = true;
     }
   }
-
   const currentHatColor = useHurtColors ? "#CC0000" : hatColor;
   const currentStripeColor = useHurtColors ? "#FF6666" : hatStripeColor;
   const currentLightColor = useHurtColors ? "#FF6666" : hatLightColor;
@@ -310,69 +366,174 @@ function drawPlayer() {
   const currentPantsColor = useHurtColors ? "#FFCCCC" : pantsColor;
   const currentShoeColor = useHurtColors ? "#FF6666" : shoeColor;
 
-  // --- CONTEXT & TRANSLATION ---
-  // We draw relative to the player's top-left corner (0,0)
-  ctx.save();
-  ctx.translate(player.x, player.y);
-
-  const pW = player.width;
-  const pH = player.height;
-
-  // --- DRAWING (bottom to top) ---
-
-  // Feet / Shoes
-  const shoeHeight = pH * 0.1;
-  const shoeWidth = pW * 0.35;
-  const legXOffset = pW * 0.05; // Gap from edge for legs
-  const legY = pH - shoeHeight;
-  ctx.fillStyle = currentShoeColor;
-  // Left shoe
-  ctx.fillRect(legXOffset, legY, shoeWidth, shoeHeight);
-  // Right shoe
-  ctx.fillRect(pW - legXOffset - shoeWidth, legY, shoeWidth, shoeHeight);
-
-  // Legs / Pants
-  const legHeight = pH * 0.3;
-  const legYPos = pH - shoeHeight - legHeight;
-  ctx.fillStyle = currentPantsColor;
-  // Left leg
-  ctx.fillRect(legXOffset, legYPos, shoeWidth, legHeight);
-  // Right leg
-  ctx.fillRect(pW - legXOffset - shoeWidth, legYPos, shoeWidth, legHeight);
-  // Fill middle part of pants to connect legs
-  ctx.fillRect(legXOffset + shoeWidth, legYPos, pW - 2 * (legXOffset + shoeWidth), legHeight);
-
-  // Body / Shirt
+  // 主要比例
   const bodyHeight = pH * 0.4;
   const bodyWidth = pW;
-  const bodyY = legYPos - bodyHeight;
-  const bodyX = 0;
-  ctx.fillStyle = currentShirtColor;
-  ctx.fillRect(bodyX, bodyY, bodyWidth, bodyHeight);
-  
-  // Arms
+  const legHeight = pH * 0.3;
+  const legWidth = pW * 0.35;
   const armHeight = pH * 0.3;
   const armWidth = pW * 0.2;
-  const armY = bodyY + bodyHeight * 0.2;
-  ctx.fillStyle = currentSkinColor;
-  // Left arm
-  ctx.fillRect(0 - armWidth*0.5, armY, armWidth, armHeight);
-  // Right arm
-  ctx.fillRect(pW - armWidth*0.5, armY, armWidth, armHeight);
-
-  // Head
   const headHeight = pH * 0.35;
   const headWidth = pW * 0.7;
+  const shoeHeight = pH * 0.1;
+  const shoeWidth = legWidth;
+
+  // 位置
+  const legY = pH - shoeHeight;
+  const legYPos = pH - shoeHeight - legHeight;
+  const bodyY = legYPos - bodyHeight;
   const headY = bodyY - headHeight;
   const headX = (pW - headWidth) / 2;
-  ctx.fillStyle = currentSkinColor;
-  ctx.fillRect(headX, headY, headWidth, headHeight);
 
-  // Collar (V-shape)
-  ctx.fillStyle = collarColor;
-  const collarVHeight = bodyHeight * 0.25;
+  // 跑步動作參數
+  let leftArm, rightArm, leftLeg, rightLeg, headOffsetX, headOffsetY, bodySkew;
+  if (player.direction === "left" || player.direction === "right") {
+    // 鏡像
+    if (player.direction === "right") {
+      ctx.translate(pW, 0);
+      ctx.scale(-1, 1);
+    }
+    // 跑步動作
+    const anim = player.runAnim || 0;
+    // 頭部和身體前傾、上下晃動（幅度加大）
+    headOffsetX = -pW * 0.18; // 前傾更多
+    headOffsetY = pH * 0.10 + Math.sin(anim) * pH * 0.10; // 上下幅度更大
+    bodySkew = -0.28 + Math.sin(anim) * 0.12; // 前傾更多
+    // 手腳擺動（幅度更大）
+    const armSwing = Math.sin(anim) * 1.2; // 擺動幅度加大
+    const legSwing = Math.sin(anim + Math.PI) * 1.0; // 腿部幅度加大
+    leftArm = {x: -armWidth*0.5 + pW*0.08, y: bodyY + bodyHeight*0.18, angle: -1.0 + armSwing};
+    rightArm = {x: pW - armWidth*0.5 - pW*0.08, y: bodyY + bodyHeight*0.28, angle: 1.0 - armSwing};
+    leftLeg = {x: pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: 0.8 * Math.sin(anim)};
+    rightLeg = {x: pW - legWidth - pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: -0.8 * Math.sin(anim)};
+    // side 定義
+    const side = player.direction === "left" ? -1 : 1;
+  } else {
+    // 正面（像素風站姿，雙腿分開、雙手下垂）
+    headOffsetX = 0;
+    headOffsetY = 0;
+    bodySkew = 0;
+    // 手臂靠身體兩側，微微外張
+    leftArm = {x: pW*0.01 - armWidth/2, y: bodyY + bodyHeight*0.18, angle: 0.25};
+    rightArm = {x: pW - armWidth - pW*0.01 + armWidth/2, y: bodyY + bodyHeight*0.18, angle: -0.25};
+    // 腿部分開，腳尖外八
+    leftLeg = {x: pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: 0.18};
+    rightLeg = {x: pW - legWidth - pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: -0.18};
+  }
+
+  // Legs
+  ctx.save();
+  ctx.translate(leftLeg.x + leftLeg.w/2, leftLeg.y + leftLeg.h/2);
+  ctx.rotate(leftLeg.angle || 0);
+  ctx.fillStyle = currentPantsColor;
+  ctx.fillRect(-leftLeg.w/2, -leftLeg.h/2, leftLeg.w, leftLeg.h);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(rightLeg.x + rightLeg.w/2, rightLeg.y + rightLeg.h/2);
+  ctx.rotate(rightLeg.angle || 0);
+  ctx.fillStyle = currentPantsColor;
+  ctx.fillRect(-rightLeg.w/2, -rightLeg.h/2, rightLeg.w, rightLeg.h);
+  ctx.restore();
+
+  // Shoes
+  ctx.fillStyle = currentShoeColor;
+  ctx.fillRect(leftLeg.x, legY, shoeWidth, shoeHeight);
+  ctx.fillRect(rightLeg.x, legY, shoeWidth, shoeHeight);
+
+  // Body
+  ctx.save();
+  ctx.translate(pW/2, bodyY + bodyHeight/2);
+  ctx.rotate(bodySkew);
+  ctx.fillStyle = currentShirtColor;
+  ctx.fillRect(-bodyWidth/2, -bodyHeight/2, bodyWidth, bodyHeight);
+  ctx.restore();
+
+  // Arms（黃色長袖）
+  ctx.save();
+  ctx.translate(leftArm.x + armWidth/2, leftArm.y + armHeight/2);
+  ctx.rotate(leftArm.angle || 0);
+  // 畫長袖
+  ctx.fillStyle = currentShirtColor;
+  ctx.fillRect(-armWidth/2, -armHeight/2, armWidth, armHeight);
+  // 畫手掌
+  ctx.fillStyle = currentSkinColor;
   ctx.beginPath();
-  ctx.moveTo(pW / 2, bodyY + collarVHeight);
+  ctx.arc(0, armHeight/2, armWidth*0.45, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(rightArm.x + armWidth/2, rightArm.y + armHeight/2);
+  ctx.rotate(rightArm.angle || 0);
+  // 畫長袖
+  ctx.fillStyle = currentShirtColor;
+  ctx.fillRect(-armWidth/2, -armHeight/2, armWidth, armHeight);
+  // 畫手掌
+  ctx.fillStyle = currentSkinColor;
+  ctx.beginPath();
+  ctx.arc(0, armHeight/2, armWidth*0.45, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  // Head
+  ctx.save();
+  ctx.translate(headX + headWidth/2 + (headOffsetX||0), headY + headHeight/2 + (headOffsetY||0));
+  ctx.fillStyle = currentSkinColor;
+  if (player.direction === "left" || player.direction === "right") {
+    // 側臉：橢圓稍微壓扁，臉朝左或右
+    ctx.beginPath();
+    ctx.ellipse(0, 0, headWidth*0.55, headHeight/2, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // 臉頰紅暈
+    ctx.fillStyle = "#ffb6b6";
+    ctx.beginPath();
+    ctx.ellipse(-headWidth*0.25, headHeight*0.10, headWidth*0.10, headHeight*0.07, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // 單眼（橫線）
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = Math.max(1, pH * 0.06);
+    ctx.beginPath();
+    let eyeX = -headWidth*0.25;
+    ctx.moveTo(eyeX - headWidth*0.06, -headHeight*0.08);
+    ctx.lineTo(eyeX + headWidth*0.06, -headHeight*0.08);
+    ctx.stroke();
+
+    // 鼻子（小點）
+    ctx.fillStyle = "#e0a070";
+    ctx.beginPath();
+    ctx.arc(-headWidth*0.35, 0, headWidth*0.025, 0, Math.PI*2);
+    ctx.fill();
+  } else {
+    // 正臉
+    ctx.beginPath();
+    ctx.ellipse(0, 0, headWidth/2, headHeight/2, 0, 0, Math.PI*2);
+    ctx.fill();
+    // 雙眼（分開的橫線）
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = Math.max(1, pH * 0.05);
+    const eyeWidth = headWidth * 0.18;
+    const eyeY = -headHeight * 0.08;
+    const eyeXOffset = headWidth * 0.22;
+    // 左眼
+    ctx.beginPath();
+    ctx.moveTo(-eyeXOffset - eyeWidth/2, eyeY);
+    ctx.lineTo(-eyeXOffset + eyeWidth/2, eyeY);
+    ctx.stroke();
+    // 右眼
+    ctx.beginPath();
+    ctx.moveTo(eyeXOffset - eyeWidth/2, eyeY);
+    ctx.lineTo(eyeXOffset + eyeWidth/2, eyeY);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Collar
+  ctx.fillStyle = collarColor;
+  ctx.beginPath();
+  ctx.moveTo(pW / 2, bodyY + bodyHeight * 0.25);
   ctx.lineTo(pW / 2 - pW * 0.15, bodyY);
   ctx.lineTo(pW / 2 + pW * 0.15, bodyY);
   ctx.closePath();
@@ -380,43 +541,38 @@ function drawPlayer() {
 
   // Hat
   const hatHeight = pH * 0.15;
-  const hatY = headY - hatHeight;
+  const hatY = headY + (headOffsetY||0) - hatHeight;
   const hatWidth = pW * 0.9;
-  const hatX = (pW - hatWidth) / 2;
-  // Main hat shape (arc)
+  const hatX = (pW - hatWidth) / 2 + (headOffsetX||0);
   ctx.fillStyle = currentHatColor;
   ctx.beginPath();
-  ctx.arc(pW/2, hatY + hatHeight, hatWidth/2, Math.PI, 2 * Math.PI);
+  ctx.arc(pW/2 + (headOffsetX||0), hatY + hatHeight, hatWidth/2, Math.PI, 2 * Math.PI);
   ctx.fill();
-  
-  // Hat Stripes (Red parts)
-  ctx.fillStyle = currentStripeColor;
-  const stripeHeight = hatHeight;
-  const stripeWidth = pW * 0.12;
-  const stripeY = hatY;
-  ctx.fillRect(hatX + pW * 0.1, stripeY, stripeWidth, stripeHeight);
-  ctx.fillRect(pW - (hatX + pW * 0.1) - stripeWidth, stripeY, stripeWidth, stripeHeight);
 
-  // Hat Light (Yellow part)
+  // Hat Stripe (一條紅色線)
+  ctx.strokeStyle = currentStripeColor;
+  ctx.lineWidth = hatHeight * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(hatX + hatWidth * 0.08, hatY + hatHeight * 0.7);
+  ctx.lineTo(hatX + hatWidth * 0.92, hatY + hatHeight * 0.7);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+
+  // Hat Light
   ctx.fillStyle = currentLightColor;
   const lightSize = pW * 0.2;
-  ctx.fillRect(pW/2 - lightSize/2, hatY, lightSize, lightSize);
-
-  // Eyes (眯眯眼)
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = Math.max(1, pH * 0.05);
-  const eyeWidth = headWidth * 0.3;
-  const eyeY = headY + headHeight * 0.5;
-  const eyeLX = headX + headWidth * 0.1;
-  const eyeRX = headX + headWidth * 0.9;
-  ctx.beginPath();
-  ctx.moveTo(eyeLX, eyeY);
-  ctx.lineTo(eyeLX + eyeWidth, eyeY);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(eyeRX - eyeWidth, eyeY);
-  ctx.lineTo(eyeRX, eyeY);
-  ctx.stroke();
+  let lightX;
+  if (player.direction === "left") {
+    // 最左側
+    lightX = hatX;
+  } else if (player.direction === "right") {
+    // 鏡射後的最左側（實際上是最右側）
+    lightX = hatX;
+  } else {
+    // 正面中央
+    lightX = pW/2 - lightSize/2 + (headOffsetX||0);
+  }
+  ctx.fillRect(lightX, hatY, lightSize, lightSize);
 
   ctx.restore();
 }
@@ -557,6 +713,7 @@ function updatePlayer() {
   const hatTopY = player.y; // 帽子頂端位置（精靈的y座標就是帽子頂端）
   if (hatTopY <= 12) { // 尖刺高度是12像素
     if (lastPlatformTouched !== 'topSpike') {
+      playSfx(sfxSpike); // 播放被刺到音效
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
       player.isHurt = true;
@@ -603,6 +760,7 @@ function updatePlayer() {
         player.onGround = true;
         if (p.type === "spike") {
           if (lastPlatformTouched !== p) {
+            playSfx(sfxSpike); // 播放被刺到音效
             player.hp -= 5;
             lastPlatformTouched = p;
             player.isHurt = true;
@@ -610,22 +768,26 @@ function updatePlayer() {
           }
           player.vy = 0;
         } else if (p.type === "jump") {
+          playSfx(sfxJump); // 播放彈跳音效
           player.vy = player.jumpForce;
           player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
           lastPlatformTouched = p;
         } else if (p.type === "normal") {
-          player.vy = 0;
           if (lastPlatformTouched !== p) {
+            playSfx(sfxNormal); // 播放一般平台音效
             player.hp = Math.min(player.hp + 1, 12);
             lastPlatformTouched = p;
           }
+          player.vy = 0;
         } else if (p.type === "vanish") {
           player.vy = 0;
           if (p.vanishTimer === null) {
+            playSfx(sfxNormal); // 先播放一般平台音效
             p.vanishTimer = Date.now();
             player.hp = Math.min(player.hp + 1, 12);
           } else if (Date.now() - p.vanishTimer >= 200) {
             p.hidden = true;
+            playSfx(sfxVanish); // 播放消失音效
             break;
           }
           lastPlatformTouched = p;
@@ -637,6 +799,7 @@ function updatePlayer() {
             player.x += 1.5;
           }
           if (lastPlatformTouched !== p) {
+            playSfx(sfxNormal); // 播放一般平台音效
             player.hp = Math.min(player.hp + 1, 12);
             lastPlatformTouched = p;
           }
@@ -650,6 +813,7 @@ function updatePlayer() {
 
   if (player.y > getHeight() || (player.hp <= 0 && !player.fallThrough)) {
     setTimeout(() => {
+      playSfx(sfxDead); // 播放死亡音效
       // 更新最高分數
       if (player.score > highScore) {
         highScore = player.score;
@@ -659,6 +823,17 @@ function updatePlayer() {
     }, 100);
     return false;
   }
+
+  if (player.vx < 0) player.direction = "left";
+  else if (player.vx > 0) player.direction = "right";
+  else player.direction = "front";
+
+  if (player.vx !== 0) {
+    player.runAnim += Math.abs(player.vx) * 0.28;
+  } else {
+    player.runAnim = 0;
+  }
+
   return true;
 }
 
@@ -877,6 +1052,44 @@ window.addEventListener('keydown', function(e) {
     togglePause();
   }
 });
+
+window.addEventListener('load', function() {
+  // 預設靜音
+  sfxMuted = true;
+  bgmMuted = true;
+  bgm.muted = true;
+  tryPlayBgm();
+});
+
+// 音效與音樂開關按鈕
+const sfxToggle = document.getElementById('sfx-toggle');
+const bgmToggle = document.getElementById('bgm-toggle');
+const audioPanelToggle = document.getElementById('audio-panel-toggle');
+const audioPanelContent = document.getElementById('audio-panel-content');
+const audioPanelClose = document.getElementById('audio-panel-close');
+function updateAudioPanel() {
+  sfxToggle.innerHTML = (sfxMuted ? '🔇' : '🔊') + ' 音效';
+  bgmToggle.innerHTML = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
+}
+sfxToggle.addEventListener('click', function() {
+  sfxMuted = !sfxMuted;
+  updateAudioPanel();
+});
+bgmToggle.addEventListener('click', function() {
+  bgmMuted = !bgmMuted;
+  bgm.muted = bgmMuted;
+  if (!bgmMuted) tryPlayBgm();
+  updateAudioPanel();
+});
+audioPanelToggle.addEventListener('click', function() {
+  audioPanelToggle.style.display = 'none';
+  audioPanelContent.style.display = 'flex';
+});
+audioPanelClose.addEventListener('click', function() {
+  audioPanelContent.style.display = 'none';
+  audioPanelToggle.style.display = 'inline-block';
+});
+updateAudioPanel();
 
 initGame();
 </script>
