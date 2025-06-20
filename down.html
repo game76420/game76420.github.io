@@ -168,7 +168,7 @@ if (localStorage.getItem('ns_shaft_highscore')) {
 
 function initGame() {
   platforms = [];
-  const platformWidth = 60;
+  const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
   const platformHeight = 10;
   const numPlatforms = 8;
   const platformSpacing = getHeight() / numPlatforms; // 固定間距
@@ -210,14 +210,16 @@ function initGame() {
 
   // 讓精靈一開始站在最底下那個平台正上方
   const firstPlatform = platforms[platforms.length - 1];
+  const playerWidth = Math.floor(platformWidth / 3); // 精靈寬度為平台寬度的1/3
+  const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
   player = {
-    x: firstPlatform.x + (firstPlatform.width - 20) / 2,
-    y: firstPlatform.y - 20,
-    width: 20,
-    height: 20,
+    x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
+    y: firstPlatform.y - playerHeight,
+    width: playerWidth,
+    height: playerHeight,
     vx: 0,
     vy: 0,
-    speed: 2.5,
+    speed: 4.0,
     gravity: 0.3,
     jumpForce: -6,
     onGround: false,
@@ -244,44 +246,141 @@ function initGame() {
 }
 
 function drawPlayer() {
-  // 根據受傷狀態決定顏色
-  let bodyColor = "#00c0c0"; // 正常身體顏色
-  let headColor = "#ffe0a0"; // 正常頭部顏色
-  let hatColor = "#0080ff";  // 正常帽子顏色
+  // --- COLOR DEFINITIONS to match the image ---
+  const hatColor = "#FFFFFF";
+  const hatStripeColor = "#FF0000";
+  const hatLightColor = "#FFFF00";
+  const skinColor = "#F2D1B3"; // Skin tone from image
+  const shirtColor = "#FFFF00";
+  const collarColor = "#000000";
+  const pantsColor = "#FFFFFF";
+  const shoeColor = "#D2691E"; // Brown for shoes/sandals
   
-  // 如果受傷且閃爍時間內，使用紅色
+  // --- HURT FLASH EFFECT ---
+  let useHurtColors = false;
   if (player.isHurt && player.hurtTimer > 0) {
-    const flashRate = Math.floor(player.hurtTimer / 50) % 2; // 每50毫秒閃爍一次
-    if (flashRate === 0) {
-      bodyColor = "#ff0000"; // 紅色身體
-      headColor = "#ffcccc"; // 淺紅色頭部
-      hatColor = "#cc0000";  // 深紅色帽子
+    if (Math.floor(player.hurtTimer / 50) % 2 === 0) {
+      useHurtColors = true;
     }
   }
+
+  const currentHatColor = useHurtColors ? "#CC0000" : hatColor;
+  const currentStripeColor = useHurtColors ? "#FF6666" : hatStripeColor;
+  const currentLightColor = useHurtColors ? "#FF6666" : hatLightColor;
+  const currentSkinColor = useHurtColors ? "#FFCCCC" : skinColor;
+  const currentShirtColor = useHurtColors ? "#FF0000" : shirtColor;
+  const currentPantsColor = useHurtColors ? "#FFCCCC" : pantsColor;
+  const currentShoeColor = useHurtColors ? "#FF6666" : shoeColor;
+
+  // --- CONTEXT & TRANSLATION ---
+  // We draw relative to the player's top-left corner (0,0)
+  ctx.save();
+  ctx.translate(player.x, player.y);
+
+  const pW = player.width;
+  const pH = player.height;
+
+  // --- DRAWING (bottom to top) ---
+
+  // Feet / Shoes
+  const shoeHeight = pH * 0.1;
+  const shoeWidth = pW * 0.35;
+  const legXOffset = pW * 0.05; // Gap from edge for legs
+  const legY = pH - shoeHeight;
+  ctx.fillStyle = currentShoeColor;
+  // Left shoe
+  ctx.fillRect(legXOffset, legY, shoeWidth, shoeHeight);
+  // Right shoe
+  ctx.fillRect(pW - legXOffset - shoeWidth, legY, shoeWidth, shoeHeight);
+
+  // Legs / Pants
+  const legHeight = pH * 0.3;
+  const legYPos = pH - shoeHeight - legHeight;
+  ctx.fillStyle = currentPantsColor;
+  // Left leg
+  ctx.fillRect(legXOffset, legYPos, shoeWidth, legHeight);
+  // Right leg
+  ctx.fillRect(pW - legXOffset - shoeWidth, legYPos, shoeWidth, legHeight);
+  // Fill middle part of pants to connect legs
+  ctx.fillRect(legXOffset + shoeWidth, legYPos, pW - 2 * (legXOffset + shoeWidth), legHeight);
+
+  // Body / Shirt
+  const bodyHeight = pH * 0.4;
+  const bodyWidth = pW;
+  const bodyY = legYPos - bodyHeight;
+  const bodyX = 0;
+  ctx.fillStyle = currentShirtColor;
+  ctx.fillRect(bodyX, bodyY, bodyWidth, bodyHeight);
   
-  // 身體
-  ctx.fillStyle = bodyColor;
-  ctx.fillRect(player.x + 4, player.y + 12, 12, 8);
-  // 頭
+  // Arms
+  const armHeight = pH * 0.3;
+  const armWidth = pW * 0.2;
+  const armY = bodyY + bodyHeight * 0.2;
+  ctx.fillStyle = currentSkinColor;
+  // Left arm
+  ctx.fillRect(0 - armWidth*0.5, armY, armWidth, armHeight);
+  // Right arm
+  ctx.fillRect(pW - armWidth*0.5, armY, armWidth, armHeight);
+
+  // Head
+  const headHeight = pH * 0.35;
+  const headWidth = pW * 0.7;
+  const headY = bodyY - headHeight;
+  const headX = (pW - headWidth) / 2;
+  ctx.fillStyle = currentSkinColor;
+  ctx.fillRect(headX, headY, headWidth, headHeight);
+
+  // Collar (V-shape)
+  ctx.fillStyle = collarColor;
+  const collarVHeight = bodyHeight * 0.25;
   ctx.beginPath();
-  ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI * 2);
-  ctx.fillStyle = headColor;
+  ctx.moveTo(pW / 2, bodyY + collarVHeight);
+  ctx.lineTo(pW / 2 - pW * 0.15, bodyY);
+  ctx.lineTo(pW / 2 + pW * 0.15, bodyY);
+  ctx.closePath();
   ctx.fill();
-  // 帽子
+
+  // Hat
+  const hatHeight = pH * 0.15;
+  const hatY = headY - hatHeight;
+  const hatWidth = pW * 0.9;
+  const hatX = (pW - hatWidth) / 2;
+  // Main hat shape (arc)
+  ctx.fillStyle = currentHatColor;
   ctx.beginPath();
-  ctx.arc(player.x + 10, player.y + 7, 8, Math.PI, 2 * Math.PI);
-  ctx.fillStyle = hatColor;
+  ctx.arc(pW/2, hatY + hatHeight, hatWidth/2, Math.PI, 2 * Math.PI);
   ctx.fill();
-  ctx.fillRect(player.x + 2, player.y + 7, 16, 4);
-  // 眼睛
-  ctx.fillStyle = "#000";
-  ctx.fillRect(player.x + 7, player.y + 12, 2, 2);
-  ctx.fillRect(player.x + 13, player.y + 12, 2, 2);
-  // 嘴巴
+  
+  // Hat Stripes (Red parts)
+  ctx.fillStyle = currentStripeColor;
+  const stripeHeight = hatHeight;
+  const stripeWidth = pW * 0.12;
+  const stripeY = hatY;
+  ctx.fillRect(hatX + pW * 0.1, stripeY, stripeWidth, stripeHeight);
+  ctx.fillRect(pW - (hatX + pW * 0.1) - stripeWidth, stripeY, stripeWidth, stripeHeight);
+
+  // Hat Light (Yellow part)
+  ctx.fillStyle = currentLightColor;
+  const lightSize = pW * 0.2;
+  ctx.fillRect(pW/2 - lightSize/2, hatY, lightSize, lightSize);
+
+  // Eyes (眯眯眼)
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = Math.max(1, pH * 0.05);
+  const eyeWidth = headWidth * 0.3;
+  const eyeY = headY + headHeight * 0.5;
+  const eyeLX = headX + headWidth * 0.1;
+  const eyeRX = headX + headWidth * 0.9;
   ctx.beginPath();
-  ctx.arc(player.x + 10, player.y + 15, 3, 0, Math.PI);
-  ctx.strokeStyle = "#a06030";
+  ctx.moveTo(eyeLX, eyeY);
+  ctx.lineTo(eyeLX + eyeWidth, eyeY);
   ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(eyeRX - eyeWidth, eyeY);
+  ctx.lineTo(eyeRX, eyeY);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 function drawTopSpikes() {
@@ -537,7 +636,7 @@ function updatePlatforms() {
     let p = platforms[i];
     if (p.y + p.height < 0) {
       // 平台重生時使用固定的間距和位置
-      const platformWidth = 60;
+      const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
       const platformHeight = 10;
       const platformSpacing = getHeight() / 8; // 固定間距
       
@@ -595,7 +694,7 @@ function updatePlatforms() {
   // 檢查平台數量，如果少於8個就補充
   const targetPlatformCount = 8;
   while (platforms.length < targetPlatformCount) {
-    const platformWidth = 60;
+    const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
     const platformHeight = 10;
     const platformSpacing = getHeight() / 8; // 固定間距
     
