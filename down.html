@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+5k<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
@@ -171,24 +171,36 @@ function initGame() {
   const platformWidth = 60;
   const platformHeight = 10;
   const numPlatforms = 8;
+  const platformSpacing = getHeight() / numPlatforms; // 固定間距
 
   for (let i = 0; i < numPlatforms; i++) {
     let type;
     if (i === numPlatforms - 1) {
-      type = "normal";
+      type = "normal"; // 最底下的平台固定為普通平台
     } else {
-      // normal 50%、jump 10%、spike 13%、vanish 13%、conveyorL 7%、conveyorR 7%
+      // 更平均的平台類型分配
       let rand = Math.random();
-      if (rand < 0.5) type = "normal";
-      else if (rand < 0.6) type = "jump";
-      else if (rand < 0.73) type = "spike";
-      else if (rand < 0.86) type = "vanish";
-      else if (rand < 0.93) type = "conveyorL";
-      else type = "conveyorR";
+      if (rand < 0.2) type = "normal";      // 20% 普通平台
+      else if (rand < 0.4) type = "jump";   // 20% 彈跳平台
+      else if (rand < 0.6) type = "spike";  // 20% 尖刺平台
+      else if (rand < 0.8) type = "vanish"; // 20% 消失平台
+      else if (rand < 0.9) type = "conveyorL"; // 10% 左傳輸帶
+      else type = "conveyorR";              // 10% 右傳輸帶
     }
+    
+    // 生成平台位置，確保不重疊
+    let x, attempts = 0;
+    do {
+      x = Math.random() * (getWidth() - platformWidth);
+      attempts++;
+    } while (attempts < 20 && platforms.some(p => 
+      Math.abs(p.y - (i * platformSpacing)) < 20 && // 同一高度附近
+      Math.abs(p.x - x) < platformWidth + 10 // 水平重疊檢查
+    ));
+    
     platforms.push({
-      x: Math.random() * (getWidth() - platformWidth),
-      y: i * (getHeight() / numPlatforms),
+      x: x,
+      y: i * platformSpacing,
       width: platformWidth,
       height: platformHeight,
       type: type,
@@ -211,7 +223,9 @@ function initGame() {
     onGround: false,
     hp: 12,
     score: 0,
-    fallThrough: false // 新增穿透狀態
+    fallThrough: false, // 新增穿透狀態
+    hurtTimer: 0, // 受傷計時器
+    isHurt: false // 受傷狀態
   };
 
   lastPlatformTouched = null;
@@ -230,18 +244,33 @@ function initGame() {
 }
 
 function drawPlayer() {
+  // 根據受傷狀態決定顏色
+  let bodyColor = "#00c0c0"; // 正常身體顏色
+  let headColor = "#ffe0a0"; // 正常頭部顏色
+  let hatColor = "#0080ff";  // 正常帽子顏色
+  
+  // 如果受傷且閃爍時間內，使用紅色
+  if (player.isHurt && player.hurtTimer > 0) {
+    const flashRate = Math.floor(player.hurtTimer / 50) % 2; // 每50毫秒閃爍一次
+    if (flashRate === 0) {
+      bodyColor = "#ff0000"; // 紅色身體
+      headColor = "#ffcccc"; // 淺紅色頭部
+      hatColor = "#cc0000";  // 深紅色帽子
+    }
+  }
+  
   // 身體
-  ctx.fillStyle = "#00c0c0";
+  ctx.fillStyle = bodyColor;
   ctx.fillRect(player.x + 4, player.y + 12, 12, 8);
   // 頭
   ctx.beginPath();
   ctx.arc(player.x + 10, player.y + 10, 8, 0, Math.PI * 2);
-  ctx.fillStyle = "#ffe0a0";
+  ctx.fillStyle = headColor;
   ctx.fill();
   // 帽子
   ctx.beginPath();
   ctx.arc(player.x + 10, player.y + 7, 8, Math.PI, 2 * Math.PI);
-  ctx.fillStyle = "#0080ff";
+  ctx.fillStyle = hatColor;
   ctx.fill();
   ctx.fillRect(player.x + 2, player.y + 7, 16, 4);
   // 眼睛
@@ -296,19 +325,34 @@ function drawPlatforms() {
       }
       ctx.stroke();
       ctx.lineWidth = 1;
-      continue; // 已經畫完，跳過下面的 fillRect
     } else if (p.type === "spike") {
-      ctx.fillStyle = "red";
+      // 尖刺平台：先繪製平台本身，再繪製尖刺
+      ctx.fillStyle = "#cccccc"; // 灰色平台
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#999999";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
+      // 在平台上方繪製尖刺
+      ctx.fillStyle = "#cccccc"; // 與頂部尖刺相同的顏色
+      for (let i = 0; i < p.width; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(p.x + i, p.y + p.height);
+        ctx.lineTo(p.x + i + 5, p.y + p.height - 20); // 增加尖刺高度到20像素
+        ctx.lineTo(p.x + i + 10, p.y + p.height);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else if (p.type === "vanish") {
-      ctx.fillStyle = "#eeeeee"; // 更淺的灰色
+      // 消失平台：淺灰色
+      ctx.fillStyle = "#eeeeee";
       ctx.fillRect(p.x, p.y, p.width, p.height);
       ctx.strokeStyle = "#bbbbbb";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
-      continue; // 已經畫完，跳過下面的 fillRect
     } else if (p.type === "conveyorL" || p.type === "conveyorR") {
       // 傳輸帶平台：灰色底+深色橫條+白色箭頭
       ctx.fillStyle = "#bbbbbb";
       ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#888888";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
       // 畫深色橫條
       ctx.strokeStyle = "#666";
       for (let i = 4; i < p.width; i += 12) {
@@ -317,49 +361,34 @@ function drawPlatforms() {
         ctx.lineTo(p.x + i, p.y + p.height - 2);
         ctx.stroke();
       }
-      // 畫白色箭頭
+      // 畫三個白色箭頭
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
       ctx.beginPath();
       let arrowY = p.y + p.height / 2;
+      
+      // 計算三個箭頭的位置，均勻分布在平台上
+      const arrowSpacing = p.width / 4; // 將平台寬度分成4份，箭頭在第1、2、3份的中心
+      
       if (p.type === "conveyorL") {
-        for (let i = 12; i < p.width - 8; i += 24) {
-          ctx.moveTo(p.x + i + 8, arrowY - 4);
-          ctx.lineTo(p.x + i, arrowY);
-          ctx.lineTo(p.x + i + 8, arrowY + 4);
+        // 左傳送帶：箭頭指向左邊
+        for (let i = 1; i <= 3; i++) {
+          const arrowX = p.x + (arrowSpacing * i);
+          ctx.moveTo(arrowX + 6, arrowY - 4);
+          ctx.lineTo(arrowX, arrowY);
+          ctx.lineTo(arrowX + 6, arrowY + 4);
         }
       } else {
-        for (let i = 4; i < p.width - 16; i += 24) {
-          ctx.moveTo(p.x + i, arrowY - 4);
-          ctx.lineTo(p.x + i + 8, arrowY);
-          ctx.lineTo(p.x + i, arrowY + 4);
+        // 右傳送帶：箭頭指向右邊
+        for (let i = 1; i <= 3; i++) {
+          const arrowX = p.x + (arrowSpacing * i);
+          ctx.moveTo(arrowX - 6, arrowY - 4);
+          ctx.lineTo(arrowX, arrowY);
+          ctx.lineTo(arrowX - 6, arrowY + 4);
         }
       }
       ctx.stroke();
       ctx.lineWidth = 1;
-      continue; // 已經畫完，跳過下面的 fillRect
-    }
-    // 彈跳平台加個標記
-    if (p.type === "jump") {
-      ctx.strokeStyle = "#00ff00";
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y + p.height / 2);
-      ctx.lineTo(p.x + p.width, p.y + p.height / 2);
-      ctx.stroke();
-    }
-    // 刺針平台加個三角形
-    if (p.type === "spike") {
-      ctx.fillStyle = "#eee";
-      for (let i = 0; i < p.width; i += 10) {
-        ctx.beginPath();
-        ctx.moveTo(p.x + i, p.y + p.height);
-        ctx.lineTo(p.x + i + 5, p.y);
-        ctx.lineTo(p.x + i + 10, p.y + p.height);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = "#888";
-        ctx.stroke();
-      }
     }
   }
 }
@@ -367,9 +396,14 @@ function drawPlatforms() {
 function drawHUD() {
   if (!player) return;
   const hud = document.getElementById('hud');
+  const maxHp = 12;
   let hpHtml = '';
-  for (let i = 0; i < player.hp; i++) {
-    hpHtml += '<span style="display:inline-block;width:5px;height:16px;background:yellow;border:1px solid #cc0;margin-right:1px;"></span>';
+  for (let i = 0; i < maxHp; i++) {
+    if (i < player.hp) {
+      hpHtml += '<span style="display:inline-block;width:5px;height:16px;background:yellow;border:1px solid #cc0;margin-right:1px;"></span>';
+    } else {
+      hpHtml += '<span style="display:inline-block;width:5px;height:16px;background:#333;border:1px solid #222;margin-right:1px;"></span>';
+    }
   }
   hud.innerHTML =
     `<span class="hud-hp">${hpHtml}</span>
@@ -386,6 +420,8 @@ function updatePlayer() {
     if (lastPlatformTouched !== 'topSpike') {
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
+      player.isHurt = true;
+      player.hurtTimer = 1000;
       // 移除精靈正下方的普通平台與尖刺平台
       platforms = platforms.filter(p => {
         const overlap =
@@ -430,6 +466,8 @@ function updatePlayer() {
           if (lastPlatformTouched !== p) {
             player.hp -= 5;
             lastPlatformTouched = p;
+            player.isHurt = true;
+            player.hurtTimer = 1000;
           }
           player.vy = 0;
         } else if (p.type === "jump") {
@@ -493,31 +531,58 @@ function updatePlatforms() {
   for (let p of platforms) {
     p.y -= platformSpeed;
   }
+  
   // 處理消失與重生
   for (let i = 0; i < platforms.length; i++) {
     let p = platforms[i];
     if (p.y + p.height < 0) {
-      // 平台重生時避免與精靈重疊
+      // 平台重生時使用固定的間距和位置
+      const platformWidth = 60;
+      const platformHeight = 10;
+      const platformSpacing = getHeight() / 8; // 固定間距
+      
+      // 找到最下方的平台，在其下方固定間距處生成新平台
+      let lowestPlatform = null;
+      for (let otherP of platforms) {
+        if (otherP !== p && (lowestPlatform === null || otherP.y > lowestPlatform.y)) {
+          lowestPlatform = otherP;
+        }
+      }
+      
+      let newY, newX;
+      if (lowestPlatform) {
+        // 在最下方平台下方固定間距處生成
+        newY = lowestPlatform.y + platformSpacing;
+      } else {
+        // 如果沒有其他平台，在畫面底部生成
+        newY = getHeight();
+      }
+      
+      // 生成X位置，避免與玩家重疊
       let tryCount = 0;
       do {
-        p.y = getHeight();
-        p.x = Math.random() * (getWidth() - 60);
+        newX = Math.random() * (getWidth() - platformWidth);
         tryCount++;
       } while (
-        tryCount < 10 &&
-        player.x + player.width > p.x &&
-        player.x < p.x + p.width &&
-        player.y + player.height <= p.y + p.height &&
-        player.y + player.height >= p.y
+        tryCount < 20 &&
+        player.x + player.width > newX &&
+        player.x < newX + platformWidth &&
+        player.y + player.height <= newY + platformHeight &&
+        player.y + player.height >= newY
       );
-      // normal 50%、jump 10%、spike 13%、vanish 13%、conveyorL 7%、conveyorR 7%
+      
+      p.y = newY;
+      p.x = newX;
+      
+      // 平均的平台類型分配
       let rand = Math.random();
-      if (rand < 0.5) p.type = "normal";
-      else if (rand < 0.6) p.type = "jump";
-      else if (rand < 0.73) p.type = "spike";
-      else if (rand < 0.86) p.type = "vanish";
-      else if (rand < 0.93) p.type = "conveyorL";
-      else p.type = "conveyorR";
+      if (rand < 0.2) p.type = "normal";      // 20% 普通平台
+      else if (rand < 0.4) p.type = "jump";   // 20% 彈跳平台
+      else if (rand < 0.6) p.type = "spike";  // 20% 尖刺平台
+      else if (rand < 0.8) p.type = "vanish"; // 20% 消失平台
+      else if (rand < 0.9) p.type = "conveyorL"; // 10% 左傳輸帶
+      else p.type = "conveyorR";              // 10% 右傳輸帶
+      
       p.vanishTimer = null;
       platformPassedCount++;
       if (!player.fallThrough && platformPassedCount % 5 === 0) {
@@ -525,6 +590,65 @@ function updatePlatforms() {
         // 遊戲速度不再變化
       }
     }
+  }
+  
+  // 檢查平台數量，如果少於8個就補充
+  const targetPlatformCount = 8;
+  while (platforms.length < targetPlatformCount) {
+    const platformWidth = 60;
+    const platformHeight = 10;
+    const platformSpacing = getHeight() / 8; // 固定間距
+    
+    // 找到最下方的平台，在其下方固定間距處生成新平台
+    let lowestPlatform = null;
+    for (let p of platforms) {
+      if (lowestPlatform === null || p.y > lowestPlatform.y) {
+        lowestPlatform = p;
+      }
+    }
+    
+    let newY, newX;
+    if (lowestPlatform) {
+      // 在最下方平台下方固定間距處生成
+      newY = lowestPlatform.y + platformSpacing;
+    } else {
+      // 如果沒有其他平台，在畫面底部生成
+      newY = getHeight();
+    }
+    
+    // 生成X位置，避免與玩家重疊
+    let attempts = 0;
+    do {
+      newX = Math.random() * (getWidth() - platformWidth);
+      attempts++;
+    } while (
+      attempts < 20 &&
+      player.x + player.width > newX &&
+      player.x < newX + platformWidth &&
+      player.y + player.height <= newY + platformHeight &&
+      player.y + player.height >= newY
+    );
+    
+    // 生成新平台
+    let newPlatform = {
+      x: newX,
+      y: newY,
+      width: platformWidth,
+      height: platformHeight,
+      type: "normal", // 預設為普通平台
+      vanishTimer: null
+    };
+    
+    // 平均分配平台類型
+    let rand = Math.random();
+    if (rand < 0.2) newPlatform.type = "normal";      // 20% 普通平台
+    else if (rand < 0.4) newPlatform.type = "jump";   // 20% 彈跳平台
+    else if (rand < 0.6) newPlatform.type = "spike";  // 20% 尖刺平台
+    else if (rand < 0.8) newPlatform.type = "vanish"; // 20% 消失平台
+    else if (rand < 0.9) newPlatform.type = "conveyorL"; // 10% 左傳輸帶
+    else newPlatform.type = "conveyorR";              // 10% 右傳輸帶
+    
+    platforms.push(newPlatform);
   }
 }
 
@@ -547,6 +671,13 @@ function gameLoop() {
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
+  if (player.isHurt && player.hurtTimer > 0) {
+    player.hurtTimer -= 16; // 約等於一幀16ms
+    if (player.hurtTimer <= 0) {
+      player.isHurt = false;
+      player.hurtTimer = 0;
+    }
+  }
   requestAnimationFrame(gameLoop);
 }
 
