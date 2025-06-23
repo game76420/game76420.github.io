@@ -1120,30 +1120,37 @@ function setKey(key, val) {
   keys[key] = val;
 }
 
-// 移除 canvas 上的滑動偵測（原本的 canvas.addEventListener('touchstart'...) 及 touchend 事件）
-// 改為全畫面觸控偵測
-// function handleTouch(e) {
-//   let left = false, right = false;
-//   const half = window.innerWidth / 2;
-//   for (let i = 0; i < e.touches.length; i++) {
-//     const x = e.touches[i].clientX;
-//     if (x < half) left = true;
-//     if (x >= half) right = true;
-//   }
-//   setKey('ArrowLeft', left);
-//   setKey('ArrowRight', right);
-// }
+function handleTouch(e) {
+  let left = false, right = false;
+  const half = window.innerWidth / 2;
+  const controls = document.getElementById('controls');
+  for (let i = 0; i < e.touches.length; i++) {
+    const x = e.touches[i].clientX;
+    const y = e.touches[i].clientY;
+    // 檢查是否在 controls 區域內
+    if (controls) {
+      const rect = controls.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        continue; // 跳過在按鈕區的觸控點
+      }
+    }
+    if (x < half) left = true;
+    if (x >= half) right = true;
+  }
+  setKey('ArrowLeft', left);
+  setKey('ArrowRight', right);
+}
 
-// window.addEventListener('touchstart', handleTouch);
-// window.addEventListener('touchmove', handleTouch);
-// window.addEventListener('touchend', function(e) {
-//   setKey('ArrowLeft', false);
-//   setKey('ArrowRight', false);
-// });
-// window.addEventListener('touchcancel', function(e) {
-//   setKey('ArrowLeft', false);
-//   setKey('ArrowRight', false);
-// });
+window.addEventListener('touchstart', handleTouch);
+window.addEventListener('touchmove', handleTouch);
+window.addEventListener('touchend', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
+window.addEventListener('touchcancel', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
 
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
