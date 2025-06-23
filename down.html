@@ -1111,39 +1111,19 @@ function gameLoop() {
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
-// 觸控與按鈕操作
-const btnLeft = document.getElementById('btn-left');
-const btnRight = document.getElementById('btn-right');
-const pauseBtn = document.getElementById('pause-btn');
-
-function setKey(key, val) {
-  keys[key] = val;
-}
-
-// 移除 canvas 上的滑動偵測（原本的 canvas.addEventListener('touchstart'...) 及 touchend 事件）
-// 改為全畫面觸控偵測
-function handleTouch(e) {
-  let left = false, right = false;
-  const half = window.innerWidth / 2;
-  for (let i = 0; i < e.touches.length; i++) {
-    const x = e.touches[i].clientX;
-    if (x < half) left = true;
-    if (x >= half) right = true;
-  }
-  setKey('ArrowLeft', left);
-  setKey('ArrowRight', right);
-}
-
-window.addEventListener('touchstart', handleTouch);
-window.addEventListener('touchmove', handleTouch);
-window.addEventListener('touchend', function(e) {
+// 將全畫面的觸控偵測改為只在 canvas 上偵測
+canvas.addEventListener('touchstart', handleTouch);
+canvas.addEventListener('touchmove', handleTouch);
+canvas.addEventListener('touchend', function(e) {
   setKey('ArrowLeft', false);
   setKey('ArrowRight', false);
 });
-window.addEventListener('touchcancel', function(e) {
+canvas.addEventListener('touchcancel', function(e) {
   setKey('ArrowLeft', false);
   setKey('ArrowRight', false);
 });
+
+// 刪除原本的 window.addEventListener('touchstart', ...)
 
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
