@@ -240,12 +240,12 @@ if (localStorage.getItem('ns_shaft_highscore')) {
 // 平台類型與上限
 const PLATFORM_TYPES = ["normal", "jump", "spike", "vanish", "conveyorL", "conveyorR"];
 const PLATFORM_TYPE_LIMIT = {
-  normal: 99,      // 普通平台不限制
-  jump: 3,
-  spike: 3,
-  vanish: 3,
-  conveyorL: 2,
-  conveyorR: 2
+  normal: 3,       // 限制普通平台也最多3個
+  jump: 2,         // 減少彈跳平台數量
+  spike: 2,        // 減少尖刺平台數量
+  vanish: 2,       // 減少消失平台數量
+  conveyorL: 1,    // 限制傳送帶
+  conveyorR: 1     // 限制傳送帶
 };
 
 function countPlatformTypes() {
@@ -258,7 +258,43 @@ function countPlatformTypes() {
 
 function getAvailablePlatformTypes() {
   const counts = countPlatformTypes();
-  return PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
+  const available = PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
+  // 如果沒有可用的平台類型，強制允許普通平台
+  return available.length > 0 ? available : ['normal'];
+}
+
+// 新增函數：根據現有平台分布計算權重
+function calculateTypeWeights() {
+  const counts = countPlatformTypes();
+  const weights = {};
+  // 計算每種類型的權重（出現次數越少權重越高）
+  for (const type of PLATFORM_TYPES) {
+    const count = counts[type];
+    const limit = PLATFORM_TYPE_LIMIT[type];
+    if (count < limit) {
+      weights[type] = (limit - count) / limit; // 權重為剩餘空間比例
+    } else {
+      weights[type] = 0;
+    }
+  }
+  return weights;
+}
+
+// 新增函數：根據權重選擇平台類型
+function selectPlatformType() {
+  const weights = calculateTypeWeights();
+  const available = PLATFORM_TYPES.filter(type => weights[type] > 0);
+  if (available.length === 0) return 'normal';
+  
+  // 根據權重隨機選擇
+  const totalWeight = available.reduce((sum, type) => sum + weights[type], 0);
+  let random = Math.random() * totalWeight;
+  
+  for (const type of available) {
+    random -= weights[type];
+    if (random <= 0) return type;
+  }
+  return available[0];
 }
 
 // 音效池
@@ -1011,12 +1047,10 @@ function updatePlatforms() {
       );
       p.y = newY;
       p.x = newX;
-      // 平台類型分配（更平均）
-      const availableTypes = getAvailablePlatformTypes();
-      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)] || "normal";
-      p.type = type;
+      // 使用新的平台類型選擇邏輯
+      p.type = selectPlatformType();
       p.vanishTimer = null;
-      p.hidden = false; // 重生時恢復顯示
+      p.hidden = false;
     }
   }
   
@@ -1063,13 +1097,10 @@ function updatePlatforms() {
       y: newY,
       width: platformWidth,
       height: platformHeight,
-      type: "normal", // 預設為普通平台
+      type: selectPlatformType(), // 使用新的平台類型選擇邏輯
       vanishTimer: null,
       hidden: false
     };
-    // 平台類型分配（更平均）
-    const availableTypes2 = getAvailablePlatformTypes();
-    newPlatform.type = availableTypes2[Math.floor(Math.random() * availableTypes2.length)] || "normal";
     platforms.push(newPlatform);
   }
 }
