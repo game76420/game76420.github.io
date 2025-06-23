@@ -1122,28 +1122,28 @@ function setKey(key, val) {
 
 // 移除 canvas 上的滑動偵測（原本的 canvas.addEventListener('touchstart'...) 及 touchend 事件）
 // 改為全畫面觸控偵測
-function handleTouch(e) {
-  let left = false, right = false;
-  const half = window.innerWidth / 2;
-  for (let i = 0; i < e.touches.length; i++) {
-    const x = e.touches[i].clientX;
-    if (x < half) left = true;
-    if (x >= half) right = true;
-  }
-  setKey('ArrowLeft', left);
-  setKey('ArrowRight', right);
-}
+// function handleTouch(e) {
+//   let left = false, right = false;
+//   const half = window.innerWidth / 2;
+//   for (let i = 0; i < e.touches.length; i++) {
+//     const x = e.touches[i].clientX;
+//     if (x < half) left = true;
+//     if (x >= half) right = true;
+//   }
+//   setKey('ArrowLeft', left);
+//   setKey('ArrowRight', right);
+// }
 
-window.addEventListener('touchstart', handleTouch);
-window.addEventListener('touchmove', handleTouch);
-window.addEventListener('touchend', function(e) {
-  setKey('ArrowLeft', false);
-  setKey('ArrowRight', false);
-});
-window.addEventListener('touchcancel', function(e) {
-  setKey('ArrowLeft', false);
-  setKey('ArrowRight', false);
-});
+// window.addEventListener('touchstart', handleTouch);
+// window.addEventListener('touchmove', handleTouch);
+// window.addEventListener('touchend', function(e) {
+//   setKey('ArrowLeft', false);
+//   setKey('ArrowRight', false);
+// });
+// window.addEventListener('touchcancel', function(e) {
+//   setKey('ArrowLeft', false);
+//   setKey('ArrowRight', false);
+// });
 
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
