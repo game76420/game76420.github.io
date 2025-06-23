@@ -1,4 +1,4 @@
-5k<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
@@ -38,31 +38,52 @@
       margin: 0 auto;
       color: #fff;
       font-family: 'Arial Black', Arial, sans-serif;
-      font-size: 4vw;
-      letter-spacing: 2px;
+      font-size: min(3vw, 14px);
+      letter-spacing: 1px;
       user-select: none;
-      text-shadow: 2px 2px 4px #000;
-      height: 40px;
-      line-height: 40px;
+      text-shadow: 1px 1px 2px #000;
+      height: auto;
+      line-height: 1.1;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-sizing: border-box;
-      padding: 0 8px;
+      padding: 0 4px;
       white-space: nowrap;
+      overflow: visible;
+      position: static;
+      margin-top: 6px;
+      margin-bottom: 2px;
+      z-index: auto;
     }
     #hud .hud-hp {
       display: flex;
-      gap: 1px;
+      gap: 2px;
       flex-wrap: nowrap;
-      min-width: 36px;
-      max-width: 72px;
+      min-width: 0;
+      max-width: none;
       height: 14px;
+      margin-left: -25px;
     }
     #hud .hud-score {
       font-weight: bold;
       flex: 1;
       text-align: center;
+      font-size: min(9vw, 40px) !important;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 6px #000,0 0 8px #0f0;
+    }
+    #hud-center span {
+      line-height: 1.1 !important;
+    }
+    #hud-audio-panel button {
+      font-size: 0.95rem !important;
+      padding: 2px 6px !important;
+      border-radius: 8px !important;
+      margin-bottom: 2px;
+    }
+    #hud-audio-panel {
+      gap: 2px !important;
     }
     #controls {
       width: 95vw;
@@ -110,10 +131,12 @@
     }
     @media (max-width: 600px) {
       #hud {
-        font-size: 16px;
+        font-size: 12px;
         height: auto;
-        line-height: normal;
-        padding: 6px 0 6px 0;
+        line-height: 1.1;
+        padding: 2px 0 2px 0;
+        margin-top: 2px;
+        margin-bottom: 2px;
       }
       .ctrl-btn {
         height: 40px;
@@ -123,6 +146,19 @@
         height: 90vh;
         max-height: 100vh;
         padding-bottom: 64px;
+      }
+      #hud .hud-score {
+        font-size: 28px !important;
+      }
+      #hud-center span {
+        font-size: 11px !important;
+      }
+      #hud .hud-hp {
+        height: 10px !important;
+      }
+      #hud-audio-panel button {
+        font-size: 0.8rem !important;
+        padding: 1px 4px !important;
       }
     }
   </style>
@@ -135,26 +171,27 @@
 <audio id="sfx-vanish" src="Data_5.wav" preload="auto"></audio>
 <audio id="sfx-dead" src="Data_6.wav" preload="auto"></audio>
 <audio id="bgm" src="BGM.mp3" preload="auto" loop></audio>
-<div id="hud"></div>
+<div id="hud">
+  <span class="hud-hp" style="z-index:1;position:relative;justify-content:flex-start;flex:0 0 auto;"></span>
+  <div id="hud-center" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 0%;min-width:0;max-width:100%;">
+    <span id="hud-highscore" style="color:#fff;font-size:clamp(13px,2.8vw,20px);text-shadow:1px 1px 2px #000;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;display:block;text-align:center;line-height:1.2;word-break:break-all;"></span>
+    <span class="hud-score" id="hud-score" style="color:#00ff00;font-size:clamp(18px,4vw,32px);text-shadow:2px 2px 6px #000,0 0 8px #0f0;letter-spacing:2px;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;margin:0 auto;text-align:center;line-height:1.2;word-break:break-all;"></span>
+  </div>
+  <span id="hud-audio-panel" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;max-width:none;position:static;background:none;box-shadow:none;padding:0;border-radius:0;z-index:auto;">
+    <button id="sfx-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;"></button>
+    <button id="bgm-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;"></button>
+  </span>
+</div>
 <canvas id="game"></canvas>
 <div id="controls">
   <button class="ctrl-btn" id="btn-left">◀️</button>
   <button class="ctrl-btn" id="pause-btn">⏯️</button>
   <button class="ctrl-btn" id="btn-right">▶️</button>
 </div>
-<!-- 可收合的音效與音樂開關面板 -->
-<div id="audio-panel" style="position:fixed;top:60px;right:12px;z-index:1001;display:flex;flex-direction:column;align-items:flex-end;">
-  <button id="audio-panel-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:50%;padding:8px 12px;font-size:1.3rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🎵</button>
-  <div id="audio-panel-content" style="display:none;flex-direction:row;gap:8px;margin-top:8px;background:rgba(34,34,34,0.98);border-radius:14px;padding:12px 10px 10px 10px;box-shadow:0 2px 12px #000a;align-items:center;">
-    <button id="sfx-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:8px 12px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🔇 音效</button>
-    <button id="bgm-toggle" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:8px 12px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;">🔇 音樂</button>
-    <button id="audio-panel-close" style="background:#444;color:#fff;border:none;border-radius:50%;padding:2px 8px;font-size:1.1rem;margin-left:2px;cursor:pointer;">→</button>
-  </div>
-</div>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
-  <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;">
-    <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;"></div>
-    <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">重新開始</button>
+  <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;user-select:none;">
+    <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;"></div>
+    <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;user-select:none;">重新開始</button>
   </div>
 </div>
 <script>
@@ -189,6 +226,8 @@ let lastPlayerFloorY = null;
 let platformPassedCount = 0; // 記錄經過的平台數
 let highScore = 0;
 let paused = false;
+let firstInteraction = false;
+let animationFrameId = null;
 
 // 讀取最高分數
 if (localStorage.getItem('ns_shaft_highscore')) {
@@ -219,21 +258,48 @@ function getAvailablePlatformTypes() {
   return PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
 }
 
-// 取得音效元素
-const sfxNormal = document.getElementById('sfx-normal');
-const sfxJump = document.getElementById('sfx-jump');
-const sfxSpike = document.getElementById('sfx-spike');
-const sfxVanish = document.getElementById('sfx-vanish');
-const sfxDead = document.getElementById('sfx-dead');
-const bgm = document.getElementById('bgm');
+// 音效池
+function createAudioPool(src, poolSize = 4) {
+  const pool = [];
+  for (let i = 0; i < poolSize; i++) {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    pool.push(audio);
+  }
+  return pool;
+}
+
+const sfxPools = {
+  normal: createAudioPool("Data_1.wav"),
+  jump: createAudioPool("Data_3.wav"),
+  spike: createAudioPool("Data_4.wav"),
+  vanish: createAudioPool("Data_5.wav"),
+  dead: createAudioPool("Data_6.wav"),
+};
+
+function playSfxPool(poolName) {
+  if (sfxMuted) return;
+  const pool = sfxPools[poolName];
+  if (!pool) return;
+  for (let audio of pool) {
+    if (audio.paused || audio.ended) {
+      audio.muted = sfxMuted;
+      audio.currentTime = 0;
+      audio.play();
+      break;
+    }
+  }
+}
 
 // 新增音效與音樂靜音狀態
-let sfxMuted = true;
+let sfxMuted = false;
 let bgmMuted = true;
 
 // 音效播放輔助（可重疊播放）
 function playSfx(audio) {
-  if (!audio || sfxMuted) return;
+  if (!audio) return;
+  audio.muted = sfxMuted; // 確保每次播放時都同步靜音狀態
+  if (sfxMuted) return;
   try {
     audio.currentTime = 0;
     audio.play();
@@ -244,14 +310,21 @@ function playSfx(audio) {
 function tryPlayBgm() {
   if (bgm.paused && !bgmMuted) {
     bgm.volume = 0.5;
-    bgm.play().catch(()=>{
-      // 不再顯示提示
-    });
+    bgm.play().catch(()=>{});
   }
-  bgm.muted = bgmMuted;
 }
 
 function initGame() {
+  // 先確保 gameover-modal 隱藏，避免canvas尺寸為0
+  var modal = document.getElementById('gameover-modal');
+  if (modal) modal.style.display = 'none';
+  // 取消舊的動畫循環
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  resizeCanvas();
+  paused = false;
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
   const platformHeight = 10;
@@ -322,16 +395,24 @@ function initGame() {
 
   keys = {};
 
-  document.addEventListener("keydown", e => keys[e.key] = true);
-  document.addEventListener("keyup", e => keys[e.key] = false);
-
   gameSpeed = 1;
   lastPlayerFloorY = player.y;
   platformPassedCount = 0;
 
   drawHUD();
-  requestAnimationFrame(gameLoop);
-  tryPlayBgm();
+  animationFrameId = requestAnimationFrame(gameLoop);
+  // 只在 bgmMuted 為 false 時才播放音樂
+  sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
+  bgm.muted = bgmMuted;
+  if (!bgmMuted) {
+    tryPlayBgm();
+  } else {
+    bgm.pause();
+  }
 }
 
 function drawPlayer() {
@@ -413,9 +494,14 @@ function drawPlayer() {
     headOffsetX = 0;
     headOffsetY = 0;
     bodySkew = 0;
-    // 手臂靠身體兩側，微微外張
-    leftArm = {x: pW*0.01 - armWidth/2, y: bodyY + bodyHeight*0.18, angle: 0.25};
-    rightArm = {x: pW - armWidth - pW*0.01 + armWidth/2, y: bodyY + bodyHeight*0.18, angle: -0.25};
+    // 懸空時雙手上下擺動
+    let armAnim = 0;
+    if (!player.onGround) {
+      // 使用 runAnim 或 vy 來產生動畫
+      armAnim = Math.sin(Date.now() / 20) * 0.8; // 速度與幅度
+    }
+    leftArm = {x: pW*0.01 - armWidth/2, y: bodyY + bodyHeight*0.18, angle: 0.25 + armAnim};
+    rightArm = {x: pW - armWidth - pW*0.01 + armWidth/2, y: bodyY + bodyHeight*0.18, angle: -0.25 - armAnim};
     // 腿部分開，腳尖外八
     leftLeg = {x: pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: 0.18};
     rightLeg = {x: pW - legWidth - pW*0.08, y: legYPos, w: legWidth, h: legHeight, angle: -0.18};
@@ -450,28 +536,37 @@ function drawPlayer() {
   ctx.restore();
 
   // Arms（黃色長袖）
+  // 左手
   ctx.save();
-  ctx.translate(leftArm.x + armWidth/2, leftArm.y + armHeight/2);
+  // 旋轉中心設在肩膀（身體側邊上緣）
+  const leftShoulderX = leftArm.x + armWidth / 2;
+  const leftShoulderY = leftArm.y;
+  ctx.translate(leftShoulderX, leftShoulderY);
   ctx.rotate(leftArm.angle || 0);
   // 畫長袖
   ctx.fillStyle = currentShirtColor;
-  ctx.fillRect(-armWidth/2, -armHeight/2, armWidth, armHeight);
+  ctx.fillRect(-armWidth/2, 0, armWidth, armHeight);
   // 畫手掌
   ctx.fillStyle = currentSkinColor;
   ctx.beginPath();
-  ctx.arc(0, armHeight/2, armWidth*0.45, 0, Math.PI*2);
+  ctx.arc(0, armHeight, armWidth*0.45, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
 
+  // 右手
   ctx.save();
-  ctx.translate(rightArm.x + armWidth/2, rightArm.y + armHeight/2);
+  // 旋轉中心設在肩膀（身體側邊上緣）
+  const rightShoulderX = rightArm.x + armWidth / 2;
+  const rightShoulderY = rightArm.y;
+  ctx.translate(rightShoulderX, rightShoulderY);
   ctx.rotate(rightArm.angle || 0);
   // 畫長袖
   ctx.fillStyle = currentShirtColor;
-  ctx.fillRect(-armWidth/2, -armHeight/2, armWidth, armHeight);
+  ctx.fillRect(-armWidth/2, 0, armWidth, armHeight);
   // 畫手掌
   ctx.fillStyle = currentSkinColor;
   ctx.beginPath();
+  ctx.arc(0, armHeight, armWidth*0.45, 0, Math.PI*2);
   ctx.arc(0, armHeight/2, armWidth*0.45, 0, Math.PI*2);
   ctx.fill();
   ctx.restore();
@@ -647,6 +742,18 @@ function drawPlatforms() {
       ctx.fillRect(p.x, p.y, p.width, p.height);
       ctx.strokeStyle = "#888888";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
+      // 畫左右半圓
+      ctx.save();
+      ctx.fillStyle = "#bbbbbb";
+      // 左半圓
+      ctx.beginPath();
+      ctx.arc(p.x, p.y + p.height / 2, p.height / 2, Math.PI / 2, Math.PI * 3 / 2, false);
+      ctx.fill();
+      // 右半圓
+      ctx.beginPath();
+      ctx.arc(p.x + p.width, p.y + p.height / 2, p.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
+      ctx.fill();
+      ctx.restore();
       // 畫深色橫條
       ctx.strokeStyle = "#666";
       for (let i = 4; i < p.width; i += 12) {
@@ -660,10 +767,8 @@ function drawPlatforms() {
       ctx.lineWidth = 2;
       ctx.beginPath();
       let arrowY = p.y + p.height / 2;
-      
       // 計算三個箭頭的位置，均勻分布在平台上
       const arrowSpacing = p.width / 4; // 將平台寬度分成4份，箭頭在第1、2、3份的中心
-      
       if (p.type === "conveyorL") {
         // 左傳送帶：箭頭指向左邊
         for (let i = 1; i <= 3; i++) {
@@ -689,20 +794,32 @@ function drawPlatforms() {
 
 function drawHUD() {
   if (!player) return;
-  const hud = document.getElementById('hud');
   const maxHp = 12;
   let hpHtml = '';
   for (let i = 0; i < maxHp; i++) {
     if (i < player.hp) {
-      hpHtml += '<span style="display:inline-block;width:5px;height:16px;background:yellow;border:1px solid #cc0;margin-right:1px;"></span>';
+      if (player.hp <= 5) {
+        hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:red;border:1px solid #c00;margin-right:2px;"></span>';
+      } else {
+        hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:yellow;border:1px solid #cc0;margin-right:2px;"></span>';
+      }
     } else {
-      hpHtml += '<span style="display:inline-block;width:5px;height:16px;background:#333;border:1px solid #222;margin-right:1px;"></span>';
+      hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:#333;border:1px solid #222;margin-right:2px;"></span>';
     }
   }
-  hud.innerHTML =
-    `<span class="hud-hp">${hpHtml}</span>
-     <span class="hud-score" style="color:#00ff00;font-size:28px;text-shadow:2px 2px 6px #000,0 0 8px #0f0;letter-spacing:3px;">地下${String(player.score).padStart(4, "0")}階</span>
-     <span style="color:#fff;font-size:16px;text-shadow:1px 1px 2px #000;">最高: ${highScore}</span>`;
+  // 只更新血量條內容
+  const hudHp = document.querySelector('#hud .hud-hp');
+  if (hudHp) hudHp.innerHTML = hpHtml;
+  // 只更新分數與最高分
+  const hudHighscore = document.getElementById('hud-highscore');
+  if (hudHighscore) hudHighscore.textContent = '最高: ' + highScore;
+  const hudScore = document.getElementById('hud-score');
+  if (hudScore) hudScore.textContent = '地下' + String(player.score).padStart(4, "0") + '階';
+  // 只更新音效/音樂按鈕文字
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const bgmToggle = document.getElementById('bgm-toggle');
+  if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
+  if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
 }
 
 function updatePlayer() {
@@ -713,7 +830,7 @@ function updatePlayer() {
   const hatTopY = player.y; // 帽子頂端位置（精靈的y座標就是帽子頂端）
   if (hatTopY <= 12) { // 尖刺高度是12像素
     if (lastPlatformTouched !== 'topSpike') {
-      playSfx(sfxSpike); // 播放被刺到音效
+      playSfxPool('spike'); // 播放被刺到音效
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
       player.isHurt = true;
@@ -760,7 +877,7 @@ function updatePlayer() {
         player.onGround = true;
         if (p.type === "spike") {
           if (lastPlatformTouched !== p) {
-            playSfx(sfxSpike); // 播放被刺到音效
+            playSfxPool('spike'); // 播放被刺到音效
             player.hp -= 5;
             lastPlatformTouched = p;
             player.isHurt = true;
@@ -768,13 +885,18 @@ function updatePlayer() {
           }
           player.vy = 0;
         } else if (p.type === "jump") {
-          playSfx(sfxJump); // 播放彈跳音效
-          player.vy = player.jumpForce;
+          playSfxPool('jump'); // 播放彈跳音效
+          // 取得平台間距
+          const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
+          const g = player.gravity;
+          // 計算比一層高一點點的初速度（1.15倍平台間距）
+          const maxVy = -Math.sqrt(2 * g * platformSpacing * 1.15);
+          player.vy = maxVy;
           player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
           lastPlatformTouched = p;
         } else if (p.type === "normal") {
           if (lastPlatformTouched !== p) {
-            playSfx(sfxNormal); // 播放一般平台音效
+            playSfxPool('normal'); // 播放一般平台音效
             player.hp = Math.min(player.hp + 1, 12);
             lastPlatformTouched = p;
           }
@@ -782,12 +904,12 @@ function updatePlayer() {
         } else if (p.type === "vanish") {
           player.vy = 0;
           if (p.vanishTimer === null) {
-            playSfx(sfxNormal); // 先播放一般平台音效
+            playSfxPool('normal'); // 先播放一般平台音效
             p.vanishTimer = Date.now();
             player.hp = Math.min(player.hp + 1, 12);
           } else if (Date.now() - p.vanishTimer >= 200) {
             p.hidden = true;
-            playSfx(sfxVanish); // 播放消失音效
+            playSfxPool('vanish'); // 播放消失音效
             break;
           }
           lastPlatformTouched = p;
@@ -799,7 +921,7 @@ function updatePlayer() {
             player.x += 1.5;
           }
           if (lastPlatformTouched !== p) {
-            playSfx(sfxNormal); // 播放一般平台音效
+            playSfxPool('normal'); // 播放一般平台音效
             player.hp = Math.min(player.hp + 1, 12);
             lastPlatformTouched = p;
           }
@@ -813,7 +935,7 @@ function updatePlayer() {
 
   if (player.y > getHeight() || (player.hp <= 0 && !player.fallThrough)) {
     setTimeout(() => {
-      playSfx(sfxDead); // 播放死亡音效
+      playSfxPool('dead'); // 播放死亡音效
       // 更新最高分數
       if (player.score > highScore) {
         highScore = player.score;
@@ -983,7 +1105,7 @@ function gameLoop() {
       player.hurtTimer = 0;
     }
   }
-  requestAnimationFrame(gameLoop);
+  animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 // 觸控與按鈕操作
@@ -1009,10 +1131,16 @@ function handleTouch(e) {
   setKey('ArrowRight', right);
 }
 
-canvas.addEventListener('touchstart', handleTouch);
-canvas.addEventListener('touchmove', handleTouch);
-canvas.addEventListener('touchend', handleTouch);
-canvas.addEventListener('touchcancel', handleTouch);
+window.addEventListener('touchstart', handleTouch);
+window.addEventListener('touchmove', handleTouch);
+window.addEventListener('touchend', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
+window.addEventListener('touchcancel', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
 
 btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
 btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
@@ -1041,55 +1169,79 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   initGame();
 });
 
-// 按下Enter也能重新開始
+// 修改window.keydown事件
 window.addEventListener('keydown', function(e) {
   const modal = document.getElementById('gameover-modal');
   if (modal.style.display === 'flex' && (e.key === 'Enter' || e.keyCode === 13)) {
     modal.style.display = 'none';
     initGame();
+    e.preventDefault(); // 防止Enter觸發其他按鈕
+    return;
   }
   if (e.key === 'p' || e.key === 'P') {
     togglePause();
   }
 });
 
-window.addEventListener('load', function() {
-  // 預設靜音
-  sfxMuted = true;
-  bgmMuted = true;
-  bgm.muted = true;
-  tryPlayBgm();
+window.addEventListener('DOMContentLoaded', function() {
+  // 只掛一次事件監聽器
+  document.addEventListener("keydown", e => keys[e.key] = true);
+  document.addEventListener("keyup", e => keys[e.key] = false);
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const bgmToggle = document.getElementById('bgm-toggle');
+  // 強制移除聚焦
+  if (sfxToggle) sfxToggle.blur();
+  if (bgmToggle) bgmToggle.blur();
+  // 阻止聚焦
+  [sfxToggle, bgmToggle].forEach(btn => {
+    if (btn) {
+      btn.addEventListener('mousedown', e => { btn.blur(); });
+      btn.addEventListener('mouseup', e => { btn.blur(); });
+      btn.addEventListener('click', e => { btn.blur(); });
+      btn.addEventListener('keydown', e => { btn.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+    }
+  });
+  if (sfxToggle) {
+    sfxToggle.addEventListener('click', function() {
+      sfxMuted = !sfxMuted;
+      sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
+      drawHUD();
+    });
+  }
+  if (bgmToggle) {
+    bgmToggle.addEventListener('click', function() {
+      bgmMuted = !bgmMuted;
+      bgm.muted = bgmMuted;
+      if (bgmMuted) {
+        bgm.pause();
+      } else {
+        try { bgm.play(); } catch (e) {}
+      }
+      drawHUD();
+    });
+  }
+  drawHUD(); // 初始化顯示
 });
 
-// 音效與音樂開關按鈕
-const sfxToggle = document.getElementById('sfx-toggle');
-const bgmToggle = document.getElementById('bgm-toggle');
-const audioPanelToggle = document.getElementById('audio-panel-toggle');
-const audioPanelContent = document.getElementById('audio-panel-content');
-const audioPanelClose = document.getElementById('audio-panel-close');
-function updateAudioPanel() {
-  sfxToggle.innerHTML = (sfxMuted ? '🔇' : '🔊') + ' 音效';
-  bgmToggle.innerHTML = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
+function handleFirstInteraction() {
+  if (!firstInteraction) {
+    firstInteraction = true;
+    // 不要強制改變靜音狀態，只同步 audio 標籤
+    sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
+    bgm.muted = bgmMuted;
+    tryPlayBgm();
+  }
 }
-sfxToggle.addEventListener('click', function() {
-  sfxMuted = !sfxMuted;
-  updateAudioPanel();
-});
-bgmToggle.addEventListener('click', function() {
-  bgmMuted = !bgmMuted;
-  bgm.muted = bgmMuted;
-  if (!bgmMuted) tryPlayBgm();
-  updateAudioPanel();
-});
-audioPanelToggle.addEventListener('click', function() {
-  audioPanelToggle.style.display = 'none';
-  audioPanelContent.style.display = 'flex';
-});
-audioPanelClose.addEventListener('click', function() {
-  audioPanelContent.style.display = 'none';
-  audioPanelToggle.style.display = 'inline-block';
-});
-updateAudioPanel();
+window.addEventListener('click', handleFirstInteraction, { once: true });
+window.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
 initGame();
 </script>
