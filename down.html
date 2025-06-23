@@ -1159,7 +1159,7 @@ btnRight.addEventListener('mouseleave', e => { setKey('ArrowRight', false); });
 
 pauseBtn.addEventListener('click', togglePause);
 
-// 防止暫停鍵觸控時觸發左右移動
+// 防止暫停鍵觸控時觸發左右移動，並正確切換暫停狀態
 pauseBtn.addEventListener('touchstart', e => {
   e.preventDefault();
   e.stopPropagation();
@@ -1167,6 +1167,7 @@ pauseBtn.addEventListener('touchstart', e => {
 pauseBtn.addEventListener('touchend', e => {
   e.preventDefault();
   e.stopPropagation();
+  togglePause();
   setKey('ArrowLeft', false);
   setKey('ArrowRight', false);
 });
