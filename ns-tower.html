@@ -176,7 +176,7 @@
       display: block;
       margin: 0 auto;
       touch-action: none;
-      padding-bottom: 128px;
+      /* padding-bottom 由 JS 動態調整，確保不與底部按鈕重疊 */
     }
     @media (max-width: 600px) {
       #hud {
@@ -194,7 +194,7 @@
       #game {
         height: 90vh;
         max-height: 100vh;
-        padding-bottom: 128px;
+        /* padding-bottom 由 JS 動態調整 */
       }
       #hud .hud-score {
         font-size: 28px !important;
@@ -321,15 +321,24 @@ const ctx = canvas.getContext("2d");
 function resizeCanvas() {
   const ratio = window.devicePixelRatio || 1;
   const w = Math.min(window.innerWidth, 480);
+  // 動態取得底部按鈕高度
+  const bottomControls = document.getElementById('bottom-controls');
+  let bottomPad = 0;
+  if (bottomControls) {
+    bottomPad = bottomControls.offsetHeight || 0;
+  }
   // 預留地面平台高度，確保地面完整露出
   const minH = 120;
-  const h = Math.max(Math.min(window.innerHeight * 0.92, 720), minH) + 16; // 多預留一點空間
+  // 減去底部按鈕高度
+  const h = Math.max(Math.min(window.innerHeight * 0.92, 720), minH) + 16 - bottomPad;
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
   canvas.width = w * ratio;
   canvas.height = h * ratio;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(ratio, ratio);
+  // 動態設置 padding-bottom，確保地面不被擋住
+  canvas.style.paddingBottom = bottomPad + 'px';
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
