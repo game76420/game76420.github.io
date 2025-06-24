@@ -58,48 +58,41 @@
       margin-bottom: 0;
       z-index: 10;
     }
-    #hud .hud-power {
-      gap: 1px;
-      flex-wrap: nowrap;
-      min-width: 0;
-      max-width: 160px;
-      height: 14px;
-      align-items: flex-end;
-      margin-top: 0;
-      margin-left: 2px;
+    #hud .power-block {
+      order: 0;
+      margin-left: 8px;
     }
     #hud .hud-score {
+      order: 1;
       position: static;
       left: unset;
       transform: none;
       z-index: 2;
-      font-weight: bold;
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
+      pointer-events: none;
+      text-align: center;
+      color: #c5e665 !important;
       font-size: 38px !important;
-      letter-spacing: 2px;
-      color: #00ff00;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
       text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      z-index: 2;
-      pointer-events: none;
+      margin-left: 0;
+      margin-right: 0;
+      flex: 1;
     }
     #hud .hud-score .score-num {
       font-size: 38px;
       font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      color: #00ff00;
+      color: #c5e665 !important;
       font-style: italic;
       text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
       letter-spacing: 2px;
     }
     #hud .hud-score .score-unit {
       font-size: 22px;
-      color: #00ff00;
+      color: #c5e665 !important;
       font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
       font-style: italic;
       margin-left: 2px;
@@ -118,6 +111,7 @@
       box-sizing: border-box;
     }
     #hud-audio-panel {
+      order: 2;
       gap: 2px !important;
       max-width: 100px;
     }
@@ -227,6 +221,68 @@
     #hud .power-block, #hud #hud-audio-panel {
       z-index: 3;
     }
+    #bottom-controls {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+      width: 100vw;
+      max-width: 480px;
+      justify-content: center;
+      padding: 4px 0 4px 0;
+      background: rgba(0,0,0,0.7);
+      border-radius: 16px 16px 0 0;
+      flex-wrap: nowrap;
+    }
+    #bottom-controls button {
+      font-size: 0.75rem !important;
+      padding: 1px 4px !important;
+      border-radius: 7px !important;
+      min-width: 0;
+      max-width: 80px;
+      height: 28px;
+      line-height: 1.1;
+      box-sizing: border-box;
+      white-space: nowrap;
+    }
+    #bottom-controls #pause-toggle {
+      max-width: 90px;
+      padding: 1px 12px !important;
+    }
+    @media (max-width: 600px) {
+      #bottom-controls {
+        gap: 2px;
+        max-width: 100vw;
+        padding: 2px 0 2px 0;
+      }
+      #bottom-controls button {
+        font-size: 0.68rem !important;
+        padding: 0 2px !important;
+        border-radius: 6px !important;
+        max-width: 32vw;
+        height: 22px;
+      }
+      #bottom-controls #pause-toggle {
+        max-width: 40vw;
+        padding: 0 6px !important;
+      }
+    }
+    #hud .hud-highscore {
+      order: 2;
+      margin-right: 12px;
+      color: #c5e665;
+      font-size: 20px;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      text-shadow: 1px 1px 0 #000, 0 0 4px #000, 0 0 1px #fff;
+      white-space: nowrap;
+      min-width: 80px;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -237,16 +293,19 @@
 <audio id="sfx-spring-jump" src="Data_3.wav" preload="auto"></audio>
 <audio id="sfx-charge" src="Data_7.wav" preload="auto"></audio>
 <div id="hud">
-  <span class="hud-score" id="hud-score"></span>
   <span class="power-block">
     <span class="power-label">POWER</span>
     <span class="hud-power"></span>
   </span>
-  <span id="hud-audio-panel" style="display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;max-width:220px;position:static;background:none;box-shadow:none;padding:0;border-radius:0;z-index:auto;">
-    <button id="sfx-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:70px;"></button>
-    <button id="bgm-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:70px;"></button>
-    <button id="power-reset-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:0.95rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:80px;">力量重置：關</button>
-  </span>
+  <span class="hud-score" id="hud-score"></span>
+  <span class="hud-highscore" id="hud-highscore"></span>
+</div>
+<!-- 新增底部控制區 -->
+<div id="bottom-controls">
+  <button id="pause-toggle" type="button">暫停</button>
+  <button id="sfx-toggle" type="button">音效</button>
+  <button id="bgm-toggle" type="button">音樂</button>
+  <button id="power-reset-toggle" type="button">力量重置 關</button>
 </div>
 <canvas id="game"></canvas>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
@@ -301,6 +360,11 @@ let cameraTargetOffsetY = 0;
 let lastDifficultyScore = 0;
 // 新增：力量重置開關
 let powerAutoReset = false;
+// 新增：輸入狀態管理
+let inputState = { isPressed: false, spacebar: false };
+// 新增：落地緩衝（jump buffer）
+let jumpBufferTimer = 0;
+const JUMP_BUFFER_TIME = 0.2; // 秒
 
 // 音效
 const sfxJump = document.getElementById('sfx-jump');
@@ -374,6 +438,7 @@ function initGame() {
     power: 0,
     maxPower: 100,
     charging: false,
+    chargePending: false, // 等待集氣的狀態
     powerIncrement: 4,  // 每幀蓄力增加量
     lastJumpTime: null,
     lastLandTime: performance.now() / 1000,
@@ -539,6 +604,18 @@ function drawPlayer() {
     grad.addColorStop(1, `rgba(255,0,0,0)`);
     ctx.beginPath();
     ctx.arc(pW/2, pH/2, auraRadius, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+  } else if (player.chargePending && player.alive) {
+    // 等待集氣的視覺提示：柔和的白色脈動光暈
+    ctx.save();
+    ctx.globalAlpha = 0.2 + 0.2 * Math.sin(performance.now() / 120);
+    const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.2, pW/2, pH/2, pW*0.7);
+    grad.addColorStop(0, `rgba(230, 230, 255, 0.8)`);
+    grad.addColorStop(1, `rgba(200, 200, 255, 0)`);
+    ctx.beginPath();
+    ctx.arc(pW/2, pH/2, pW * 0.7, 0, Math.PI*2);
     ctx.fillStyle = grad;
     ctx.fill();
     ctx.restore();
@@ -743,7 +820,7 @@ function drawHUD() {
   if (hudPower && player) {
     let html = '';
     let percent = player.power / player.maxPower;
-    let barCount = 8;
+    let barCount = 12;
     for (let i = 0; i < barCount; i++) {
       if (i < Math.round(percent * barCount)) {
         html += `<span style=\"display:inline-block;width:6px;height:12px;background:#ffe600;border:1px solid #fff;margin-right:1px;box-shadow:0 0 2px #fff;\"></span>`;
@@ -757,12 +834,18 @@ function drawHUD() {
   if (hudScore) {
     hudScore.innerHTML = `<span class='score-num'>${String(score).padStart(4, "0")}</span><span class='score-unit'>階</span>`;
   }
+  const hudHighscore = document.getElementById('hud-highscore');
+  if (hudHighscore) {
+    hudHighscore.textContent = `最高 ${String(highScore).padStart(4, "0")}`;
+  }
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
   const powerResetToggle = document.getElementById('power-reset-toggle');
+  const pauseToggle = document.getElementById('pause-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
-  if (powerResetToggle) powerResetToggle.textContent = `力量重置：${powerAutoReset ? '開' : '關'}`;
+  if (powerResetToggle) powerResetToggle.textContent = `力量重置 ${powerAutoReset ? '開' : '關'}`;
+  if (pauseToggle) pauseToggle.textContent = paused ? '繼續' : '暫停';
 }
 
 function updatePlayer() {
@@ -840,6 +923,23 @@ function updatePlayer() {
                 player.landedOn = s;
                 justLanded = true;
                 player.lastLandTime = performance.now() / 1000;
+
+                // 如果在空中時已按下(pending)，則落地瞬間立即開始集氣
+                if (player.chargePending) {
+                    startCharge();
+                    player.chargePending = false; // 清除等待狀態
+                }
+
+                // Jump buffer: 如果有緩衝，落地瞬間自動跳
+                if (jumpBufferTimer > 0) {
+                    jumpBufferTimer = 0;
+                    // 若沒集氣，給最小力量
+                    if (!player.charging) {
+                        player.power = 1;
+                        player.charging = true;
+                    }
+                    releaseJump();
+                }
 
                 // 處理剛落地時的平台效果
                 if (s.type === 'conveyorL') {
@@ -965,6 +1065,32 @@ function updateStairs() {
 
 function gameLoop() {
   if (paused) return;
+
+  // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
+  const wantsToCharge = inputState.isPressed || inputState.spacebar;
+  if (wantsToCharge && player.alive) {
+    if (player.onStair && !player.charging) {
+      // 處理在地面上按下時直接開始集氣
+      startCharge();
+      player.chargePending = false;
+    } else if (!player.onStair) {
+      // 處理在空中按下時，設定"等待集氣"狀態
+      player.chargePending = true;
+    }
+  } else { // released
+    if (player.charging) {
+      releaseJump();
+    }
+    // 只要放開，就清除等待狀態
+    player.chargePending = false;
+  }
+
+  // 每幀遞減 jump buffer timer
+  if (jumpBufferTimer > 0) {
+    jumpBufferTimer -= 1/60;
+    if (jumpBufferTimer < 0) jumpBufferTimer = 0;
+  }
+
   ctx.clearRect(0, 0, getWidth(), getHeight());
   // 背景（深紅棕色漸層）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
@@ -1006,6 +1132,7 @@ function gameLoop() {
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
+
   // 蓄力中每幀增加力量
   if (player && player.charging && player.onStair && !player.jumping) {
     if (powerAutoReset && player.power >= player.maxPower) {
@@ -1034,6 +1161,7 @@ function startCharge() {
 }
 
 function releaseJump() {
+  let didJump = false;
   if (player && player.charging && player.alive) {
     if (player.onStair) {
       const powerRatio = player.power / player.maxPower;
@@ -1054,12 +1182,16 @@ function releaseJump() {
       player.onStair = false;
       player.landedOn = null;
       player.lastJumpTime = performance.now() / 1000;
+      didJump = true;
     }
     player.charging = false;
     player.power = 0;
-    return true;
   }
-  return false;
+  // 無論有無集氣，只要在空中釋放都設 jump buffer
+  if (player && !player.onStair && player.alive) {
+    jumpBufferTimer = JUMP_BUFFER_TIME;
+  }
+  return didJump;
 }
 
 document.getElementById('restart-btn').addEventListener('click', () => {
@@ -1073,42 +1205,50 @@ window.addEventListener('keydown', function(e) {
     modal.style.display = 'none';
     initGame();
     e.preventDefault();
+    return;
   }
   if ((e.key === ' ' || e.key === 'Spacebar')) {
-    if(startCharge()) e.preventDefault();
+    inputState.spacebar = true;
+    e.preventDefault();
   }
 });
 
 window.addEventListener('keyup', function(e) {
   if ((e.key === ' ' || e.key === 'Spacebar')) {
-    if(releaseJump()) e.preventDefault();
+    inputState.spacebar = false;
+    e.preventDefault();
   }
 });
 
-canvas.addEventListener('mousedown', function(e) {
-  if (startCharge()) e.preventDefault();
+window.addEventListener('mousedown', function(e) {
+  // 如果點擊的是按鈕，則不觸發集氣
+  if (e.target.tagName === 'BUTTON') return;
+  inputState.isPressed = true;
+  e.preventDefault(); // 防止選取文字或其他預設行為
 });
-
 window.addEventListener('mouseup', function(e) {
-  if (releaseJump()) e.preventDefault();
+  inputState.isPressed = false;
 });
-
-canvas.addEventListener('touchstart', function(e) {
-  if (startCharge()) e.preventDefault();
+window.addEventListener('touchstart', function(e) {
+  // 如果觸控的是按鈕，則不觸發集氣
+  if (e.target.tagName === 'BUTTON') return;
+  inputState.isPressed = true;
+  e.preventDefault(); // 防止捲動或觸發滑鼠事件
 });
-
 window.addEventListener('touchend', function(e) {
-  if (releaseJump()) e.preventDefault();
+  inputState.isPressed = false;
 });
 
 window.addEventListener('DOMContentLoaded', function() {
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
   const powerResetToggle = document.getElementById('power-reset-toggle');
+  const pauseToggle = document.getElementById('pause-toggle');
   if (sfxToggle) sfxToggle.blur();
   if (bgmToggle) bgmToggle.blur();
   if (powerResetToggle) powerResetToggle.blur();
-  [sfxToggle, bgmToggle, powerResetToggle].forEach(btn => {
+  if (pauseToggle) pauseToggle.blur();
+  [sfxToggle, bgmToggle, powerResetToggle, pauseToggle].forEach(btn => {
     if (btn) {
       btn.addEventListener('mousedown', e => { btn.blur(); });
       btn.addEventListener('mouseup', e => { btn.blur(); });
@@ -1143,6 +1283,13 @@ window.addEventListener('DOMContentLoaded', function() {
     powerResetToggle.addEventListener('click', function() {
       powerAutoReset = !powerAutoReset;
       drawHUD();
+    });
+  }
+  if (pauseToggle) {
+    pauseToggle.addEventListener('click', function() {
+      paused = !paused;
+      pauseToggle.textContent = paused ? '繼續' : '暫停';
+      if (!paused) gameLoop();
     });
   }
   drawHUD();
