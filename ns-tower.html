@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>NS-Tower</title>
+  <style>
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-width: 100vw;
+      justify-content: flex-start;
+      align-items: center;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      min-width: 100vw;
+      justify-content: flex-start;
+      align-items: center;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #002244;
+    }
+    #hud {
+      width: 100vw;
+      max-width: 480px;
+      margin: 0 auto;
+      color: #fff;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      user-select: none;
+      background: #111;
+      box-shadow: 0 2px 8px #000a;
+      height: 48px;
+      line-height: 1.1;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+      padding: 0 18px 0 18px;
+      white-space: nowrap;
+      overflow: visible;
+      position: relative;
+      margin-top: 0;
+      margin-bottom: 0;
+      z-index: 10;
+    }
+    #hud .hud-power {
+      gap: 1px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      max-width: 160px;
+      height: 14px;
+      align-items: flex-end;
+      margin-top: 0;
+      margin-left: 2px;
+    }
+    #hud .hud-score {
+      position: static;
+      left: unset;
+      transform: none;
+      z-index: 2;
+      font-weight: bold;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 38px !important;
+      letter-spacing: 2px;
+      color: #00ff00;
+      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #hud .hud-score .score-num {
+      font-size: 38px;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      color: #00ff00;
+      font-style: italic;
+      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
+      letter-spacing: 2px;
+    }
+    #hud .hud-score .score-unit {
+      font-size: 22px;
+      color: #00ff00;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      font-style: italic;
+      margin-left: 2px;
+      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
+    }
+    #hud-center span {
+      line-height: 1.1 !important;
+    }
+    #hud-audio-panel button {
+      font-size: 0.8rem !important;
+      padding: 1px 4px !important;
+      border-radius: 7px !important;
+      margin-bottom: 1px;
+      min-width: 0;
+      max-width: 90px;
+      box-sizing: border-box;
+    }
+    #hud-audio-panel {
+      gap: 2px !important;
+      max-width: 100px;
+    }
+    .power-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-end;
+      margin-right: 18px;
+    }
+    .power-label {
+      font-size: 20px;
+      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
+      font-style: italic;
+      color: #3af;
+      text-shadow: 1px 1px 0 #fff, 2px 2px 0 #000, 0 0 8px #000;
+      margin-right: 0;
+      margin-bottom: 0;
+      letter-spacing: 1px;
+      margin-left: 2px;
+      margin-bottom: 2px;
+    }
+    #controls {
+      width: 95vw;
+      max-width: 420px;
+      display: flex;
+      justify-content: space-between;
+      margin: 0 auto;
+      gap: 16px;
+      user-select: none;
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(0,0,0,0.7);
+      padding: 8px 0 8px 0;
+      border-radius: 16px 16px 0 0;
+    }
+    .ctrl-btn {
+      flex: 1;
+      height: 48px;
+      font-size: 2rem;
+      background: #222;
+      color: #fff;
+      border: 2px solid #888;
+      border-radius: 12px;
+      margin: 0 8px;
+      box-shadow: 0 2px 8px #0008;
+      transition: background 0.2s;
+      touch-action: manipulation;
+    }
+    .ctrl-btn:active {
+      background: #444;
+    }
+    #game {
+      width: 100vw;
+      max-width: 480px;
+      height: 90vh;
+      max-height: 100vh;
+      background: #002244;
+      display: block;
+      margin: 0 auto;
+      touch-action: none;
+      padding-bottom: 64px; /* 預留空間給底部按鈕 */
+    }
+    @media (max-width: 600px) {
+      #hud {
+        font-size: 12px;
+        height: auto;
+        line-height: 1.1;
+        padding: 2px 0 2px 0;
+        margin-top: 2px;
+        margin-bottom: 2px;
+      }
+      .ctrl-btn {
+        height: 40px;
+        font-size: 1.5rem;
+      }
+      #game {
+        height: 90vh;
+        max-height: 100vh;
+        padding-bottom: 64px;
+      }
+      #hud .hud-score {
+        font-size: 28px !important;
+      }
+      #hud-center span {
+        font-size: 11px !important;
+      }
+      #hud .hud-power {
+        height: 10px !important;
+      }
+      #hud-audio-panel {
+        flex-direction: row !important;
+        gap: 2px !important;
+        max-width: 100vw;
+      }
+      #hud-audio-panel button {
+        font-size: 0.7rem !important;
+        padding: 0 2px !important;
+        border-radius: 6px !important;
+        min-width: 0;
+        max-width: 48vw;
+      }
+    }
+    #hud .power-block, #hud #hud-audio-panel {
+      z-index: 3;
+    }
+  </style>
+</head>
+<body>
+<audio id="sfx-jump" src="Data_2.wav" preload="auto"></audio>
+<audio id="sfx-dead" src="Data_6.wav" preload="auto"></audio>
+<audio id="bgm" src="bgm1.mp3" preload="auto" loop></audio>
+<audio id="sfx-land" src="Data_1.wav" preload="auto"></audio>
+<audio id="sfx-spring-jump" src="Data_3.wav" preload="auto"></audio>
+<audio id="sfx-charge" src="Data_7.wav" preload="auto"></audio>
+<div id="hud">
+  <span class="hud-score" id="hud-score"></span>
+  <span class="power-block">
+    <span class="power-label">POWER</span>
+    <span class="hud-power"></span>
+  </span>
+  <span id="hud-audio-panel" style="display:flex;flex-direction:row;align-items:center;gap:4px;min-width:0;max-width:220px;position:static;background:none;box-shadow:none;padding:0;border-radius:0;z-index:auto;">
+    <button id="sfx-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:70px;"></button>
+    <button id="bgm-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:70px;"></button>
+    <button id="power-reset-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:0.95rem;box-shadow:0 2px 8px #0008;cursor:pointer;min-width:0;max-width:80px;">力量重置：關</button>
+  </span>
+</div>
+<canvas id="game"></canvas>
+<div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;user-select:none;">
+    <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;"></div>
+    <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;user-select:none;">重新開始</button>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resizeCanvas() {
+  const ratio = window.devicePixelRatio || 1;
+  const w = Math.min(window.innerWidth, 480);
+  // 預留地面平台高度，確保地面完整露出
+  const minH = 120;
+  const h = Math.max(Math.min(window.innerHeight * 0.92, 720), minH) + 16; // 多預留一點空間
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * ratio;
+  canvas.height = h * ratio;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(ratio, ratio);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function getWidth() {
+  return canvas.width / (window.devicePixelRatio || 1);
+}
+function getHeight() {
+  return canvas.height / (window.devicePixelRatio || 1);
+}
+
+// 遊戲參數
+let player, stairs, gameSpeed, stairGap, stairWidth, stairHeight, score, highScore, paused, animationFrameId, direction, jumpPending, bgmMuted, sfxMuted, firstInteraction;
+let lastStair = null;
+let platformSet = new Set();
+let firstPlatformPassed = false;
+let platformPassedCount = 0; // 已不再使用
+let lastLandedStair = null; // 已不再使用
+let passedPlatforms = new Set(); // 本輪計分用
+let allPassedPlatforms = new Set(); // 遊戲期間所有已計算過的平台Y
+// 新增：視角拉動 flag
+let needScrollToStair = false;
+let lastLandedStairY = null;
+// 新增：鏡頭偏移
+let cameraOffsetY = 0;
+let cameraTargetOffsetY = 0;
+// 在全域變數區加：
+let lastDifficultyScore = 0;
+// 新增：力量重置開關
+let powerAutoReset = false;
+
+// 音效
+const sfxJump = document.getElementById('sfx-jump');
+const sfxDead = document.getElementById('sfx-dead');
+const bgm = document.getElementById('bgm');
+const sfxLand = document.getElementById('sfx-land');
+const sfxSpringJump = document.getElementById('sfx-spring-jump');
+const sfxCharge = document.getElementById('sfx-charge');
+
+// 音效靜音狀態
+sfxMuted = false;
+bgmMuted = true;
+firstInteraction = false;
+
+if (localStorage.getItem('ns_tower_highscore')) {
+  highScore = parseInt(localStorage.getItem('ns_tower_highscore')) || 0;
+} else {
+  highScore = 0;
+}
+
+function playSfx(audio) {
+  if (!audio || sfxMuted) return;
+  audio.currentTime = 0;
+  audio.muted = sfxMuted;
+  audio.play();
+}
+function tryPlayBgm() {
+  if (bgm.paused && !bgmMuted) {
+    bgm.volume = 0.5;
+    bgm.play().catch(()=>{});
+  }
+}
+
+function initGame() {
+  var modal = document.getElementById('gameover-modal');
+  if (modal) modal.style.display = 'none';
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  // 新增：重設鏡頭偏移
+  cameraOffsetY = 0;
+  cameraTargetOffsetY = 0;
+  resizeCanvas();
+  paused = false;
+  score = 0;
+  direction = Math.random() < 0.5 ? 1 : -1; // 1:右, -1:左
+  jumpPending = false;
+  stairWidth = Math.floor(getWidth() * 0.25);
+  stairHeight = 12;
+  stairGap = stairHeight * 5.5;
+  gameSpeed = 1.8;
+  platformPassedCount = 0; // 已不再使用
+  lastLandedStair = null; // 已不再使用
+  passedPlatforms = new Set(); // 新增：初始化
+  allPassedPlatforms = new Set(); // 新增：初始化
+  // 主角
+  player = {
+    width: Math.floor(stairWidth * 0.5),
+    height: Math.floor(stairWidth * 0.5),
+    x: getWidth() / 2 - stairWidth * 0.25,
+    y: getHeight() - stairHeight - Math.floor(stairWidth * 0.5),
+    vx: 2.2,
+    vy: 0,
+    onStair: true,
+    jumping: false,
+    jumpPower: -6.5,
+    gravity: 0.22,
+    dir: direction,
+    alive: true,
+    power: 0,
+    maxPower: 100,
+    charging: false,
+    powerIncrement: 4,  // 每幀蓄力增加量
+    lastJumpTime: null,
+    lastLandTime: performance.now() / 1000,
+    lastLeaveTime: null,
+    landedOn: null, // 追蹤目前站立的平台
+    animationState: {
+      bodyBob: 0,
+      armSwing: 0,
+      legSwing: 0
+    }
+  };
+  // 樓梯陣列
+  stairs = [];
+  // 先加地面（整個平面）
+  stairs.push({
+    x: 0,
+    y: getHeight() - stairHeight,
+    width: getWidth(),
+    height: stairHeight
+  });
+  // 再加其他樓梯
+  let y = getHeight() - stairGap - stairHeight;
+  let lastX = null;
+  const minStairXGap = stairWidth * 0.5;
+  while (y > 0) {
+    let x, tryCount = 0;
+    do {
+      x = Math.random() * (getWidth() - stairWidth);
+      tryCount++;
+    } while (lastX !== null && Math.abs(x - lastX) < minStairXGap && tryCount < 20);
+    
+    const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
+    const existingTypeCounts = stairs.reduce((counts, p) => {
+      counts[p.type] = (counts[p.type] || 0) + 1;
+      return counts;
+    }, {});
+    
+    let type;
+    const missingType = platformTypesToEnsure.find(t => !existingTypeCounts[t]);
+    
+    if (missingType) {
+      type = missingType;
+    } else {
+      let r = Math.random();
+      if (r < 0.10) { type = "horizontal"; } 
+      else if (r < 0.18) { type = "vertical"; } 
+      else if (r < 0.26) { type = "upward"; } 
+      else if (r < 0.32) { type = "spring"; } 
+      else if (r < 0.39) { type = "conveyorL"; } 
+      else if (r < 0.46) { type = "conveyorR"; } 
+      else { type = "static"; }
+    }
+
+    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0, baseX = x, baseY = y;
+    if (type === "horizontal") {
+      vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
+      rangeX = stairWidth * 1.2;
+      phase = Math.random() * Math.PI * 2;
+    } else if (type === "vertical") {
+      vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
+      rangeY = stairGap * 0.7;
+      phase = Math.random() * Math.PI * 2;
+    } else if (type === "upward") {
+      vy = 0;
+      rangeY = stairGap * 0.7;
+      phase = Math.random() * Math.PI * 2;
+    }
+    
+    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX, baseY, rangeX, rangeY, phase});
+    lastX = x;
+    y -= stairGap;
+  }
+  // 設定 lastStair 為主角腳下的樓梯
+  lastStair = stairs.find(s =>
+    player.x + player.width > s.x &&
+    player.x < s.x + s.width &&
+    player.y + player.height === s.y
+  ) || null;
+  player.landedOn = lastStair;
+  platformSet = new Set();
+  if (lastStair) platformSet.add(lastStair);
+  firstPlatformPassed = false;
+  drawHUD();
+  animationFrameId = requestAnimationFrame(gameLoop);
+  sfxJump.muted = sfxMuted;
+  sfxDead.muted = sfxMuted;
+  sfxLand.muted = sfxMuted;
+  sfxSpringJump.muted = sfxMuted;
+  sfxCharge.muted = sfxMuted;
+  bgm.muted = bgmMuted;
+  if (!bgmMuted) tryPlayBgm();
+  else bgm.pause();
+}
+
+function drawPlayer() {
+  ctx.save();
+
+  const pW = player.width;
+  const pH = player.height;
+  
+  // Animation parameters
+  const animSpeed = 10;
+  const animCycle = (performance.now() / 1000) * animSpeed;
+  
+  // Body Bobbing
+  const bodyYOffset = (1 - Math.cos(animCycle * 2)) * (pH * 0.03);
+
+  // === 修正腳掌 ===
+  // 鞋子高度
+  const shoeHeight = pH * 0.08;
+  // 將精靈整體往上移動鞋子高度的一半，讓腳掌底部貼齊平台
+  ctx.translate(player.x, player.y - cameraOffsetY - bodyYOffset - shoeHeight/2);
+
+  // Limb animation cycles
+  const backArmCycle = animCycle + Math.PI;
+  const frontArmCycle = animCycle;
+  const backLegCycle = animCycle;
+  const frontLegCycle = animCycle + Math.PI;
+
+  const armAngle = Math.sin(frontArmCycle) * 1.1;
+  const legAngle = Math.sin(backLegCycle) * 0.8; 
+
+  // Shared limb properties
+  const armX = pW / 2;
+  const shoulderY = pH * 0.45; // Lowered shoulder
+  const armWidth = pW * 0.12;
+  const armHeight = pH * 0.28;
+  const handRadius = armWidth * 0.7;
+
+  const legWidth = pW * 0.18;
+  const legHeight = pH * 0.30; // Longer legs
+  const legBaseY = pH * 0.75;
+  const legBaseX = pW / 2;
+  const shoeWidth = legWidth * 1.25;
+
+  ctx.save();
+  // Flip context if player is moving left
+  if (player.dir === -1) {
+    ctx.scale(-1, 1);
+    ctx.translate(-pW, 0);
+  }
+
+  // Body tilt
+  const angle = 0.15;
+  ctx.translate(pW / 2, pH / 2);
+  ctx.rotate(angle);
+  ctx.translate(-pW / 2, -pH / 2);
+
+  // --- Charging Effects ---
+  let chargingFlash = false;
+  if (player.charging) {
+    // 閃爍效果：每 100ms 閃爍一次
+    chargingFlash = Math.floor(performance.now() / 100) % 2 === 0;
+    // 集氣光暈
+    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / 80);
+    const powerRatio = player.power / player.maxPower;
+    ctx.save();
+    ctx.globalAlpha = auraAlpha * (0.3 + 0.7 * powerRatio);
+    const auraRadius = pW * (0.6 + 0.7 * powerRatio);
+    const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.15, pW/2, pH/2, auraRadius);
+    grad.addColorStop(0, `rgba(255,255,100,0.8)`);
+    grad.addColorStop(0.5, `rgba(255,180,0,0.4)`);
+    grad.addColorStop(1, `rgba(255,0,0,0)`);
+    ctx.beginPath();
+    ctx.arc(pW/2, pH/2, auraRadius, 0, Math.PI*2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // --- Drawing order: Back to Front ---
+
+  // Back Leg
+  ctx.save();
+  ctx.translate(legBaseX, legBaseY);
+  ctx.rotate(legAngle);
+  ctx.fillStyle = chargingFlash ? '#FF2222' : '#0000B2'; // 閃爍紅色
+  ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#6B3503';
+  ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
+  ctx.restore();
+
+  // Back Arm
+  ctx.save();
+  ctx.translate(armX, shoulderY);
+  ctx.rotate(armAngle);
+  ctx.fillStyle = chargingFlash ? '#FF6666' : '#00A090';
+  ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#D1B497';
+  ctx.beginPath();
+  ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Body/Shirt
+  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
+  ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
+
+  // Front Leg
+  ctx.save();
+  ctx.translate(legBaseX, legBaseY);
+  ctx.rotate(-legAngle);
+  ctx.fillStyle = chargingFlash ? '#FF3333' : '#0000FF';
+  ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
+  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#8B4513';
+  ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight/2, shoeWidth, shoeHeight);
+  ctx.restore();
+
+  // Front Arm
+  ctx.save();
+  ctx.translate(armX, shoulderY);
+  ctx.rotate(-armAngle);
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#00D0B0';
+  ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3';
+  ctx.beginPath();
+  ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Head and Face details
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#A0522D'; // Hair
+  ctx.beginPath();
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // Head
+  ctx.beginPath();
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#000'; // Eye
+  const eyeY = pH * 0.3;
+  const eyeHeight = pH * 0.035;
+  ctx.fillRect(pW * 0.55, eyeY, pW * 0.1, eyeHeight);
+  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#FFB6C1'; // Blush
+  ctx.beginPath();
+  ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hat
+  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00A800';
+  ctx.beginPath();
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // Brim
+  ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
+  
+  ctx.restore(); // Restore from the potential flip
+  
+  // Power bar above player
+  if (player.charging) {
+    const barWidth = player.width * 0.8;
+    const barHeight = 5;
+    const barX = (player.width - barWidth) / 2; // Centered relative to player's X
+    const barY = -barHeight - 5; // 5px above player's head
+
+    // Background
+    ctx.fillStyle = '#333';
+    ctx.fillRect(barX, barY, barWidth, barHeight);
+    
+    // Power fill
+    const powerRatio = player.power / player.maxPower;
+    const powerWidth = powerRatio * barWidth;
+
+    // Color changes from green to yellow to red
+    const hue = (1 - powerRatio) * 120; // 120=green, 60=yellow, 0=red
+    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    ctx.fillRect(barX, barY, powerWidth, barHeight);
+    
+    // Border
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, barWidth, barHeight);
+  }
+
+  ctx.restore(); // Final restore
+}
+
+function drawStairs() {
+  ctx.save();
+  for (let s of stairs) {
+    let drawY = s.y - cameraOffsetY;
+    if (s.type === 'spring') {
+      // 綠色底
+      ctx.fillStyle = '#00e000';
+      ctx.fillRect(s.x, drawY, s.width, s.height);
+      ctx.strokeStyle = '#007700';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(s.x, drawY, s.width, s.height);
+      // 畫白色彈簧線圈
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      let springY = drawY + s.height / 2 + 1;
+      for (let i = 0; i < s.width - 8; i += 8) {
+        ctx.moveTo(s.x + 4 + i, springY - 2);
+        ctx.lineTo(s.x + 8 + i, springY + 2);
+        ctx.lineTo(s.x + 12 + i, springY - 2);
+      }
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    } else if (s.type === 'conveyorL' || s.type === 'conveyorR') {
+      // 灰色底
+      ctx.fillStyle = '#bbb';
+      ctx.fillRect(s.x, drawY, s.width, s.height);
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(s.x, drawY, s.width, s.height);
+      // 畫左右半圓
+      ctx.save();
+      ctx.fillStyle = '#bbb';
+      // 左半圓
+      ctx.beginPath();
+      ctx.arc(s.x, drawY + s.height / 2, s.height / 2, Math.PI / 2, Math.PI * 3 / 2, false);
+      ctx.fill();
+      // 右半圓
+      ctx.beginPath();
+      ctx.arc(s.x + s.width, drawY + s.height / 2, s.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
+      ctx.fill();
+      ctx.restore();
+      // 畫移動的橫線
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 1;
+      let anim = (performance.now() / 30) % 12;
+      let lineOffset = (s.type === 'conveyorL' ? -anim : anim);
+      for (let i = 0; i < s.width; i += 12) {
+        let xPos = s.x + i + lineOffset;
+        if (xPos >= s.x && xPos <= s.x + s.width) {
+          ctx.beginPath();
+          ctx.moveTo(xPos, drawY);
+          ctx.lineTo(xPos, drawY + s.height);
+          ctx.stroke();
+        }
+      }
+      // 畫箭頭
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      let arrowY = drawY + s.height / 2;
+      let arrowSpacing = s.width / 4;
+      for (let i = 1; i <= 3; i++) {
+        let arrowX = s.x + (i * arrowSpacing);
+        ctx.beginPath();
+        if (s.type === 'conveyorL') {
+          ctx.moveTo(arrowX + 4, arrowY - 4);
+          ctx.lineTo(arrowX - 4, arrowY);
+          ctx.lineTo(arrowX + 4, arrowY + 4);
+        } else {
+          ctx.moveTo(arrowX - 4, arrowY - 4);
+          ctx.lineTo(arrowX + 4, arrowY);
+          ctx.lineTo(arrowX - 4, arrowY + 4);
+        }
+        ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = '#c97a3a'; // 橘棕色
+      ctx.fillRect(s.x, drawY, s.width, s.height);
+      ctx.strokeStyle = '#a05a1a'; // 深棕色邊框
+      ctx.lineWidth = 3;
+      ctx.strokeRect(s.x, drawY, s.width, s.height);
+      ctx.lineWidth = 1;
+    }
+  }
+  ctx.restore();
+}
+
+function drawHUD() {
+  const hudPower = document.querySelector('#hud .hud-power');
+  if (hudPower && player) {
+    let html = '';
+    let percent = player.power / player.maxPower;
+    let barCount = 8;
+    for (let i = 0; i < barCount; i++) {
+      if (i < Math.round(percent * barCount)) {
+        html += `<span style=\"display:inline-block;width:6px;height:12px;background:#ffe600;border:1px solid #fff;margin-right:1px;box-shadow:0 0 2px #fff;\"></span>`;
+      } else {
+        html += `<span style=\"display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;\"></span>`;
+      }
+    }
+    hudPower.innerHTML = html;
+  }
+  const hudScore = document.getElementById('hud-score');
+  if (hudScore) {
+    hudScore.innerHTML = `<span class='score-num'>${String(score).padStart(4, "0")}</span><span class='score-unit'>階</span>`;
+  }
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const bgmToggle = document.getElementById('bgm-toggle');
+  const powerResetToggle = document.getElementById('power-reset-toggle');
+  if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
+  if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
+  if (powerResetToggle) powerResetToggle.textContent = `力量重置：${powerAutoReset ? '開' : '關'}`;
+}
+
+function updatePlayer() {
+  if (!player.alive) return false;
+  // 自動左右移動
+  player.x += player.vx * player.dir;
+  // 碰牆自動反向
+  if (player.x < 0) {
+    player.x = 0;
+    player.dir = 1;
+  } else if (player.x + player.width > getWidth()) {
+    player.x = getWidth() - player.width;
+    player.dir = -1;
+  }
+
+  // --- 重構垂直移動與平台互動邏輯 ---
+  let justLanded = false;
+
+  // 1. 如果玩家在平台上，讓他"黏住"並檢查是否走下平台
+  if (player.onStair && player.landedOn) {
+    const platform = player.landedOn;
+    // 檢查X軸是否還在平台範圍內
+    if (player.x + player.width > platform.x && player.x < platform.x + platform.width) {
+        player.y = platform.y - player.height; // 鎖定Y座標
+        player.vy = 0; // 站在平台上時沒有垂直速度
+    } else {
+        // 玩家走出了平台X軸範圍
+        player.onStair = false;
+        player.landedOn = null;
+        player.lastLeaveTime = performance.now() / 1000;
+    }
+  }
+
+  // 2. 如果玩家在空中，施加重力並檢查是否落地
+  if (!player.onStair) {
+    // 重力
+    player.vy += player.gravity;
+    // 限制最大下墜速度
+    player.vy = Math.min(player.vy, 12);
+    
+    // 記錄前一幀底部
+    let prevBottom = player.y + player.height;
+    player.y += player.vy;
+    let currBottom = player.y + player.height;
+
+    // 穿越平台計分邏輯
+    if (currBottom < prevBottom) { // 只在上升時檢查
+      for (let s of stairs) {
+        if (s.y === getHeight() - stairHeight) continue; // 跳過地面
+        if (
+          prevBottom > s.y && currBottom <= s.y &&
+          !allPassedPlatforms.has(s.y)
+        ) {
+          passedPlatforms.add(s.y);
+          allPassedPlatforms.add(s.y);
+        }
+      }
+      if (passedPlatforms.size >= 5) {
+        score++;
+        passedPlatforms.clear();
+      }
+    }
+
+    // 檢查是否落在新樓梯上
+    if (player.vy >= 0) { // 只在下墜時檢查
+        for (let s of stairs) {
+            if (player.x + player.width > s.x &&
+                player.x < s.x + s.width &&
+                prevBottom <= s.y &&
+                currBottom >= s.y) {
+              
+                player.y = s.y - player.height;
+                player.vy = 0;
+                player.onStair = true;
+                player.landedOn = s;
+                justLanded = true;
+                player.lastLandTime = performance.now() / 1000;
+
+                // 處理剛落地時的平台效果
+                if (s.type === 'conveyorL') {
+                    player.x -= 1.0;
+                } else if (s.type === 'conveyorR') {
+                    player.x += 1.0;
+                }
+                if (player.jumping) {
+                    player.jumping = false;
+                    if (s.y !== getHeight() - stairHeight && lastLandedStairY !== s.y && (player.y + player.height - cameraOffsetY) < getHeight() * 0.5) {
+                        needScrollToStair = true;
+                        lastLandedStairY = s.y;
+                    }
+                }
+                break; // 找到平台就停止檢查
+            }
+        }
+    }
+  } else {
+    // 如果玩家在平台上，持續處理平台效果
+    const s = player.landedOn;
+    if (s && s.type === 'conveyorL') {
+        player.x -= 1.0;
+    } else if (s && s.type === 'conveyorR') {
+        player.x += 1.0;
+    }
+  }
+
+  // 播放落地音效
+  if (justLanded) {
+    playSfx(sfxLand);
+  }
+
+  // 掉出畫面
+  if (player.y + player.height - cameraOffsetY > getHeight()) {
+    player.alive = false;
+    setTimeout(() => {
+      playSfx(sfxDead);
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('ns_tower_highscore', highScore);
+      }
+      showGameOverModal(score, score >= highScore);
+    }, 100);
+    return false;
+  }
+  // 跳起來時自動跟隨：精靈還沒落地且底部超出畫面上緣
+  if (
+    player.alive &&
+    !player.onStair &&
+    (player.y + player.height - cameraOffsetY) < 0
+  ) {
+    needScrollToStair = true;
+  }
+  return true;
+}
+
+function updateStairs() {
+  // 移除超出鏡頭上下方的樓梯與地面
+  stairs = stairs.filter(s =>
+    !(s.y - cameraOffsetY > getHeight() || (s.y + s.height - cameraOffsetY) < 0)
+  );
+  // 不再自動下捲，僅補新樓梯與移除超出畫面的樓梯
+  // 補新樓梯
+  const minStairXGap = stairWidth * 0.5;
+  while (stairs.length < Math.ceil(getHeight() / stairGap) + 2) {
+    let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
+    let newY = lastY - stairGap;
+    let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
+    let newX, tryCount = 0;
+    do {
+      newX = Math.random() * (getWidth() - stairWidth);
+      tryCount++;
+    } while (lastX !== null && Math.abs(newX - lastX) < minStairXGap && tryCount < 20);
+
+    const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
+    const existingTypeCounts = stairs.reduce((counts, p) => {
+      counts[p.type] = (counts[p.type] || 0) + 1;
+      return counts;
+    }, {});
+
+    let type;
+    const missingType = platformTypesToEnsure.find(t => !existingTypeCounts[t]);
+
+    if (missingType) {
+      type = missingType;
+    } else {
+      let r = Math.random();
+      if (r < 0.10) { type = "horizontal"; }
+      else if (r < 0.18) { type = "vertical"; }
+      else if (r < 0.26) { type = "upward"; }
+      else if (r < 0.32) { type = "spring"; }
+      else if (r < 0.39) { type = "conveyorL"; }
+      else if (r < 0.46) { type = "conveyorR"; }
+      else { type = "static"; }
+    }
+    
+    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0, baseX = newX, baseY = newY;
+    if (type === "horizontal") {
+      vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
+      rangeX = stairWidth * 1.2;
+      phase = Math.random() * Math.PI * 2;
+    } else if (type === "vertical") {
+      vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
+      rangeY = stairGap * 0.7;
+      phase = Math.random() * Math.PI * 2;
+    } else if (type === "upward") {
+      vy = 0;
+      rangeY = stairGap * 0.7;
+      phase = Math.random() * Math.PI * 2;
+    }
+    
+    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX, baseY, rangeX, rangeY, phase});
+  }
+  // 難度提升：每10層加快速度、拉大間距、減少樓梯寬度
+  if (score % 10 === 0 && score > 0 && score !== lastDifficultyScore) {
+    gameSpeed += 0.18;
+    stairGap += 2;
+    stairWidth = Math.max(stairWidth - 6, getWidth() * 0.18);
+    lastDifficultyScore = score;
+  }
+}
+
+function gameLoop() {
+  if (paused) return;
+  ctx.clearRect(0, 0, getWidth(), getHeight());
+  // 背景（深紅棕色漸層）
+  let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
+  grad.addColorStop(0, "#3a1a0a");
+  grad.addColorStop(1, "#6b2e13");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, getWidth(), getHeight());
+  // 新增：更新移動平台位置
+  let t = performance.now() / 1000;
+  for (let s of stairs) {
+    if (s.type === "horizontal") {
+      s.x = s.baseX + Math.sin(t + s.phase) * s.rangeX;
+    } else if (s.type === "vertical") {
+      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
+    } else if (s.type === "upward") {
+      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
+    }
+  }
+  drawStairs();
+  if (!updatePlayer()) return;
+  // 鏡頭平滑移動
+  const cameraSpeed = 18; // 每幀最大移動像素
+  if (Math.abs(cameraOffsetY - cameraTargetOffsetY) > 1) {
+    cameraOffsetY += (cameraTargetOffsetY - cameraOffsetY) * 0.08;
+    // 若很接近目標就直接到位
+    if (Math.abs(cameraOffsetY - cameraTargetOffsetY) < 1) cameraOffsetY = cameraTargetOffsetY;
+  } else {
+    cameraOffsetY = cameraTargetOffsetY;
+  }
+  // 新增：只在 needScrollToStair 時設定目標鏡頭
+  if (needScrollToStair) {
+    cameraTargetOffsetY = player.y + player.height - getHeight() / 2;
+    needScrollToStair = false;
+  }
+  updateStairs();
+  drawPlayer();
+  drawHUD();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, getWidth(), getHeight());
+  ctx.lineWidth = 1;
+  // 蓄力中每幀增加力量
+  if (player && player.charging && player.onStair && !player.jumping) {
+    if (powerAutoReset && player.power >= player.maxPower) {
+      player.power = 0; // 自動重置
+    } else {
+      player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
+    }
+  }
+  animationFrameId = requestAnimationFrame(gameLoop);
+}
+
+function showGameOverModal(score, isNewRecord) {
+  const modal = document.getElementById('gameover-modal');
+  const msg = document.getElementById('gameover-msg');
+  msg.innerHTML = `遊戲結束！<br>樓層: <b style="color:yellow;">${score}</b>${isNewRecord ? '<br><span style="color:#0f0;">新紀錄！</span>' : ''}`;
+  modal.style.display = 'flex';
+}
+
+function startCharge() {
+    if (player && player.onStair && !player.charging && player.alive) {
+        player.charging = true;
+        playSfx(sfxCharge);
+        return true;
+    }
+    return false;
+}
+
+function releaseJump() {
+  if (player && player.charging && player.alive) {
+    if (player.onStair) {
+      const powerRatio = player.power / player.maxPower;
+      const minVy = player.jumpPower;
+      const maxJumpHeight = 7.5 * player.height;
+      const maxVy = -Math.sqrt(2 * player.gravity * maxJumpHeight);
+      player.vy = minVy + (maxVy - minVy) * powerRatio;
+
+      const onSpring = player.landedOn && player.landedOn.type === 'spring';
+      if (onSpring) {
+        player.vy *= 1.5; // 從彈簧平台跳得更高
+        playSfx(sfxSpringJump);
+      } else {
+        playSfx(sfxJump);
+      }
+      
+      player.jumping = true;
+      player.onStair = false;
+      player.landedOn = null;
+      player.lastJumpTime = performance.now() / 1000;
+    }
+    player.charging = false;
+    player.power = 0;
+    return true;
+  }
+  return false;
+}
+
+document.getElementById('restart-btn').addEventListener('click', () => {
+  document.getElementById('gameover-modal').style.display = 'none';
+  initGame();
+});
+
+window.addEventListener('keydown', function(e) {
+  const modal = document.getElementById('gameover-modal');
+  if (modal.style.display === 'flex' && (e.key === 'Enter' || e.keyCode === 13)) {
+    modal.style.display = 'none';
+    initGame();
+    e.preventDefault();
+  }
+  if ((e.key === ' ' || e.key === 'Spacebar')) {
+    if(startCharge()) e.preventDefault();
+  }
+});
+
+window.addEventListener('keyup', function(e) {
+  if ((e.key === ' ' || e.key === 'Spacebar')) {
+    if(releaseJump()) e.preventDefault();
+  }
+});
+
+canvas.addEventListener('mousedown', function(e) {
+  if (startCharge()) e.preventDefault();
+});
+
+window.addEventListener('mouseup', function(e) {
+  if (releaseJump()) e.preventDefault();
+});
+
+canvas.addEventListener('touchstart', function(e) {
+  if (startCharge()) e.preventDefault();
+});
+
+window.addEventListener('touchend', function(e) {
+  if (releaseJump()) e.preventDefault();
+});
+
+window.addEventListener('DOMContentLoaded', function() {
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const bgmToggle = document.getElementById('bgm-toggle');
+  const powerResetToggle = document.getElementById('power-reset-toggle');
+  if (sfxToggle) sfxToggle.blur();
+  if (bgmToggle) bgmToggle.blur();
+  if (powerResetToggle) powerResetToggle.blur();
+  [sfxToggle, bgmToggle, powerResetToggle].forEach(btn => {
+    if (btn) {
+      btn.addEventListener('mousedown', e => { btn.blur(); });
+      btn.addEventListener('mouseup', e => { btn.blur(); });
+      btn.addEventListener('click', e => { btn.blur(); });
+      btn.addEventListener('keydown', e => { btn.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+    }
+  });
+  if (sfxToggle) {
+    sfxToggle.addEventListener('click', function() {
+      sfxMuted = !sfxMuted;
+      sfxJump.muted = sfxMuted;
+      sfxDead.muted = sfxMuted;
+      sfxLand.muted = sfxMuted;
+      sfxSpringJump.muted = sfxMuted;
+      sfxCharge.muted = sfxMuted;
+      drawHUD();
+    });
+  }
+  if (bgmToggle) {
+    bgmToggle.addEventListener('click', function() {
+      bgmMuted = !bgmMuted;
+      bgm.muted = bgmMuted;
+      if (bgmMuted) {
+        bgm.pause();
+      } else {
+        try { bgm.play(); } catch (e) {}
+      }
+      drawHUD();
+    });
+  }
+  if (powerResetToggle) {
+    powerResetToggle.addEventListener('click', function() {
+      powerAutoReset = !powerAutoReset;
+      drawHUD();
+    });
+  }
+  drawHUD();
+});
+
+function handleFirstInteraction() {
+  if (!firstInteraction) {
+    firstInteraction = true;
+    sfxJump.muted = sfxMuted;
+    sfxDead.muted = sfxMuted;
+    sfxLand.muted = sfxMuted;
+    sfxSpringJump.muted = sfxMuted;
+    sfxCharge.muted = sfxMuted;
+    bgm.muted = bgmMuted;
+    tryPlayBgm();
+  }
+}
+window.addEventListener('click', handleFirstInteraction, { once: true });
+window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+
+initGame();
+</script>
+</body>
+</html> 
