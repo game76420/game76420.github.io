@@ -876,8 +876,9 @@ function updatePlayer() {
   // 1. 如果玩家在平台上，讓他"黏住"並檢查是否走下平台
   if (player.onStair && player.landedOn) {
     const platform = player.landedOn;
-    // 檢查X軸是否還在平台範圍內
-    if (player.x + player.width > platform.x && player.x < platform.x + platform.width) {
+    // 檢查X軸是否還在平台範圍內（增加容許範圍）
+    const tolerance = player.width * 0.02; // 容許超出平台10%的寬度
+    if (player.x + player.width > platform.x - tolerance && player.x < platform.x + platform.width + tolerance) {
         player.y = platform.y - player.height; // 鎖定Y座標
         player.vy = 0; // 站在平台上時沒有垂直速度
     } else {
@@ -921,8 +922,10 @@ function updatePlayer() {
     // 檢查是否落在新樓梯上
     if (player.vy >= 0) { // 只在下墜時檢查
         for (let s of stairs) {
-            if (player.x + player.width > s.x &&
-                player.x < s.x + s.width &&
+            // 增加容許範圍，讓精靈可以稍微超出平台邊界
+            const tolerance = player.width * 0.02; // 容許超出平台10%的寬度
+            if (player.x + player.width > s.x - tolerance &&
+                player.x < s.x + s.width + tolerance &&
                 prevBottom <= s.y &&
                 currBottom >= s.y) {
               
@@ -995,11 +998,11 @@ function updatePlayer() {
     }, 100);
     return false;
   }
-  // 跳起來時自動跟隨：精靈還沒落地且底部超出畫面上緣
+  // 跳起來時自動跟隨：精靈還沒落地且高度達到畫面90%時
   if (
     player.alive &&
     !player.onStair &&
-    (player.y + player.height - cameraOffsetY) < 0
+    (player.y + player.height - cameraOffsetY) < getHeight() * 0.1
   ) {
     needScrollToStair = true;
   }
