@@ -254,6 +254,9 @@
       max-width: 90px;
       padding: 1px 12px !important;
     }
+    #shoe-item-toggle {
+      min-width: 160px;
+    }
     @media (max-width: 600px) {
       #bottom-controls {
         gap: 2px;
@@ -305,7 +308,9 @@
   <button id="pause-toggle" type="button">暫停</button>
   <button id="sfx-toggle" type="button">音效</button>
   <button id="bgm-toggle" type="button">音樂</button>
-  <button id="power-reset-toggle" type="button">力量重置 關</button>
+  <button id="power-reset-toggle" type="button">力量重置</button>
+  <button id="walk-speed-toggle" type="button">行走速度：中</button>
+  <button id="shoe-item-toggle" type="button">運動鞋道具</button>
 </div>
 <canvas id="game"></canvas>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
@@ -374,6 +379,14 @@ let inputState = { isPressed: false, spacebar: false };
 // 新增：落地緩衝（jump buffer）
 let jumpBufferTimer = 0;
 const JUMP_BUFFER_TIME = 0.2; // 秒
+// 新增：運動鞋buff狀態
+let shoeBuffActive = false;
+let shoeBuffEndTime = 0;
+// 新增：運動鞋道具開關
+let shoeItemEnabled = true;
+// 新增：樓梯X軸分布控制
+let recentStairPositions = []; // 記錄最近幾個樓梯的X位置
+const MAX_RECENT_POSITIONS = 5; // 記錄最近5個樓梯位置
 
 // 音效
 const sfxJump = document.getElementById('sfx-jump');
@@ -407,6 +420,57 @@ function tryPlayBgm() {
   }
 }
 
+// 新增：行走速度模式
+let walkSpeedMode = 'normal'; // 'slow' | 'normal' | 'fast'
+const walkSpeedMap = { slow: 1.2, normal: 2.2, fast: 3.2 };
+
+// 分區輔助函數
+function getStairZone(x, canvasWidth, stairWidth) {
+  if (x < canvasWidth * 0.3) return 'left';
+  if (x > canvasWidth * 0.7 - stairWidth) return 'right';
+  return 'center';
+}
+
+function generateSmartStairPositionV4(lastX, canvasWidth, stairWidth, stairs) {
+  // 取得目前畫面上（不含地面）最近5個樓梯的分區
+  const recent = stairs.filter(s => s.y !== getHeight() - stairHeight).slice(-5);
+  const zones = recent.map(s => getStairZone(s.x, canvasWidth, stairWidth));
+  let needLeft = zones.filter(z => z === 'left').length === 0;
+  let needCenter = zones.filter(z => z === 'center').length === 0;
+  let needRight = zones.filter(z => z === 'right').length === 0;
+
+  // 分區範圍
+  const leftMin = 0, leftMax = canvasWidth * 0.3 - stairWidth;
+  const centerMin = canvasWidth * 0.35, centerMax = canvasWidth * 0.65 - stairWidth;
+  const rightMin = canvasWidth * 0.7, rightMax = canvasWidth - stairWidth;
+
+  let zone = null;
+  if (needLeft) zone = 'left';
+  else if (needCenter) zone = 'center';
+  else if (needRight) zone = 'right';
+  else zone = 'random';
+
+  let newX;
+  if (zone === 'left') {
+    newX = leftMin + Math.random() * (leftMax - leftMin);
+  } else if (zone === 'center') {
+    newX = centerMin + Math.random() * (centerMax - centerMin);
+  } else if (zone === 'right') {
+    newX = rightMin + Math.random() * (rightMax - rightMin);
+  } else {
+    // 其餘隨機分布
+    let r = Math.random();
+    if (r < 0.3) {
+      newX = leftMin + Math.random() * (leftMax - leftMin);
+    } else if (r < 0.7) {
+      newX = centerMin + Math.random() * (centerMax - centerMin);
+    } else {
+      newX = rightMin + Math.random() * (rightMax - rightMin);
+    }
+  }
+  return newX;
+}
+
 function initGame() {
   var modal = document.getElementById('gameover-modal');
   if (modal) modal.style.display = 'none';
@@ -430,13 +494,17 @@ function initGame() {
   lastLandedStair = null; // 已不再使用
   passedPlatforms = new Set(); // 新增：初始化
   allPassedPlatforms = new Set(); // 新增：初始化
+  shoeBuffActive = false;
+  shoeBuffEndTime = 0;
+  // 新增：初始化樓梯分布控制
+  recentStairPositions = [];
   // 主角
   player = {
     width: Math.floor(stairWidth * 0.5),
     height: Math.floor(stairWidth * 0.5),
     x: getWidth() / 2 - stairWidth * 0.25,
     y: getHeight() - stairHeight - Math.floor(stairWidth * 0.5),
-    vx: 2.2,
+    vx: walkSpeedMap[walkSpeedMode],
     vy: 0,
     onStair: true,
     jumping: false,
@@ -473,11 +541,7 @@ function initGame() {
   let lastX = null;
   const minStairXGap = stairWidth * 0.5;
   while (y > 0) {
-    let x, tryCount = 0;
-    do {
-      x = Math.random() * (getWidth() - stairWidth);
-      tryCount++;
-    } while (lastX !== null && Math.abs(x - lastX) < minStairXGap && tryCount < 20);
+    let x = generateSmartStairPositionV4(lastX, getWidth(), stairWidth, stairs);
     
     const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
     const existingTypeCounts = stairs.reduce((counts, p) => {
@@ -501,7 +565,7 @@ function initGame() {
       else { type = "static"; }
     }
 
-    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0, baseX = x, baseY = y;
+    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
     if (type === "horizontal") {
       vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
       rangeX = stairWidth * 1.2;
@@ -516,7 +580,10 @@ function initGame() {
       phase = Math.random() * Math.PI * 2;
     }
     
-    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX, baseY, rangeX, rangeY, phase});
+    // 每10層有30%機率出現運動鞋
+    const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
+    const hasShoe = shoeItemEnabled && stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3;
+    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe});
     lastX = x;
     y -= stairGap;
   }
@@ -575,7 +642,7 @@ function drawPlayer() {
   const shoulderY = pH * 0.45; // Lowered shoulder
   const armWidth = pW * 0.12;
   const armHeight = pH * 0.28;
-  const handRadius = armWidth * 0.7;
+  const handRadius = armWidth * 0.5;
 
   const legWidth = pW * 0.18;
   const legHeight = pH * 0.30; // Longer legs
@@ -598,7 +665,7 @@ function drawPlayer() {
 
   // --- Charging Effects ---
   let chargingFlash = false;
-  if (player.charging) {
+  if (player.charging || shoeBuffActive) {
     // 閃爍效果：每 100ms 閃爍一次
     chargingFlash = Math.floor(performance.now() / 100) % 2 === 0;
     // 集氣光暈
@@ -681,31 +748,40 @@ function drawPlayer() {
   ctx.restore();
 
   // Head and Face details
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#A0522D'; // Hair
-  ctx.beginPath();
-  ctx.arc(pW / 2, pH * 0.25, pW * 0.25, 0, Math.PI * 2);
-  ctx.fill();
   ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // Head
   ctx.beginPath();
   ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
   ctx.fill();
+
+  // 頭髮改為半圓形，畫在本地左後方
+  ctx.save();
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#000'; // Hair
+  ctx.beginPath();
+  // 半圓形頭髮，圓心在pW*0.36, pH*0.25，半徑pW*0.11，從下往上
+  ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Hat 主體（半圓，顏色與衣服相同）
+  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
+  ctx.beginPath();
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
+  ctx.fill();
+  // 帽沿（覆蓋在主體上方）
+  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // Brim
+  ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
+
+  // 眼睛和臉頰（最上層）
   ctx.fillStyle = '#000'; // Eye
   const eyeY = pH * 0.3;
   const eyeHeight = pH * 0.035;
-  ctx.fillRect(pW * 0.55, eyeY, pW * 0.1, eyeHeight);
+  ctx.fillRect(pW * 0.60, eyeY, pW * 0.1, eyeHeight);
   ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#FFB6C1'; // Blush
   ctx.beginPath();
   ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
   ctx.fill();
 
-  // Hat
-  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00A800';
-  ctx.beginPath();
-  ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // Brim
-  ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
-  
   ctx.restore(); // Restore from the potential flip
   
   // Power bar above player
@@ -732,6 +808,22 @@ function drawPlayer() {
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
+  }
+
+  // 運動鞋倒數計時顯示
+  if (shoeBuffActive) {
+    const remain = Math.ceil((shoeBuffEndTime - performance.now()) / 1000);
+    ctx.save();
+    ctx.font = `${Math.round(player.height * 0.45)}px Arial Black, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#ffe600';
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 4;
+    // 位置在頭頂正上方
+    ctx.strokeText(remain, player.width / 2, -player.height * 0.18);
+    ctx.fillText(remain, player.width / 2, -player.height * 0.18);
+    ctx.restore();
   }
 
   ctx.restore(); // Final restore
@@ -820,6 +912,60 @@ function drawStairs() {
       ctx.strokeRect(s.x, drawY, s.width, s.height);
       ctx.lineWidth = 1;
     }
+    // 畫雞腿道具
+    if (s.hasShoe) {
+      ctx.save();
+      ctx.translate(s.x + s.width/2, drawY - s.height - 8); // 抬高到平台上方
+      ctx.rotate(Math.PI / 16); // 肉的主體微微傾斜
+      ctx.scale(1.2, 1.2);
+
+      // 先畫骨頭（加大尺寸，骨頭再順時針旋轉30度）
+      ctx.save();
+      ctx.translate(7, 7); // 以骨頭中心為原點旋轉
+      ctx.rotate(Math.PI/6); // 30度
+      ctx.translate(-7, -7);
+      // 骨幹
+      ctx.beginPath();
+      ctx.moveTo(6, 5.5);
+      ctx.lineTo(15, 5.5);
+      ctx.lineTo(15, 8.5);
+      ctx.lineTo(6, 8.5);
+      ctx.closePath();
+      ctx.fillStyle = '#f9f6f2';
+      ctx.fill();
+      // 骨頭圓頭（左端）
+      ctx.beginPath();
+      ctx.arc(6, 7, 3, 0, Math.PI*2);
+      ctx.fillStyle = '#f9f6f2';
+      ctx.fill();
+      // 骨頭圓頭（右端）
+      ctx.beginPath();
+      ctx.arc(15, 7, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = '#f9f6f2';
+      ctx.fill();
+      // 骨頭陰影
+      ctx.beginPath();
+      ctx.arc(15, 7, 2.7, Math.PI*0.2, Math.PI*1.2);
+      ctx.fillStyle = 'rgba(180,180,180,0.18)';
+      ctx.fill();
+      ctx.restore();
+
+      // 再畫雞腿肉（主體）
+      ctx.beginPath();
+      ctx.ellipse(-2, 4, 10, 7, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#e8a14a';
+      ctx.shadowColor = '#b86b1b';
+      ctx.shadowBlur = 4;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // 雞腿肉高光
+      ctx.beginPath();
+      ctx.ellipse(-7, 1, 3, 1.2, -Math.PI/12, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fill();
+
+      ctx.restore();
+    }
   }
   ctx.restore();
 }
@@ -851,10 +997,20 @@ function drawHUD() {
   const bgmToggle = document.getElementById('bgm-toggle');
   const powerResetToggle = document.getElementById('power-reset-toggle');
   const pauseToggle = document.getElementById('pause-toggle');
+  const walkSpeedToggle = document.getElementById('walk-speed-toggle');
+  const shoeItemToggle = document.getElementById('shoe-item-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
-  if (powerResetToggle) powerResetToggle.textContent = `力量重置 ${powerAutoReset ? '開' : '關'}`;
+  if (powerResetToggle) powerResetToggle.textContent = `力量重置 ${powerAutoReset ? 'ON' : 'OFF'}`;
   if (pauseToggle) pauseToggle.textContent = paused ? '繼續' : '暫停';
+  if (walkSpeedToggle) {
+    let txt = '行走速度：';
+    if (walkSpeedMode === 'slow') txt += '慢';
+    else if (walkSpeedMode === 'normal') txt += '中';
+    else txt += '快';
+    walkSpeedToggle.textContent = txt;
+  }
+  if (shoeItemToggle) shoeItemToggle.textContent = `道具 ${shoeItemEnabled ? 'ON' : 'OFF'}`;
 }
 
 function updatePlayer() {
@@ -877,7 +1033,7 @@ function updatePlayer() {
   if (player.onStair && player.landedOn) {
     const platform = player.landedOn;
     // 檢查X軸是否還在平台範圍內（增加容許範圍）
-    const tolerance = player.width * 0.02; // 容許超出平台10%的寬度
+    const tolerance = player.width * 0.1; // 容許超出平台10%的寬度
     if (player.x + player.width > platform.x - tolerance && player.x < platform.x + platform.width + tolerance) {
         player.y = platform.y - player.height; // 鎖定Y座標
         player.vy = 0; // 站在平台上時沒有垂直速度
@@ -923,7 +1079,7 @@ function updatePlayer() {
     if (player.vy >= 0) { // 只在下墜時檢查
         for (let s of stairs) {
             // 增加容許範圍，讓精靈可以稍微超出平台邊界
-            const tolerance = player.width * 0.02; // 容許超出平台10%的寬度
+            const tolerance = player.width * 0.1; // 容許超出平台10%的寬度
             if (player.x + player.width > s.x - tolerance &&
                 player.x < s.x + s.width + tolerance &&
                 prevBottom <= s.y &&
@@ -966,6 +1122,12 @@ function updatePlayer() {
                         lastLandedStairY = s.y;
                     }
                 }
+                // 檢查是否吃到運動鞋
+                if (s.hasShoe) {
+                  s.hasShoe = false;
+                  shoeBuffActive = true;
+                  shoeBuffEndTime = performance.now() + 10000; // 10秒
+                }
                 break; // 找到平台就停止檢查
             }
         }
@@ -1006,14 +1168,25 @@ function updatePlayer() {
   ) {
     needScrollToStair = true;
   }
+  // buff結束自動恢復
+  if (shoeBuffActive && performance.now() > shoeBuffEndTime) {
+    shoeBuffActive = false;
+  }
   return true;
 }
 
 function updateStairs() {
   // 移除超出鏡頭上下方的樓梯與地面
-  stairs = stairs.filter(s =>
-    !(s.y - cameraOffsetY > getHeight() || (s.y + s.height - cameraOffsetY) < 0)
-  );
+  stairs = stairs.filter(s => {
+    // 對於垂直升降樓梯，以中心點判斷
+    if (s.type === 'vertical' || s.type === 'upward') {
+      const centerY = s.y + s.height / 2 - cameraOffsetY;
+      return centerY >= 0 && centerY <= getHeight();
+    } else {
+      // 其他樓梯維持原本判斷
+      return !(s.y - cameraOffsetY > getHeight() || (s.y + s.height - cameraOffsetY) < 0);
+    }
+  });
   // 不再自動下捲，僅補新樓梯與移除超出畫面的樓梯
   // 補新樓梯
   const minStairXGap = stairWidth * 0.5;
@@ -1021,11 +1194,7 @@ function updateStairs() {
     let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
     let newY = lastY - stairGap;
     let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
-    let newX, tryCount = 0;
-    do {
-      newX = Math.random() * (getWidth() - stairWidth);
-      tryCount++;
-    } while (lastX !== null && Math.abs(newX - lastX) < minStairXGap && tryCount < 20);
+    let newX = generateSmartStairPositionV4(lastX, getWidth(), stairWidth, stairs);
 
     const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
     const existingTypeCounts = stairs.reduce((counts, p) => {
@@ -1049,7 +1218,7 @@ function updateStairs() {
       else { type = "static"; }
     }
     
-    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0, baseX = newX, baseY = newY;
+    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
     if (type === "horizontal") {
       vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
       rangeX = stairWidth * 1.2;
@@ -1064,7 +1233,13 @@ function updateStairs() {
       phase = Math.random() * Math.PI * 2;
     }
     
-    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX, baseY, rangeX, rangeY, phase});
+    // 每10層有30%機率出現運動鞋
+    const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
+    const hasShoe = shoeItemEnabled && stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3;
+    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe});
+    lastX = newX;
+    lastY = newY;
+    newY -= stairGap;
   }
   // 難度提升：每10層加快速度、拉大間距、減少樓梯寬度
   if (score % 10 === 0 && score > 0 && score !== lastDifficultyScore) {
@@ -1147,6 +1322,8 @@ function gameLoop() {
 
   // 蓄力中每幀增加力量
   if (player && player.charging && player.onStair && !player.jumping) {
+    // 力量重置開啟時，集氣速度較慢
+    player.powerIncrement = powerAutoReset ? 2 : 4;
     if (powerAutoReset && player.power >= player.maxPower) {
       player.power = 0; // 自動重置
     } else {
@@ -1177,10 +1354,10 @@ function releaseJump() {
   if (player && player.charging && player.alive) {
     if (player.onStair) {
       const powerRatio = player.power / player.maxPower;
-      const minVy = player.jumpPower;
-      const maxJumpHeight = 7.5 * player.height;
+      let maxJumpHeight = 7.5 * player.height;
+      if (shoeBuffActive) maxJumpHeight *= 1.5;
       const maxVy = -Math.sqrt(2 * player.gravity * maxJumpHeight);
-      player.vy = minVy + (maxVy - minVy) * powerRatio;
+      player.vy = player.jumpPower + (maxVy - player.jumpPower) * powerRatio;
 
       const onSpring = player.landedOn && player.landedOn.type === 'spring';
       if (onSpring) {
@@ -1256,10 +1433,18 @@ window.addEventListener('DOMContentLoaded', function() {
   const bgmToggle = document.getElementById('bgm-toggle');
   const powerResetToggle = document.getElementById('power-reset-toggle');
   const pauseToggle = document.getElementById('pause-toggle');
+  const walkSpeedToggle = document.getElementById('walk-speed-toggle');
+  const shoeItemToggle = document.getElementById('shoe-item-toggle');
   if (sfxToggle) sfxToggle.blur();
   if (bgmToggle) bgmToggle.blur();
   if (powerResetToggle) powerResetToggle.blur();
   if (pauseToggle) pauseToggle.blur();
+  if (walkSpeedToggle) {
+    walkSpeedToggle.addEventListener('mousedown', e => { walkSpeedToggle.blur(); });
+    walkSpeedToggle.addEventListener('mouseup', e => { walkSpeedToggle.blur(); });
+    walkSpeedToggle.addEventListener('click', e => { walkSpeedToggle.blur(); });
+    walkSpeedToggle.addEventListener('keydown', e => { walkSpeedToggle.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+  }
   [sfxToggle, bgmToggle, powerResetToggle, pauseToggle].forEach(btn => {
     if (btn) {
       btn.addEventListener('mousedown', e => { btn.blur(); });
@@ -1268,6 +1453,16 @@ window.addEventListener('DOMContentLoaded', function() {
       btn.addEventListener('keydown', e => { btn.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
     }
   });
+  if (shoeItemToggle) {
+    shoeItemToggle.addEventListener('mousedown', e => { shoeItemToggle.blur(); });
+    shoeItemToggle.addEventListener('mouseup', e => { shoeItemToggle.blur(); });
+    shoeItemToggle.addEventListener('click', e => { shoeItemToggle.blur(); });
+    shoeItemToggle.addEventListener('keydown', e => { shoeItemToggle.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+    shoeItemToggle.addEventListener('click', function() {
+      shoeItemEnabled = !shoeItemEnabled;
+      drawHUD();
+    });
+  }
   if (sfxToggle) {
     sfxToggle.addEventListener('click', function() {
       sfxMuted = !sfxMuted;
@@ -1302,6 +1497,15 @@ window.addEventListener('DOMContentLoaded', function() {
       paused = !paused;
       pauseToggle.textContent = paused ? '繼續' : '暫停';
       if (!paused) gameLoop();
+    });
+  }
+  if (walkSpeedToggle) {
+    walkSpeedToggle.addEventListener('click', function() {
+      if (walkSpeedMode === 'normal') walkSpeedMode = 'fast';
+      else if (walkSpeedMode === 'fast') walkSpeedMode = 'slow';
+      else walkSpeedMode = 'normal';
+      if (player) player.vx = walkSpeedMap[walkSpeedMode];
+      drawHUD();
     });
   }
   drawHUD();
