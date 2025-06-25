@@ -437,12 +437,32 @@ let stairTypeShuffleIdx = 0;
 const stairXPattern = ['left', 'random', 'right', 'random'];
 let stairXPatternIdx = 0;
 
+// 新增：每四個一組必有一左一右兩隨機
+let nextStairGroup = [];
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+function generateSmartStairPositionV5(canvasWidth, stairWidth, platformType) {
+  // 水平移動平台：完全隨機，不影響主序列
+  if (platformType === 'horizontal') {
+    return Math.random() * (canvasWidth - stairWidth);
+  }
+
+  // 每四個一組，必有一左一右兩隨機，順序隨機
+  if (nextStairGroup.length === 0) {
+    nextStairGroup = ['left', 'right', 'random', 'random'];
+    shuffleArray(nextStairGroup);
+  }
+  const type = nextStairGroup.shift();
+  if (type === 'left') return 0;
+  if (type === 'right') return canvasWidth - stairWidth;
+  // random
+  return Math.random() * (canvasWidth - stairWidth);
 }
 
 // 音效
@@ -550,29 +570,6 @@ const stairZonePattern = ['left', 'random', 'right', 'random'];
 let stairZonePatternIdx = 0;
 let lastNonHorizontalZone = null;
 
-function generateSmartStairPositionV5(canvasWidth, stairWidth, platformType) {
-  // 水平移動平台：完全隨機，不影響主序列
-  if (platformType === 'horizontal') {
-    const zones = ['left', 'center', 'right'];
-    const randomZone = zones[Math.floor(Math.random() * 3)];
-    return getStairXByZone(randomZone, canvasWidth, stairWidth);
-  }
-
-  // 依序取 zonePattern
-  let pattern = stairZonePattern[stairZonePatternIdx];
-  let zone;
-  if (pattern === 'random') {
-    // 隨機選 left/center/right，但不能跟上一個非水平樓梯zone一樣
-    let zones = ['left', 'center', 'right'].filter(z => z !== lastNonHorizontalZone);
-    zone = zones[Math.floor(Math.random() * zones.length)];
-  } else {
-    zone = pattern;
-  }
-  lastNonHorizontalZone = zone;
-  stairZonePatternIdx = (stairZonePatternIdx + 1) % stairZonePattern.length;
-  return getStairXByZone(zone, canvasWidth, stairWidth);
-}
-
 function initGame() {
   var modal = document.getElementById('gameover-modal');
   if (modal) modal.style.display = 'none';
@@ -652,43 +649,44 @@ function initGame() {
   let y = getHeight() - stairGap - stairHeight;
   let lastX = null;
   const minStairXGap = stairWidth * 0.5;
+  // === 改為每次補滿一組四個 ===
   while (y > 0) {
-    // 平台類型隨機
-    let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
-    let type = types[Math.floor(Math.random() * types.length)];
-    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
-    if (type === "horizontal") {
-      vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
-      rangeX = stairWidth * 1.2;
-      phase = Math.random() * Math.PI * 2;
-    } else if (type === "vertical") {
-      vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
-      rangeY = stairGap * 0.7;
-      phase = Math.random() * Math.PI * 2;
-    } else if (type === "upward") {
-      vy = 0;
-      rangeY = stairGap * 0.7;
-      phase = Math.random() * Math.PI * 2;
-    }
-    // X位置依序循環
-    let x = generateSmartStairPositionV5(getWidth(), stairWidth);
-    
-    // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
-    const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
-    let hasShoe = false, hasPill = false;
-    if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
-      // 這一層要出現道具，隨機決定是哪一種
-      if (shoeItemEnabled) {
-        if (Math.random() < 0.5) {
-          hasShoe = true;
-        } else {
-          hasPill = true;
+    for (let i = 0; i < 4 && y > 0; i++) {
+      // 平台類型隨機
+      let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+      let type = types[Math.floor(Math.random() * types.length)];
+      let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
+      if (type === "horizontal") {
+        vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
+        rangeX = stairWidth * 1.2;
+        phase = Math.random() * Math.PI * 2;
+      } else if (type === "vertical") {
+        vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
+        rangeY = stairGap * 0.7;
+        phase = Math.random() * Math.PI * 2;
+      } else if (type === "upward") {
+        vy = 0;
+        rangeY = stairGap * 0.7;
+        phase = Math.random() * Math.PI * 2;
+      }
+      // X位置依序循環
+      let x = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+      // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
+      const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
+      let hasShoe = false, hasPill = false;
+      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+        if (shoeItemEnabled) {
+          if (Math.random() < 0.5) {
+            hasShoe = true;
+          } else {
+            hasPill = true;
+          }
         }
       }
+      stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
+      lastX = x;
+      y -= stairGap;
     }
-    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
-    lastX = x;
-    y -= stairGap;
   }
   // 設定 lastStair 為主角腳下的樓梯
   lastStair = stairs.find(s =>
@@ -728,16 +726,18 @@ function initGame() {
 }
 
 function drawPlayer() {
+  // 儲存當前繪圖狀態
   ctx.save();
 
+  // 玩家尺寸
   const pW = player.width;
   const pH = player.height;
   
-  // Animation parameters
-  const animSpeed = 12;
-  const animCycle = (performance.now() / 1000) * animSpeed;
+  // 動畫參數
+  const animSpeed = 12; // 動畫速度
+  const animCycle = (performance.now() / 1000) * animSpeed; // 動畫週期
   
-  // Body Bobbing
+  // 身體上下擺動
   const bodyYOffset = (1 - Math.cos(animCycle * 2)) * (pH * 0.03);
 
   // === 修正腳掌 ===
@@ -752,63 +752,67 @@ function drawPlayer() {
     // 若已接近目標，直接到位
     if (Math.abs(pillScale - pillScaleTarget) < 0.01) pillScale = pillScaleTarget;
   }
-  let scale = pillScale;
-  // 讓腳底貼齊平台
+  let scale = pillScale; // 當前縮放比例
+  // 計算基礎Y座標，讓腳底貼齊平台
   const baseY = player.y - cameraOffsetY - bodyYOffset - shoeHeight/2;
-  const offsetY = (1 - scale) * player.height;
+  const offsetY = (1 - scale) * player.height; // 因縮放產生的Y位移
+  // 移動並縮放畫布
   ctx.translate(player.x, baseY + offsetY);
   ctx.scale(scale, scale);
 
-  // Limb animation cycles
+  // 四肢動畫週期
   const backArmCycle = animCycle + Math.PI;
   const frontArmCycle = animCycle;
   const backLegCycle = animCycle;
   const frontLegCycle = animCycle + Math.PI;
 
+  // 四肢擺動角度
   const armAngle = Math.sin(frontArmCycle) * 1.4;
   const legAngle = Math.sin(backLegCycle) * 1.2; 
 
-  // Shared limb properties
-  const armX = pW / 2;
-  const shoulderY = pH * 0.45; // Lowered shoulder
-  const armWidth = pW * 0.12;
-  const armHeight = pH * 0.28;
-  const handRadius = armWidth * 0.5;
+  // 共用的四肢屬性
+  const armX = pW / 2; // 手臂X中心
+  const shoulderY = pH * 0.45; // 肩膀Y位置
+  const armWidth = pW * 0.12; // 手臂寬度
+  const armHeight = pH * 0.28; // 手臂長度
+  const handRadius = armWidth * 0.5; // 手半徑
 
-  const legWidth = pW * 0.18;
-  const legHeight = pH * 0.30; // Longer legs
-  const legBaseY = pH * 0.75;
-  const legBaseX = pW / 2;
-  const shoeWidth = legWidth * 1.25;
+  const legWidth = pW * 0.18; // 腿寬度
+  const legHeight = pH * 0.30; // 腿長度
+  const legBaseY = pH * 0.75; // 腿根部Y位置
+  const legBaseX = pW / 2; // 腿根部X中心
+  const shoeWidth = legWidth * 1.25; // 鞋子寬度
 
   ctx.save();
-  // Flip context if player is moving left
+  // 如果玩家向左移動，翻轉畫布
   if (player.dir === -1) {
     ctx.scale(-1, 1);
     ctx.translate(-pW, 0);
   }
 
-  // Body tilt
+  // 身體傾斜
   const angle = 0.15;
   ctx.translate(pW / 2, pH / 2);
   ctx.rotate(angle);
   ctx.translate(-pW / 2, -pH / 2);
 
-  // --- Charging Effects ---
-  let chargingFlash = false;
+  // --- 蓄力效果 ---
+  let chargingFlash = false; // 是否閃爍
   if (player.charging || shoeBuffActive) {
     // 閃爍效果：每 100ms 閃爍一次
     chargingFlash = Math.floor(performance.now() / 100) % 2 === 0;
     // 集氣光暈
-    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / 80);
-    const powerRatio = player.power / player.maxPower;
+    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / 80); // 光暈透明度
+    const powerRatio = player.power / player.maxPower; // 力量比例
     ctx.save();
     ctx.globalAlpha = auraAlpha * (0.3 + 0.7 * powerRatio);
-    const auraRadius = pW * (0.6 + 0.7 * powerRatio);
+    const auraRadius = pW * (0.6 + 0.7 * powerRatio); // 光暈半徑
+    // 建立放射狀漸層
     const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.15, pW/2, pH/2, auraRadius);
     grad.addColorStop(0, `rgba(255,255,100,0.8)`);
     grad.addColorStop(0.5, `rgba(255,180,0,0.4)`);
     grad.addColorStop(1, `rgba(255,0,0,0)`);
+    // 繪製光暈
     ctx.beginPath();
     ctx.arc(pW/2, pH/2, auraRadius, 0, Math.PI*2);
     ctx.fillStyle = grad;
@@ -828,117 +832,117 @@ function drawPlayer() {
     ctx.restore();
   }
 
-  // --- Drawing order: Back to Front ---
+  // --- 繪製順序: 從後到前 ---
 
-  // Back Leg
+  // 後腿
   ctx.save();
   ctx.translate(legBaseX, legBaseY);
   ctx.rotate(legAngle);
-  ctx.fillStyle = chargingFlash ? '#FF2222' : '#0000B2'; // 閃爍紅色
+  ctx.fillStyle = chargingFlash ? '#FF2222' : '#0000B2'; // 腿顏色，閃爍時為紅色
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#6B3503';
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#6B3503'; // 鞋子顏色
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
   ctx.restore();
 
-  // Back Arm
+  // 後臂
   ctx.save();
   ctx.translate(armX, shoulderY);
   ctx.rotate(armAngle);
-  ctx.fillStyle = chargingFlash ? '#FF6666' : '#00A090';
+  ctx.fillStyle = chargingFlash ? '#FF6666' : '#00A090'; // 手臂顏色
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#D1B497';
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#D1B497'; // 手顏色
   ctx.beginPath();
   ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Body/Shirt
+  // 身體/衣服
   ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
   ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
 
-  // Front Leg
+  // 前腿
   ctx.save();
   ctx.translate(legBaseX, legBaseY);
   ctx.rotate(-legAngle);
-  ctx.fillStyle = chargingFlash ? '#FF3333' : '#0000FF';
+  ctx.fillStyle = chargingFlash ? '#FF3333' : '#0000FF'; // 腿顏色
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
-  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#8B4513';
+  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#8B4513'; // 鞋子顏色
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight/2, shoeWidth, shoeHeight);
   ctx.restore();
 
-  // Front Arm
+  // 前臂
   ctx.save();
   ctx.translate(armX, shoulderY);
   ctx.rotate(-armAngle);
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#00D0B0';
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#00D0B0'; // 手臂顏色
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3';
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // 手顏色
   ctx.beginPath();
   ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // Head and Face details
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // Head
+  // 頭部和臉部細節
+  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // 頭部顏色
   ctx.beginPath();
   ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
   ctx.fill();
 
-  // 頭髮改為半圓形，畫在本地左後方
+  // 頭髮
   ctx.save();
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#000'; // Hair
+  ctx.fillStyle = chargingFlash ? '#FF8888' : '#000'; // 頭髮顏色
   ctx.beginPath();
-  // 半圓形頭髮，圓心在pW*0.36, pH*0.25，半徑pW*0.11，從下往上
+  // 半圓形頭髮，畫在頭的左後方
   ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
 
-  // Hat 主體（半圓，顏色與衣服相同）
+  // 帽子主體 (半圓形，顏色與衣服相同)
   ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
   ctx.beginPath();
   ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
   ctx.fill();
-  // 帽沿（覆蓋在主體上方）
-  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // Brim
+  // 帽沿
+  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // 帽沿顏色
   ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
 
-  // 眼睛和臉頰（最上層）
-  ctx.fillStyle = '#000'; // Eye
+  // 眼睛和臉頰 (最上層)
+  ctx.fillStyle = '#000'; // 眼睛顏色
   const eyeY = pH * 0.3;
   const eyeHeight = pH * 0.035;
   ctx.fillRect(pW * 0.60, eyeY, pW * 0.1, eyeHeight);
-  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#FFB6C1'; // Blush
+  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#FFB6C1'; // 臉頰顏色
   ctx.beginPath();
   ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.restore(); // Restore from the potential flip
+  // 恢復翻轉前的狀態
+  ctx.restore(); 
   
-  // Power bar above player
+  // 玩家頭上的力量條
   if (player.charging) {
     const barWidth = player.width * 0.8;
     const barHeight = 5;
-    const barX = (player.width - barWidth) / 2; // Centered relative to player's X
-    const barY = -barHeight - 5; // 5px above player's head
+    const barX = (player.width - barWidth) / 2; // 相對於玩家X置中
+    const barY = -barHeight - 5; // 在頭頂上方5px
 
-    // Background
+    // 力量條背景
     ctx.fillStyle = '#333';
     ctx.fillRect(barX, barY, barWidth, barHeight);
     
-    // Power fill
+    // 力量條填充
     const powerRatio = player.power / player.maxPower;
     const powerWidth = powerRatio * barWidth;
 
-    // 單色平滑過渡：紅→黃→綠
+    // 顏色平滑過渡：紅→黃→綠
     let color;
     if (powerRatio <= 1/3) {
       color = '#ff3333'; // 紅色
     } else if (powerRatio < 1) {
-      // 紅到黃到綠，使用HSL色相0~120
-      // 1/3~1 對應 0~1
-      let t = (powerRatio - 1/3) / (2/3);
-      // 0~0.5: 紅到黃(0~60)，0.5~1: 黃到綠(60~120)
+      // 從紅到黃到綠，使用HSL色相0~120
+      let t = (powerRatio - 1/3) / (2/3); // 將 1/3~1 的範圍正規化到 0~1
+      // 0~0.5: 紅到黃 (色相 0~60), 0.5~1: 黃到綠 (色相 60~120)
       let hue;
       if (t < 0.5) {
         hue = 0 + t * 2 * 60; // 0~60
@@ -947,18 +951,18 @@ function drawPlayer() {
       }
       color = `hsl(${hue}, 100%, 50%)`;
     } else {
-      color = '#00e000'; // 綠色
+      color = '#00e000'; // 綠色 (滿氣)
     }
     ctx.fillStyle = color;
     ctx.fillRect(barX, barY, powerWidth, barHeight);
 
-    // Border
+    // 力量條邊框
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
   }
 
-  // Buff倒數計時顯示（鞋子或膠囊，互斥）
+  // Buff 倒數計時顯示 (鞋子或膠囊，互斥)
   let buffRemain = null, buffType = null;
   if (shoeBuffActive && (!pillBuffActive || shoeBuffEndTime > pillBuffEndTime)) {
     buffRemain = Math.ceil((shoeBuffEndTime - performance.now()) / 1000);
@@ -972,7 +976,7 @@ function drawPlayer() {
     ctx.font = `${Math.round(player.height * 0.45)}px Arial Black, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = buffType === 'pill' ? '#2196f3' : '#ffe600';
+    ctx.fillStyle = buffType === 'pill' ? '#2196f3' : '#ffe600'; // 膠囊藍色，鞋子黃色
     ctx.strokeStyle = '#222';
     ctx.lineWidth = 4;
     ctx.strokeText(buffRemain, player.width / 2, -player.height * 0.18);
@@ -980,7 +984,8 @@ function drawPlayer() {
     ctx.restore();
   }
 
-  ctx.restore(); // Final restore
+  // 最終恢復繪圖狀態
+  ctx.restore();
 }
 
 function drawStairs() {
@@ -1481,47 +1486,49 @@ function updateStairs() {
   });
   // 不再自動下捲，僅補新樓梯與移除超出畫面的樓梯
   // 補新樓梯
+  stairWidth = Math.floor(getWidth() * 0.25);
   const minStairXGap = stairWidth * 0.5;
-  while (stairs.length < Math.ceil(getHeight() / stairGap) + 2) {
-    let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
-    let newY = lastY - stairGap;
-    let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
-    // 平台類型隨機
-    let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
-    let type = types[Math.floor(Math.random() * types.length)];
-    let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
-    if (type === "horizontal") {
-      vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
-      rangeX = stairWidth * 1.2;
-      phase = Math.random() * Math.PI * 2;
-    } else if (type === "vertical") {
-      vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
-      rangeY = stairGap * 0.7;
-      phase = Math.random() * Math.PI * 2;
-    } else if (type === "upward") {
-      vy = 0;
-      rangeY = stairGap * 0.7;
-      phase = Math.random() * Math.PI * 2;
-    }
-    // X位置依序循環
-    let newX = generateSmartStairPositionV5(getWidth(), stairWidth);
-    
-    // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
-    const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
-    let hasShoe = false, hasPill = false;
-    if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
-      if (shoeItemEnabled) {
-        if (Math.random() < 0.5) {
-          hasShoe = true;
-        } else {
-          hasPill = true;
+  const needStairs = Math.ceil(getHeight() / stairGap) + 2;
+  while (stairs.length < needStairs) {
+    for (let i = 0; i < 4 && stairs.length < needStairs; i++) {
+      let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
+      let newY = lastY - stairGap;
+      let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
+      // 平台類型隨機
+      let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+      let type = types[Math.floor(Math.random() * types.length)];
+      let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
+      if (type === "horizontal") {
+        vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
+        rangeX = stairWidth * 1.2;
+        phase = Math.random() * Math.PI * 2;
+      } else if (type === "vertical") {
+        vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
+        rangeY = stairGap * 0.7;
+        phase = Math.random() * Math.PI * 2;
+      } else if (type === "upward") {
+        vy = 0;
+        rangeY = stairGap * 0.7;
+        phase = Math.random() * Math.PI * 2;
+      }
+      // X位置依序循環
+      let newX = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+      // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
+      const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
+      let hasShoe = false, hasPill = false;
+      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+        if (shoeItemEnabled) {
+          if (Math.random() < 0.5) {
+            hasShoe = true;
+          } else {
+            hasPill = true;
+          }
         }
       }
+      stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
+      lastX = newX;
+      lastY = newY;
     }
-    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
-    lastX = newX;
-    lastY = newY;
-    newY -= stairGap;
   }
 }
 
