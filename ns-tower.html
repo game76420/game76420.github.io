@@ -332,6 +332,7 @@
       ● 角色會自動左右行走，遇到牆壁自動反向。<br>
       ● 跳到不同平台會有特殊效果（彈簧、輸送帶等）。<br>
       ● 吃到雞腿道具可獲得短暫高跳能力。<br>
+      ● 吃到藥丸道具會巨大化並跳更高，持續10秒。<br>
       <br>
       <b>底部按鈕：</b><br>
       ● <b>暫停</b>：暫停/繼續遊戲<br>
@@ -341,16 +342,11 @@
       ● <b>運動鞋道具</b>：開關雞腿道具出現<br>
       ● <b>說明</b>：顯示本操作說明<br>
       <br>
-      <b>小技巧：</b><br>
-      ● 蓄力越久，跳得越高。<br>
-      ● 彈簧平台可跳得更高，輸送帶會推動角色。<br>
-      ● 盡量不要掉出畫面下方！
-      <br>
       <b>感謝支持：</b><br>
       中國信託帳戶 銀行代碼822<br>
       159540291165 戶名：張書維<br>
       <br>
-      作者Line：@game76420
+      作者Line：game76420
     </div>
     <div style="text-align:center;margin-top:18px;">
       <button id="help-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
@@ -722,12 +718,15 @@ function initGame() {
   else bgm.pause();
   // 在initGame()裡初始化lastFiveZones
   lastFiveZones = [];
-  // 2. initGame() 內初始化 buff 狀態
-  pillBuffActive = false;
-  pillBuffEndTime = 0;
   // 初始化樓梯分布序列
   stairZonePatternIdx = 0;
   lastNonHorizontalZone = null;
+  // 2. initGame() 內初始化 buff 狀態
+  pillBuffActive = false;
+  pillBuffEndTime = 0;
+  pillScale = 1;
+  pillScaleTarget = 1;
+  pillScaleAnimStartTime = performance.now();
 }
 
 function drawPlayer() {
@@ -1312,7 +1311,6 @@ function updatePlayer() {
                     pillScaleAnimStartTime = performance.now();
                   }
                   pillBuffActive = false;
-                  pillBuffEndTime = 0;
                   shoeBuffActive = true;
                   shoeBuffEndTime = performance.now() + 10000;
                 }
@@ -1407,7 +1405,6 @@ function updatePlayer() {
           pillScaleAnimStartTime = performance.now();
         }
         pillBuffActive = false;
-        pillBuffEndTime = 0;
         shoeBuffActive = true;
         shoeBuffEndTime = performance.now() + 10000;
       }
