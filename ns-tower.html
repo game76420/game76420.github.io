@@ -734,7 +734,7 @@ function drawPlayer() {
   const pH = player.height;
   
   // Animation parameters
-  const animSpeed = 10;
+  const animSpeed = 12;
   const animCycle = (performance.now() / 1000) * animSpeed;
   
   // Body Bobbing
@@ -765,8 +765,8 @@ function drawPlayer() {
   const backLegCycle = animCycle;
   const frontLegCycle = animCycle + Math.PI;
 
-  const armAngle = Math.sin(frontArmCycle) * 1.1;
-  const legAngle = Math.sin(backLegCycle) * 0.8; 
+  const armAngle = Math.sin(frontArmCycle) * 1.4;
+  const legAngle = Math.sin(backLegCycle) * 1.2; 
 
   // Shared limb properties
   const armX = pW / 2;
@@ -1522,13 +1522,6 @@ function updateStairs() {
     lastX = newX;
     lastY = newY;
     newY -= stairGap;
-  }
-  // 難度提升：每10層加快速度、拉大間距、減少樓梯寬度
-  if (score % 10 === 0 && score > 0 && score !== lastDifficultyScore) {
-    gameSpeed += 0.18;
-    stairGap += 2;
-    stairWidth = Math.max(stairWidth - 6, getWidth() * 0.18);
-    lastDifficultyScore = score;
   }
 }
 
