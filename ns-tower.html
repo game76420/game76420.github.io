@@ -311,12 +311,50 @@
   <button id="power-reset-toggle" type="button">力量重置</button>
   <button id="walk-speed-toggle" type="button">行走速度：中</button>
   <button id="shoe-item-toggle" type="button">運動鞋道具</button>
+  <button id="help-toggle" type="button">說明</button>
 </div>
 <canvas id="game"></canvas>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;user-select:none;">
     <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;"></div>
     <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;user-select:none;">重新開始</button>
+  </div>
+</div>
+
+<!-- 操作說明彈窗 -->
+<div id="help-modal" style="display:none;position:fixed;z-index:2000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#222;padding:28px 18px 18px 18px;border-radius:16px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:left;user-select:none;min-width:260px;">
+    <div style="color:#ffe600;font-size:1.3rem;margin-bottom:12px;font-weight:bold;">NS-Tower 操作說明</div>
+    <div style="color:#fff;font-size:1rem;line-height:1.7;">
+      <b>遊戲目標：</b>操控角色不斷往上跳，挑戰更高樓層分數！<br><br>
+      <b>操作方式：</b><br>
+      ● <b>按住螢幕</b> 或 <b>空白鍵</b> 蓄力，放開即可跳躍。<br>
+      ● 角色會自動左右行走，遇到牆壁自動反向。<br>
+      ● 跳到不同平台會有特殊效果（彈簧、輸送帶等）。<br>
+      ● 吃到雞腿道具可獲得短暫高跳能力。<br>
+      <br>
+      <b>底部按鈕：</b><br>
+      ● <b>暫停</b>：暫停/繼續遊戲<br>
+      ● <b>音效/音樂</b>：開關音效與背景音樂<br>
+      ● <b>力量重置</b>：開啟時，蓄滿力量會自動歸零循環<br>
+      ● <b>行走速度</b>：切換角色自動行走速度<br>
+      ● <b>運動鞋道具</b>：開關雞腿道具出現<br>
+      ● <b>說明</b>：顯示本操作說明<br>
+      <br>
+      <b>小技巧：</b><br>
+      ● 蓄力越久，跳得越高。<br>
+      ● 彈簧平台可跳得更高，輸送帶會推動角色。<br>
+      ● 盡量不要掉出畫面下方！
+      <br>
+      <b>感謝支持：</b><br>
+      中國信託帳戶 銀行代碼822<br>
+      159540291165 戶名：張書維<br>
+      <br>
+      作者Line：@game76420
+    </div>
+    <div style="text-align:center;margin-top:18px;">
+      <button id="help-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
+    </div>
   </div>
 </div>
 <script>
@@ -387,6 +425,15 @@ let shoeItemEnabled = true;
 // 新增：樓梯X軸分布控制
 let recentStairPositions = []; // 記錄最近幾個樓梯的X位置
 const MAX_RECENT_POSITIONS = 5; // 記錄最近5個樓梯位置
+// 新增：樓梯生成任務管理
+let stairGenTask = []; // 當前五個樓梯的生成任務
+let stairGenCount = 0; // 當前已生成的樓梯數量（不計入水平移動平台）
+let generatedZones = []; // 記錄當前五個任務中已生成的位置
+// 新增：膠囊縮放動畫
+let pillScale = 1;
+let pillScaleTarget = 1;
+let pillScaleAnimStartTime = 0;
+const PILL_ANIM_DURATION = 350; // ms
 
 // 音效
 const sfxJump = document.getElementById('sfx-jump');
@@ -431,44 +478,89 @@ function getStairZone(x, canvasWidth, stairWidth) {
   return 'center';
 }
 
-function generateSmartStairPositionV4(lastX, canvasWidth, stairWidth, stairs) {
-  // 取得目前畫面上（不含地面）最近5個樓梯的分區
-  const recent = stairs.filter(s => s.y !== getHeight() - stairHeight).slice(-5);
-  const zones = recent.map(s => getStairZone(s.x, canvasWidth, stairWidth));
-  let needLeft = zones.filter(z => z === 'left').length === 0;
-  let needCenter = zones.filter(z => z === 'center').length === 0;
-  let needRight = zones.filter(z => z === 'right').length === 0;
-
-  // 分區範圍
+function getStairXByZone(zone, canvasWidth, stairWidth) {
   const leftMin = 0, leftMax = canvasWidth * 0.3 - stairWidth;
   const centerMin = canvasWidth * 0.35, centerMax = canvasWidth * 0.65 - stairWidth;
   const rightMin = canvasWidth * 0.7, rightMax = canvasWidth - stairWidth;
+  if (zone === 'left') return leftMin + Math.random() * (leftMax - leftMin);
+  if (zone === 'center') return centerMin + Math.random() * (centerMax - centerMin);
+  if (zone === 'right') return rightMin + Math.random() * (rightMax - rightMin);
+  // fallback
+  return centerMin + Math.random() * (centerMax - centerMin);
+}
 
-  let zone = null;
-  if (needLeft) zone = 'left';
-  else if (needCenter) zone = 'center';
-  else if (needRight) zone = 'right';
-  else zone = 'random';
-
-  let newX;
-  if (zone === 'left') {
-    newX = leftMin + Math.random() * (leftMax - leftMin);
-  } else if (zone === 'center') {
-    newX = centerMin + Math.random() * (centerMax - centerMin);
-  } else if (zone === 'right') {
-    newX = rightMin + Math.random() * (rightMax - rightMin);
-  } else {
-    // 其餘隨機分布
-    let r = Math.random();
-    if (r < 0.3) {
-      newX = leftMin + Math.random() * (leftMax - leftMin);
-    } else if (r < 0.7) {
-      newX = centerMin + Math.random() * (centerMax - centerMin);
+function getNextStairZone() {
+  // 如果任務清單為空且已生成五個非水平移動平台，重新生成五個任務
+  if (stairGenTask.length === 0 && stairGenCount >= 5) {
+    // 確保包含左、中、右各一個，另外兩個隨機
+    stairGenTask = ['left', 'center', 'right', 'random', 'random'];
+    // 打亂順序
+    for (let i = stairGenTask.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [stairGenTask[i], stairGenTask[j]] = [stairGenTask[j], stairGenTask[i]];
+    }
+    stairGenCount = 0; // 重置計數器
+    generatedZones = []; // 重置已生成位置記錄
+  }
+  
+  // 如果任務清單為空但還沒生成五個平台，繼續等待
+  if (stairGenTask.length === 0) {
+    // 根據已生成的位置，優先選擇缺少的位置
+    const zones = ['left', 'center', 'right'];
+    const missingZones = zones.filter(zone => !generatedZones.includes(zone));
+    
+    if (missingZones.length > 0) {
+      // 優先選擇缺少的位置
+      return missingZones[Math.floor(Math.random() * missingZones.length)];
     } else {
-      newX = rightMin + Math.random() * (rightMax - rightMin);
+      // 如果所有位置都有了，隨機選擇
+      return zones[Math.floor(Math.random() * 3)];
     }
   }
-  return newX;
+  
+  // 隨機取一個 zone
+  const idx = Math.floor(Math.random() * stairGenTask.length);
+  let zone = stairGenTask[idx];
+  stairGenTask.splice(idx, 1);
+  
+  if (zone === 'random') {
+    // 只允許 left/center/right
+    const zones = ['left', 'center', 'right'];
+    zone = zones[Math.floor(Math.random() * 3)];
+  }
+  
+  return zone;
+}
+
+// 新增：只記錄最近五個非水平移動平台的zone
+let lastFiveZones = [];
+
+// 新增：樓梯生成分布模式
+const stairZonePattern = ['left', 'random', 'center', 'random', 'right', 'random'];
+let stairZonePatternIdx = 0;
+let lastNonHorizontalZone = null;
+
+function generateSmartStairPositionV5(canvasWidth, stairWidth, platformType) {
+  // 水平移動平台：完全隨機，不影響主序列
+  if (platformType === 'horizontal') {
+    const zones = ['left', 'center', 'right'];
+    const randomZone = zones[Math.floor(Math.random() * 3)];
+    return getStairXByZone(randomZone, canvasWidth, stairWidth);
+  }
+
+  // 依序取 zonePattern
+  let pattern = stairZonePattern[stairZonePatternIdx];
+  let zone;
+  if (pattern === 'random') {
+    // 隨機選 left/center/right，但不能跟上一個非水平樓梯zone一樣
+    let zones = ['left', 'center', 'right'].filter(z => z !== lastNonHorizontalZone);
+    zone = zones[Math.floor(Math.random() * zones.length)];
+  } else {
+    zone = pattern;
+  }
+  lastNonHorizontalZone = zone;
+  stairZonePatternIdx = (stairZonePatternIdx + 1) % stairZonePattern.length;
+  return getStairXByZone(zone, canvasWidth, stairWidth);
 }
 
 function initGame() {
@@ -498,6 +590,16 @@ function initGame() {
   shoeBuffEndTime = 0;
   // 新增：初始化樓梯分布控制
   recentStairPositions = [];
+  // 新增：重置樓梯生成任務
+  stairGenTask = [];
+  stairGenCount = 0;
+  // 初始化第一個五個任務
+  stairGenTask = ['left', 'center', 'right', 'random', 'random'];
+  // 打亂順序
+  for (let i = stairGenTask.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [stairGenTask[i], stairGenTask[j]] = [stairGenTask[j], stairGenTask[i]];
+  }
   // 主角
   player = {
     width: Math.floor(stairWidth * 0.5),
@@ -541,8 +643,6 @@ function initGame() {
   let lastX = null;
   const minStairXGap = stairWidth * 0.5;
   while (y > 0) {
-    let x = generateSmartStairPositionV4(lastX, getWidth(), stairWidth, stairs);
-    
     const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
     const existingTypeCounts = stairs.reduce((counts, p) => {
       counts[p.type] = (counts[p.type] || 0) + 1;
@@ -580,10 +680,23 @@ function initGame() {
       phase = Math.random() * Math.PI * 2;
     }
     
-    // 每10層有30%機率出現運動鞋
+    // 使用新的生成邏輯，傳入平台類型
+    let x = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+    
+    // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
     const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
-    const hasShoe = shoeItemEnabled && stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3;
-    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe});
+    let hasShoe = false, hasPill = false;
+    if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+      // 這一層要出現道具，隨機決定是哪一種
+      if (shoeItemEnabled) {
+        if (Math.random() < 0.5) {
+          hasShoe = true;
+        } else {
+          hasPill = true;
+        }
+      }
+    }
+    stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
     lastX = x;
     y -= stairGap;
   }
@@ -607,6 +720,14 @@ function initGame() {
   bgm.muted = bgmMuted;
   if (!bgmMuted) tryPlayBgm();
   else bgm.pause();
+  // 在initGame()裡初始化lastFiveZones
+  lastFiveZones = [];
+  // 2. initGame() 內初始化 buff 狀態
+  pillBuffActive = false;
+  pillBuffEndTime = 0;
+  // 初始化樓梯分布序列
+  stairZonePatternIdx = 0;
+  lastNonHorizontalZone = null;
 }
 
 function drawPlayer() {
@@ -625,8 +746,21 @@ function drawPlayer() {
   // === 修正腳掌 ===
   // 鞋子高度
   const shoeHeight = pH * 0.08;
-  // 將精靈整體往上移動鞋子高度的一半，讓腳掌底部貼齊平台
-  ctx.translate(player.x, player.y - cameraOffsetY - bodyYOffset - shoeHeight/2);
+  // 膠囊縮放動畫
+  // 動畫插值
+  let now = performance.now();
+  if (pillScale !== pillScaleTarget) {
+    let t = Math.min(1, (now - pillScaleAnimStartTime) / PILL_ANIM_DURATION);
+    pillScale = pillScale + (pillScaleTarget - pillScale) * t;
+    // 若已接近目標，直接到位
+    if (Math.abs(pillScale - pillScaleTarget) < 0.01) pillScale = pillScaleTarget;
+  }
+  let scale = pillScale;
+  // 讓腳底貼齊平台
+  const baseY = player.y - cameraOffsetY - bodyYOffset - shoeHeight/2;
+  const offsetY = (1 - scale) * player.height;
+  ctx.translate(player.x, baseY + offsetY);
+  ctx.scale(scale, scale);
 
   // Limb animation cycles
   const backArmCycle = animCycle + Math.PI;
@@ -799,30 +933,53 @@ function drawPlayer() {
     const powerRatio = player.power / player.maxPower;
     const powerWidth = powerRatio * barWidth;
 
-    // Color changes from green to yellow to red
-    const hue = (1 - powerRatio) * 120; // 120=green, 60=yellow, 0=red
-    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+    // 單色平滑過渡：紅→黃→綠
+    let color;
+    if (powerRatio <= 1/3) {
+      color = '#ff3333'; // 紅色
+    } else if (powerRatio < 1) {
+      // 紅到黃到綠，使用HSL色相0~120
+      // 1/3~1 對應 0~1
+      let t = (powerRatio - 1/3) / (2/3);
+      // 0~0.5: 紅到黃(0~60)，0.5~1: 黃到綠(60~120)
+      let hue;
+      if (t < 0.5) {
+        hue = 0 + t * 2 * 60; // 0~60
+      } else {
+        hue = 60 + (t - 0.5) * 2 * 60; // 60~120
+      }
+      color = `hsl(${hue}, 100%, 50%)`;
+    } else {
+      color = '#00e000'; // 綠色
+    }
+    ctx.fillStyle = color;
     ctx.fillRect(barX, barY, powerWidth, barHeight);
-    
+
     // Border
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 1;
     ctx.strokeRect(barX, barY, barWidth, barHeight);
   }
 
-  // 運動鞋倒數計時顯示
-  if (shoeBuffActive) {
-    const remain = Math.ceil((shoeBuffEndTime - performance.now()) / 1000);
+  // Buff倒數計時顯示（鞋子或膠囊，互斥）
+  let buffRemain = null, buffType = null;
+  if (shoeBuffActive && (!pillBuffActive || shoeBuffEndTime > pillBuffEndTime)) {
+    buffRemain = Math.ceil((shoeBuffEndTime - performance.now()) / 1000);
+    buffType = 'shoe';
+  } else if (pillBuffActive) {
+    buffRemain = Math.ceil((pillBuffEndTime - performance.now()) / 1000);
+    buffType = 'pill';
+  }
+  if (buffRemain && buffRemain > 0) {
     ctx.save();
     ctx.font = `${Math.round(player.height * 0.45)}px Arial Black, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillStyle = '#ffe600';
+    ctx.fillStyle = buffType === 'pill' ? '#2196f3' : '#ffe600';
     ctx.strokeStyle = '#222';
     ctx.lineWidth = 4;
-    // 位置在頭頂正上方
-    ctx.strokeText(remain, player.width / 2, -player.height * 0.18);
-    ctx.fillText(remain, player.width / 2, -player.height * 0.18);
+    ctx.strokeText(buffRemain, player.width / 2, -player.height * 0.18);
+    ctx.fillText(buffRemain, player.width / 2, -player.height * 0.18);
     ctx.restore();
   }
 
@@ -966,6 +1123,28 @@ function drawStairs() {
 
       ctx.restore();
     }
+    // 繪製藥丸
+    if (s.hasPill) {
+      ctx.save();
+      ctx.translate(s.x + s.width/2, drawY - s.height - 8); // 平台上方
+      ctx.rotate(Math.PI / 12); // 微傾斜
+      ctx.scale(1.3, 1.3);
+      // 藍白膠囊
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(-3, 0, 7, 5, 0, Math.PI*0.5, Math.PI*1.5);
+      ctx.fillStyle = '#2196f3';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2);
+      ctx.strokeStyle = '#2196f3';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
   }
   ctx.restore();
 }
@@ -999,6 +1178,7 @@ function drawHUD() {
   const pauseToggle = document.getElementById('pause-toggle');
   const walkSpeedToggle = document.getElementById('walk-speed-toggle');
   const shoeItemToggle = document.getElementById('shoe-item-toggle');
+  const helpToggle = document.getElementById('help-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
   if (powerResetToggle) powerResetToggle.textContent = `力量重置 ${powerAutoReset ? 'ON' : 'OFF'}`;
@@ -1011,6 +1191,7 @@ function drawHUD() {
     walkSpeedToggle.textContent = txt;
   }
   if (shoeItemToggle) shoeItemToggle.textContent = `道具 ${shoeItemEnabled ? 'ON' : 'OFF'}`;
+  if (helpToggle) helpToggle.textContent = '說明';
 }
 
 function updatePlayer() {
@@ -1125,8 +1306,15 @@ function updatePlayer() {
                 // 檢查是否吃到運動鞋
                 if (s.hasShoe) {
                   s.hasShoe = false;
+                  // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
+                  if (pillBuffActive || pillScale > 1) {
+                    pillScaleTarget = 1;
+                    pillScaleAnimStartTime = performance.now();
+                  }
+                  pillBuffActive = false;
+                  pillBuffEndTime = 0;
                   shoeBuffActive = true;
-                  shoeBuffEndTime = performance.now() + 10000; // 10秒
+                  shoeBuffEndTime = performance.now() + 10000;
                 }
                 break; // 找到平台就停止檢查
             }
@@ -1171,7 +1359,116 @@ function updatePlayer() {
   // buff結束自動恢復
   if (shoeBuffActive && performance.now() > shoeBuffEndTime) {
     shoeBuffActive = false;
+    // 若鞋子buff結束且膠囊沒在作用，縮回去
+    if (!pillBuffActive) {
+      pillScaleTarget = 1;
+      pillScaleAnimStartTime = performance.now();
+    }
   }
+  if (pillBuffActive && performance.now() > pillBuffEndTime) {
+    pillBuffActive = false;
+    pillScaleTarget = 1;
+    pillScaleAnimStartTime = performance.now();
+  }
+
+  // 檢查是否吃到雞腿（不只落地時，從下往上穿過也算）
+  for (let s of stairs) {
+    if (s.hasShoe) {
+      // 雞腿的中心位置
+      const drumstickX = s.x + s.width/2;
+      const drumstickY = s.y - s.height - 8 + 4; // +4為雞腿橢圓中心
+      // 雞腿外接矩形
+      const drumW = 20, drumH = 16; // 橢圓大致寬高
+      const drumRect = {
+        left: drumstickX - drumW/2,
+        right: drumstickX + drumW/2,
+        top: drumstickY - drumH/2,
+        bottom: drumstickY + drumH/2
+      };
+      // 主角矩形
+      const px = player.x, py = player.y, pw = player.width, ph = player.height;
+      const playerRect = {
+        left: px,
+        right: px + pw,
+        top: py,
+        bottom: py + ph
+      };
+      // 判斷有無重疊
+      if (
+        playerRect.left < drumRect.right &&
+        playerRect.right > drumRect.left &&
+        playerRect.top < drumRect.bottom &&
+        playerRect.bottom > drumRect.top
+      ) {
+        s.hasShoe = false;
+        // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
+        if (pillBuffActive || pillScale > 1) {
+          pillScaleTarget = 1;
+          pillScaleAnimStartTime = performance.now();
+        }
+        pillBuffActive = false;
+        pillBuffEndTime = 0;
+        shoeBuffActive = true;
+        shoeBuffEndTime = performance.now() + 10000;
+      }
+    }
+  }
+
+  // 檢查是否吃到藥丸
+  for (let s of stairs) {
+    if (s.hasPill) {
+      // 藥丸中心
+      const pillX = s.x + s.width/2;
+      const pillY = s.y - s.height - 8;
+      const pillW = 20, pillH = 10;
+      const pillRect = {
+        left: pillX - pillW/2,
+        right: pillX + pillW/2,
+        top: pillY - pillH/2,
+        bottom: pillY + pillH/2
+      };
+      // 主角矩形
+      const px = player.x, py = player.y, pw = player.width, ph = player.height;
+      const playerRect = {
+        left: px,
+        right: px + pw,
+        top: py,
+        bottom: py + ph
+      };
+      if (
+        playerRect.left < pillRect.right &&
+        playerRect.right > pillRect.left &&
+        playerRect.top < pillRect.bottom &&
+        playerRect.bottom > pillRect.top
+      ) {
+        s.hasPill = false;
+        // 互斥：吃到膠囊時取消雞腿buff，並觸發放大動畫
+        if (!pillBuffActive || pillScale < 2) {
+          pillScaleTarget = 2;
+          pillScaleAnimStartTime = performance.now();
+        }
+        shoeBuffActive = false;
+        shoeBuffEndTime = 0;
+        pillBuffActive = true;
+        pillBuffEndTime = performance.now() + 10000;
+      }
+    }
+  }
+  // buff結束自動恢復
+  if (shoeBuffActive && performance.now() > shoeBuffEndTime) {
+    shoeBuffActive = false;
+    // 若鞋子buff結束且膠囊沒在作用，縮回去
+    if (!pillBuffActive) {
+      pillScaleTarget = 1;
+      pillScaleAnimStartTime = performance.now();
+    }
+  }
+  if (pillBuffActive && performance.now() > pillBuffEndTime) {
+    pillBuffActive = false;
+    pillScaleTarget = 1;
+    pillScaleAnimStartTime = performance.now();
+  }
+
   return true;
 }
 
@@ -1194,7 +1491,6 @@ function updateStairs() {
     let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
     let newY = lastY - stairGap;
     let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
-    let newX = generateSmartStairPositionV4(lastX, getWidth(), stairWidth, stairs);
 
     const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
     const existingTypeCounts = stairs.reduce((counts, p) => {
@@ -1233,10 +1529,22 @@ function updateStairs() {
       phase = Math.random() * Math.PI * 2;
     }
     
-    // 每10層有30%機率出現運動鞋
+    // 使用新的生成邏輯，傳入平台類型
+    let newX = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+    
+    // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
     const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
-    const hasShoe = shoeItemEnabled && stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3;
-    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe});
+    let hasShoe = false, hasPill = false;
+    if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+      if (shoeItemEnabled) {
+        if (Math.random() < 0.5) {
+          hasShoe = true;
+        } else {
+          hasPill = true;
+        }
+      }
+    }
+    stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
     lastX = newX;
     lastY = newY;
     newY -= stairGap;
@@ -1356,6 +1664,7 @@ function releaseJump() {
       const powerRatio = player.power / player.maxPower;
       let maxJumpHeight = 7.5 * player.height;
       if (shoeBuffActive) maxJumpHeight *= 1.5;
+      if (pillBuffActive) maxJumpHeight *= 2;
       const maxVy = -Math.sqrt(2 * player.gravity * maxJumpHeight);
       player.vy = player.jumpPower + (maxVy - player.jumpPower) * powerRatio;
 
@@ -1435,6 +1744,9 @@ window.addEventListener('DOMContentLoaded', function() {
   const pauseToggle = document.getElementById('pause-toggle');
   const walkSpeedToggle = document.getElementById('walk-speed-toggle');
   const shoeItemToggle = document.getElementById('shoe-item-toggle');
+  const helpToggle = document.getElementById('help-toggle');
+  const helpModal = document.getElementById('help-modal');
+  const helpCloseBtn = document.getElementById('help-close-btn');
   if (sfxToggle) sfxToggle.blur();
   if (bgmToggle) bgmToggle.blur();
   if (powerResetToggle) powerResetToggle.blur();
@@ -1509,6 +1821,16 @@ window.addEventListener('DOMContentLoaded', function() {
     });
   }
   drawHUD();
+  if (helpToggle) {
+    helpToggle.addEventListener('click', function() {
+      helpModal.style.display = 'flex';
+    });
+  }
+  if (helpCloseBtn) {
+    helpCloseBtn.addEventListener('click', function() {
+      helpModal.style.display = 'none';
+    });
+  }
 });
 
 function handleFirstInteraction() {
