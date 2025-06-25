@@ -430,6 +430,20 @@ let pillScale = 1;
 let pillScaleTarget = 1;
 let pillScaleAnimStartTime = 0;
 const PILL_ANIM_DURATION = 350; // ms
+// 新增：前6個特殊樓梯類型隨機打亂
+let stairTypeShuffle = [];
+let stairTypeShuffleIdx = 0;
+// 新增：樓梯X位置循環模式
+const stairXPattern = ['left', 'random', 'right', 'random'];
+let stairXPatternIdx = 0;
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 // 音效
 const sfxJump = document.getElementById('sfx-jump');
@@ -532,7 +546,7 @@ function getNextStairZone() {
 let lastFiveZones = [];
 
 // 新增：樓梯生成分布模式
-const stairZonePattern = ['left', 'random', 'center', 'random', 'right', 'random'];
+const stairZonePattern = ['left', 'random', 'right', 'random'];
 let stairZonePatternIdx = 0;
 let lastNonHorizontalZone = null;
 
@@ -639,28 +653,9 @@ function initGame() {
   let lastX = null;
   const minStairXGap = stairWidth * 0.5;
   while (y > 0) {
-    const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
-    const existingTypeCounts = stairs.reduce((counts, p) => {
-      counts[p.type] = (counts[p.type] || 0) + 1;
-      return counts;
-    }, {});
-    
-    let type;
-    const missingType = platformTypesToEnsure.find(t => !existingTypeCounts[t]);
-    
-    if (missingType) {
-      type = missingType;
-    } else {
-      let r = Math.random();
-      if (r < 0.10) { type = "horizontal"; } 
-      else if (r < 0.18) { type = "vertical"; } 
-      else if (r < 0.26) { type = "upward"; } 
-      else if (r < 0.32) { type = "spring"; } 
-      else if (r < 0.39) { type = "conveyorL"; } 
-      else if (r < 0.46) { type = "conveyorR"; } 
-      else { type = "static"; }
-    }
-
+    // 平台類型隨機
+    let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+    let type = types[Math.floor(Math.random() * types.length)];
     let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
     if (type === "horizontal") {
       vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
@@ -675,9 +670,8 @@ function initGame() {
       rangeY = stairGap * 0.7;
       phase = Math.random() * Math.PI * 2;
     }
-    
-    // 使用新的生成邏輯，傳入平台類型
-    let x = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+    // X位置依序循環
+    let x = generateSmartStairPositionV5(getWidth(), stairWidth);
     
     // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
     const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
@@ -727,6 +721,10 @@ function initGame() {
   pillScale = 1;
   pillScaleTarget = 1;
   pillScaleAnimStartTime = performance.now();
+  // 初始化樓梯類型洗牌
+  stairTypeShuffle = shuffleArray(['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward']);
+  stairTypeShuffleIdx = 0;
+  stairXPatternIdx = 0; // 初始化X位置循環
 }
 
 function drawPlayer() {
@@ -1213,7 +1211,7 @@ function updatePlayer() {
   if (player.onStair && player.landedOn) {
     const platform = player.landedOn;
     // 檢查X軸是否還在平台範圍內（增加容許範圍）
-    const tolerance = player.width * 0.1; // 容許超出平台10%的寬度
+    const tolerance = pillBuffActive ? player.width * 0.3 : player.width * 0.1; // 巨大化 buff 時容許度更大
     if (player.x + player.width > platform.x - tolerance && player.x < platform.x + platform.width + tolerance) {
         player.y = platform.y - player.height; // 鎖定Y座標
         player.vy = 0; // 站在平台上時沒有垂直速度
@@ -1259,7 +1257,7 @@ function updatePlayer() {
     if (player.vy >= 0) { // 只在下墜時檢查
         for (let s of stairs) {
             // 增加容許範圍，讓精靈可以稍微超出平台邊界
-            const tolerance = player.width * 0.1; // 容許超出平台10%的寬度
+            const tolerance = pillBuffActive ? player.width * 0.3 : player.width * 0.1; // 巨大化 buff 時容許度更大
             if (player.x + player.width > s.x - tolerance &&
                 player.x < s.x + s.width + tolerance &&
                 prevBottom <= s.y &&
@@ -1488,29 +1486,9 @@ function updateStairs() {
     let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
     let newY = lastY - stairGap;
     let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
-
-    const platformTypesToEnsure = ['horizontal', 'vertical', 'upward', 'spring', 'conveyorL', 'conveyorR'];
-    const existingTypeCounts = stairs.reduce((counts, p) => {
-      counts[p.type] = (counts[p.type] || 0) + 1;
-      return counts;
-    }, {});
-
-    let type;
-    const missingType = platformTypesToEnsure.find(t => !existingTypeCounts[t]);
-
-    if (missingType) {
-      type = missingType;
-    } else {
-      let r = Math.random();
-      if (r < 0.10) { type = "horizontal"; }
-      else if (r < 0.18) { type = "vertical"; }
-      else if (r < 0.26) { type = "upward"; }
-      else if (r < 0.32) { type = "spring"; }
-      else if (r < 0.39) { type = "conveyorL"; }
-      else if (r < 0.46) { type = "conveyorR"; }
-      else { type = "static"; }
-    }
-    
+    // 平台類型隨機
+    let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+    let type = types[Math.floor(Math.random() * types.length)];
     let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
     if (type === "horizontal") {
       vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
@@ -1525,9 +1503,8 @@ function updateStairs() {
       rangeY = stairGap * 0.7;
       phase = Math.random() * Math.PI * 2;
     }
-    
-    // 使用新的生成邏輯，傳入平台類型
-    let newX = generateSmartStairPositionV5(getWidth(), stairWidth, type);
+    // X位置依序循環
+    let newX = generateSmartStairPositionV5(getWidth(), stairWidth);
     
     // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
     const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
