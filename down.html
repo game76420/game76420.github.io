@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <title>NS-Tower</title>
+  <title>NS-Shaft 簡化版</title>
   <style>
     html, body {
       width: 100vw;
@@ -33,106 +33,60 @@
       background: #002244;
     }
     #hud {
-      width: 100vw;
-      max-width: 480px;
+      width: 95vw;
+      max-width: 420px;
       margin: 0 auto;
       color: #fff;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      font-size: 18px;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: min(3vw, 14px);
       letter-spacing: 1px;
       user-select: none;
-      background: #111;
-      box-shadow: 0 2px 8px #000a;
-      height: 48px;
+      text-shadow: 1px 1px 2px #000;
+      height: auto;
       line-height: 1.1;
       display: flex;
-      flex-direction: row;
       align-items: center;
       justify-content: space-between;
       box-sizing: border-box;
-      padding: 0 18px 0 18px;
+      padding: 0 4px;
       white-space: nowrap;
       overflow: visible;
-      position: relative;
-      margin-top: 0;
-      margin-bottom: 0;
-      z-index: 10;
+      position: static;
+      margin-top: 6px;
+      margin-bottom: 2px;
+      z-index: auto;
     }
-    #hud .power-block {
-      order: 0;
-      margin-left: 8px;
+    #hud .hud-hp {
+      display: flex;
+      gap: 2px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      max-width: none;
+      height: 14px;
     }
     #hud .hud-score {
-      order: 1;
-      position: static;
-      left: unset;
-      transform: none;
-      z-index: 2;
-      pointer-events: none;
+      font-weight: bold;
+      flex: 1;
       text-align: center;
-      color: #c5e665 !important;
-      font-size: 38px !important;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
+      font-size: min(9vw, 40px) !important;
+      letter-spacing: 2px;
+      text-shadow: 2px 2px 6px #000,0 0 8px #0f0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
-      margin-left: 0;
-      margin-right: 0;
-      flex: 1;
-    }
-    #hud .hud-score .score-num {
-      font-size: 38px;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      color: #c5e665 !important;
-      font-style: italic;
-      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
-      letter-spacing: 2px;
-    }
-    #hud .hud-score .score-unit {
-      font-size: 22px;
-      color: #c5e665 !important;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      font-style: italic;
-      margin-left: 2px;
-      text-shadow: 2px 2px 0 #000, 0 0 8px #000, 0 0 2px #fff;
     }
     #hud-center span {
       line-height: 1.1 !important;
     }
     #hud-audio-panel button {
-      font-size: 0.8rem !important;
-      padding: 1px 4px !important;
-      border-radius: 7px !important;
-      margin-bottom: 1px;
-      min-width: 0;
-      max-width: 90px;
-      box-sizing: border-box;
+      font-size: 0.95rem !important;
+      padding: 2px 6px !important;
+      border-radius: 8px !important;
+      margin-bottom: 2px;
     }
     #hud-audio-panel {
-      order: 2;
       gap: 2px !important;
-      max-width: 100px;
-    }
-    .power-block {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: flex-end;
-      margin-right: 18px;
-    }
-    .power-label {
-      font-size: 20px;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      font-style: italic;
-      color: #3af;
-      text-shadow: 1px 1px 0 #fff, 2px 2px 0 #000, 0 0 8px #000;
-      margin-right: 0;
-      margin-bottom: 0;
-      letter-spacing: 1px;
-      margin-left: 2px;
-      margin-bottom: 2px;
     }
     #controls {
       width: 95vw;
@@ -176,7 +130,7 @@
       display: block;
       margin: 0 auto;
       touch-action: none;
-      /* padding-bottom 由 JS 動態調整，確保不與底部按鈕重疊 */
+      padding-bottom: 64px; /* 預留空間給底部按鈕 */
     }
     @media (max-width: 600px) {
       #hud {
@@ -194,7 +148,7 @@
       #game {
         height: 90vh;
         max-height: 100vh;
-        /* padding-bottom 由 JS 動態調整 */
+        padding-bottom: 64px;
       }
       #hud .hud-score {
         font-size: 28px !important;
@@ -202,223 +156,63 @@
       #hud-center span {
         font-size: 11px !important;
       }
-      #hud .hud-power {
+      #hud .hud-hp {
         height: 10px !important;
       }
-      #hud-audio-panel {
-        flex-direction: row !important;
-        gap: 2px !important;
-        max-width: 100vw;
-      }
       #hud-audio-panel button {
-        font-size: 0.7rem !important;
-        padding: 0 2px !important;
-        border-radius: 6px !important;
-        min-width: 0;
-        max-width: 48vw;
+        font-size: 0.8rem !important;
+        padding: 1px 4px !important;
       }
-    }
-    #hud .power-block, #hud #hud-audio-panel {
-      z-index: 3;
-    }
-    #bottom-controls {
-      position: fixed;
-      left: 50%;
-      bottom: 0;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 6px;
-      z-index: 100;
-      width: 100vw;
-      max-width: 480px;
-      justify-content: center;
-      padding: 4px 0 4px 0;
-      background: rgba(0,0,0,0.7);
-      border-radius: 16px 16px 0 0;
-      flex-wrap: nowrap;
-    }
-    #bottom-controls button {
-      font-size: 0.75rem !important;
-      padding: 1px 4px !important;
-      border-radius: 7px !important;
-      min-width: 0;
-      max-width: 80px;
-      height: 28px;
-      line-height: 1.1;
-      box-sizing: border-box;
-      white-space: nowrap;
-    }
-    #bottom-controls #pause-toggle {
-      max-width: 90px;
-      padding: 1px 12px !important;
-    }
-    #shoe-item-toggle {
-      min-width: 160px;
-    }
-    @media (max-width: 600px) {
-      #bottom-controls {
-        gap: 2px;
-        max-width: 100vw;
-        padding: 2px 0 2px 0;
-      }
-      #bottom-controls button {
-        font-size: 0.68rem !important;
-        padding: 0 2px !important;
-        border-radius: 6px !important;
-        max-width: 32vw;
-        height: 22px;
-      }
-      #bottom-controls #pause-toggle {
-        max-width: 40vw;
-        padding: 0 6px !important;
-      }
-    }
-    #hud .hud-highscore {
-      order: 2;
-      margin-right: 12px;
-      color: #c5e665;
-      font-size: 20px;
-      font-family: 'Arial Black', Arial, 'Microsoft JhengHei', sans-serif;
-      text-shadow: 1px 1px 0 #000, 0 0 4px #000, 0 0 1px #fff;
-      white-space: nowrap;
-      min-width: 80px;
-      text-align: right;
     }
   </style>
 </head>
 <body>
-<audio id="sfx-jump" src="Data_2.wav" preload="auto"></audio>
+<!-- 音效與背景音樂 -->
+<audio id="sfx-normal" src="Data_1.wav" preload="auto"></audio>
+<audio id="sfx-jump" src="Data_3.wav" preload="auto"></audio>
+<audio id="sfx-spike" src="Data_4.wav" preload="auto"></audio>
+<audio id="sfx-vanish" src="Data_5.wav" preload="auto"></audio>
 <audio id="sfx-dead" src="Data_6.wav" preload="auto"></audio>
-<audio id="bgm" src="bgm1.mp3" preload="auto" loop></audio>
-<audio id="sfx-land" src="Data_1.wav" preload="auto"></audio>
-<audio id="sfx-spring-jump" src="Data_3.wav" preload="auto"></audio>
-<audio id="sfx-charge" src="Data_7.wav" preload="auto"></audio>
+<audio id="bgm" src="BGM.mp3" preload="auto" loop></audio>
 <div id="hud">
-  <span class="power-block">
-    <span class="power-label">POWER</span>
-    <span class="hud-power"></span>
+  <span class="hud-hp" style="z-index:1;position:relative;justify-content:flex-start;flex:0 0 auto;"></span>
+  <div id="hud-center" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1 1 0%;min-width:0;max-width:100%;">
+    <span id="hud-highscore" style="color:#fff;font-size:clamp(13px,2.8vw,20px);text-shadow:1px 1px 2px #000;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;display:block;text-align:center;line-height:1.2;word-break:break-all;"></span>
+    <span class="hud-score" id="hud-score" style="color:#00ff00;font-size:clamp(18px,4vw,32px);text-shadow:2px 2px 6px #000,0 0 8px #0f0;letter-spacing:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin:0 auto;text-align:center;line-height:1.2;word-break:break-all;"></span>
+  </div>
+  <span id="hud-audio-panel" style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;max-width:none;position:static;background:none;box-shadow:none;padding:0;border-radius:0;z-index:auto;">
+    <button id="sfx-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;"></button>
+    <button id="bgm-toggle" type="button" tabindex="-1" style="background:#222;color:#fff;border:2px solid #888;border-radius:12px;padding:4px 8px;font-size:1.1rem;box-shadow:0 2px 8px #0008;cursor:pointer;"></button>
   </span>
-  <span class="hud-score" id="hud-score"></span>
-  <span class="hud-highscore" id="hud-highscore"></span>
-</div>
-<!-- 新增底部控制區 -->
-<div id="bottom-controls">
-  <button id="pause-toggle" type="button">⏸️ 暫停</button>
-  <button id="sfx-toggle" type="button">🔊 音效</button>
-  <button id="bgm-toggle" type="button">🎵 音樂</button>
-  <button id="settings-toggle" type="button">⚙️ 設定</button>
-  <button id="help-toggle" type="button">❓ 說明</button>
 </div>
 <canvas id="game"></canvas>
+<div id="controls">
+  <button class="ctrl-btn" id="btn-left">◀️</button>
+  <button class="ctrl-btn" id="pause-btn">⏯️</button>
+  <button class="ctrl-btn" id="btn-right">▶️</button>
+</div>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;user-select:none;">
     <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;"></div>
     <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;user-select:none;">重新開始</button>
   </div>
 </div>
-
-<!-- 操作說明彈窗 -->
-<div id="help-modal" style="display:none;position:fixed;z-index:2000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
-  <div style="background:#222;padding:28px 18px 18px 18px;border-radius:16px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:left;user-select:none;min-width:260px;">
-    <div style="color:#ffe600;font-size:1.3rem;margin-bottom:12px;font-weight:bold;">NS-Tower 操作說明</div>
-    <div style="color:#fff;font-size:1rem;line-height:1.7;">
-      <b>遊戲目標：</b>操控角色不斷往上跳，挑戰更高樓層分數！<br><br>
-      <b>操作方式：</b><br>
-      ● <b>按住螢幕</b> 或 <b>空白鍵</b> 蓄力，放開即可跳躍。<br>
-      ● 角色會自動左右行走，遇到牆壁自動反向。<br>
-      ● 跳到不同平台會有特殊效果（彈簧、輸送帶等）。<br>
-      ● 吃到雞腿道具可獲得短暫高跳能力。<br>
-      ● 吃到藥丸道具會巨大化並跳更高，持續10秒。<br>
-      <br>
-      <b>底部按鈕：</b><br>
-      ● <b>暫停</b>：暫停/繼續遊戲<br>
-      ● <b>音效/音樂</b>：開關音效與背景音樂<br>
-      ● <b>力量重置</b>：開啟時，蓄滿力量會自動歸零循環<br>
-      ● <b>行走速度</b>：切換角色自動行走速度<br>
-      ● <b>運動鞋道具</b>：開關雞腿道具出現<br>
-      ● <b>說明</b>：顯示本操作說明<br>
-      <br>
-      <b>感謝支持：</b><br>
-      中國信託帳戶 銀行代碼822<br>
-      159540291165 戶名：張書維<br>
-      <br>
-      作者Line：game76420
-    </div>
-    <div style="text-align:center;margin-top:18px;">
-      <button id="help-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
-    </div>
-  </div>
-</div>
-<!-- 遊戲設定彈窗 -->
-<div id="settings-modal" style="display:none;position:fixed;z-index:2100;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
-  <div style="background:#222;padding:28px 18px 18px 18px;border-radius:16px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:left;user-select:none;min-width:260px;">
-    <div style="color:#ffe600;font-size:1.3rem;margin-bottom:12px;font-weight:bold;">遊戲設定</div>
-    <div style="color:#fff;font-size:1rem;line-height:2;">
-      <label style="display:block;margin-bottom:8px;">
-        <span style="margin-right:8px;">力量重置：</span>
-        <button id="settings-power-reset" type="button"></button>
-      </label>
-      <label style="display:block;margin-bottom:8px;">
-        <span style="margin-right:8px;">行走速度：</span>
-        <div style="display:inline-flex;gap:4px;">
-          <button id="settings-walk-slow" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">慢</button>
-          <button id="settings-walk-normal" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">中</button>
-          <button id="settings-walk-fast" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">快</button>
-        </div>
-      </label>
-      <label style="display:block;margin-bottom:8px;">
-        <span style="margin-right:8px;">遊戲速度：</span>
-        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-          <span style="font-size:0.8rem;color:#ccc;">慢</span>
-          <button id="speed-decrease" type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid #666;background:#333;color:#fff;font-size:1.2rem;font-weight:bold;cursor:pointer;">-</button>
-          <div style="flex:1;height:20px;background:#333;border-radius:10px;border:1px solid #666;position:relative;display:flex;align-items:center;justify-content:center;">
-            <div id="speed-display" style="font-size:0.9rem;color:#ffe600;font-weight:bold;">0</div>
-          </div>
-          <button id="speed-increase" type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid #666;background:#333;color:#fff;font-size:1.2rem;font-weight:bold;cursor:pointer;">+</button>
-          <span style="font-size:0.8rem;color:#ccc;">快</span>
-        </div>
-      </label>
-      <label style="display:block;margin-bottom:8px;">
-        <span style="margin-right:8px;">道具：</span>
-        <button id="settings-shoe-item" type="button"></button>
-      </label>
-    </div>
-    <div style="text-align:center;margin-top:18px;">
-      <button id="settings-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
-    </div>
-  </div>
-</div>
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// 響應式調整canvas解析度
 function resizeCanvas() {
   const ratio = window.devicePixelRatio || 1;
-  const w = Math.min(window.innerWidth, 480);
-  // 動態取得底部按鈕高度
-  const bottomControls = document.getElementById('bottom-controls');
-  let bottomPad = 0;
-  if (bottomControls) {
-    bottomPad = bottomControls.offsetHeight || 0;
-  }
-  // 預留地面平台高度，確保地面完整露出
-  const minH = 120;
-  // 減去底部按鈕高度
-  const h = Math.max(Math.min(window.innerHeight * 0.92, 720), minH) + 16 - bottomPad;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
   canvas.width = w * ratio;
   canvas.height = h * ratio;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.scale(ratio, ratio);
-  // 動態設置 padding-bottom，確保地面不被擋住
-  canvas.style.paddingBottom = bottomPad + 'px';
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
 
+// 不要用 const WIDTH/HEIGHT，改成 function
 function getWidth() {
   return canvas.width / (window.devicePixelRatio || 1);
 }
@@ -426,109 +220,132 @@ function getHeight() {
   return canvas.height / (window.devicePixelRatio || 1);
 }
 
-// 遊戲參數
-let player, stairs, gameSpeed, stairGap, stairWidth, stairHeight, score, highScore, paused, animationFrameId, direction, jumpPending, bgmMuted, sfxMuted, firstInteraction;
-let lastStair = null;
-let platformSet = new Set();
-let firstPlatformPassed = false;
-let platformPassedCount = 0; // 已不再使用
-let lastLandedStair = null; // 已不再使用
-let passedPlatforms = new Set(); // 本輪計分用
-let allPassedPlatforms = new Set(); // 遊戲期間所有已計算過的平台Y
-// 新增：視角拉動 flag
-let needScrollToStair = false;
-let lastLandedStairY = null;
-// 新增：鏡頭偏移
-let cameraOffsetY = 0;
-let cameraTargetOffsetY = 0;
-// 在全域變數區加：
-let lastDifficultyScore = 0;
-// 新增：力量重置開關
-let powerAutoReset = false;
-// 新增：輸入狀態管理
-let inputState = { isPressed: false, spacebar: false };
-// 新增：落地緩衝（jump buffer）
-let jumpBufferTimer = 0;
-const JUMP_BUFFER_TIME = 0.2; // 秒
-// 新增：運動鞋buff狀態
-let shoeBuffActive = false;
-let shoeBuffEndTime = 0;
-// 新增：運動鞋道具開關
-let shoeItemEnabled = true;
-// 新增：樓梯X軸分布控制
-let recentStairPositions = []; // 記錄最近幾個樓梯的X位置
-const MAX_RECENT_POSITIONS = 5; // 記錄最近5個樓梯位置
-// 新增：樓梯生成任務管理
-let stairGenTask = []; // 當前五個樓梯的生成任務
-let stairGenCount = 0; // 當前已生成的樓梯數量（不計入水平移動平台）
-let generatedZones = []; // 記錄當前五個任務中已生成的位置
-// 新增：膠囊縮放動畫
-let pillScale = 1;
-let pillScaleTarget = 1;
-let pillScaleAnimStartTime = 0;
-const PILL_ANIM_DURATION = 350; // ms
-// 新增：前6個特殊樓梯類型隨機打亂
-let stairTypeShuffle = [];
-let stairTypeShuffleIdx = 0;
-// 新增：樓梯X位置循環模式
-const stairXPattern = ['left', 'random', 'right', 'random'];
-let stairXPatternIdx = 0;
-// 新增：遊戲速度滑桿設定
-let gameSpeedMultiplier = 0; // -50 到 50，影響整體遊戲速度
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-// 新增：每四個一組必有一左一右兩隨機
-let nextStairGroup = [];
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+let player, platforms, keys, lastPlatformTouched;
+let gameSpeed = 1;
+let lastPlayerFloorY = null;
+let platformPassedCount = 0; // 記錄經過的平台數
+let highScore = 0;
+let paused = false;
+let firstInteraction = false;
+let animationFrameId = null;
+
+// 讀取最高分數
+if (localStorage.getItem('ns_shaft_highscore')) {
+  highScore = parseInt(localStorage.getItem('ns_shaft_highscore')) || 0;
 }
 
-function generateSmartStairPositionV5(canvasWidth, stairWidth, platformType) {
-  // 水平移動平台：完全隨機，不影響主序列
-  if (platformType === 'horizontal') {
-    return Math.random() * (canvasWidth - stairWidth);
-  }
+// 平台類型與上限
+const PLATFORM_TYPES = ["normal", "jump", "spike", "vanish", "conveyorL", "conveyorR"];
+const PLATFORM_TYPE_LIMIT = {
+  normal: 3,       // 限制普通平台也最多3個
+  jump: 2,         // 減少彈跳平台數量
+  spike: 2,        // 減少尖刺平台數量
+  vanish: 2,       // 減少消失平台數量
+  conveyorL: 1,    // 限制傳送帶
+  conveyorR: 1     // 限制傳送帶
+};
 
-  // 每四個一組，必有一左一右兩隨機，順序隨機
-  if (nextStairGroup.length === 0) {
-    nextStairGroup = ['left', 'right', 'random', 'random'];
-    shuffleArray(nextStairGroup);
+function countPlatformTypes() {
+  const count = {normal:0, jump:0, spike:0, vanish:0, conveyorL:0, conveyorR:0};
+  for (let p of platforms) {
+    if (!p.hidden && count.hasOwnProperty(p.type)) count[p.type]++;
   }
-  const type = nextStairGroup.shift();
-  if (type === 'left') return 0;
-  if (type === 'right') return canvasWidth - stairWidth;
-  // random
-  return Math.random() * (canvasWidth - stairWidth);
+  return count;
 }
 
-// 音效
-const sfxJump = document.getElementById('sfx-jump');
-const sfxDead = document.getElementById('sfx-dead');
-const bgm = document.getElementById('bgm');
-const sfxLand = document.getElementById('sfx-land');
-const sfxSpringJump = document.getElementById('sfx-spring-jump');
-const sfxCharge = document.getElementById('sfx-charge');
-
-// 音效靜音狀態
-sfxMuted = false;
-bgmMuted = true;
-firstInteraction = false;
-
-if (localStorage.getItem('ns_tower_highscore')) {
-  highScore = parseInt(localStorage.getItem('ns_tower_highscore')) || 0;
-} else {
-  highScore = 0;
+function getAvailablePlatformTypes() {
+  const counts = countPlatformTypes();
+  const available = PLATFORM_TYPES.filter(type => counts[type] < PLATFORM_TYPE_LIMIT[type]);
+  // 如果沒有可用的平台類型，強制允許普通平台
+  return available.length > 0 ? available : ['normal'];
 }
 
+// 新增函數：根據現有平台分布計算權重
+function calculateTypeWeights() {
+  const counts = countPlatformTypes();
+  const weights = {};
+  // 計算每種類型的權重（出現次數越少權重越高）
+  for (const type of PLATFORM_TYPES) {
+    const count = counts[type];
+    const limit = PLATFORM_TYPE_LIMIT[type];
+    if (count < limit) {
+      weights[type] = (limit - count) / limit; // 權重為剩餘空間比例
+    } else {
+      weights[type] = 0;
+    }
+  }
+  return weights;
+}
+
+// 新增函數：根據權重選擇平台類型
+function selectPlatformType() {
+  const weights = calculateTypeWeights();
+  const available = PLATFORM_TYPES.filter(type => weights[type] > 0);
+  if (available.length === 0) return 'normal';
+  
+  // 根據權重隨機選擇
+  const totalWeight = available.reduce((sum, type) => sum + weights[type], 0);
+  let random = Math.random() * totalWeight;
+  
+  for (const type of available) {
+    random -= weights[type];
+    if (random <= 0) return type;
+  }
+  return available[0];
+}
+
+// 音效池
+function createAudioPool(src, poolSize = 4) {
+  const pool = [];
+  for (let i = 0; i < poolSize; i++) {
+    const audio = new Audio(src);
+    audio.preload = "auto";
+    pool.push(audio);
+  }
+  return pool;
+}
+
+const sfxPools = {
+  normal: createAudioPool("Data_1.wav"),
+  jump: createAudioPool("Data_3.wav"),
+  spike: createAudioPool("Data_4.wav"),
+  vanish: createAudioPool("Data_5.wav"),
+  dead: createAudioPool("Data_6.wav"),
+};
+
+function playSfxPool(poolName) {
+  if (sfxMuted) return;
+  const pool = sfxPools[poolName];
+  if (!pool) return;
+  for (let audio of pool) {
+    if (audio.paused || audio.ended) {
+      audio.muted = sfxMuted;
+      audio.currentTime = 0;
+      audio.play();
+      break;
+    }
+  }
+}
+
+// 新增音效與音樂靜音狀態
+let sfxMuted = false;
+let bgmMuted = true;
+
+// 音效播放輔助（可重疊播放）
 function playSfx(audio) {
-  if (!audio || sfxMuted) return;
-  audio.currentTime = 0;
-  audio.muted = sfxMuted;
-  audio.play();
+  if (!audio) return;
+  audio.muted = sfxMuted; // 確保每次播放時都同步靜音狀態
+  if (sfxMuted) return;
+  try {
+    audio.currentTime = 0;
+    audio.play();
+  } catch (e) {}
 }
+
+// 背景音樂自動播放（需用戶互動後觸發）
 function tryPlayBgm() {
   if (bgm.paused && !bgmMuted) {
     bgm.volume = 0.5;
@@ -536,1142 +353,834 @@ function tryPlayBgm() {
   }
 }
 
-// 新增：行走速度模式
-let walkSpeedMode = 'normal'; // 'slow' | 'normal' | 'fast'
-const walkSpeedMap = { slow: 1.2, normal: 2.2, fast: 3.2 };
-
-// 計算最終行走速度（結合模式選擇和遊戲速度調整）
-function getFinalWalkSpeed() {
-  const baseSpeed = walkSpeedMap[walkSpeedMode];
-  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  return baseSpeed * gameSpeedFactor;
-}
-
-// 分區輔助函數
-function getStairZone(x, canvasWidth, stairWidth) {
-  if (x < canvasWidth * 0.3) return 'left';
-  if (x > canvasWidth * 0.7 - stairWidth) return 'right';
-  return 'center';
-}
-
-function getStairXByZone(zone, canvasWidth, stairWidth) {
-  const leftMin = 0, leftMax = canvasWidth * 0.3 - stairWidth;
-  const centerMin = canvasWidth * 0.35, centerMax = canvasWidth * 0.65 - stairWidth;
-  const rightMin = canvasWidth * 0.7, rightMax = canvasWidth - stairWidth;
-  if (zone === 'left') return leftMin + Math.random() * (leftMax - leftMin);
-  if (zone === 'center') return centerMin + Math.random() * (centerMax - centerMin);
-  if (zone === 'right') return rightMin + Math.random() * (rightMax - rightMin);
-  // fallback
-  return centerMin + Math.random() * (centerMax - centerMin);
-}
-
-function getNextStairZone() {
-  // 如果任務清單為空且已生成五個非水平移動平台，重新生成五個任務
-  if (stairGenTask.length === 0 && stairGenCount >= 5) {
-    // 確保包含左、中、右各一個，另外兩個隨機
-    stairGenTask = ['left', 'center', 'right', 'random', 'random'];
-    // 打亂順序
-    for (let i = stairGenTask.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [stairGenTask[i], stairGenTask[j]] = [stairGenTask[j], stairGenTask[i]];
-    }
-    stairGenCount = 0; // 重置計數器
-    generatedZones = []; // 重置已生成位置記錄
-  }
-  
-  // 如果任務清單為空但還沒生成五個平台，繼續等待
-  if (stairGenTask.length === 0) {
-    // 根據已生成的位置，優先選擇缺少的位置
-    const zones = ['left', 'center', 'right'];
-    const missingZones = zones.filter(zone => !generatedZones.includes(zone));
-    
-    if (missingZones.length > 0) {
-      // 優先選擇缺少的位置
-      return missingZones[Math.floor(Math.random() * missingZones.length)];
-    } else {
-      // 如果所有位置都有了，隨機選擇
-      return zones[Math.floor(Math.random() * 3)];
-    }
-  }
-  
-  // 隨機取一個 zone
-  const idx = Math.floor(Math.random() * stairGenTask.length);
-  let zone = stairGenTask[idx];
-  stairGenTask.splice(idx, 1);
-  
-  if (zone === 'random') {
-    // 只允許 left/center/right
-    const zones = ['left', 'center', 'right'];
-    zone = zones[Math.floor(Math.random() * 3)];
-  }
-  
-  return zone;
-}
-
-// 新增：只記錄最近五個非水平移動平台的zone
-let lastFiveZones = [];
-
-// 新增：樓梯生成分布模式
-const stairZonePattern = ['left', 'random', 'right', 'random'];
-let stairZonePatternIdx = 0;
-let lastNonHorizontalZone = null;
-
-// 新增：樓梯基準分布點與索引
-const stairBasePercents = [0.66, 0.0, 1.0, 0.33];
-let stairPatternIdx = 0;
-function getPatternStairX(canvasWidth, stairWidth) {
-  let basePercent = stairBasePercents[stairPatternIdx];
-  let offset = (Math.random() - 0.5) * 0.2 * canvasWidth; // ±10%畫面寬度
-  let x = basePercent * (canvasWidth - stairWidth) + offset;
-  x = Math.max(0, Math.min(canvasWidth - stairWidth, x));
-  stairPatternIdx = (stairPatternIdx + 1) % stairBasePercents.length;
-  return x;
-}
-
 function initGame() {
+  // 先確保 gameover-modal 隱藏，避免canvas尺寸為0
   var modal = document.getElementById('gameover-modal');
   if (modal) modal.style.display = 'none';
+  // 取消舊的動畫循環
   if (animationFrameId !== null) {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
-  // 新增：重設鏡頭偏移
-  cameraOffsetY = 0;
-  cameraTargetOffsetY = 0;
   resizeCanvas();
   paused = false;
-  score = 0;
-  direction = Math.random() < 0.5 ? 1 : -1; // 1:右, -1:左
-  jumpPending = false;
-  stairWidth = Math.floor(getWidth() * 0.25);
-  stairHeight = 12;
-  stairGap = stairHeight * 5.5;
-  gameSpeed = 1.8;
-  platformPassedCount = 0; // 已不再使用
-  lastLandedStair = null; // 已不再使用
-  passedPlatforms = new Set(); // 新增：初始化
-  allPassedPlatforms = new Set(); // 新增：初始化
-  shoeBuffActive = false;
-  shoeBuffEndTime = 0;
-  // 新增：初始化樓梯分布控制
-  recentStairPositions = [];
-  // 新增：重置樓梯生成任務
-  stairGenTask = [];
-  stairGenCount = 0;
-  // 初始化第一個五個任務
-  stairGenTask = ['left', 'center', 'right', 'random', 'random'];
-  // 打亂順序
-  for (let i = stairGenTask.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [stairGenTask[i], stairGenTask[j]] = [stairGenTask[j], stairGenTask[i]];
+  platforms = [];
+  const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
+  const platformHeight = 10;
+  const numPlatforms = 8;
+  const platformSpacing = getHeight() / numPlatforms; // 固定間距
+
+  for (let i = 0; i < numPlatforms; i++) {
+    let type;
+    if (i === numPlatforms - 1) {
+      type = "normal"; // 最底下的平台固定為普通平台
+    } else {
+      // 更平均的平台類型分配
+      let rand = Math.random();
+      if (rand < 0.2) type = "normal";      // 20% 普通平台
+      else if (rand < 0.4) type = "jump";   // 20% 彈跳平台
+      else if (rand < 0.6) type = "spike";  // 20% 尖刺平台
+      else if (rand < 0.8) type = "vanish"; // 20% 消失平台
+      else if (rand < 0.9) type = "conveyorL"; // 10% 左傳輸帶
+      else type = "conveyorR";              // 10% 右傳輸帶
+    }
+    
+    // 生成平台位置，確保不重疊
+    let x, attempts = 0;
+    do {
+      x = Math.random() * (getWidth() - platformWidth);
+      attempts++;
+    } while (attempts < 20 && platforms.some(p => 
+      Math.abs(p.y - (i * platformSpacing)) < 20 && // 同一高度附近
+      Math.abs(p.x - x) < platformWidth + 10 // 水平重疊檢查
+    ));
+    
+    platforms.push({
+      x: x,
+      y: i * platformSpacing,
+      width: platformWidth,
+      height: platformHeight,
+      type: type,
+      vanishTimer: null,
+      hidden: false
+    });
   }
-  // 主角
+
+  // 讓精靈一開始站在最底下那個平台正上方
+  const firstPlatform = platforms[platforms.length - 1];
+  const playerWidth = Math.floor(platformWidth / 3); // 精靈寬度為平台寬度的1/3
+  const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
   player = {
-    width: Math.floor(stairWidth * 0.5),
-    height: Math.floor(stairWidth * 0.5),
-    x: getWidth() / 2 - stairWidth * 0.25,
-    y: getHeight() - stairHeight - Math.floor(stairWidth * 0.5),
-    vx: getFinalWalkSpeed(),
+    x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
+    y: firstPlatform.y - playerHeight,
+    width: playerWidth,
+    height: playerHeight,
+    vx: 0,
     vy: 0,
-    onStair: true,
-    jumping: false,
-    jumpPower: -6.5,
-    gravity: 0.22,
-    dir: direction,
-    alive: true,
-    power: 0,
-    maxPower: 100,
-    charging: false,
-    chargePending: false, // 等待集氣的狀態
-    powerIncrement: 4,  // 每幀蓄力增加量
-    lastJumpTime: null,
-    lastLandTime: performance.now() / 1000,
-    lastLeaveTime: null,
-    landedOn: null, // 追蹤目前站立的平台
-    animationState: {
-      bodyBob: 0,
-      armSwing: 0,
-      legSwing: 0
-    }
+    speed: 4.0,
+    gravity: 0.3,
+    jumpForce: -8,
+    onGround: false,
+    hp: 12,
+    score: 0,
+    fallThrough: false, // 新增穿透狀態
+    hurtTimer: 0, // 受傷計時器
+    isHurt: false, // 受傷狀態
+    direction: "front", // "left", "right", "front"
+    runAnim: 0, // 跑步動畫用
   };
-  // 樓梯陣列
-  stairs = [];
-  // 先加地面（整個平面）
-  stairs.push({
-    x: 0,
-    y: getHeight() - stairHeight,
-    width: getWidth(),
-    height: stairHeight
-  });
-  // 新增：初始化樓梯pattern索引
-  stairPatternIdx = 0;
-  // 再加其他樓梯（每四個一組，補到可見數+4）
-  let y = getHeight() - stairGap - stairHeight;
-  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
-  while (stairs.length < visibleStairCount) {
-    for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
-      let basePercent = stairBasePercents[stairPatternIdx];
-      // 決定可用樓梯類型
-      let types;
-      if (basePercent === 0.0 || basePercent === 1.0) {
-        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'vertical', 'upward'];
-      } else {
-        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
-      }
-      let type = types[Math.floor(Math.random() * types.length)];
-      let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
-      if (type === "horizontal") {
-        vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
-        rangeX = stairWidth * 1.2;
-        phase = Math.random() * Math.PI * 2;
-      } else if (type === "vertical") {
-        vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
-        rangeY = stairGap * 0.7;
-        phase = Math.random() * Math.PI * 2;
-      } else if (type === "upward") {
-        vy = 0;
-        rangeY = stairGap * 0.7;
-        phase = Math.random() * Math.PI * 2;
-      }
-      let x = getPatternStairX(getWidth(), stairWidth);
-      const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
-      let hasShoe = false, hasPill = false;
-      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
-        if (shoeItemEnabled) {
-          if (Math.random() < 0.5) {
-            hasShoe = true;
-          } else {
-            hasPill = true;
-          }
-        }
-      }
-      stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
-      y -= stairGap;
-    }
-  }
-  // 設定 lastStair 為主角腳下的樓梯
-  lastStair = stairs.find(s =>
-    player.x + player.width > s.x &&
-    player.x < s.x + s.width &&
-    player.y + player.height === s.y
-  ) || null;
-  player.landedOn = lastStair;
-  platformSet = new Set();
-  if (lastStair) platformSet.add(lastStair);
-  firstPlatformPassed = false;
+
+  lastPlatformTouched = null;
+
+  keys = {};
+
+  gameSpeed = 1;
+  lastPlayerFloorY = player.y;
+  platformPassedCount = 0;
+
   drawHUD();
   animationFrameId = requestAnimationFrame(gameLoop);
-  sfxJump.muted = sfxMuted;
-  sfxDead.muted = sfxMuted;
-  sfxLand.muted = sfxMuted;
-  sfxSpringJump.muted = sfxMuted;
-  sfxCharge.muted = sfxMuted;
+  // 只在 bgmMuted 為 false 時才播放音樂
+  sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+  sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
   bgm.muted = bgmMuted;
-  if (!bgmMuted) tryPlayBgm();
-  else bgm.pause();
-  // 在initGame()裡初始化lastFiveZones
-  lastFiveZones = [];
-  // 初始化樓梯分布序列
-  stairZonePatternIdx = 0;
-  lastNonHorizontalZone = null;
-  // 2. initGame() 內初始化 buff 狀態
-  pillBuffActive = false;
-  pillBuffEndTime = 0;
-  pillScale = 1;
-  pillScaleTarget = 1;
-  pillScaleAnimStartTime = performance.now();
-  // 初始化樓梯類型洗牌
-  stairTypeShuffle = shuffleArray(['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward']);
-  stairTypeShuffleIdx = 0;
-  stairXPatternIdx = 0; // 初始化X位置循環
+  if (!bgmMuted) {
+    tryPlayBgm();
+  } else {
+    bgm.pause();
+  }
 }
 
 function drawPlayer() {
-  // 儲存當前繪圖狀態
   ctx.save();
-
-  // 玩家尺寸
   const pW = player.width;
   const pH = player.height;
-  
-  // 動畫參數（受遊戲速度影響）
-  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  const animSpeed = 12 * gameSpeedFactor; // 動畫速度受遊戲速度影響
-  const animCycle = (performance.now() / 1000) * animSpeed; // 動畫週期
-  
-  // 身體上下擺動
-  const bodyYOffset = (1 - Math.cos(animCycle * 2)) * (pH * 0.03);
 
-  // === 修正腳掌 ===
-  // 鞋子高度
+  if (player.direction === "left" || player.direction === "right") {
+    // === ns-tower.html 側面精靈繪製 ===
+    // 動畫參數
+    const animSpeed = 12;
+    const animCycle = (performance.now() / 1000) * animSpeed;
+    // 身體上下擺動
+    const bodyYOffset = (1 - Math.cos(animCycle * 2)) * (pH * 0.03);
+    // 鞋子高度
+    const shoeHeight = pH * 0.08;
+    // 計算基礎Y座標，讓腳底貼齊平台
+    const baseY = player.y - bodyYOffset - shoeHeight/2;
+    ctx.translate(player.x, baseY);
+    // 左右翻轉
+    if (player.direction === "left") {
+      ctx.scale(-1, 1);
+      ctx.translate(-pW, 0);
+    }
+    // 四肢動畫週期
+    const backArmCycle = animCycle + Math.PI;
+    const frontArmCycle = animCycle;
+    const backLegCycle = animCycle;
+    const frontLegCycle = animCycle + Math.PI;
+    // 四肢擺動角度
+    const armAngle = Math.sin(frontArmCycle) * 1.4;
+    const legAngle = Math.sin(backLegCycle) * 1.2;
+    // 共用的四肢屬性
+    const armX = pW / 2;
+    const shoulderY = pH * 0.45;
+    const armWidth = pW * 0.12;
+    const armHeight = pH * 0.28;
+    const handRadius = armWidth * 0.5;
+    const legWidth = pW * 0.18;
+    const legHeight = pH * 0.30;
+    const legBaseY = pH * 0.75;
+    const legBaseX = pW / 2;
+    const shoeWidth = legWidth * 1.25;
+    // 身體傾斜
+    const angle = 0.15;
+    ctx.save();
+    ctx.translate(pW / 2, pH / 2);
+    ctx.rotate(angle);
+    ctx.translate(-pW / 2, -pH / 2);
+    // --- 繪製順序: 從後到前 ---
+    // 後腿
+    ctx.save();
+    ctx.translate(legBaseX, legBaseY);
+    ctx.rotate(legAngle);
+    ctx.fillStyle = '#0000B2';
+    ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
+    ctx.fillStyle = '#6B3503';
+    ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
+    ctx.restore();
+    // 後臂
+    ctx.save();
+    ctx.translate(armX, shoulderY);
+    ctx.rotate(armAngle);
+    ctx.fillStyle = '#00A090';
+    ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
+    ctx.fillStyle = '#D1B497';
+    ctx.beginPath();
+    ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // 身體/衣服
+    ctx.fillStyle = '#00D0B0';
+    ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
+    // 前腿
+    ctx.save();
+    ctx.translate(legBaseX, legBaseY);
+    ctx.rotate(-legAngle);
+    ctx.fillStyle = '#0000FF';
+    ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight/2, shoeWidth, shoeHeight);
+    ctx.restore();
+    // 前臂
+    ctx.save();
+    ctx.translate(armX, shoulderY);
+    ctx.rotate(-armAngle);
+    ctx.fillStyle = '#00D0B0';
+    ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
+    ctx.fillStyle = '#F2D1B3';
+    ctx.beginPath();
+    ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    // 頭部和臉部細節
+    ctx.fillStyle = '#F2D1B3';
+    ctx.beginPath();
+    ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
+    ctx.fill();
+    // 頭髮
+    ctx.save();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // 帽子主體 (半圓形，顏色與衣服相同)
+    ctx.fillStyle = '#00D0B0';
+    ctx.beginPath();
+    ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // 帽沿
+    ctx.fillStyle = '#50C8FF';
+    ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
+    // 眼睛和臉頰 (最上層)
+    ctx.fillStyle = '#000';
+    const eyeY = pH * 0.3;
+    const eyeHeight = pH * 0.035;
+    ctx.fillRect(pW * 0.60, eyeY, pW * 0.1, eyeHeight);
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath();
+    ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore(); // 恢復身體傾斜
+    ctx.restore(); // 恢復主畫布
+    return;
+  }
+
+  // === ns-tower.html 正面靜止狀態（兩眼兩腮紅，帽沿為橢圓弧） ===
+  ctx.translate(player.x, player.y - pH * 0.08); // 微調腳底貼地
+
+  // 身體
+  ctx.fillStyle = '#00D0B0';
+  ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
+
+  // 腿
+  const legWidth = pW * 0.18;
+  const legHeight = pH * 0.30;
+  const legBaseY = pH * 0.75;
+  const legBaseX = pW / 2;
+  const shoeWidth = legWidth * 1.25;
   const shoeHeight = pH * 0.08;
-  // 膠囊縮放動畫
-  // 動畫插值
-  let now = performance.now();
-  if (pillScale !== pillScaleTarget) {
-    let t = Math.min(1, (now - pillScaleAnimStartTime) / PILL_ANIM_DURATION);
-    pillScale = pillScale + (pillScaleTarget - pillScale) * t;
-    // 若已接近目標，直接到位
-    if (Math.abs(pillScale - pillScaleTarget) < 0.01) pillScale = pillScaleTarget;
-  }
-  let scale = pillScale; // 當前縮放比例
-  // 計算基礎Y座標，讓腳底貼齊平台
-  const baseY = player.y - cameraOffsetY - bodyYOffset - shoeHeight/2;
-  const offsetY = (1 - scale) * player.height; // 因縮放產生的Y位移
-  // 移動並縮放畫布
-  ctx.translate(player.x, baseY + offsetY);
-  ctx.scale(scale, scale);
-
-  // 四肢動畫週期
-  const backArmCycle = animCycle + Math.PI;
-  const frontArmCycle = animCycle;
-  const backLegCycle = animCycle;
-  const frontLegCycle = animCycle + Math.PI;
-
-  // 四肢擺動角度
-  const armAngle = Math.sin(frontArmCycle) * 1.4;
-  const legAngle = Math.sin(backLegCycle) * 1.2; 
-
-  // 共用的四肢屬性
-  const armX = pW / 2; // 手臂X中心
-  const shoulderY = pH * 0.45; // 肩膀Y位置
-  const armWidth = pW * 0.12; // 手臂寬度
-  const armHeight = pH * 0.28; // 手臂長度
-  const handRadius = armWidth * 0.5; // 手半徑
-
-  const legWidth = pW * 0.18; // 腿寬度
-  const legHeight = pH * 0.30; // 腿長度
-  const legBaseY = pH * 0.75; // 腿根部Y位置
-  const legBaseX = pW / 2; // 腿根部X中心
-  const shoeWidth = legWidth * 1.25; // 鞋子寬度
-
+  // 左腿
   ctx.save();
-  // 如果玩家向左移動，翻轉畫布
-  if (player.dir === -1) {
-    ctx.scale(-1, 1);
-    ctx.translate(-pW, 0);
-  }
-
-  // 身體傾斜
-  const angle = 0.15;
-  ctx.translate(pW / 2, pH / 2);
-  ctx.rotate(angle);
-  ctx.translate(-pW / 2, -pH / 2);
-
-  // --- 蓄力效果 ---
-  let chargingFlash = false; // 是否閃爍
-  if (player.charging || shoeBuffActive) {
-    // 閃爍效果：每 100ms 閃爍一次（受遊戲速度影響）
-    chargingFlash = Math.floor(performance.now() / (100 / gameSpeedFactor)) % 2 === 0;
-    // 集氣光暈（受遊戲速度影響）
-    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / (80 / gameSpeedFactor)); // 光暈透明度
-    const powerRatio = player.power / player.maxPower; // 力量比例
-    ctx.save();
-    ctx.globalAlpha = auraAlpha * (0.3 + 0.7 * powerRatio);
-    const auraRadius = pW * (0.6 + 0.7 * powerRatio); // 光暈半徑
-    // 建立放射狀漸層
-    const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.15, pW/2, pH/2, auraRadius);
-    grad.addColorStop(0, `rgba(255,255,100,0.8)`);
-    grad.addColorStop(0.5, `rgba(255,180,0,0.4)`);
-    grad.addColorStop(1, `rgba(255,0,0,0)`);
-    // 繪製光暈
-    ctx.beginPath();
-    ctx.arc(pW/2, pH/2, auraRadius, 0, Math.PI*2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.restore();
-  } else if (player.chargePending && player.alive) {
-    // 等待集氣的視覺提示：柔和的白色脈動光暈（受遊戲速度影響）
-    ctx.save();
-    ctx.globalAlpha = 0.2 + 0.2 * Math.sin(performance.now() / (120 / gameSpeedFactor));
-    const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.2, pW/2, pH/2, pW*0.7);
-    grad.addColorStop(0, `rgba(230, 230, 255, 0.8)`);
-    grad.addColorStop(1, `rgba(200, 200, 255, 0)`);
-    ctx.beginPath();
-    ctx.arc(pW/2, pH/2, pW * 0.7, 0, Math.PI*2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // --- 繪製順序: 從後到前 ---
-
-  // 後腿
-  ctx.save();
-  ctx.translate(legBaseX, legBaseY);
-  ctx.rotate(legAngle);
-  ctx.fillStyle = chargingFlash ? '#FF2222' : '#0000B2'; // 腿顏色，閃爍時為紅色
+  ctx.translate(legBaseX - legWidth, legBaseY);
+  ctx.fillStyle = '#0000B2';
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#6B3503'; // 鞋子顏色
+  ctx.fillStyle = '#6B3503';
+  ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
+  ctx.restore();
+  // 右腿
+  ctx.save();
+  ctx.translate(legBaseX + legWidth, legBaseY);
+  ctx.fillStyle = '#0000FF';
+  ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
+  ctx.fillStyle = '#8B4513';
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
   ctx.restore();
 
-  // 後臂
+  // 手臂
+  const armWidth = pW * 0.12;
+  const armHeight = pH * 0.28;
+  const handRadius = armWidth * 0.5;
+  const armX = pW / 2;
+  const shoulderY = pH * 0.45;
+  // 左臂
   ctx.save();
-  ctx.translate(armX, shoulderY);
-  ctx.rotate(armAngle);
-  ctx.fillStyle = chargingFlash ? '#FF6666' : '#00A090'; // 手臂顏色
+  ctx.translate(armX - armWidth, shoulderY);
+  ctx.rotate(0.15); // 微微外展
+  ctx.fillStyle = '#00A090';
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#D1B497'; // 手顏色
+  ctx.fillStyle = '#D1B497';
+  ctx.beginPath();
+  ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // 右臂
+  ctx.save();
+  ctx.translate(armX + armWidth, shoulderY);
+  ctx.rotate(-0.15); // 微微外展
+  ctx.fillStyle = '#00D0B0';
+  ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
+  ctx.fillStyle = '#F2D1B3';
   ctx.beginPath();
   ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // 身體/衣服
-  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
-  ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
-
-  // 前腿
-  ctx.save();
-  ctx.translate(legBaseX, legBaseY);
-  ctx.rotate(-legAngle);
-  ctx.fillStyle = chargingFlash ? '#FF3333' : '#0000FF'; // 腿顏色
-  ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
-  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#8B4513'; // 鞋子顏色
-  ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight/2, shoeWidth, shoeHeight);
-  ctx.restore();
-
-  // 前臂
-  ctx.save();
-  ctx.translate(armX, shoulderY);
-  ctx.rotate(-armAngle);
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#00D0B0'; // 手臂顏色
-  ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // 手顏色
-  ctx.beginPath();
-  ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // 頭部和臉部細節
-  ctx.fillStyle = chargingFlash ? '#FFD1D1' : '#F2D1B3'; // 頭部顏色
+  // 頭部
+  ctx.fillStyle = '#F2D1B3';
   ctx.beginPath();
   ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
   ctx.fill();
-
   // 頭髮
   ctx.save();
-  ctx.fillStyle = chargingFlash ? '#FF8888' : '#000'; // 頭髮顏色
+  ctx.fillStyle = '#000';
   ctx.beginPath();
-  // 半圓形頭髮，畫在頭的左後方
   ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-
   // 帽子主體 (半圓形，顏色與衣服相同)
-  ctx.fillStyle = chargingFlash ? '#FF4444' : '#00D0B0';
+  ctx.fillStyle = '#00D0B0';
   ctx.beginPath();
   ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
   ctx.fill();
-  // 帽沿
-  ctx.fillStyle = chargingFlash ? '#FFCCCC' : '#50C8FF'; // 帽沿顏色
-  ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
-
-  // 眼睛和臉頰 (最上層)
-  ctx.fillStyle = '#000'; // 眼睛顏色
-  const eyeY = pH * 0.3;
-  const eyeHeight = pH * 0.035;
-  ctx.fillRect(pW * 0.60, eyeY, pW * 0.1, eyeHeight);
-  ctx.fillStyle = chargingFlash ? '#FFAAAA' : '#FFB6C1'; // 臉頰顏色
+  // 帽沿（橢圓弧形）
+  ctx.save();
+  ctx.strokeStyle = '#50C8FF';
+  ctx.lineWidth = pH * 0.06;
   ctx.beginPath();
-  ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
+  ctx.ellipse(pW / 2, pH * 0.22, pW * 0.18, pH * 0.04, 0, 0, Math.PI, false);
+  ctx.stroke();
+  ctx.restore();
+  // 兩眼
+  ctx.fillStyle = '#000';
+  const eyeY = pH * 0.29;
+  const eyeHeight = pH * 0.035;
+  ctx.fillRect(pW * 0.44, eyeY, pW * 0.08, eyeHeight);
+  ctx.fillRect(pW * 0.60, eyeY, pW * 0.08, eyeHeight);
+  // 兩腮紅
+  ctx.fillStyle = '#FFB6C1';
+  ctx.beginPath();
+  ctx.arc(pW * 0.41, pH * 0.38, pW * 0.055, 0, Math.PI * 2);
+  ctx.arc(pW * 0.59, pH * 0.38, pW * 0.055, 0, Math.PI * 2);
   ctx.fill();
-
-  // 恢復翻轉前的狀態
-  ctx.restore(); 
-  
-  // 玩家頭上的力量條
-  if (player.charging) {
-    const barWidth = player.width * 0.8;
-    const barHeight = 5;
-    const barX = (player.width - barWidth) / 2; // 相對於玩家X置中
-    const barY = -barHeight - 5; // 在頭頂上方5px
-
-    // 力量條背景
-    ctx.fillStyle = '#333';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
-    
-    // 力量條填充
-    const powerRatio = player.power / player.maxPower;
-    const powerWidth = powerRatio * barWidth;
-
-    // 顏色平滑過渡：紅→黃→綠
-    let color;
-    if (powerRatio <= 1/3) {
-      color = '#ff3333'; // 紅色
-    } else if (powerRatio < 1) {
-      // 從紅到黃到綠，使用HSL色相0~120
-      let t = (powerRatio - 1/3) / (2/3); // 將 1/3~1 的範圍正規化到 0~1
-      // 0~0.5: 紅到黃 (色相 0~60), 0.5~1: 黃到綠 (色相 60~120)
-      let hue;
-      if (t < 0.5) {
-        hue = 0 + t * 2 * 60; // 0~60
-      } else {
-        hue = 60 + (t - 0.5) * 2 * 60; // 60~120
-      }
-      color = `hsl(${hue}, 100%, 50%)`;
-    } else {
-      color = '#00e000'; // 綠色 (滿氣)
-    }
-    ctx.fillStyle = color;
-    ctx.fillRect(barX, barY, powerWidth, barHeight);
-
-    // 力量條邊框
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(barX, barY, barWidth, barHeight);
-  }
-
-  // Buff 倒數計時顯示 (鞋子或膠囊，互斥)
-  let buffRemain = null, buffType = null;
-  if (shoeBuffActive && (!pillBuffActive || shoeBuffEndTime > pillBuffEndTime)) {
-    buffRemain = Math.ceil((shoeBuffEndTime - performance.now()) / 1000);
-    buffType = 'shoe';
-  } else if (pillBuffActive) {
-    buffRemain = Math.ceil((pillBuffEndTime - performance.now()) / 1000);
-    buffType = 'pill';
-  }
-  if (buffRemain && buffRemain > 0) {
-    ctx.save();
-    ctx.font = `${Math.round(player.height * 0.45)}px Arial Black, Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillStyle = buffType === 'pill' ? '#2196f3' : '#ffe600'; // 膠囊藍色，鞋子黃色
-    ctx.strokeStyle = '#222';
-    ctx.lineWidth = 4;
-    ctx.strokeText(buffRemain, player.width / 2, -player.height * 0.18);
-    ctx.fillText(buffRemain, player.width / 2, -player.height * 0.18);
-    ctx.restore();
-  }
-
-  // 最終恢復繪圖狀態
   ctx.restore();
 }
 
-function drawStairs() {
-  ctx.save();
-  
-  // 計算遊戲速度倍數（用於動畫效果）
-  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  
-  for (let s of stairs) {
-    let drawY = s.y - cameraOffsetY;
-    if (s.type === 'spring') {
+function drawTopSpikes() {
+  ctx.fillStyle = "#cccccc"; // 灰色
+  for (let i = 0; i < getWidth(); i += 10) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i + 5, 12);
+    ctx.lineTo(i + 10, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
+function drawPlatforms() {
+  for (let idx = 0; idx < platforms.length; idx++) {
+    let p = platforms[idx];
+    if (p.hidden) continue;
+    if (p.type === "normal") {
+      // 藍色平台，陰影深藍
+      ctx.fillStyle = "#3399ff";
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.fillStyle = "#003366";
+      ctx.fillRect(p.x, p.y + p.height - 3, p.width, 3); // 藍色陰影
+      ctx.strokeStyle = "#001a44";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
+    } else if (p.type === "jump") {
       // 綠色底
-      ctx.fillStyle = '#00e000';
-      ctx.fillRect(s.x, drawY, s.width, s.height);
-      ctx.strokeStyle = '#007700';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(s.x, drawY, s.width, s.height);
+      ctx.fillStyle = "#00e000";
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#007700";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
       // 畫白色彈簧線圈
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = "#fff";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      let springY = drawY + s.height / 2 + 1;
-      for (let i = 0; i < s.width - 8; i += 8) {
-        ctx.moveTo(s.x + 4 + i, springY - 2);
-        ctx.lineTo(s.x + 8 + i, springY + 2);
-        ctx.lineTo(s.x + 12 + i, springY - 2);
+      let springY = p.y + p.height / 2 + 1;
+      for (let i = 0; i < p.width - 8; i += 8) {
+        ctx.moveTo(p.x + 4 + i, springY - 2);
+        ctx.lineTo(p.x + 8 + i, springY + 2);
+        ctx.lineTo(p.x + 12 + i, springY - 2);
       }
       ctx.stroke();
       ctx.lineWidth = 1;
-    } else if (s.type === 'conveyorL' || s.type === 'conveyorR') {
-      // 灰色底
-      ctx.fillStyle = '#bbb';
-      ctx.fillRect(s.x, drawY, s.width, s.height);
-      ctx.strokeStyle = '#888';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(s.x, drawY, s.width, s.height);
+    } else if (p.type === "spike") {
+      // 尖刺平台：先繪製平台本身，再繪製尖刺
+      ctx.fillStyle = "#cccccc"; // 灰色平台
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#999999";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
+      // 在平台上方繪製尖刺
+      ctx.fillStyle = "#cccccc"; // 與頂部尖刺相同的顏色
+      for (let i = 0; i < p.width; i += 10) {
+        ctx.beginPath();
+        ctx.moveTo(p.x + i, p.y + p.height);
+        ctx.lineTo(p.x + i + 5, p.y + p.height - 20); // 增加尖刺高度到20像素
+        ctx.lineTo(p.x + i + 10, p.y + p.height);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (p.type === "vanish") {
+      // 消失平台：淺灰色
+      ctx.fillStyle = "#eeeeee";
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#bbbbbb";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
+    } else if (p.type === "conveyorL" || p.type === "conveyorR") {
+      // 傳輸帶平台：灰色底+深色橫條+白色箭頭
+      ctx.fillStyle = "#bbbbbb";
+      ctx.fillRect(p.x, p.y, p.width, p.height);
+      ctx.strokeStyle = "#888888";
+      ctx.strokeRect(p.x, p.y, p.width, p.height);
       // 畫左右半圓
       ctx.save();
-      ctx.fillStyle = '#bbb';
+      ctx.fillStyle = "#bbbbbb";
       // 左半圓
       ctx.beginPath();
-      ctx.arc(s.x, drawY + s.height / 2, s.height / 2, Math.PI / 2, Math.PI * 3 / 2, false);
+      ctx.arc(p.x, p.y + p.height / 2, p.height / 2, Math.PI / 2, Math.PI * 3 / 2, false);
       ctx.fill();
       // 右半圓
       ctx.beginPath();
-      ctx.arc(s.x + s.width, drawY + s.height / 2, s.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
+      ctx.arc(p.x + p.width, p.y + p.height / 2, p.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
       ctx.fill();
       ctx.restore();
-      // 畫移動的橫線（受遊戲速度影響）
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 1;
-      let anim = (performance.now() / (30 / gameSpeedFactor)) % 12;
-      let lineOffset = (s.type === 'conveyorL' ? -anim : anim);
-      for (let i = 0; i < s.width; i += 12) {
-        let xPos = s.x + i + lineOffset;
-        if (xPos >= s.x && xPos <= s.x + s.width) {
-          ctx.beginPath();
-          ctx.moveTo(xPos, drawY);
-          ctx.lineTo(xPos, drawY + s.height);
-          ctx.stroke();
-        }
-      }
-      // 畫箭頭
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      let arrowY = drawY + s.height / 2;
-      let arrowSpacing = s.width / 4;
-      for (let i = 1; i <= 3; i++) {
-        let arrowX = s.x + (i * arrowSpacing);
+      // 畫深色橫條
+      ctx.strokeStyle = "#666";
+      for (let i = 4; i < p.width; i += 12) {
         ctx.beginPath();
-        if (s.type === 'conveyorL') {
-          ctx.moveTo(arrowX + 4, arrowY - 4);
-          ctx.lineTo(arrowX - 4, arrowY);
-          ctx.lineTo(arrowX + 4, arrowY + 4);
-        } else {
-          ctx.moveTo(arrowX - 4, arrowY - 4);
-          ctx.lineTo(arrowX + 4, arrowY);
-          ctx.lineTo(arrowX - 4, arrowY + 4);
-        }
+        ctx.moveTo(p.x + i, p.y + 2);
+        ctx.lineTo(p.x + i, p.y + p.height - 2);
         ctx.stroke();
       }
-    } else {
-      ctx.fillStyle = '#c97a3a'; // 橘棕色
-      ctx.fillRect(s.x, drawY, s.width, s.height);
-      ctx.strokeStyle = '#a05a1a'; // 深棕色邊框
-      ctx.lineWidth = 3;
-      ctx.strokeRect(s.x, drawY, s.width, s.height);
+      // 畫三個白色箭頭
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      let arrowY = p.y + p.height / 2;
+      // 計算三個箭頭的位置，均勻分布在平台上
+      const arrowSpacing = p.width / 4; // 將平台寬度分成4份，箭頭在第1、2、3份的中心
+      if (p.type === "conveyorL") {
+        // 左傳送帶：箭頭指向左邊
+        for (let i = 1; i <= 3; i++) {
+          const arrowX = p.x + (arrowSpacing * i);
+          ctx.moveTo(arrowX + 6, arrowY - 4);
+          ctx.lineTo(arrowX, arrowY);
+          ctx.lineTo(arrowX + 6, arrowY + 4);
+        }
+      } else {
+        // 右傳送帶：箭頭指向右邊
+        for (let i = 1; i <= 3; i++) {
+          const arrowX = p.x + (arrowSpacing * i);
+          ctx.moveTo(arrowX - 6, arrowY - 4);
+          ctx.lineTo(arrowX, arrowY);
+          ctx.lineTo(arrowX - 6, arrowY + 4);
+        }
+      }
+      ctx.stroke();
       ctx.lineWidth = 1;
     }
-    // 畫雞腿道具
-    if (s.hasShoe) {
-      ctx.save();
-      ctx.translate(s.x + s.width/2, drawY - s.height - 8); // 抬高到平台上方
-      ctx.rotate(Math.PI / 16); // 肉的主體微微傾斜
-      ctx.scale(1.2, 1.2);
-
-      // 先畫骨頭（加大尺寸，骨頭再順時針旋轉30度）
-      ctx.save();
-      ctx.translate(7, 7); // 以骨頭中心為原點旋轉
-      ctx.rotate(Math.PI/6); // 30度
-      ctx.translate(-7, -7);
-      // 骨幹
-      ctx.beginPath();
-      ctx.moveTo(6, 5.5);
-      ctx.lineTo(15, 5.5);
-      ctx.lineTo(15, 8.5);
-      ctx.lineTo(6, 8.5);
-      ctx.closePath();
-      ctx.fillStyle = '#f9f6f2';
-      ctx.fill();
-      // 骨頭圓頭（左端）
-      ctx.beginPath();
-      ctx.arc(6, 7, 3, 0, Math.PI*2);
-      ctx.fillStyle = '#f9f6f2';
-      ctx.fill();
-      // 骨頭圓頭（右端）
-      ctx.beginPath();
-      ctx.arc(15, 7, 3.5, 0, Math.PI*2);
-      ctx.fillStyle = '#f9f6f2';
-      ctx.fill();
-      // 骨頭陰影
-      ctx.beginPath();
-      ctx.arc(15, 7, 2.7, Math.PI*0.2, Math.PI*1.2);
-      ctx.fillStyle = 'rgba(180,180,180,0.18)';
-      ctx.fill();
-      ctx.restore();
-
-      // 再畫雞腿肉（主體）
-      ctx.beginPath();
-      ctx.ellipse(-2, 4, 10, 7, 0, 0, Math.PI*2);
-      ctx.fillStyle = '#e8a14a';
-      ctx.shadowColor = '#b86b1b';
-      ctx.shadowBlur = 4;
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      // 雞腿肉高光
-      ctx.beginPath();
-      ctx.ellipse(-7, 1, 3, 1.2, -Math.PI/12, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fill();
-
-      ctx.restore();
-    }
-    // 繪製藥丸
-    if (s.hasPill) {
-      ctx.save();
-      ctx.translate(s.x + s.width/2, drawY - s.height - 8); // 平台上方
-      ctx.rotate(Math.PI / 12); // 微傾斜
-      ctx.scale(1.3, 1.3);
-      // 藍白膠囊
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(-3, 0, 7, 5, 0, Math.PI*0.5, Math.PI*1.5);
-      ctx.fillStyle = '#2196f3';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2);
-      ctx.strokeStyle = '#2196f3';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.restore();
-    }
   }
-  ctx.restore();
 }
 
 function drawHUD() {
-  const hudPower = document.querySelector('#hud .hud-power');
-  if (hudPower && player) {
-    let html = '';
-    let percent = player.power / player.maxPower;
-    let barCount = 12;
-    for (let i = 0; i < barCount; i++) {
-      if (i < Math.round(percent * barCount)) {
-        html += `<span style=\"display:inline-block;width:6px;height:12px;background:#ffe600;border:1px solid #fff;margin-right:1px;box-shadow:0 0 2px #fff;\"></span>`;
+  if (!player) return;
+  const maxHp = 12;
+  let hpHtml = '';
+  for (let i = 0; i < maxHp; i++) {
+    if (i < player.hp) {
+      if (player.hp <= 5) {
+        hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:red;border:1px solid #c00;margin-right:2px;"></span>';
       } else {
-        html += `<span style=\"display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;\"></span>`;
+        hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:yellow;border:1px solid #cc0;margin-right:2px;"></span>';
       }
+    } else {
+      hpHtml += '<span style="display:inline-block;width:2px;height:16px;background:#333;border:1px solid #222;margin-right:2px;"></span>';
     }
-    hudPower.innerHTML = html;
   }
-  const hudScore = document.getElementById('hud-score');
-  if (hudScore) {
-    hudScore.innerHTML = `<span class='score-num'>${String(score).padStart(4, "0")}</span><span class='score-unit'>階</span>`;
-  }
+  // 只更新血量條內容
+  const hudHp = document.querySelector('#hud .hud-hp');
+  if (hudHp) hudHp.innerHTML = hpHtml;
+  // 只更新分數與最高分
   const hudHighscore = document.getElementById('hud-highscore');
-  if (hudHighscore) {
-    hudHighscore.textContent = `最高 ${String(highScore).padStart(4, "0")}`;
-  }
+  if (hudHighscore) hudHighscore.textContent = '最高: ' + highScore;
+  const hudScore = document.getElementById('hud-score');
+  if (hudScore) hudScore.textContent = '地下' + String(player.score).padStart(4, "0") + '階';
+  // 只更新音效/音樂按鈕文字
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
-  const pauseToggle = document.getElementById('pause-toggle');
-  const settingsToggle = document.getElementById('settings-toggle');
-  const helpToggle = document.getElementById('help-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
-  if (pauseToggle) pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
-  if (settingsToggle) settingsToggle.textContent = '⚙️ 設定';
-  if (helpToggle) helpToggle.textContent = '❓ 說明';
 }
 
 function updatePlayer() {
-  if (!player.alive) return false;
-  
-  // 計算遊戲速度倍數（用於所有物理和移動效果）
-  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  
-  // 自動左右移動（受遊戲速度影響）
-  player.x += player.vx * player.dir * gameSpeedFactor;
-  // 碰牆自動反向
-  if (player.x < 0) {
-    player.x = 0;
-    player.dir = 1;
-  } else if (player.x + player.width > getWidth()) {
-    player.x = getWidth() - player.width;
-    player.dir = -1;
-  }
+  player.vy += player.gravity;
+  player.y += player.vy;
 
-  // --- 重構垂直移動與平台互動邏輯 ---
-  let justLanded = false;
-
-  // 1. 如果玩家在平台上，讓他"黏住"並檢查是否走下平台
-  if (player.onStair && player.landedOn) {
-    const platform = player.landedOn;
-    // 檢查X軸是否還在平台範圍內（增加容許範圍）
-    const tolerance = pillBuffActive ? player.width * 0.3 : player.width * 0.1; // 巨大化 buff 時容許度更大
-    if (player.x + player.width > platform.x - tolerance && player.x < platform.x + platform.width + tolerance) {
-        player.y = platform.y - player.height; // 鎖定Y座標
-        player.vy = 0; // 站在平台上時沒有垂直速度
-    } else {
-        // 玩家走出了平台X軸範圍
-        player.onStair = false;
-        player.landedOn = null;
-        player.lastLeaveTime = performance.now() / 1000;
-    }
-  }
-
-  // 2. 如果玩家在空中，施加重力並檢查是否落地
-  if (!player.onStair) {
-    // 重力（受遊戲速度影響）
-    player.vy += player.gravity * gameSpeedFactor;
-    // 限制最大下墜速度
-    player.vy = Math.min(player.vy, 12);
-    
-    // 記錄前一幀底部
-    let prevBottom = player.y + player.height;
-    player.y += player.vy;
-    let currBottom = player.y + player.height;
-
-    // 穿越平台計分邏輯
-    if (currBottom < prevBottom) { // 只在上升時檢查
-      for (let s of stairs) {
-        if (s.y === getHeight() - stairHeight) continue; // 跳過地面
-        if (
-          prevBottom > s.y && currBottom <= s.y &&
-          !allPassedPlatforms.has(s.y)
-        ) {
-          passedPlatforms.add(s.y);
-          allPassedPlatforms.add(s.y);
+  // 頂端尖刺碰撞 - 精靈帽子頂端碰到尖刺就受傷
+  const hatTopY = player.y; // 帽子頂端位置（精靈的y座標就是帽子頂端）
+  if (hatTopY <= 12) { // 尖刺高度是12像素
+    if (lastPlatformTouched !== 'topSpike') {
+      playSfxPool('spike'); // 播放被刺到音效
+      player.hp -= 5;
+      lastPlatformTouched = 'topSpike';
+      player.isHurt = true;
+      player.hurtTimer = 1000;
+      // 將正下方平台設為 hidden
+      platforms.forEach(p => {
+        const overlap =
+          player.x + player.width > p.x &&
+          player.x < p.x + p.width &&
+          player.y + player.height <= p.y + p.height &&
+          player.y + player.height >= p.y;
+        if (overlap && (p.type === 'normal' || p.type === 'spike' || p.type === 'conveyorL' || p.type === 'conveyorR')) {
+          p.hidden = true;
         }
-      }
-      if (passedPlatforms.size >= 5) {
-        score++;
-        passedPlatforms.clear();
-      }
+      });
     }
+    player.y = 12; // 將精靈帽子頂端停在尖刺下方
+    player.vy = 0;
+    player.fallThrough = true; // 開啟穿透狀態
+  } else if (lastPlatformTouched === 'topSpike') {
+    lastPlatformTouched = null;
+    player.fallThrough = false; // 離開頂端，恢復正常
+  }
 
-    // 檢查是否落在新樓梯上
-    if (player.vy >= 0) { // 只在下墜時檢查
-        for (let s of stairs) {
-            // 增加容許範圍，讓精靈可以稍微超出平台邊界
-            const tolerance = pillBuffActive ? player.width * 0.3 : player.width * 0.1; // 巨大化 buff 時容許度更大
-            if (player.x + player.width > s.x - tolerance &&
-                player.x < s.x + s.width + tolerance &&
-                prevBottom <= s.y &&
-                currBottom >= s.y) {
-              
-                player.y = s.y - player.height;
-                player.vy = 0;
-                player.onStair = true;
-                player.landedOn = s;
-                justLanded = true;
-                player.lastLandTime = performance.now() / 1000;
+  if (keys["ArrowLeft"]) player.vx = -player.speed;
+  else if (keys["ArrowRight"]) player.vx = player.speed;
+  else player.vx = 0;
 
-                // 如果在空中時已按下(pending)，則落地瞬間立即開始集氣
-                if (player.chargePending) {
-                    startCharge();
-                    player.chargePending = false; // 清除等待狀態
-                }
+  player.x += player.vx;
+  if (player.x < 0) player.x = 0;
+  if (player.x + player.width > getWidth()) player.x = getWidth() - player.width;
 
-                // Jump buffer: 如果有緩衝，落地瞬間自動跳
-                if (jumpBufferTimer > 0) {
-                    jumpBufferTimer = 0;
-                    // 若沒集氣，給最小力量
-                    if (!player.charging) {
-                        player.power = 1;
-                        player.charging = true;
-                    }
-                    releaseJump();
-                }
-
-                // 處理剛落地時的平台效果（受遊戲速度影響）
-                if (s.type === 'conveyorL') {
-                    player.x -= 0.6 * gameSpeedFactor;
-                } else if (s.type === 'conveyorR') {
-                    player.x += 0.6 * gameSpeedFactor;
-                }
-                if (player.jumping) {
-                    player.jumping = false;
-                    if (s.y !== getHeight() - stairHeight && lastLandedStairY !== s.y && (player.y + player.height - cameraOffsetY) < getHeight() * 0.5) {
-                        needScrollToStair = true;
-                        lastLandedStairY = s.y;
-                    }
-                }
-                // 檢查是否吃到運動鞋
-                if (s.hasShoe) {
-                  s.hasShoe = false;
-                  // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
-                  if (pillBuffActive || pillScale > 1) {
-                    pillScaleTarget = 1;
-                    pillScaleAnimStartTime = performance.now();
-                  }
-                  pillBuffActive = false;
-                  shoeBuffActive = true;
-                  shoeBuffEndTime = performance.now() + 10000;
-                }
-                break; // 找到平台就停止檢查
-            }
+  player.onGround = false;
+  // 若在穿透狀態，跳過平台碰撞
+  if (!player.fallThrough) {
+    for (let p of platforms) {
+      if (p.hidden) continue;
+      if (player.vy >= 0 &&
+          player.x + player.width > p.x &&
+          player.x < p.x + p.width &&
+          player.y + player.height > p.y &&
+          player.y + player.height < p.y + p.height + player.vy) {
+        player.y = p.y - player.height;
+        player.onGround = true;
+        if (p.type === "spike") {
+          if (lastPlatformTouched !== p) {
+            playSfxPool('spike'); // 播放被刺到音效
+            player.hp -= 5;
+            lastPlatformTouched = p;
+            player.isHurt = true;
+            player.hurtTimer = 1000;
+          }
+          player.vy = 0;
+        } else if (p.type === "jump") {
+          playSfxPool('jump'); // 播放彈跳音效
+          // 取得平台間距
+          const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
+          const g = player.gravity;
+          // 計算比一層高一點點的初速度（1.15倍平台間距）
+          const maxVy = -Math.sqrt(2 * g * platformSpacing * 1.15);
+          player.vy = maxVy;
+          player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
+          lastPlatformTouched = p;
+        } else if (p.type === "normal") {
+          if (lastPlatformTouched !== p) {
+            playSfxPool('normal'); // 播放一般平台音效
+            player.hp = Math.min(player.hp + 1, 12);
+            lastPlatformTouched = p;
+          }
+          player.vy = 0;
+        } else if (p.type === "vanish") {
+          player.vy = 0;
+          if (p.vanishTimer === null) {
+            playSfxPool('normal'); // 先播放一般平台音效
+            p.vanishTimer = Date.now();
+            player.hp = Math.min(player.hp + 1, 12);
+          } else if (Date.now() - p.vanishTimer >= 200) {
+            p.hidden = true;
+            playSfxPool('vanish'); // 播放消失音效
+            break;
+          }
+          lastPlatformTouched = p;
+        } else if (p.type === "conveyorL" || p.type === "conveyorR") {
+          player.vy = 0;
+          if (p.type === "conveyorL") {
+            player.x -= 1.5;
+          } else {
+            player.x += 1.5;
+          }
+          if (lastPlatformTouched !== p) {
+            playSfxPool('normal'); // 播放一般平台音效
+            player.hp = Math.min(player.hp + 1, 12);
+            lastPlatformTouched = p;
+          }
         }
-    }
-  } else {
-    // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響）
-    const s = player.landedOn;
-    if (s && s.type === 'conveyorL') {
-        player.x -= 0.5 * gameSpeedFactor;
-    } else if (s && s.type === 'conveyorR') {
-        player.x += 0.5 * gameSpeedFactor;
+      } else if (p.type === "vanish") {
+        // 離開平台時重設 vanishTimer
+        p.vanishTimer = null;
+      }
     }
   }
 
-  // 播放落地音效
-  if (justLanded) {
-    playSfx(sfxLand);
-  }
-
-  // 掉出畫面
-  if (player.y + player.height - cameraOffsetY > getHeight()) {
-    player.alive = false;
+  if (player.y > getHeight() || (player.hp <= 0 && !player.fallThrough)) {
     setTimeout(() => {
-      playSfx(sfxDead);
-      if (score > highScore) {
-        highScore = score;
-        localStorage.setItem('ns_tower_highscore', highScore);
+      playSfxPool('dead'); // 播放死亡音效
+      // 更新最高分數
+      if (player.score > highScore) {
+        highScore = player.score;
+        localStorage.setItem('ns_shaft_highscore', highScore);
       }
-      showGameOverModal(score, score >= highScore);
+      showGameOverModal(player.score, player.score >= highScore);
     }, 100);
     return false;
   }
-  // 跳起來時自動跟隨：精靈還沒落地且高度達到畫面90%時
-  if (
-    player.alive &&
-    !player.onStair &&
-    (player.y + player.height - cameraOffsetY) < getHeight() * 0.1
-  ) {
-    needScrollToStair = true;
-  }
-  // buff結束自動恢復
-  if (shoeBuffActive && performance.now() > shoeBuffEndTime) {
-    shoeBuffActive = false;
-    // 若鞋子buff結束且膠囊沒在作用，縮回去
-    if (!pillBuffActive) {
-      pillScaleTarget = 1;
-      pillScaleAnimStartTime = performance.now();
-    }
-  }
-  if (pillBuffActive && performance.now() > pillBuffEndTime) {
-    pillBuffActive = false;
-    pillScaleTarget = 1;
-    pillScaleAnimStartTime = performance.now();
-  }
 
-  // 檢查是否吃到雞腿（不只落地時，從下往上穿過也算）
-  for (let s of stairs) {
-    if (s.hasShoe) {
-      // 雞腿的中心位置
-      const drumstickX = s.x + s.width/2;
-      const drumstickY = s.y - s.height - 8 + 4; // +4為雞腿橢圓中心
-      // 雞腿外接矩形
-      const drumW = 20, drumH = 16; // 橢圓大致寬高
-      const drumRect = {
-        left: drumstickX - drumW/2,
-        right: drumstickX + drumW/2,
-        top: drumstickY - drumH/2,
-        bottom: drumstickY + drumH/2
-      };
-      // 主角矩形
-      const px = player.x, py = player.y, pw = player.width, ph = player.height;
-      const playerRect = {
-        left: px,
-        right: px + pw,
-        top: py,
-        bottom: py + ph
-      };
-      // 判斷有無重疊
-      if (
-        playerRect.left < drumRect.right &&
-        playerRect.right > drumRect.left &&
-        playerRect.top < drumRect.bottom &&
-        playerRect.bottom > drumRect.top
-      ) {
-        s.hasShoe = false;
-        // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
-        if (pillBuffActive || pillScale > 1) {
-          pillScaleTarget = 1;
-          pillScaleAnimStartTime = performance.now();
-        }
-        pillBuffActive = false;
-        shoeBuffActive = true;
-        shoeBuffEndTime = performance.now() + 10000;
-      }
-    }
-  }
+  if (player.vx < 0) player.direction = "left";
+  else if (player.vx > 0) player.direction = "right";
+  else player.direction = "front";
 
-  // 檢查是否吃到藥丸
-  for (let s of stairs) {
-    if (s.hasPill) {
-      // 藥丸中心
-      const pillX = s.x + s.width/2;
-      const pillY = s.y - s.height - 8;
-      const pillW = 20, pillH = 10;
-      const pillRect = {
-        left: pillX - pillW/2,
-        right: pillX + pillW/2,
-        top: pillY - pillH/2,
-        bottom: pillY + pillH/2
-      };
-      // 主角矩形
-      const px = player.x, py = player.y, pw = player.width, ph = player.height;
-      const playerRect = {
-        left: px,
-        right: px + pw,
-        top: py,
-        bottom: py + ph
-      };
-      if (
-        playerRect.left < pillRect.right &&
-        playerRect.right > pillRect.left &&
-        playerRect.top < pillRect.bottom &&
-        playerRect.bottom > pillRect.top
-      ) {
-        s.hasPill = false;
-        // 互斥：吃到膠囊時取消雞腿buff，並觸發放大動畫
-        if (!pillBuffActive || pillScale < 2) {
-          pillScaleTarget = 2;
-          pillScaleAnimStartTime = performance.now();
-        }
-        shoeBuffActive = false;
-        shoeBuffEndTime = 0;
-        pillBuffActive = true;
-        pillBuffEndTime = performance.now() + 10000;
-      }
-    }
-  }
-  // buff結束自動恢復
-  if (shoeBuffActive && performance.now() > shoeBuffEndTime) {
-    shoeBuffActive = false;
-    // 若鞋子buff結束且膠囊沒在作用，縮回去
-    if (!pillBuffActive) {
-      pillScaleTarget = 1;
-      pillScaleAnimStartTime = performance.now();
-    }
-  }
-  if (pillBuffActive && performance.now() > pillBuffEndTime) {
-    pillBuffActive = false;
-    pillScaleTarget = 1;
-    pillScaleAnimStartTime = performance.now();
+  if (player.vx !== 0) {
+    player.runAnim += Math.abs(player.vx) * 0.28;
+  } else {
+    player.runAnim = 0;
   }
 
   return true;
 }
 
-function updateStairs() {
-  // 移除超出鏡頭下方的樓梯與地面（只保留可見+一組）
-  stairs = stairs.filter(s => s.y - cameraOffsetY < getHeight() + stairGap * 4);
-  stairWidth = Math.floor(getWidth() * 0.25);
-  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
-  while (stairs.length < visibleStairCount) {
-    let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
-    for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
-      let newY = lastY - stairGap;
-      let basePercent = stairBasePercents[stairPatternIdx];
-      // 決定可用樓梯類型
-      let types;
-      if (basePercent === 0.0 || basePercent === 1.0) {
-        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'vertical', 'upward'];
-      } else {
-        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+function updatePlatforms() {
+  // 平台速度隨分數增加而變快
+  const baseSpeed = 1.5;
+  const speedIncrement = 0.05; // 每層增加的速度
+  const platformSpeed = baseSpeed + (player.score * speedIncrement);
+  
+  for (let p of platforms) {
+    p.y -= platformSpeed;
+  }
+  
+  // 處理消失與重生
+  for (let i = 0; i < platforms.length; i++) {
+    let p = platforms[i];
+    if (p.y + p.height < 0) {
+      // 只要平台（不論 hidden 與否）離開畫面頂端就計數
+      platformPassedCount++;
+      if (platformPassedCount % 5 === 0) {
+        player.score++;
       }
-      let type = types[Math.floor(Math.random() * types.length)];
-      let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
-      if (type === "horizontal") {
-        vx = (Math.random() < 0.5 ? -1 : 1) * 0.6;
-        rangeX = stairWidth * 1.2;
-        phase = Math.random() * Math.PI * 2;
-      } else if (type === "vertical") {
-        vy = (Math.random() < 0.5 ? -1 : 1) * 0.4;
-        rangeY = stairGap * 0.7;
-        phase = Math.random() * Math.PI * 2;
-      } else if (type === "upward") {
-        vy = 0;
-        rangeY = stairGap * 0.7;
-        phase = Math.random() * Math.PI * 2;
-      }
-      let newX = getPatternStairX(getWidth(), stairWidth);
-      const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
-      let hasShoe = false, hasPill = false;
-      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
-        if (shoeItemEnabled) {
-          if (Math.random() < 0.5) {
-            hasShoe = true;
-          } else {
-            hasPill = true;
-          }
+      // 平台重生
+      const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
+      const platformHeight = 10;
+      const platformSpacing = getHeight() / 8; // 固定間距
+      // 找到最下方的平台，在其下方固定間距處生成新平台
+      let lowestPlatform = null;
+      for (let otherP of platforms) {
+        if (otherP !== p && (lowestPlatform === null || otherP.y > lowestPlatform.y)) {
+          lowestPlatform = otherP;
         }
       }
-      stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
-      lastY = newY;
+      let newY, newX;
+      if (lowestPlatform) {
+        newY = lowestPlatform.y + platformSpacing;
+      } else {
+        newY = getHeight();
+      }
+      let tryCount = 0;
+      do {
+        newX = Math.random() * (getWidth() - platformWidth);
+        tryCount++;
+      } while (
+        tryCount < 20 &&
+        player.x + player.width > newX &&
+        player.x < newX + platformWidth &&
+        player.y + player.height <= newY + platformHeight &&
+        player.y + player.height >= newY
+      );
+      p.y = newY;
+      p.x = newX;
+      // 使用新的平台類型選擇邏輯
+      p.type = selectPlatformType();
+      p.vanishTimer = null;
+      p.hidden = false;
     }
   }
   
-  // 更新移動平台位置（受遊戲速度影響）
-  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  let t = performance.now() / 1000 * gameSpeedFactor;
-  for (let s of stairs) {
-    if (s.type === "horizontal") {
-      s.x = s.baseX + Math.sin(t + s.phase) * s.rangeX;
-    } else if (s.type === "vertical") {
-      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
-    } else if (s.type === "upward") {
-      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
+  // 檢查平台數量，如果少於8個就補充
+  const targetPlatformCount = 8;
+  while (platforms.length < targetPlatformCount) {
+    const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
+    const platformHeight = 10;
+    const platformSpacing = getHeight() / 8; // 固定間距
+    
+    // 找到最下方的平台，在其下方固定間距處生成新平台
+    let lowestPlatform = null;
+    for (let p of platforms) {
+      if (lowestPlatform === null || p.y > lowestPlatform.y) {
+        lowestPlatform = p;
+      }
     }
+    
+    let newY, newX;
+    if (lowestPlatform) {
+      // 在最下方平台下方固定間距處生成
+      newY = lowestPlatform.y + platformSpacing;
+    } else {
+      // 如果沒有其他平台，在畫面底部生成
+      newY = getHeight();
+    }
+    
+    // 生成X位置，避免與玩家重疊
+    let attempts = 0;
+    do {
+      newX = Math.random() * (getWidth() - platformWidth);
+      attempts++;
+    } while (
+      attempts < 20 &&
+      player.x + player.width > newX &&
+      player.x < newX + platformWidth &&
+      player.y + player.height <= newY + platformHeight &&
+      player.y + player.height >= newY
+    );
+    
+    // 生成新平台
+    let newPlatform = {
+      x: newX,
+      y: newY,
+      width: platformWidth,
+      height: platformHeight,
+      type: selectPlatformType(), // 使用新的平台類型選擇邏輯
+      vanishTimer: null,
+      hidden: false
+    };
+    platforms.push(newPlatform);
   }
+}
+
+function togglePause() {
+  paused = !paused;
+  if (!paused) requestAnimationFrame(gameLoop);
+  // 可加暫停提示
+  document.getElementById('pause-btn').innerText = paused ? '⏸️' : '⏯️';
 }
 
 function gameLoop() {
   if (paused) return;
-
-  // --- 移除隨機跳過幀的慢動作邏輯 ---
-
-  // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
-  const wantsToCharge = inputState.isPressed || inputState.spacebar;
-  if (wantsToCharge && player.alive) {
-    if (player.onStair && !player.charging) {
-      // 處理在地面上按下時直接開始集氣
-      startCharge();
-      player.chargePending = false;
-    } else if (!player.onStair) {
-      // 處理在空中按下時，設定"等待集氣"狀態
-      player.chargePending = true;
-    }
-  } else { // released
-    if (player.charging) {
-      releaseJump();
-    }
-    // 只要放開，就清除等待狀態
-    player.chargePending = false;
-  }
-
-  // 每幀遞減 jump buffer timer
-  if (jumpBufferTimer > 0) {
-    jumpBufferTimer -= 1/60;
-    if (jumpBufferTimer < 0) jumpBufferTimer = 0;
-  }
-
   ctx.clearRect(0, 0, getWidth(), getHeight());
-  // 背景（深紅棕色漸層）
+  // 畫深藍色漸層背景（更接近原作）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
-  grad.addColorStop(0, "#3a1a0a");
-  grad.addColorStop(1, "#6b2e13");
+  grad.addColorStop(0, "#001a33");
+  grad.addColorStop(1, "#003366");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, getWidth(), getHeight());
-  
-  drawStairs();
+  drawTopSpikes(); // 畫頂端尖刺
   if (!updatePlayer()) return;
-  // 鏡頭平滑移動
-  const cameraSpeed = 18; // 每幀最大移動像素
-  if (Math.abs(cameraOffsetY - cameraTargetOffsetY) > 1) {
-    cameraOffsetY += (cameraTargetOffsetY - cameraOffsetY) * 0.08;
-    // 若很接近目標就直接到位
-    if (Math.abs(cameraOffsetY - cameraTargetOffsetY) < 1) cameraOffsetY = cameraTargetOffsetY;
-  } else {
-    cameraOffsetY = cameraTargetOffsetY;
-  }
-  // 新增：只在 needScrollToStair 時設定目標鏡頭
-  if (needScrollToStair) {
-    cameraTargetOffsetY = player.y + player.height - getHeight() / 2;
-    needScrollToStair = false;
-  }
-  updateStairs();
+  updatePlatforms();
+  drawPlatforms();
   drawPlayer();
   drawHUD();
+  // 加上遊戲區域邊框
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
-
-  // 蓄力中每幀增加力量
-  if (player && player.charging && player.onStair && !player.jumping) {
-    // 力量重置開啟時，集氣速度較慢
-    player.powerIncrement = powerAutoReset ? 2 : 4;
-    if (powerAutoReset && player.power >= player.maxPower) {
-      player.power = 0; // 自動重置
-    } else {
-      player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
+  if (player.isHurt && player.hurtTimer > 0) {
+    player.hurtTimer -= 16; // 約等於一幀16ms
+    if (player.hurtTimer <= 0) {
+      player.isHurt = false;
+      player.hurtTimer = 0;
     }
   }
-  
-  // 根據遊戲速度調整下一幀的延遲
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
+// 觸控與按鈕操作
+const btnLeft = document.getElementById('btn-left');
+const btnRight = document.getElementById('btn-right');
+const pauseBtn = document.getElementById('pause-btn');
+
+function setKey(key, val) {
+  keys[key] = val;
+}
+
+function handleTouch(e) {
+  let left = false, right = false;
+  const half = window.innerWidth / 2;
+  const controls = document.getElementById('controls');
+  for (let i = 0; i < e.touches.length; i++) {
+    const x = e.touches[i].clientX;
+    const y = e.touches[i].clientY;
+    // 檢查是否在 controls 區域內
+    if (controls) {
+      const rect = controls.getBoundingClientRect();
+      if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+        continue; // 跳過在按鈕區的觸控點
+      }
+    }
+    if (x < half) left = true;
+    if (x >= half) right = true;
+  }
+  setKey('ArrowLeft', left);
+  setKey('ArrowRight', right);
+}
+
+window.addEventListener('touchstart', handleTouch);
+window.addEventListener('touchmove', handleTouch);
+window.addEventListener('touchend', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
+window.addEventListener('touchcancel', function(e) {
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
+
+btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
+btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
+btnLeft.addEventListener('mousedown', e => { setKey('ArrowLeft', true); });
+btnLeft.addEventListener('mouseup', e => { setKey('ArrowLeft', false); });
+btnLeft.addEventListener('mouseleave', e => { setKey('ArrowLeft', false); });
+
+btnRight.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowRight', true); });
+btnRight.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowRight', false); });
+btnRight.addEventListener('mousedown', e => { setKey('ArrowRight', true); });
+btnRight.addEventListener('mouseup', e => { setKey('ArrowRight', false); });
+btnRight.addEventListener('mouseleave', e => { setKey('ArrowRight', false); });
+
+pauseBtn.addEventListener('click', togglePause);
+
+// 防止暫停鍵觸控時觸發左右移動，並正確切換暫停狀態
+pauseBtn.addEventListener('touchstart', e => {
+  e.preventDefault();
+  e.stopPropagation();
+});
+pauseBtn.addEventListener('touchend', e => {
+  e.preventDefault();
+  e.stopPropagation();
+  togglePause();
+  setKey('ArrowLeft', false);
+  setKey('ArrowRight', false);
+});
+
+// 遊戲結束自訂彈窗
 function showGameOverModal(score, isNewRecord) {
   const modal = document.getElementById('gameover-modal');
   const msg = document.getElementById('gameover-msg');
@@ -1679,308 +1188,51 @@ function showGameOverModal(score, isNewRecord) {
   modal.style.display = 'flex';
 }
 
-function startCharge() {
-    if (player && player.onStair && !player.charging && player.alive) {
-        player.charging = true;
-        playSfx(sfxCharge);
-        return true;
-    }
-    return false;
-}
-
-function releaseJump() {
-  let didJump = false;
-  if (player && player.charging && player.alive) {
-    if (player.onStair) {
-      const powerRatio = player.power / player.maxPower;
-      let maxJumpHeight = 7.5 * player.height;
-      if (shoeBuffActive) maxJumpHeight *= 1.5;
-      if (pillBuffActive) maxJumpHeight *= 2;
-      
-      // 計算遊戲速度倍數
-      const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-      
-      // 調整重力以保持跳躍高度不變
-      const adjustedGravity = player.gravity * gameSpeedFactor;
-      const maxVy = -Math.sqrt(2 * adjustedGravity * maxJumpHeight);
-      player.vy = player.jumpPower + (maxVy - player.jumpPower) * powerRatio;
-
-      const onSpring = player.landedOn && player.landedOn.type === 'spring';
-      if (onSpring) {
-        player.vy *= 1.5; // 從彈簧平台跳得更高
-        playSfx(sfxSpringJump);
-      } else {
-        playSfx(sfxJump);
-      }
-      
-      player.jumping = true;
-      player.onStair = false;
-      player.landedOn = null;
-      player.lastJumpTime = performance.now() / 1000;
-      didJump = true;
-    }
-    player.charging = false;
-    player.power = 0;
-  }
-  // 無論有無集氣，只要在空中釋放都設 jump buffer
-  if (player && !player.onStair && player.alive) {
-    jumpBufferTimer = JUMP_BUFFER_TIME;
-  }
-  return didJump;
-}
-
 document.getElementById('restart-btn').addEventListener('click', () => {
   document.getElementById('gameover-modal').style.display = 'none';
   initGame();
 });
 
+// 修改window.keydown事件
 window.addEventListener('keydown', function(e) {
   const modal = document.getElementById('gameover-modal');
   if (modal.style.display === 'flex' && (e.key === 'Enter' || e.keyCode === 13)) {
     modal.style.display = 'none';
     initGame();
-    e.preventDefault();
+    e.preventDefault(); // 防止Enter觸發其他按鈕
     return;
   }
-  if ((e.key === ' ' || e.key === 'Spacebar')) {
-    inputState.spacebar = true;
-    e.preventDefault();
+  if (e.key === 'p' || e.key === 'P') {
+    togglePause();
   }
-});
-
-window.addEventListener('keyup', function(e) {
-  if ((e.key === ' ' || e.key === 'Spacebar')) {
-    inputState.spacebar = false;
-    e.preventDefault();
-  }
-});
-
-window.addEventListener('mousedown', function(e) {
-  // 如果點擊的是按鈕，則不觸發集氣
-  if (e.target.tagName === 'BUTTON') return;
-  inputState.isPressed = true;
-  e.preventDefault(); // 防止選取文字或其他預設行為
-});
-window.addEventListener('mouseup', function(e) {
-  inputState.isPressed = false;
-});
-window.addEventListener('touchstart', function(e) {
-  // 如果觸控的是按鈕，則不觸發集氣
-  if (e.target.tagName === 'BUTTON') return;
-  inputState.isPressed = true;
-  e.preventDefault(); // 防止捲動或觸發滑鼠事件
-});
-window.addEventListener('touchend', function(e) {
-  inputState.isPressed = false;
 });
 
 window.addEventListener('DOMContentLoaded', function() {
+  // 只掛一次事件監聽器
+  document.addEventListener("keydown", e => keys[e.key] = true);
+  document.addEventListener("keyup", e => keys[e.key] = false);
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
-  const pauseToggle = document.getElementById('pause-toggle');
-  const settingsToggle = document.getElementById('settings-toggle');
-  const helpToggle = document.getElementById('help-toggle');
-  const helpModal = document.getElementById('help-modal');
-  const helpCloseBtn = document.getElementById('help-close-btn');
-  // 設定彈窗
-  const settingsModal = document.getElementById('settings-modal');
-  const settingsCloseBtn = document.getElementById('settings-close-btn');
-  const settingsPowerReset = document.getElementById('settings-power-reset');
-  const settingsWalkSlow = document.getElementById('settings-walk-slow');
-  const settingsWalkNormal = document.getElementById('settings-walk-normal');
-  const settingsWalkFast = document.getElementById('settings-walk-fast');
-  const settingsShoeItem = document.getElementById('settings-shoe-item');
-  const settingsSpeedDecrease = document.getElementById('speed-decrease');
-  const settingsSpeedIncrease = document.getElementById('speed-increase');
-  const speedDisplay = document.getElementById('speed-display');
-
+  // 強制移除聚焦
   if (sfxToggle) sfxToggle.blur();
   if (bgmToggle) bgmToggle.blur();
-  if (pauseToggle) pauseToggle.blur();
-  if (settingsToggle) {
-    settingsToggle.addEventListener('click', function() {
-      // 初始化設定彈窗內容
-      settingsPowerReset.textContent = powerAutoReset ? 'ON' : 'OFF';
-      settingsShoeItem.textContent = shoeItemEnabled ? 'ON' : 'OFF';
-      
-      // 更新行走速度按鈕狀態
-      updateWalkSpeedButtons();
-      
-      // 更新速度滑桿狀態
-      updateSpeedSlider();
-      
-      settingsModal.style.display = 'flex';
-    });
-  }
-  if (settingsCloseBtn) {
-    settingsCloseBtn.addEventListener('click', function() {
-      settingsModal.style.display = 'none';
-    });
-  }
-  if (settingsPowerReset) {
-    settingsPowerReset.addEventListener('click', function() {
-      powerAutoReset = !powerAutoReset;
-      settingsPowerReset.textContent = powerAutoReset ? 'ON' : 'OFF';
-      drawHUD();
-    });
-  }
-  
-  // 行走速度按鈕事件處理
-  if (settingsWalkSlow) {
-    settingsWalkSlow.addEventListener('click', function() {
-      walkSpeedMode = 'slow';
-      if (player) player.vx = getFinalWalkSpeed();
-      updateWalkSpeedButtons();
-      drawHUD();
-    });
-  }
-  if (settingsWalkNormal) {
-    settingsWalkNormal.addEventListener('click', function() {
-      walkSpeedMode = 'normal';
-      if (player) player.vx = getFinalWalkSpeed();
-      updateWalkSpeedButtons();
-      drawHUD();
-    });
-  }
-  if (settingsWalkFast) {
-    settingsWalkFast.addEventListener('click', function() {
-      walkSpeedMode = 'fast';
-      if (player) player.vx = getFinalWalkSpeed();
-      updateWalkSpeedButtons();
-      drawHUD();
-    });
-  }
-  
-  function updateSpeedDisplay() {
-    if (speedDisplay) speedDisplay.textContent = gameSpeedMultiplier;
-  }
-  updateSpeedDisplay();
-
-  // 按住按鈕持續調整的變數
-  let speedDecreaseInterval = null;
-  let speedIncreaseInterval = null;
-
-  if (settingsSpeedDecrease) {
-    settingsSpeedDecrease.addEventListener('mousedown', function() {
-      // 立即調整一次
-      gameSpeedMultiplier -= 5;
-      updateSpeedSlider();
-      drawHUD();
-      
-      // 開始持續調整
-      speedDecreaseInterval = setInterval(() => {
-        gameSpeedMultiplier -= 2;
-        updateSpeedSlider();
-        drawHUD();
-      }, 100); // 每100ms調整一次
-    });
-    
-    settingsSpeedDecrease.addEventListener('mouseup', function() {
-      if (speedDecreaseInterval) {
-        clearInterval(speedDecreaseInterval);
-        speedDecreaseInterval = null;
-      }
-    });
-    
-    settingsSpeedDecrease.addEventListener('mouseleave', function() {
-      if (speedDecreaseInterval) {
-        clearInterval(speedDecreaseInterval);
-        speedDecreaseInterval = null;
-      }
-    });
-    
-    // 觸控設備支援
-    settingsSpeedDecrease.addEventListener('touchstart', function(e) {
-      e.preventDefault();
-      // 立即調整一次
-      gameSpeedMultiplier -= 5;
-      updateSpeedSlider();
-      drawHUD();
-      
-      // 開始持續調整
-      speedDecreaseInterval = setInterval(() => {
-        gameSpeedMultiplier -= 2;
-        updateSpeedSlider();
-        drawHUD();
-      }, 100);
-    });
-    
-    settingsSpeedDecrease.addEventListener('touchend', function() {
-      if (speedDecreaseInterval) {
-        clearInterval(speedDecreaseInterval);
-        speedDecreaseInterval = null;
-      }
-    });
-  }
-  
-  if (settingsSpeedIncrease) {
-    settingsSpeedIncrease.addEventListener('mousedown', function() {
-      // 立即調整一次
-      gameSpeedMultiplier += 5;
-      updateSpeedSlider();
-      drawHUD();
-      
-      // 開始持續調整
-      speedIncreaseInterval = setInterval(() => {
-        gameSpeedMultiplier += 2;
-        updateSpeedSlider();
-        drawHUD();
-      }, 100); // 每100ms調整一次
-    });
-    
-    settingsSpeedIncrease.addEventListener('mouseup', function() {
-      if (speedIncreaseInterval) {
-        clearInterval(speedIncreaseInterval);
-        speedIncreaseInterval = null;
-      }
-    });
-    
-    settingsSpeedIncrease.addEventListener('mouseleave', function() {
-      if (speedIncreaseInterval) {
-        clearInterval(speedIncreaseInterval);
-        speedIncreaseInterval = null;
-      }
-    });
-    
-    // 觸控設備支援
-    settingsSpeedIncrease.addEventListener('touchstart', function(e) {
-      e.preventDefault();
-      // 立即調整一次
-      gameSpeedMultiplier += 5;
-      updateSpeedSlider();
-      drawHUD();
-      
-      // 開始持續調整
-      speedIncreaseInterval = setInterval(() => {
-        gameSpeedMultiplier += 2;
-        updateSpeedSlider();
-        drawHUD();
-      }, 100);
-    });
-    
-    settingsSpeedIncrease.addEventListener('touchend', function() {
-      if (speedIncreaseInterval) {
-        clearInterval(speedIncreaseInterval);
-        speedIncreaseInterval = null;
-      }
-    });
-  }
-  
-  if (settingsShoeItem) {
-    settingsShoeItem.addEventListener('click', function() {
-      shoeItemEnabled = !shoeItemEnabled;
-      settingsShoeItem.textContent = shoeItemEnabled ? 'ON' : 'OFF';
-      drawHUD();
-    });
-  }
+  // 阻止聚焦
+  [sfxToggle, bgmToggle].forEach(btn => {
+    if (btn) {
+      btn.addEventListener('mousedown', e => { btn.blur(); });
+      btn.addEventListener('mouseup', e => { btn.blur(); });
+      btn.addEventListener('click', e => { btn.blur(); });
+      btn.addEventListener('keydown', e => { btn.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+    }
+  });
   if (sfxToggle) {
     sfxToggle.addEventListener('click', function() {
       sfxMuted = !sfxMuted;
-      sfxJump.muted = sfxMuted;
-      sfxDead.muted = sfxMuted;
-      sfxLand.muted = sfxMuted;
-      sfxSpringJump.muted = sfxMuted;
-      sfxCharge.muted = sfxMuted;
+      sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+      sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
       drawHUD();
     });
   }
@@ -1996,92 +1248,26 @@ window.addEventListener('DOMContentLoaded', function() {
       drawHUD();
     });
   }
-  if (pauseToggle) {
-    pauseToggle.addEventListener('click', function() {
-      paused = !paused;
-      pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
-      if (!paused) gameLoop();
-    });
-  }
-  if (helpToggle) {
-    helpToggle.addEventListener('click', function() {
-      helpModal.style.display = 'flex';
-    });
-  }
-  if (helpCloseBtn) {
-    helpCloseBtn.addEventListener('click', function() {
-      helpModal.style.display = 'none';
-    });
-  }
+  drawHUD(); // 初始化顯示
 });
 
 function handleFirstInteraction() {
   if (!firstInteraction) {
     firstInteraction = true;
-    sfxJump.muted = sfxMuted;
-    sfxDead.muted = sfxMuted;
-    sfxLand.muted = sfxMuted;
-    sfxSpringJump.muted = sfxMuted;
-    sfxCharge.muted = sfxMuted;
+    // 不要強制改變靜音狀態，只同步 audio 標籤
+    sfxPools.normal.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.jump.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.spike.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.vanish.forEach(audio => audio.muted = sfxMuted);
+    sfxPools.dead.forEach(audio => audio.muted = sfxMuted);
     bgm.muted = bgmMuted;
     tryPlayBgm();
   }
 }
-
-// 更新行走速度按鈕狀態
-function updateWalkSpeedButtons() {
-  const slowBtn = document.getElementById('settings-walk-slow');
-  const normalBtn = document.getElementById('settings-walk-normal');
-  const fastBtn = document.getElementById('settings-walk-fast');
-  
-  // 重置所有按鈕樣式
-  [slowBtn, normalBtn, fastBtn].forEach(btn => {
-    if (btn) {
-      btn.style.background = '#333';
-      btn.style.color = '#fff';
-      btn.style.border = '1px solid #666';
-    }
-  });
-  
-  // 根據當前模式反白對應按鈕
-  let activeBtn = null;
-  switch (walkSpeedMode) {
-    case 'slow':
-      activeBtn = slowBtn;
-      break;
-    case 'normal':
-      activeBtn = normalBtn;
-      break;
-    case 'fast':
-      activeBtn = fastBtn;
-      break;
-  }
-  
-  if (activeBtn) {
-    activeBtn.style.background = '#ffe600';
-    activeBtn.style.color = '#222';
-    activeBtn.style.border = '1px solid #ffe600';
-  }
-}
-
-// 更新速度按鈕視覺效果
-function updateSpeedSlider() {
-  // 更新速度顯示
-  const speedDisplay = document.getElementById('speed-display');
-  if (speedDisplay) {
-    speedDisplay.textContent = gameSpeedMultiplier;
-  }
-  
-  // 更新玩家速度（即時反映遊戲速度變化）
-  if (player) {
-    player.vx = getFinalWalkSpeed();
-  }
-}
-
 window.addEventListener('click', handleFirstInteraction, { once: true });
 window.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
 initGame();
 </script>
 </body>
-</html> 
+</html>
