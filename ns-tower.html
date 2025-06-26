@@ -26,6 +26,7 @@
       min-width: 100vw;
       justify-content: flex-start;
       align-items: center;
+      background: black;
     }
     canvas {
       display: block;
@@ -229,7 +230,7 @@
       display: flex;
       flex-direction: row;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       z-index: 100;
       width: 100vw;
       max-width: 480px;
@@ -240,39 +241,39 @@
       flex-wrap: nowrap;
     }
     #bottom-controls button {
-      font-size: 0.75rem !important;
-      padding: 1px 4px !important;
+      font-size: 0.7rem !important;
+      padding: 1px 3px !important;
       border-radius: 7px !important;
       min-width: 0;
-      max-width: 80px;
+      max-width: 70px;
       height: 28px;
       line-height: 1.1;
       box-sizing: border-box;
       white-space: nowrap;
     }
     #bottom-controls #pause-toggle {
-      max-width: 90px;
-      padding: 1px 12px !important;
+      max-width: 80px;
+      padding: 1px 8px !important;
     }
     #shoe-item-toggle {
       min-width: 160px;
     }
     @media (max-width: 600px) {
       #bottom-controls {
-        gap: 2px;
+        gap: 1px;
         max-width: 100vw;
         padding: 2px 0 2px 0;
       }
       #bottom-controls button {
-        font-size: 0.68rem !important;
-        padding: 0 2px !important;
+        font-size: 0.65rem !important;
+        padding: 0 1px !important;
         border-radius: 6px !important;
-        max-width: 32vw;
+        max-width: 28vw;
         height: 22px;
       }
       #bottom-controls #pause-toggle {
-        max-width: 40vw;
-        padding: 0 6px !important;
+        max-width: 32vw;
+        padding: 0 4px !important;
       }
     }
     #hud .hud-highscore {
@@ -310,6 +311,7 @@
   <button id="bgm-toggle" type="button">🎵 音樂</button>
   <button id="settings-toggle" type="button">⚙️ 設定</button>
   <button id="help-toggle" type="button">❓ 說明</button>
+  <button id="about-toggle" type="button">ℹ️ 關於</button>
 </div>
 <canvas id="game"></canvas>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
@@ -331,20 +333,6 @@
       ● 跳到不同平台會有特殊效果（彈簧、輸送帶等）。<br>
       ● 吃到雞腿道具可獲得短暫高跳能力。<br>
       ● 吃到藥丸道具會巨大化並跳更高，持續10秒。<br>
-      <br>
-      <b>底部按鈕：</b><br>
-      ● <b>暫停</b>：暫停/繼續遊戲<br>
-      ● <b>音效/音樂</b>：開關音效與背景音樂<br>
-      ● <b>力量重置</b>：開啟時，蓄滿力量會自動歸零循環<br>
-      ● <b>行走速度</b>：切換角色自動行走速度<br>
-      ● <b>運動鞋道具</b>：開關雞腿道具出現<br>
-      ● <b>說明</b>：顯示本操作說明<br>
-      <br>
-      <b>感謝支持：</b><br>
-      中國信託帳戶 銀行代碼822<br>
-      159540291165 戶名：張書維<br>
-      <br>
-      作者Line：game76420
     </div>
     <div style="text-align:center;margin-top:18px;">
       <button id="help-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
@@ -387,6 +375,30 @@
     </div>
     <div style="text-align:center;margin-top:18px;">
       <button id="settings-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
+    </div>
+  </div>
+</div>
+<!-- 關於彈窗 -->
+<div id="about-modal" style="display:none;position:fixed;z-index:2200;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#222;padding:28px 18px 18px 18px;border-radius:16px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:left;user-select:none;min-width:260px;">
+    <div style="color:#ffe600;font-size:1.3rem;margin-bottom:12px;font-weight:bold;">關於 NS-Tower 改編版</div>
+    <div style="color:#fff;font-size:1rem;line-height:1.7;">
+      <b>遊戲版本：</b>2.0<br>
+      <b>遊戲類型：</b>平台跳躍<br>
+      <b>開發語言：</b>HTML5 + JavaScript<br>
+      <br>
+      <b>感謝支持：</b><br>
+      中國信託帳戶 銀行代碼822<br>
+      159540291165 戶名：張書維<br>
+      <br>
+      <b>聯絡方式：</b><br>
+      作者Line：game76420<br>
+      <br>
+      <b>版權聲明：</b><br>
+      © 2024 張書維. 保留所有權利。
+    </div>
+    <div style="text-align:center;margin-top:18px;">
+      <button id="about-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
     </div>
   </div>
 </div>
@@ -458,10 +470,6 @@ let shoeItemEnabled = true;
 // 新增：樓梯X軸分布控制
 let recentStairPositions = []; // 記錄最近幾個樓梯的X位置
 const MAX_RECENT_POSITIONS = 5; // 記錄最近5個樓梯位置
-// 新增：樓梯生成任務管理
-let stairGenTask = []; // 當前五個樓梯的生成任務
-let stairGenCount = 0; // 當前已生成的樓梯數量（不計入水平移動平台）
-let generatedZones = []; // 記錄當前五個任務中已生成的位置
 // 新增：膠囊縮放動畫
 let pillScale = 1;
 let pillScaleTarget = 1;
@@ -705,9 +713,9 @@ function initGame() {
   });
   // 新增：初始化樓梯pattern索引
   stairPatternIdx = 0;
-  // 再加其他樓梯（每四個一組，補到可見數+4）
+  // 再加其他樓梯（每四個一組，補到可見數+8）
   let y = getHeight() - stairGap - stairHeight;
-  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
+  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 8;
   while (stairs.length < visibleStairCount) {
     for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
       let basePercent = stairBasePercents[stairPatternIdx];
@@ -736,7 +744,7 @@ function initGame() {
       let x = getPatternStairX(getWidth(), stairWidth);
       const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
       let hasShoe = false, hasPill = false;
-      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+      if (stairIndex > 0 && stairIndex % 8 === 0 && Math.random() < 0.3) {
         if (shoeItemEnabled) {
           if (Math.random() < 0.5) {
             hasShoe = true;
@@ -1245,11 +1253,13 @@ function drawHUD() {
   const pauseToggle = document.getElementById('pause-toggle');
   const settingsToggle = document.getElementById('settings-toggle');
   const helpToggle = document.getElementById('help-toggle');
+  const aboutToggle = document.getElementById('about-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
   if (pauseToggle) pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
   if (settingsToggle) settingsToggle.textContent = '⚙️ 設定';
   if (helpToggle) helpToggle.textContent = '❓ 說明';
+  if (aboutToggle) aboutToggle.textContent = 'ℹ️ 關於';
 }
 
 function updatePlayer() {
@@ -1536,7 +1546,7 @@ function updateStairs() {
   // 移除超出鏡頭下方的樓梯與地面（只保留可見+一組）
   stairs = stairs.filter(s => s.y - cameraOffsetY < getHeight() + stairGap * 4);
   stairWidth = Math.floor(getWidth() * 0.25);
-  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
+  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 8;
   while (stairs.length < visibleStairCount) {
     let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
     for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
@@ -1567,7 +1577,7 @@ function updateStairs() {
       let newX = getPatternStairX(getWidth(), stairWidth);
       const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
       let hasShoe = false, hasPill = false;
-      if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
+      if (stairIndex > 0 && stairIndex % 8 === 0 && Math.random() < 0.3) {
         if (shoeItemEnabled) {
           if (Math.random() < 0.5) {
             hasShoe = true;
@@ -1626,10 +1636,10 @@ function gameLoop() {
   }
 
   ctx.clearRect(0, 0, getWidth(), getHeight());
-  // 背景（深紅棕色漸層）
+  // 背景（上半部 #3b0600 漸層到 #5a1b01）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
-  grad.addColorStop(0, "#3a1a0a");
-  grad.addColorStop(1, "#6b2e13");
+  grad.addColorStop(0, "#3b0600");
+  grad.addColorStop(1, "#5a1b01");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, getWidth(), getHeight());
   
@@ -1782,6 +1792,10 @@ window.addEventListener('DOMContentLoaded', function() {
   const helpToggle = document.getElementById('help-toggle');
   const helpModal = document.getElementById('help-modal');
   const helpCloseBtn = document.getElementById('help-close-btn');
+  // 關於彈窗
+  const aboutToggle = document.getElementById('about-toggle');
+  const aboutModal = document.getElementById('about-modal');
+  const aboutCloseBtn = document.getElementById('about-close-btn');
   // 設定彈窗
   const settingsModal = document.getElementById('settings-modal');
   const settingsCloseBtn = document.getElementById('settings-close-btn');
@@ -2011,6 +2025,16 @@ window.addEventListener('DOMContentLoaded', function() {
   if (helpCloseBtn) {
     helpCloseBtn.addEventListener('click', function() {
       helpModal.style.display = 'none';
+    });
+  }
+  if (aboutToggle) {
+    aboutToggle.addEventListener('click', function() {
+      aboutModal.style.display = 'flex';
+    });
+  }
+  if (aboutCloseBtn) {
+    aboutCloseBtn.addEventListener('click', function() {
+      aboutModal.style.display = 'none';
     });
   }
 });
