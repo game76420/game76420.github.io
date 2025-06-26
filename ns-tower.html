@@ -305,13 +305,11 @@
 </div>
 <!-- 新增底部控制區 -->
 <div id="bottom-controls">
-  <button id="pause-toggle" type="button">暫停</button>
-  <button id="sfx-toggle" type="button">音效</button>
-  <button id="bgm-toggle" type="button">音樂</button>
-  <button id="power-reset-toggle" type="button">力量重置</button>
-  <button id="walk-speed-toggle" type="button">行走速度：中</button>
-  <button id="shoe-item-toggle" type="button">運動鞋道具</button>
-  <button id="help-toggle" type="button">說明</button>
+  <button id="pause-toggle" type="button">⏸️ 暫停</button>
+  <button id="sfx-toggle" type="button">🔊 音效</button>
+  <button id="bgm-toggle" type="button">🎵 音樂</button>
+  <button id="settings-toggle" type="button">⚙️ 設定</button>
+  <button id="help-toggle" type="button">❓ 說明</button>
 </div>
 <canvas id="game"></canvas>
 <div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
@@ -350,6 +348,45 @@
     </div>
     <div style="text-align:center;margin-top:18px;">
       <button id="help-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
+    </div>
+  </div>
+</div>
+<!-- 遊戲設定彈窗 -->
+<div id="settings-modal" style="display:none;position:fixed;z-index:2100;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#222;padding:28px 18px 18px 18px;border-radius:16px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:left;user-select:none;min-width:260px;">
+    <div style="color:#ffe600;font-size:1.3rem;margin-bottom:12px;font-weight:bold;">遊戲設定</div>
+    <div style="color:#fff;font-size:1rem;line-height:2;">
+      <label style="display:block;margin-bottom:8px;">
+        <span style="margin-right:8px;">力量重置：</span>
+        <button id="settings-power-reset" type="button"></button>
+      </label>
+      <label style="display:block;margin-bottom:8px;">
+        <span style="margin-right:8px;">行走速度：</span>
+        <div style="display:inline-flex;gap:4px;">
+          <button id="settings-walk-slow" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">慢</button>
+          <button id="settings-walk-normal" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">中</button>
+          <button id="settings-walk-fast" type="button" style="padding:4px 8px;border-radius:4px;border:1px solid #666;background:#333;color:#fff;font-size:0.9rem;">快</button>
+        </div>
+      </label>
+      <label style="display:block;margin-bottom:8px;">
+        <span style="margin-right:8px;">遊戲速度：</span>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span style="font-size:0.8rem;color:#ccc;">慢</span>
+          <button id="speed-decrease" type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid #666;background:#333;color:#fff;font-size:1.2rem;font-weight:bold;cursor:pointer;">-</button>
+          <div style="flex:1;height:20px;background:#333;border-radius:10px;border:1px solid #666;position:relative;display:flex;align-items:center;justify-content:center;">
+            <div id="speed-display" style="font-size:0.9rem;color:#ffe600;font-weight:bold;">0</div>
+          </div>
+          <button id="speed-increase" type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid #666;background:#333;color:#fff;font-size:1.2rem;font-weight:bold;cursor:pointer;">+</button>
+          <span style="font-size:0.8rem;color:#ccc;">快</span>
+        </div>
+      </label>
+      <label style="display:block;margin-bottom:8px;">
+        <span style="margin-right:8px;">道具：</span>
+        <button id="settings-shoe-item" type="button"></button>
+      </label>
+    </div>
+    <div style="text-align:center;margin-top:18px;">
+      <button id="settings-close-btn" style="font-size:1rem;padding:6px 32px;background:#ffe600;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;">關閉</button>
     </div>
   </div>
 </div>
@@ -436,6 +473,8 @@ let stairTypeShuffleIdx = 0;
 // 新增：樓梯X位置循環模式
 const stairXPattern = ['left', 'random', 'right', 'random'];
 let stairXPatternIdx = 0;
+// 新增：遊戲速度滑桿設定
+let gameSpeedMultiplier = 0; // -50 到 50，影響整體遊戲速度
 
 // 新增：每四個一組必有一左一右兩隨機
 let nextStairGroup = [];
@@ -500,6 +539,13 @@ function tryPlayBgm() {
 // 新增：行走速度模式
 let walkSpeedMode = 'normal'; // 'slow' | 'normal' | 'fast'
 const walkSpeedMap = { slow: 1.2, normal: 2.2, fast: 3.2 };
+
+// 計算最終行走速度（結合模式選擇和遊戲速度調整）
+function getFinalWalkSpeed() {
+  const baseSpeed = walkSpeedMap[walkSpeedMode];
+  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+  return baseSpeed * gameSpeedFactor;
+}
 
 // 分區輔助函數
 function getStairZone(x, canvasWidth, stairWidth) {
@@ -570,6 +616,18 @@ const stairZonePattern = ['left', 'random', 'right', 'random'];
 let stairZonePatternIdx = 0;
 let lastNonHorizontalZone = null;
 
+// 新增：樓梯基準分布點與索引
+const stairBasePercents = [0.66, 0.0, 1.0, 0.33];
+let stairPatternIdx = 0;
+function getPatternStairX(canvasWidth, stairWidth) {
+  let basePercent = stairBasePercents[stairPatternIdx];
+  let offset = (Math.random() - 0.5) * 0.2 * canvasWidth; // ±10%畫面寬度
+  let x = basePercent * (canvasWidth - stairWidth) + offset;
+  x = Math.max(0, Math.min(canvasWidth - stairWidth, x));
+  stairPatternIdx = (stairPatternIdx + 1) % stairBasePercents.length;
+  return x;
+}
+
 function initGame() {
   var modal = document.getElementById('gameover-modal');
   if (modal) modal.style.display = 'none';
@@ -613,7 +671,7 @@ function initGame() {
     height: Math.floor(stairWidth * 0.5),
     x: getWidth() / 2 - stairWidth * 0.25,
     y: getHeight() - stairHeight - Math.floor(stairWidth * 0.5),
-    vx: walkSpeedMap[walkSpeedMode],
+    vx: getFinalWalkSpeed(),
     vy: 0,
     onStair: true,
     jumping: false,
@@ -645,15 +703,21 @@ function initGame() {
     width: getWidth(),
     height: stairHeight
   });
-  // 再加其他樓梯
+  // 新增：初始化樓梯pattern索引
+  stairPatternIdx = 0;
+  // 再加其他樓梯（每四個一組，補到可見數+4）
   let y = getHeight() - stairGap - stairHeight;
-  let lastX = null;
-  const minStairXGap = stairWidth * 0.5;
-  // === 改為每次補滿一組四個 ===
-  while (y > 0) {
-    for (let i = 0; i < 4 && y > 0; i++) {
-      // 平台類型隨機
-      let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
+  while (stairs.length < visibleStairCount) {
+    for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
+      let basePercent = stairBasePercents[stairPatternIdx];
+      // 決定可用樓梯類型
+      let types;
+      if (basePercent === 0.0 || basePercent === 1.0) {
+        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'vertical', 'upward'];
+      } else {
+        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+      }
       let type = types[Math.floor(Math.random() * types.length)];
       let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
       if (type === "horizontal") {
@@ -669,9 +733,7 @@ function initGame() {
         rangeY = stairGap * 0.7;
         phase = Math.random() * Math.PI * 2;
       }
-      // X位置依序循環
-      let x = generateSmartStairPositionV5(getWidth(), stairWidth, type);
-      // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
+      let x = getPatternStairX(getWidth(), stairWidth);
       const stairIndex = Math.round((getHeight() - stairHeight - y) / stairGap);
       let hasShoe = false, hasPill = false;
       if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
@@ -684,7 +746,6 @@ function initGame() {
         }
       }
       stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
-      lastX = x;
       y -= stairGap;
     }
   }
@@ -733,8 +794,9 @@ function drawPlayer() {
   const pW = player.width;
   const pH = player.height;
   
-  // 動畫參數
-  const animSpeed = 12; // 動畫速度
+  // 動畫參數（受遊戲速度影響）
+  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+  const animSpeed = 12 * gameSpeedFactor; // 動畫速度受遊戲速度影響
   const animCycle = (performance.now() / 1000) * animSpeed; // 動畫週期
   
   // 身體上下擺動
@@ -799,10 +861,10 @@ function drawPlayer() {
   // --- 蓄力效果 ---
   let chargingFlash = false; // 是否閃爍
   if (player.charging || shoeBuffActive) {
-    // 閃爍效果：每 100ms 閃爍一次
-    chargingFlash = Math.floor(performance.now() / 100) % 2 === 0;
-    // 集氣光暈
-    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / 80); // 光暈透明度
+    // 閃爍效果：每 100ms 閃爍一次（受遊戲速度影響）
+    chargingFlash = Math.floor(performance.now() / (100 / gameSpeedFactor)) % 2 === 0;
+    // 集氣光暈（受遊戲速度影響）
+    const auraAlpha = 0.25 + 0.25 * Math.sin(performance.now() / (80 / gameSpeedFactor)); // 光暈透明度
     const powerRatio = player.power / player.maxPower; // 力量比例
     ctx.save();
     ctx.globalAlpha = auraAlpha * (0.3 + 0.7 * powerRatio);
@@ -819,9 +881,9 @@ function drawPlayer() {
     ctx.fill();
     ctx.restore();
   } else if (player.chargePending && player.alive) {
-    // 等待集氣的視覺提示：柔和的白色脈動光暈
+    // 等待集氣的視覺提示：柔和的白色脈動光暈（受遊戲速度影響）
     ctx.save();
-    ctx.globalAlpha = 0.2 + 0.2 * Math.sin(performance.now() / 120);
+    ctx.globalAlpha = 0.2 + 0.2 * Math.sin(performance.now() / (120 / gameSpeedFactor));
     const grad = ctx.createRadialGradient(pW/2, pH/2, pW*0.2, pW/2, pH/2, pW*0.7);
     grad.addColorStop(0, `rgba(230, 230, 255, 0.8)`);
     grad.addColorStop(1, `rgba(200, 200, 255, 0)`);
@@ -990,6 +1052,10 @@ function drawPlayer() {
 
 function drawStairs() {
   ctx.save();
+  
+  // 計算遊戲速度倍數（用於動畫效果）
+  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+  
   for (let s of stairs) {
     let drawY = s.y - cameraOffsetY;
     if (s.type === 'spring') {
@@ -1030,10 +1096,10 @@ function drawStairs() {
       ctx.arc(s.x + s.width, drawY + s.height / 2, s.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
       ctx.fill();
       ctx.restore();
-      // 畫移動的橫線
+      // 畫移動的橫線（受遊戲速度影響）
       ctx.strokeStyle = '#666';
       ctx.lineWidth = 1;
-      let anim = (performance.now() / 30) % 12;
+      let anim = (performance.now() / (30 / gameSpeedFactor)) % 12;
       let lineOffset = (s.type === 'conveyorL' ? -anim : anim);
       for (let i = 0; i < s.width; i += 12) {
         let xPos = s.x + i + lineOffset;
@@ -1176,30 +1242,24 @@ function drawHUD() {
   }
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
-  const powerResetToggle = document.getElementById('power-reset-toggle');
   const pauseToggle = document.getElementById('pause-toggle');
-  const walkSpeedToggle = document.getElementById('walk-speed-toggle');
-  const shoeItemToggle = document.getElementById('shoe-item-toggle');
+  const settingsToggle = document.getElementById('settings-toggle');
   const helpToggle = document.getElementById('help-toggle');
   if (sfxToggle) sfxToggle.textContent = (sfxMuted ? '🔇' : '🔊') + ' 音效';
   if (bgmToggle) bgmToggle.textContent = (bgmMuted ? '🔇' : '🎵') + ' 音樂';
-  if (powerResetToggle) powerResetToggle.textContent = `力量重置 ${powerAutoReset ? 'ON' : 'OFF'}`;
-  if (pauseToggle) pauseToggle.textContent = paused ? '繼續' : '暫停';
-  if (walkSpeedToggle) {
-    let txt = '行走速度：';
-    if (walkSpeedMode === 'slow') txt += '慢';
-    else if (walkSpeedMode === 'normal') txt += '中';
-    else txt += '快';
-    walkSpeedToggle.textContent = txt;
-  }
-  if (shoeItemToggle) shoeItemToggle.textContent = `道具 ${shoeItemEnabled ? 'ON' : 'OFF'}`;
-  if (helpToggle) helpToggle.textContent = '說明';
+  if (pauseToggle) pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
+  if (settingsToggle) settingsToggle.textContent = '⚙️ 設定';
+  if (helpToggle) helpToggle.textContent = '❓ 說明';
 }
 
 function updatePlayer() {
   if (!player.alive) return false;
-  // 自動左右移動
-  player.x += player.vx * player.dir;
+  
+  // 計算遊戲速度倍數（用於所有物理和移動效果）
+  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+  
+  // 自動左右移動（受遊戲速度影響）
+  player.x += player.vx * player.dir * gameSpeedFactor;
   // 碰牆自動反向
   if (player.x < 0) {
     player.x = 0;
@@ -1230,8 +1290,8 @@ function updatePlayer() {
 
   // 2. 如果玩家在空中，施加重力並檢查是否落地
   if (!player.onStair) {
-    // 重力
-    player.vy += player.gravity;
+    // 重力（受遊戲速度影響）
+    player.vy += player.gravity * gameSpeedFactor;
     // 限制最大下墜速度
     player.vy = Math.min(player.vy, 12);
     
@@ -1292,11 +1352,11 @@ function updatePlayer() {
                     releaseJump();
                 }
 
-                // 處理剛落地時的平台效果
+                // 處理剛落地時的平台效果（受遊戲速度影響）
                 if (s.type === 'conveyorL') {
-                    player.x -= 1.0;
+                    player.x -= 0.6 * gameSpeedFactor;
                 } else if (s.type === 'conveyorR') {
-                    player.x += 1.0;
+                    player.x += 0.6 * gameSpeedFactor;
                 }
                 if (player.jumping) {
                     player.jumping = false;
@@ -1322,12 +1382,12 @@ function updatePlayer() {
         }
     }
   } else {
-    // 如果玩家在平台上，持續處理平台效果
+    // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響）
     const s = player.landedOn;
     if (s && s.type === 'conveyorL') {
-        player.x -= 1.0;
+        player.x -= 0.5 * gameSpeedFactor;
     } else if (s && s.type === 'conveyorR') {
-        player.x += 1.0;
+        player.x += 0.5 * gameSpeedFactor;
     }
   }
 
@@ -1473,29 +1533,22 @@ function updatePlayer() {
 }
 
 function updateStairs() {
-  // 移除超出鏡頭上下方的樓梯與地面
-  stairs = stairs.filter(s => {
-    // 對於垂直升降樓梯，以中心點判斷
-    if (s.type === 'vertical' || s.type === 'upward') {
-      const centerY = s.y + s.height / 2 - cameraOffsetY;
-      return centerY >= 0 && centerY <= getHeight();
-    } else {
-      // 其他樓梯維持原本判斷
-      return !(s.y - cameraOffsetY > getHeight() || (s.y + s.height - cameraOffsetY) < 0);
-    }
-  });
-  // 不再自動下捲，僅補新樓梯與移除超出畫面的樓梯
-  // 補新樓梯
+  // 移除超出鏡頭下方的樓梯與地面（只保留可見+一組）
+  stairs = stairs.filter(s => s.y - cameraOffsetY < getHeight() + stairGap * 4);
   stairWidth = Math.floor(getWidth() * 0.25);
-  const minStairXGap = stairWidth * 0.5;
-  const needStairs = Math.ceil(getHeight() / stairGap) + 2;
-  while (stairs.length < needStairs) {
-    for (let i = 0; i < 4 && stairs.length < needStairs; i++) {
-      let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
+  const visibleStairCount = Math.ceil(getHeight() / stairGap) + 4;
+  while (stairs.length < visibleStairCount) {
+    let lastY = stairs.length > 0 ? stairs[stairs.length - 1].y : getHeight();
+    for (let i = 0; i < 4 && stairs.length < visibleStairCount; i++) {
       let newY = lastY - stairGap;
-      let lastX = stairs.length > 0 ? stairs[stairs.length - 1].x : null;
-      // 平台類型隨機
-      let types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+      let basePercent = stairBasePercents[stairPatternIdx];
+      // 決定可用樓梯類型
+      let types;
+      if (basePercent === 0.0 || basePercent === 1.0) {
+        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'vertical', 'upward'];
+      } else {
+        types = ['static', 'spring', 'conveyorL', 'conveyorR', 'horizontal', 'vertical', 'upward'];
+      }
       let type = types[Math.floor(Math.random() * types.length)];
       let vx = 0, vy = 0, rangeX = 0, rangeY = 0, phase = 0;
       if (type === "horizontal") {
@@ -1511,9 +1564,7 @@ function updateStairs() {
         rangeY = stairGap * 0.7;
         phase = Math.random() * Math.PI * 2;
       }
-      // X位置依序循環
-      let newX = generateSmartStairPositionV5(getWidth(), stairWidth, type);
-      // 每10層有30%機率出現道具（雞腿或膠囊，隨機一種）
+      let newX = getPatternStairX(getWidth(), stairWidth);
       const stairIndex = Math.round((getHeight() - stairHeight - newY) / stairGap);
       let hasShoe = false, hasPill = false;
       if (stairIndex > 0 && stairIndex % 10 === 0 && Math.random() < 0.3) {
@@ -1526,14 +1577,28 @@ function updateStairs() {
         }
       }
       stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
-      lastX = newX;
       lastY = newY;
+    }
+  }
+  
+  // 更新移動平台位置（受遊戲速度影響）
+  const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+  let t = performance.now() / 1000 * gameSpeedFactor;
+  for (let s of stairs) {
+    if (s.type === "horizontal") {
+      s.x = s.baseX + Math.sin(t + s.phase) * s.rangeX;
+    } else if (s.type === "vertical") {
+      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
+    } else if (s.type === "upward") {
+      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
     }
   }
 }
 
 function gameLoop() {
   if (paused) return;
+
+  // --- 移除隨機跳過幀的慢動作邏輯 ---
 
   // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
   const wantsToCharge = inputState.isPressed || inputState.spacebar;
@@ -1567,17 +1632,7 @@ function gameLoop() {
   grad.addColorStop(1, "#6b2e13");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, getWidth(), getHeight());
-  // 新增：更新移動平台位置
-  let t = performance.now() / 1000;
-  for (let s of stairs) {
-    if (s.type === "horizontal") {
-      s.x = s.baseX + Math.sin(t + s.phase) * s.rangeX;
-    } else if (s.type === "vertical") {
-      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
-    } else if (s.type === "upward") {
-      s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
-    }
-  }
+  
   drawStairs();
   if (!updatePlayer()) return;
   // 鏡頭平滑移動
@@ -1612,6 +1667,8 @@ function gameLoop() {
       player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
     }
   }
+  
+  // 根據遊戲速度調整下一幀的延遲
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -1639,7 +1696,13 @@ function releaseJump() {
       let maxJumpHeight = 7.5 * player.height;
       if (shoeBuffActive) maxJumpHeight *= 1.5;
       if (pillBuffActive) maxJumpHeight *= 2;
-      const maxVy = -Math.sqrt(2 * player.gravity * maxJumpHeight);
+      
+      // 計算遊戲速度倍數
+      const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
+      
+      // 調整重力以保持跳躍高度不變
+      const adjustedGravity = player.gravity * gameSpeedFactor;
+      const maxVy = -Math.sqrt(2 * adjustedGravity * maxJumpHeight);
       player.vy = player.jumpPower + (maxVy - player.jumpPower) * powerRatio;
 
       const onSpring = player.landedOn && player.landedOn.type === 'spring';
@@ -1714,38 +1777,199 @@ window.addEventListener('touchend', function(e) {
 window.addEventListener('DOMContentLoaded', function() {
   const sfxToggle = document.getElementById('sfx-toggle');
   const bgmToggle = document.getElementById('bgm-toggle');
-  const powerResetToggle = document.getElementById('power-reset-toggle');
   const pauseToggle = document.getElementById('pause-toggle');
-  const walkSpeedToggle = document.getElementById('walk-speed-toggle');
-  const shoeItemToggle = document.getElementById('shoe-item-toggle');
+  const settingsToggle = document.getElementById('settings-toggle');
   const helpToggle = document.getElementById('help-toggle');
   const helpModal = document.getElementById('help-modal');
   const helpCloseBtn = document.getElementById('help-close-btn');
+  // 設定彈窗
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsCloseBtn = document.getElementById('settings-close-btn');
+  const settingsPowerReset = document.getElementById('settings-power-reset');
+  const settingsWalkSlow = document.getElementById('settings-walk-slow');
+  const settingsWalkNormal = document.getElementById('settings-walk-normal');
+  const settingsWalkFast = document.getElementById('settings-walk-fast');
+  const settingsShoeItem = document.getElementById('settings-shoe-item');
+  const settingsSpeedDecrease = document.getElementById('speed-decrease');
+  const settingsSpeedIncrease = document.getElementById('speed-increase');
+  const speedDisplay = document.getElementById('speed-display');
+
   if (sfxToggle) sfxToggle.blur();
   if (bgmToggle) bgmToggle.blur();
-  if (powerResetToggle) powerResetToggle.blur();
   if (pauseToggle) pauseToggle.blur();
-  if (walkSpeedToggle) {
-    walkSpeedToggle.addEventListener('mousedown', e => { walkSpeedToggle.blur(); });
-    walkSpeedToggle.addEventListener('mouseup', e => { walkSpeedToggle.blur(); });
-    walkSpeedToggle.addEventListener('click', e => { walkSpeedToggle.blur(); });
-    walkSpeedToggle.addEventListener('keydown', e => { walkSpeedToggle.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
+  if (settingsToggle) {
+    settingsToggle.addEventListener('click', function() {
+      // 初始化設定彈窗內容
+      settingsPowerReset.textContent = powerAutoReset ? 'ON' : 'OFF';
+      settingsShoeItem.textContent = shoeItemEnabled ? 'ON' : 'OFF';
+      
+      // 更新行走速度按鈕狀態
+      updateWalkSpeedButtons();
+      
+      // 更新速度滑桿狀態
+      updateSpeedSlider();
+      
+      settingsModal.style.display = 'flex';
+    });
   }
-  [sfxToggle, bgmToggle, powerResetToggle, pauseToggle].forEach(btn => {
-    if (btn) {
-      btn.addEventListener('mousedown', e => { btn.blur(); });
-      btn.addEventListener('mouseup', e => { btn.blur(); });
-      btn.addEventListener('click', e => { btn.blur(); });
-      btn.addEventListener('keydown', e => { btn.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
-    }
-  });
-  if (shoeItemToggle) {
-    shoeItemToggle.addEventListener('mousedown', e => { shoeItemToggle.blur(); });
-    shoeItemToggle.addEventListener('mouseup', e => { shoeItemToggle.blur(); });
-    shoeItemToggle.addEventListener('click', e => { shoeItemToggle.blur(); });
-    shoeItemToggle.addEventListener('keydown', e => { shoeItemToggle.blur(); if (e.key === 'Enter' || e.keyCode === 13) e.preventDefault(); });
-    shoeItemToggle.addEventListener('click', function() {
+  if (settingsCloseBtn) {
+    settingsCloseBtn.addEventListener('click', function() {
+      settingsModal.style.display = 'none';
+    });
+  }
+  if (settingsPowerReset) {
+    settingsPowerReset.addEventListener('click', function() {
+      powerAutoReset = !powerAutoReset;
+      settingsPowerReset.textContent = powerAutoReset ? 'ON' : 'OFF';
+      drawHUD();
+    });
+  }
+  
+  // 行走速度按鈕事件處理
+  if (settingsWalkSlow) {
+    settingsWalkSlow.addEventListener('click', function() {
+      walkSpeedMode = 'slow';
+      if (player) player.vx = getFinalWalkSpeed();
+      updateWalkSpeedButtons();
+      drawHUD();
+    });
+  }
+  if (settingsWalkNormal) {
+    settingsWalkNormal.addEventListener('click', function() {
+      walkSpeedMode = 'normal';
+      if (player) player.vx = getFinalWalkSpeed();
+      updateWalkSpeedButtons();
+      drawHUD();
+    });
+  }
+  if (settingsWalkFast) {
+    settingsWalkFast.addEventListener('click', function() {
+      walkSpeedMode = 'fast';
+      if (player) player.vx = getFinalWalkSpeed();
+      updateWalkSpeedButtons();
+      drawHUD();
+    });
+  }
+  
+  function updateSpeedDisplay() {
+    if (speedDisplay) speedDisplay.textContent = gameSpeedMultiplier;
+  }
+  updateSpeedDisplay();
+
+  // 按住按鈕持續調整的變數
+  let speedDecreaseInterval = null;
+  let speedIncreaseInterval = null;
+
+  if (settingsSpeedDecrease) {
+    settingsSpeedDecrease.addEventListener('mousedown', function() {
+      // 立即調整一次
+      gameSpeedMultiplier -= 5;
+      updateSpeedSlider();
+      drawHUD();
+      
+      // 開始持續調整
+      speedDecreaseInterval = setInterval(() => {
+        gameSpeedMultiplier -= 2;
+        updateSpeedSlider();
+        drawHUD();
+      }, 100); // 每100ms調整一次
+    });
+    
+    settingsSpeedDecrease.addEventListener('mouseup', function() {
+      if (speedDecreaseInterval) {
+        clearInterval(speedDecreaseInterval);
+        speedDecreaseInterval = null;
+      }
+    });
+    
+    settingsSpeedDecrease.addEventListener('mouseleave', function() {
+      if (speedDecreaseInterval) {
+        clearInterval(speedDecreaseInterval);
+        speedDecreaseInterval = null;
+      }
+    });
+    
+    // 觸控設備支援
+    settingsSpeedDecrease.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      // 立即調整一次
+      gameSpeedMultiplier -= 5;
+      updateSpeedSlider();
+      drawHUD();
+      
+      // 開始持續調整
+      speedDecreaseInterval = setInterval(() => {
+        gameSpeedMultiplier -= 2;
+        updateSpeedSlider();
+        drawHUD();
+      }, 100);
+    });
+    
+    settingsSpeedDecrease.addEventListener('touchend', function() {
+      if (speedDecreaseInterval) {
+        clearInterval(speedDecreaseInterval);
+        speedDecreaseInterval = null;
+      }
+    });
+  }
+  
+  if (settingsSpeedIncrease) {
+    settingsSpeedIncrease.addEventListener('mousedown', function() {
+      // 立即調整一次
+      gameSpeedMultiplier += 5;
+      updateSpeedSlider();
+      drawHUD();
+      
+      // 開始持續調整
+      speedIncreaseInterval = setInterval(() => {
+        gameSpeedMultiplier += 2;
+        updateSpeedSlider();
+        drawHUD();
+      }, 100); // 每100ms調整一次
+    });
+    
+    settingsSpeedIncrease.addEventListener('mouseup', function() {
+      if (speedIncreaseInterval) {
+        clearInterval(speedIncreaseInterval);
+        speedIncreaseInterval = null;
+      }
+    });
+    
+    settingsSpeedIncrease.addEventListener('mouseleave', function() {
+      if (speedIncreaseInterval) {
+        clearInterval(speedIncreaseInterval);
+        speedIncreaseInterval = null;
+      }
+    });
+    
+    // 觸控設備支援
+    settingsSpeedIncrease.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      // 立即調整一次
+      gameSpeedMultiplier += 5;
+      updateSpeedSlider();
+      drawHUD();
+      
+      // 開始持續調整
+      speedIncreaseInterval = setInterval(() => {
+        gameSpeedMultiplier += 2;
+        updateSpeedSlider();
+        drawHUD();
+      }, 100);
+    });
+    
+    settingsSpeedIncrease.addEventListener('touchend', function() {
+      if (speedIncreaseInterval) {
+        clearInterval(speedIncreaseInterval);
+        speedIncreaseInterval = null;
+      }
+    });
+  }
+  
+  if (settingsShoeItem) {
+    settingsShoeItem.addEventListener('click', function() {
       shoeItemEnabled = !shoeItemEnabled;
+      settingsShoeItem.textContent = shoeItemEnabled ? 'ON' : 'OFF';
       drawHUD();
     });
   }
@@ -1772,29 +1996,13 @@ window.addEventListener('DOMContentLoaded', function() {
       drawHUD();
     });
   }
-  if (powerResetToggle) {
-    powerResetToggle.addEventListener('click', function() {
-      powerAutoReset = !powerAutoReset;
-      drawHUD();
-    });
-  }
   if (pauseToggle) {
     pauseToggle.addEventListener('click', function() {
       paused = !paused;
-      pauseToggle.textContent = paused ? '繼續' : '暫停';
+      pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
       if (!paused) gameLoop();
     });
   }
-  if (walkSpeedToggle) {
-    walkSpeedToggle.addEventListener('click', function() {
-      if (walkSpeedMode === 'normal') walkSpeedMode = 'fast';
-      else if (walkSpeedMode === 'fast') walkSpeedMode = 'slow';
-      else walkSpeedMode = 'normal';
-      if (player) player.vx = walkSpeedMap[walkSpeedMode];
-      drawHUD();
-    });
-  }
-  drawHUD();
   if (helpToggle) {
     helpToggle.addEventListener('click', function() {
       helpModal.style.display = 'flex';
@@ -1819,6 +2027,57 @@ function handleFirstInteraction() {
     tryPlayBgm();
   }
 }
+
+// 更新行走速度按鈕狀態
+function updateWalkSpeedButtons() {
+  const slowBtn = document.getElementById('settings-walk-slow');
+  const normalBtn = document.getElementById('settings-walk-normal');
+  const fastBtn = document.getElementById('settings-walk-fast');
+  
+  // 重置所有按鈕樣式
+  [slowBtn, normalBtn, fastBtn].forEach(btn => {
+    if (btn) {
+      btn.style.background = '#333';
+      btn.style.color = '#fff';
+      btn.style.border = '1px solid #666';
+    }
+  });
+  
+  // 根據當前模式反白對應按鈕
+  let activeBtn = null;
+  switch (walkSpeedMode) {
+    case 'slow':
+      activeBtn = slowBtn;
+      break;
+    case 'normal':
+      activeBtn = normalBtn;
+      break;
+    case 'fast':
+      activeBtn = fastBtn;
+      break;
+  }
+  
+  if (activeBtn) {
+    activeBtn.style.background = '#ffe600';
+    activeBtn.style.color = '#222';
+    activeBtn.style.border = '1px solid #ffe600';
+  }
+}
+
+// 更新速度按鈕視覺效果
+function updateSpeedSlider() {
+  // 更新速度顯示
+  const speedDisplay = document.getElementById('speed-display');
+  if (speedDisplay) {
+    speedDisplay.textContent = gameSpeedMultiplier;
+  }
+  
+  // 更新玩家速度（即時反映遊戲速度變化）
+  if (player) {
+    player.vx = getFinalWalkSpeed();
+  }
+}
+
 window.addEventListener('click', handleFirstInteraction, { once: true });
 window.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
