@@ -30,7 +30,7 @@
     canvas {
       display: block;
       margin: 0 auto;
-      background: #002244;
+      background: #002245;
     }
     #hud {
       width: 95vw;
@@ -408,7 +408,7 @@ function initGame() {
 
   // 讓精靈一開始站在最底下那個平台正上方
   const firstPlatform = platforms[platforms.length - 1];
-  const playerWidth = Math.floor(platformWidth / 3); // 精靈寬度為平台寬度的1/3
+  const playerWidth = Math.floor(platformWidth / 2); // 精靈寬度為平台寬度的1/3
   const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
   player = {
     x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
@@ -488,7 +488,7 @@ function drawPlayer() {
     const armX = pW / 2;
     const shoulderY = pH * 0.45;
     const armWidth = pW * 0.12;
-    const armHeight = pH * 0.28;
+    const armHeight = pH * 0.35; // 增加手臂長度
     const handRadius = armWidth * 0.5;
     const legWidth = pW * 0.18;
     const legHeight = pH * 0.30;
@@ -506,7 +506,7 @@ function drawPlayer() {
     ctx.save();
     ctx.translate(legBaseX, legBaseY);
     ctx.rotate(legAngle);
-    ctx.fillStyle = '#0000B2';
+    ctx.fillStyle = '#E3D8C3'; // 米白褲子
     ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
     ctx.fillStyle = '#6B3503';
     ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
@@ -515,7 +515,7 @@ function drawPlayer() {
     ctx.save();
     ctx.translate(armX, shoulderY);
     ctx.rotate(armAngle);
-    ctx.fillStyle = '#00A090';
+    ctx.fillStyle = '#FFFF00'; // 黃袖子
     ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
     ctx.fillStyle = '#D1B497';
     ctx.beginPath();
@@ -523,24 +523,35 @@ function drawPlayer() {
     ctx.fill();
     ctx.restore();
     // 身體/衣服
-    ctx.fillStyle = '#00D0B0';
+    ctx.fillStyle = '#FFFF00'; // 黃衣服
     ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
+    // 領子
+    ctx.fillStyle = '#c00'; // 改為暗紅色
+    ctx.fillRect(pW * 0.48, pH * 0.45, pW * 0.04, pH * 0.04);
+    // 腰帶
+    ctx.fillStyle = '#8B4513'; // 咖啡色
+    ctx.fillRect(pW * 0.35, pH * 0.72, pW * 0.3, pH * 0.05);
+    // 皮帶扣
+    ctx.fillStyle = '#A0522D'; // 咖啡色 (Sienna)
+    const buckleW = pW * 0.08;
+    const buckleH = pH * 0.05;
+    ctx.fillRect(pW * 0.5 - buckleW / 2, pH * 0.72, buckleW, buckleH);
     // 前腿
     ctx.save();
     ctx.translate(legBaseX, legBaseY);
     ctx.rotate(-legAngle);
-    ctx.fillStyle = '#0000FF';
+    ctx.fillStyle = '#E3D8C3'; // 米白褲子
     ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
     ctx.fillStyle = '#8B4513';
-    ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight/2, shoeWidth, shoeHeight);
+    ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
     ctx.restore();
     // 前臂
     ctx.save();
     ctx.translate(armX, shoulderY);
     ctx.rotate(-armAngle);
-    ctx.fillStyle = '#00D0B0';
+    ctx.fillStyle = '#FFFF00'; // 黃袖子
     ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-    ctx.fillStyle = '#F2D1B3';
+    ctx.fillStyle = '#D1B497';
     ctx.beginPath();
     ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
     ctx.fill();
@@ -548,33 +559,53 @@ function drawPlayer() {
     // 頭部和臉部細節
     ctx.fillStyle = '#F2D1B3';
     ctx.beginPath();
-    ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
+    ctx.arc(pW / 2, pH * 0.25, pW * 0.28, 0, Math.PI * 2); // 增加頭部寬度
     ctx.fill();
     // 頭髮
     ctx.save();
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = '#000'; // 還原為黑色
+    // 左邊頭髮
     ctx.beginPath();
-    ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
+    ctx.arc(pW * 0.32, pH * 0.25, pW * 0.13, Math.PI * 0.5, Math.PI * 1.5, false);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
-    // 帽子主體 (半圓形，顏色與衣服相同)
-    ctx.fillStyle = '#00D0B0';
+    // 帽子主體 (白帽子)
+    ctx.fillStyle = '#fff'; // 白帽子
     ctx.beginPath();
-    ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
+    ctx.arc(pW / 2, pH * 0.25, pW * 0.29, Math.PI, Math.PI * 2, false);
+    ctx.closePath();
     ctx.fill();
-    // 帽沿
-    ctx.fillStyle = '#50C8FF';
-    ctx.fillRect(pW / 2, pH * 0.20, pW * 0.32, pH * 0.06);
-    // 眼睛和臉頰 (最上層)
+    // ===== 紅色綁帶（改為實心矩形） =====
+    ctx.fillStyle = '#d00';
+    const strapHeightSide = pH * 0.06;
+    const strapYSide = pH * 0.19;
+    ctx.fillRect(pW * 0.21, strapYSide, pW * 0.58, strapHeightSide);
+    // ===== 黃色頭燈與黑色底座（側面） =====
+    ctx.save();
+    const lampBaseW = pW * 0.18, lampBaseH = pH * 0.13;
+    const lampBaseX = pW - lampBaseW - pW * 0.12, lampBaseY = pH * 0.12;
+    // 黑色底座
     ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.roundRect(lampBaseX, lampBaseY, lampBaseW, lampBaseH, lampBaseH * 0.3);
+    ctx.fill();
+    // 黃色燈
+    ctx.fillStyle = '#ffe14d';
+    const lampW = lampBaseW * 0.75, lampH = lampBaseH * 0.75;
+    const lampX = lampBaseX + (lampBaseW - lampW) / 2;
+    const lampY = lampBaseY + (lampBaseH - lampH) / 2;
+    ctx.beginPath();
+    ctx.roundRect(lampX, lampY, lampW, lampH, lampH * 0.3);
+    ctx.fill();
+    ctx.restore();
+    // 眼睛和臉頰 (最上層)
+    ctx.fillStyle = '#000'; // 還原為黑色
     const eyeY = pH * 0.3;
     const eyeHeight = pH * 0.035;
     ctx.fillRect(pW * 0.60, eyeY, pW * 0.1, eyeHeight);
-    ctx.fillStyle = '#FFB6C1';
-    ctx.beginPath();
-    ctx.arc(pW * 0.55, pH * 0.38, pW * 0.06, 0, Math.PI * 2);
-    ctx.fill();
+    // 帽沿（紅帽沿）
+    ctx.restore();
     ctx.restore(); // 恢復身體傾斜
     ctx.restore(); // 恢復主畫布
     return;
@@ -583,9 +614,33 @@ function drawPlayer() {
   // === ns-tower.html 正面靜止狀態（兩眼兩腮紅，帽沿為橢圓弧） ===
   ctx.translate(player.x, player.y - pH * 0.08); // 微調腳底貼地
 
-  // 身體
-  ctx.fillStyle = '#00D0B0';
-  ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
+  // 身體（梯形：上寬下窄）
+  ctx.fillStyle = '#FFFF00'; // 黃衣服
+  ctx.beginPath();
+  ctx.moveTo(pW * 0.30, pH * 0.45); // 左上角
+  ctx.lineTo(pW * 0.70, pH * 0.45); // 右上角
+  ctx.lineTo(pW * 0.65, pH * 0.75); // 右下角
+  ctx.lineTo(pW * 0.35, pH * 0.75); // 左下角
+  ctx.closePath();
+  ctx.fill();
+
+  // V領
+  ctx.fillStyle = '#c00'; // 改為暗紅色內襯
+  ctx.beginPath();
+  ctx.moveTo(pW*0.5, pH*0.58); // V點
+  ctx.lineTo(pW*0.4, pH*0.45);
+  ctx.lineTo(pW*0.6, pH*0.45);
+  ctx.closePath();
+  ctx.fill();
+
+  // 腰帶
+  ctx.fillStyle = '#8B4513'; // 咖啡色
+  ctx.fillRect(pW * 0.35, pH * 0.72, pW * 0.3, pH * 0.05);
+  // 皮帶扣
+  ctx.fillStyle = '#A0522D'; // 咖啡色 (Sienna)
+  const buckleW = pW * 0.08;
+  const buckleH = pH * 0.05;
+  ctx.fillRect(pW * 0.5 - buckleW / 2, pH * 0.72, buckleW, buckleH);
 
   // 腿
   const legWidth = pW * 0.18;
@@ -596,20 +651,25 @@ function drawPlayer() {
   const shoeHeight = pH * 0.08;
   // 左腿
   ctx.save();
-  ctx.translate(legBaseX - legWidth, legBaseY);
-  ctx.fillStyle = '#0000B2';
+  ctx.translate(legBaseX - legWidth * 0.45, legBaseY);
+  ctx.rotate(0.1);
+  ctx.fillStyle = '#E3D8C3'; // 米白褲子
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
   ctx.fillStyle = '#6B3503';
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
   ctx.restore();
   // 右腿
   ctx.save();
-  ctx.translate(legBaseX + legWidth, legBaseY);
-  ctx.fillStyle = '#0000FF';
+  ctx.translate(legBaseX + legWidth * 0.45, legBaseY);
+  ctx.rotate(-0.1);
+  ctx.fillStyle = '#E3D8C3'; // 米白褲子
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
   ctx.fillStyle = '#8B4513';
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
   ctx.restore();
+  // 褲檔（中間部分）
+  ctx.fillStyle = '#E3D8C3'; // 米白褲子
+  ctx.fillRect(pW * 0.45, pH * 0.75, pW * 0.1, pH * 0.15);
 
   // 手臂
   const armWidth = pW * 0.12;
@@ -620,10 +680,10 @@ function drawPlayer() {
   // 左臂
   ctx.save();
   ctx.translate(armX - armWidth, shoulderY);
-  ctx.rotate(0.15); // 微微外展
-  ctx.fillStyle = '#00A090';
+  ctx.rotate(0.7); // 進一步增加外展角度
+  ctx.fillStyle = '#FFFF00'; // 黃袖子
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
-  ctx.fillStyle = '#D1B497';
+  ctx.fillStyle = '#D1B497'; // 手掌膚色
   ctx.beginPath();
   ctx.arc(0, armHeight + handRadius * 0.5, handRadius, 0, Math.PI * 2);
   ctx.fill();
@@ -631,8 +691,8 @@ function drawPlayer() {
   // 右臂
   ctx.save();
   ctx.translate(armX + armWidth, shoulderY);
-  ctx.rotate(-0.15); // 微微外展
-  ctx.fillStyle = '#00D0B0';
+  ctx.rotate(-0.7); // 進一步增加外展角度
+  ctx.fillStyle = '#FFFF00'; // 黃袖子
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
   ctx.fillStyle = '#F2D1B3';
   ctx.beginPath();
@@ -640,44 +700,75 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore();
 
+  // 頭部（整個拉寬）
+  ctx.save();
+  ctx.translate(pW / 2, pH * 0.25); // 以頭部中心為基準縮放
+  ctx.scale(1.13, 1); // X軸拉寬（縮小一點）
+  ctx.translate(-pW / 2, -pH * 0.25);
   // 頭部
   ctx.fillStyle = '#F2D1B3';
   ctx.beginPath();
-  ctx.arc(pW / 2, pH * 0.25, pW * 0.23, 0, Math.PI * 2);
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.28, 0, Math.PI * 2); // 增加頭部寬度
   ctx.fill();
-  // 頭髮
+  // 頭髮（正面：兩邊都有）
   ctx.save();
   ctx.fillStyle = '#000';
+  // 左邊頭髮
   ctx.beginPath();
-  ctx.arc(pW * 0.36, pH * 0.25, pW * 0.11, Math.PI * 0.5, Math.PI * 1.5, false);
+  ctx.arc(pW * 0.32, pH * 0.25, pW * 0.13, Math.PI * 0.5, Math.PI * 1.5, false);
+  ctx.closePath();
+  ctx.fill();
+  // 右邊頭髮
+  ctx.beginPath();
+  ctx.arc(pW * 0.68, pH * 0.25, pW * 0.13, Math.PI * 1.5, Math.PI * 0.5, false);
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-  // 帽子主體 (半圓形，顏色與衣服相同)
-  ctx.fillStyle = '#00D0B0';
-  ctx.beginPath();
-  ctx.arc(pW / 2, pH * 0.25, pW * 0.24, Math.PI, Math.PI * 2);
-  ctx.fill();
-  // 帽沿（橢圓弧形）
+  // 帽子主體（改為完整半圓，而非月牙形）
   ctx.save();
-  ctx.strokeStyle = '#50C8FF';
-  ctx.lineWidth = pH * 0.06;
   ctx.beginPath();
-  ctx.ellipse(pW / 2, pH * 0.22, pW * 0.18, pH * 0.04, 0, 0, Math.PI, false);
-  ctx.stroke();
+  // 外圈大半圓
+  ctx.arc(pW / 2, pH * 0.25, pW * 0.29, Math.PI, Math.PI * 2, false);
+  ctx.closePath();
+  ctx.fillStyle = '#fff'; // 白帽子
+  ctx.fill();
   ctx.restore();
-  // 兩眼
+  // ===== 紅色帽帶（改為實心矩形） =====
+  ctx.fillStyle = '#d00';
+  const strapHeightFront = pH * 0.06;
+  const strapYFront = pH * 0.21;
+  const strapWidthFront = pW * 0.58;
+  ctx.fillRect(pW / 2 - strapWidthFront / 2, strapYFront, strapWidthFront, strapHeightFront);
+  // ===== 黃色頭燈與黑色底座 =====
+  ctx.save();
+  const lampBaseW_front = pW * 0.20, lampBaseH_front = pH * 0.13;
+  const lampBaseX_front = pW / 2 - lampBaseW_front / 2, lampBaseY_front = pH * 0.17;
+  // 黑色底座
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.roundRect(lampBaseX_front, lampBaseY_front, lampBaseW_front, lampBaseH_front, lampBaseH_front * 0.3);
+  ctx.fill();
+  // 黃色燈
+  ctx.fillStyle = '#ffe14d';
+  const lampW_front = lampBaseW_front * 0.7, lampH_front = lampBaseH_front * 0.7;
+  const lampX_front = lampBaseX_front + (lampBaseW_front - lampW_front) / 2;
+  const lampY_front = lampBaseY_front + (lampBaseH_front - lampH_front) / 2;
+  ctx.beginPath();
+  ctx.roundRect(lampX_front, lampY_front, lampW_front, lampH_front, lampH_front * 0.3);
+  ctx.fill();
+  ctx.restore();
+  // 兩眼（正面：對稱）
   ctx.fillStyle = '#000';
   const eyeY = pH * 0.29;
   const eyeHeight = pH * 0.035;
-  ctx.fillRect(pW * 0.44, eyeY, pW * 0.08, eyeHeight);
-  ctx.fillRect(pW * 0.60, eyeY, pW * 0.08, eyeHeight);
-  // 兩腮紅
-  ctx.fillStyle = '#FFB6C1';
+  ctx.fillRect(pW * 0.36, eyeY, pW * 0.09, eyeHeight); // 調整眼睛位置和大小
+  ctx.fillRect(pW * 0.55, eyeY, pW * 0.09, eyeHeight); // 調整眼睛位置和大小
+  // ===== 新增鼻子（小圓點） =====
+  ctx.fillStyle = '#E0B07A';
   ctx.beginPath();
-  ctx.arc(pW * 0.41, pH * 0.38, pW * 0.055, 0, Math.PI * 2);
-  ctx.arc(pW * 0.59, pH * 0.38, pW * 0.055, 0, Math.PI * 2);
+  ctx.arc(pW * 0.5, pH * 0.34, pW * 0.025, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore(); // 還原頭部縮放
   ctx.restore();
 }
 
