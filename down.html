@@ -224,6 +224,8 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 let player, platforms, keys, lastPlatformTouched;
+let bloodParticles = []; // 新增：用於存放噴血粒子
+let debrisParticles = []; // 新增：用於存放平台碎塊
 let gameSpeed = 1;
 let lastPlayerFloorY = null;
 let platformPassedCount = 0; // 記錄經過的平台數
@@ -362,11 +364,13 @@ function initGame() {
     cancelAnimationFrame(animationFrameId);
     animationFrameId = null;
   }
+  bloodParticles = []; // 新增：重置時清空粒子
+  debrisParticles = []; // 新增：重置時清空粒子
   resizeCanvas();
   paused = false;
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
-  const platformHeight = 10;
+  const platformHeight = 12; // 增加厚度
   const numPlatforms = 8;
   const platformSpacing = getHeight() / numPlatforms; // 固定間距
 
@@ -395,6 +399,29 @@ function initGame() {
       Math.abs(p.x - x) < platformWidth + 10 // 水平重疊檢查
     ));
     
+    // 為消失平台生成固定裂痕
+    let cracks = undefined;
+    if (type === 'vanish') {
+      cracks = [];
+      for (let c = 0; c < 8; c++) {
+        let x1 = Math.random() * platformWidth;
+        let y1 = Math.random() * platformHeight;
+        let x2 = x1 + (Math.random() - 0.5) * platformWidth * 0.5;
+        let y2 = y1 + (Math.random() - 0.5) * platformHeight * 0.7;
+        let branch = undefined;
+        if (Math.random() < 0.5) {
+          let x3 = x2 + (Math.random() - 0.5) * platformWidth * 0.2;
+          let y3 = y2 + (Math.random() - 0.5) * platformHeight * 0.2;
+          branch = [x3, y3];
+        }
+        cracks.push({x1, y1, x2, y2, branch});
+      }
+    }
+    // 彈簧平台預設 squash=false
+    let squash = (type === 'jump') ? false : undefined;
+    let squashAnim = (type === 'jump') ? 1 : undefined; // 1=展開, 0=壓縮
+    let targetSquash = (type === 'jump') ? 1 : undefined;
+    let squashLock = (type === 'jump') ? 0 : undefined;
     platforms.push({
       x: x,
       y: i * platformSpacing,
@@ -402,7 +429,12 @@ function initGame() {
       height: platformHeight,
       type: type,
       vanishTimer: null,
-      hidden: false
+      hidden: false,
+      cracks, // 只給vanish
+      squash,  // 只給jump
+      squashAnim, // 只給jump
+      targetSquash, // 只給jump
+      squashLock // 只給jump
     });
   }
 
@@ -506,7 +538,7 @@ function drawPlayer() {
     ctx.save();
     ctx.translate(legBaseX, legBaseY);
     ctx.rotate(legAngle);
-    ctx.fillStyle = '#E3D8C3'; // 米白褲子
+    ctx.fillStyle = '#fff'; // 白色褲子
     ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
     ctx.fillStyle = '#6B3503';
     ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
@@ -526,7 +558,7 @@ function drawPlayer() {
     ctx.fillStyle = '#FFFF00'; // 黃衣服
     ctx.fillRect(pW * 0.35, pH * 0.45, pW * 0.3, pH * 0.30);
     // 領子
-    ctx.fillStyle = '#c00'; // 改為暗紅色
+    ctx.fillStyle = '#000'; // 黑色
     ctx.fillRect(pW * 0.48, pH * 0.45, pW * 0.04, pH * 0.04);
     // 腰帶
     ctx.fillStyle = '#8B4513'; // 咖啡色
@@ -540,7 +572,7 @@ function drawPlayer() {
     ctx.save();
     ctx.translate(legBaseX, legBaseY);
     ctx.rotate(-legAngle);
-    ctx.fillStyle = '#E3D8C3'; // 米白褲子
+    ctx.fillStyle = '#fff'; // 白色褲子
     ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
     ctx.fillStyle = '#8B4513';
     ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
@@ -579,12 +611,12 @@ function drawPlayer() {
     // ===== 紅色綁帶（改為實心矩形） =====
     ctx.fillStyle = '#d00';
     const strapHeightSide = pH * 0.06;
-    const strapYSide = pH * 0.19;
+    const strapYSide = pH * 0.13; // 再次向上移動
     ctx.fillRect(pW * 0.21, strapYSide, pW * 0.58, strapHeightSide);
     // ===== 黃色頭燈與黑色底座（側面） =====
     ctx.save();
     const lampBaseW = pW * 0.18, lampBaseH = pH * 0.13;
-    const lampBaseX = pW - lampBaseW - pW * 0.12, lampBaseY = pH * 0.12;
+    const lampBaseX = pW - lampBaseW - pW * 0.12, lampBaseY = pH * 0.06; // 再次向上移動
     // 黑色底座
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -608,6 +640,21 @@ function drawPlayer() {
     ctx.restore();
     ctx.restore(); // 恢復身體傾斜
     ctx.restore(); // 恢復主畫布
+    // ===== 側面也繪製血條 =====
+    const maxHp = 12;
+    const barW = pW;
+    const barH = pH * 0.11;
+    const barX = player.x;
+    const barY = player.y - pH * 0.18 - barH;
+    for (let i = 0; i < maxHp; i++) {
+      let color = '#ff0';
+      if (player.hp === maxHp) color = '#0f0';
+      else if (player.hp <= 5) color = '#f00';
+      ctx.fillStyle = i < player.hp ? color : '#333';
+      ctx.fillRect(barX + i * (barW / maxHp), barY, (barW / maxHp) - 1, barH);
+      ctx.strokeStyle = '#222';
+      ctx.strokeRect(barX + i * (barW / maxHp), barY, (barW / maxHp) - 1, barH);
+    }
     return;
   }
 
@@ -625,7 +672,7 @@ function drawPlayer() {
   ctx.fill();
 
   // V領
-  ctx.fillStyle = '#c00'; // 改為暗紅色內襯
+  ctx.fillStyle = '#000'; // 黑色內襯
   ctx.beginPath();
   ctx.moveTo(pW*0.5, pH*0.58); // V點
   ctx.lineTo(pW*0.4, pH*0.45);
@@ -653,7 +700,7 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(legBaseX - legWidth * 0.45, legBaseY);
   ctx.rotate(0.1);
-  ctx.fillStyle = '#E3D8C3'; // 米白褲子
+  ctx.fillStyle = '#fff'; // 白色褲子
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
   ctx.fillStyle = '#6B3503';
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
@@ -662,13 +709,13 @@ function drawPlayer() {
   ctx.save();
   ctx.translate(legBaseX + legWidth * 0.45, legBaseY);
   ctx.rotate(-0.1);
-  ctx.fillStyle = '#E3D8C3'; // 米白褲子
+  ctx.fillStyle = '#fff'; // 白色褲子
   ctx.fillRect(-legWidth / 2, 0, legWidth, legHeight);
   ctx.fillStyle = '#8B4513';
   ctx.fillRect(-shoeWidth / 2, legHeight - shoeHeight / 2, shoeWidth, shoeHeight);
   ctx.restore();
   // 褲檔（中間部分）
-  ctx.fillStyle = '#E3D8C3'; // 米白褲子
+  ctx.fillStyle = '#fff'; // 白色褲子
   ctx.fillRect(pW * 0.45, pH * 0.75, pW * 0.1, pH * 0.15);
 
   // 手臂
@@ -677,10 +724,26 @@ function drawPlayer() {
   const handRadius = armWidth * 0.5;
   const armX = pW / 2;
   const shoulderY = pH * 0.45;
+
+  let leftArmAngle = 0.7;
+  let rightArmAngle = -0.7;
+
+  // 新增：掉落時手臂揮動
+  if (player.vy > 0.5 && !player.onGround) { // 增加一個vy閾值，避免小幅下降也觸發
+    // 調整動畫參數，使其為快速地上下拍動，且不會過低
+    const fallAnimCycle = (performance.now() / 50) % (Math.PI * 2); // 更快的頻率
+    const baseAngle = 0.7; // 揮動的中心角度 (同靜止站姿)
+    const flapRange = 0.5; // 揮動的幅度
+    const flapAngle = baseAngle + Math.sin(fallAnimCycle) * flapRange;
+    
+    leftArmAngle = flapAngle;
+    rightArmAngle = -flapAngle;
+  }
+
   // 左臂
   ctx.save();
   ctx.translate(armX - armWidth, shoulderY);
-  ctx.rotate(0.7); // 進一步增加外展角度
+  ctx.rotate(leftArmAngle);
   ctx.fillStyle = '#FFFF00'; // 黃袖子
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
   ctx.fillStyle = '#D1B497'; // 手掌膚色
@@ -691,7 +754,7 @@ function drawPlayer() {
   // 右臂
   ctx.save();
   ctx.translate(armX + armWidth, shoulderY);
-  ctx.rotate(-0.7); // 進一步增加外展角度
+  ctx.rotate(rightArmAngle);
   ctx.fillStyle = '#FFFF00'; // 黃袖子
   ctx.fillRect(-armWidth / 2, 0, armWidth, armHeight);
   ctx.fillStyle = '#F2D1B3';
@@ -736,13 +799,13 @@ function drawPlayer() {
   // ===== 紅色帽帶（改為實心矩形） =====
   ctx.fillStyle = '#d00';
   const strapHeightFront = pH * 0.06;
-  const strapYFront = pH * 0.21;
+  const strapYFront = pH * 0.15; // 再次向上移動
   const strapWidthFront = pW * 0.58;
   ctx.fillRect(pW / 2 - strapWidthFront / 2, strapYFront, strapWidthFront, strapHeightFront);
   // ===== 黃色頭燈與黑色底座 =====
   ctx.save();
   const lampBaseW_front = pW * 0.20, lampBaseH_front = pH * 0.13;
-  const lampBaseX_front = pW / 2 - lampBaseW_front / 2, lampBaseY_front = pH * 0.17;
+  const lampBaseX_front = pW / 2 - lampBaseW_front / 2, lampBaseY_front = pH * 0.11; // 再次向上移動
   // 黑色底座
   ctx.fillStyle = '#000';
   ctx.beginPath();
@@ -770,6 +833,22 @@ function drawPlayer() {
   ctx.fill();
   ctx.restore(); // 還原頭部縮放
   ctx.restore();
+
+  // ===== 在頭頂上方繪製血條 =====
+  const maxHp = 12;
+  const barW = pW;
+  const barH = pH * 0.11;
+  const barX = player.x;
+  const barY = player.y - pH * 0.18 - barH;
+  for (let i = 0; i < maxHp; i++) {
+    let color = '#ff0';
+    if (player.hp === maxHp) color = '#0f0';
+    else if (player.hp <= 5) color = '#f00';
+    ctx.fillStyle = i < player.hp ? color : '#333';
+    ctx.fillRect(barX + i * (barW / maxHp), barY, (barW / maxHp) - 1, barH);
+    ctx.strokeStyle = '#222';
+    ctx.strokeRect(barX + i * (barW / maxHp), barY, (barW / maxHp) - 1, barH);
+  }
 }
 
 function drawTopSpikes() {
@@ -785,35 +864,73 @@ function drawTopSpikes() {
 }
 
 function drawPlatforms() {
+  const conveyorAnimOffset = (performance.now() / 80) % 12; // 用於傳送帶動畫
+  animateSpringPlatforms();
   for (let idx = 0; idx < platforms.length; idx++) {
     let p = platforms[idx];
     if (p.hidden) continue;
     if (p.type === "normal") {
-      // 藍色平台，陰影深藍
+      // 藍色平台
       ctx.fillStyle = "#3399ff";
       ctx.fillRect(p.x, p.y, p.width, p.height);
-      ctx.fillStyle = "#003366";
-      ctx.fillRect(p.x, p.y + p.height - 3, p.width, 3); // 藍色陰影
       ctx.strokeStyle = "#001a44";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
     } else if (p.type === "jump") {
-      // 綠色底
-      ctx.fillStyle = "#00e000";
-      ctx.fillRect(p.x, p.y, p.width, p.height);
-      ctx.strokeStyle = "#007700";
-      ctx.strokeRect(p.x, p.y, p.width, p.height);
-      // 畫白色彈簧線圈
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
+      // 彈簧平台厚度根據 squashAnim 補間變化（上緣固定，下緣上移）
+      const normalHeight = p.height;
+      const thickHeight = normalHeight * 2;
+      const squashAnim = (typeof p.squashAnim === 'number') ? p.squashAnim : 1;
+      const drawHeight = thickHeight - (thickHeight - normalHeight) * squashAnim;
+      const yOffset = p.y; // 上緣固定
+      // 1. 黑色背景
+      ctx.fillStyle = "#000";
+      ctx.fillRect(p.x, yOffset, p.width, drawHeight);
+      // 2. 綠色邊框
+      const borderWidth = drawHeight * 0.15;
+      ctx.fillStyle = "#0f0"; // 亮綠色
+      ctx.fillRect(p.x, yOffset, p.width, borderWidth); // 上邊框
+      ctx.fillRect(p.x, yOffset + drawHeight - borderWidth, p.width, borderWidth); // 下邊框
+      // 3. 改良版白色彈簧圖案（增加陰影層）
+      ctx.save();
+      const springY = yOffset + borderWidth;
+      const springHeight = drawHeight - (2 * borderWidth);
+      const segmentWidth = springHeight * 1.8;
+      const lineWidth = segmentWidth * 0.4;
+      // 建立一個剪裁區域
       ctx.beginPath();
-      let springY = p.y + p.height / 2 + 1;
-      for (let i = 0; i < p.width - 8; i += 8) {
-        ctx.moveTo(p.x + 4 + i, springY - 2);
-        ctx.lineTo(p.x + 8 + i, springY + 2);
-        ctx.lineTo(p.x + 12 + i, springY - 2);
+      ctx.rect(p.x, springY, p.width, springHeight);
+      ctx.clip();
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'butt';
+      // 繪製陰影層
+      ctx.save();
+      ctx.translate(1.5, 1.5); // 向右下角偏移製造陰影
+      ctx.strokeStyle = '#777'; // 深灰色陰影
+      for (let i = -segmentWidth; i < p.width + segmentWidth; i += segmentWidth) {
+        const startX = p.x + i;
+        ctx.beginPath();
+        ctx.moveTo(startX, springY + springHeight);
+        ctx.lineTo(startX + segmentWidth / 2, springY);
+        ctx.lineTo(startX + segmentWidth, springY + springHeight);
+        ctx.stroke();
       }
-      ctx.stroke();
-      ctx.lineWidth = 1;
+      ctx.restore();
+      // 繪製前景層
+      const gradient = ctx.createLinearGradient(p.x, springY, p.x, springY + springHeight);
+      gradient.addColorStop(0.1, '#fff');
+      gradient.addColorStop(0.5, '#ccc');
+      gradient.addColorStop(0.9, '#fff');
+      ctx.strokeStyle = gradient;
+      for (let i = -segmentWidth; i < p.width + segmentWidth; i += segmentWidth) {
+        const startX = p.x + i;
+        ctx.beginPath();
+        ctx.moveTo(startX, springY + springHeight);
+        ctx.lineTo(startX + segmentWidth / 2, springY);
+        ctx.lineTo(startX + segmentWidth, springY + springHeight);
+        ctx.stroke();
+      }
+      ctx.restore();
+      ctx.lineWidth = 1; // 重設線寬
     } else if (p.type === "spike") {
       // 尖刺平台：先繪製平台本身，再繪製尖刺
       ctx.fillStyle = "#cccccc"; // 灰色平台
@@ -824,9 +941,9 @@ function drawPlatforms() {
       ctx.fillStyle = "#cccccc"; // 與頂部尖刺相同的顏色
       for (let i = 0; i < p.width; i += 10) {
         ctx.beginPath();
-        ctx.moveTo(p.x + i, p.y + p.height);
-        ctx.lineTo(p.x + i + 5, p.y + p.height - 20); // 增加尖刺高度到20像素
-        ctx.lineTo(p.x + i + 10, p.y + p.height);
+        ctx.moveTo(p.x + i, p.y);
+        ctx.lineTo(p.x + i + 5, p.y - 12); // 將尖刺繪製在平台上方，高度12
+        ctx.lineTo(p.x + i + 10, p.y);
         ctx.closePath();
         ctx.fill();
       }
@@ -836,35 +953,58 @@ function drawPlatforms() {
       ctx.fillRect(p.x, p.y, p.width, p.height);
       ctx.strokeStyle = "#bbbbbb";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
-    } else if (p.type === "conveyorL" || p.type === "conveyorR") {
-      // 傳輸帶平台：灰色底+深色橫條+白色箭頭
-      ctx.fillStyle = "#bbbbbb";
-      ctx.fillRect(p.x, p.y, p.width, p.height);
-      ctx.strokeStyle = "#888888";
-      ctx.strokeRect(p.x, p.y, p.width, p.height);
-      // 畫左右半圓
+      // 繪製固定深灰色裂痕，並裁切在平台內
       ctx.save();
-      ctx.fillStyle = "#bbbbbb";
-      // 左半圓
       ctx.beginPath();
-      ctx.arc(p.x, p.y + p.height / 2, p.height / 2, Math.PI / 2, Math.PI * 3 / 2, false);
-      ctx.fill();
-      // 右半圓
-      ctx.beginPath();
-      ctx.arc(p.x + p.width, p.y + p.height / 2, p.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
-      ctx.fill();
-      ctx.restore();
-      // 畫深色橫條
-      ctx.strokeStyle = "#666";
-      for (let i = 4; i < p.width; i += 12) {
+      ctx.rect(p.x, p.y, p.width, p.height);
+      ctx.clip();
+      ctx.strokeStyle = "#999999";
+      ctx.lineWidth = 1;
+      for (const crack of FIXED_CRACKS) {
         ctx.beginPath();
-        ctx.moveTo(p.x + i, p.y + 2);
-        ctx.lineTo(p.x + i, p.y + p.height - 2);
+        for (let i = 0; i < crack.points.length; i++) {
+          const px = p.x + crack.points[i][0] * p.width;
+          const py = p.y + crack.points[i][1] * p.height;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
         ctx.stroke();
       }
-      // 畫三個白色箭頭
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
+      ctx.restore();
+    } else if (p.type === "conveyorL" || p.type === "conveyorR") {
+      // 傳輸帶平台：改為繪製兩端為圓形的形狀
+      const r = p.height / 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x + r, p.y);
+      ctx.lineTo(p.x + p.width - r, p.y);
+      ctx.arc(p.x + p.width - r, p.y + r, r, -Math.PI / 2, Math.PI / 2, false);
+      ctx.lineTo(p.x + r, p.y + p.height);
+      ctx.arc(p.x + r, p.y + r, r, Math.PI / 2, -Math.PI / 2, false);
+      ctx.closePath();
+      
+      ctx.fillStyle = "#bbbbbb";
+      ctx.fill();
+      ctx.strokeStyle = "#888888";
+      ctx.stroke();
+
+      // 畫會移動的深色橫條
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(p.x, p.y, p.width, p.height);
+      ctx.clip();
+      ctx.strokeStyle = "#666";
+      const animOffset = (p.type === "conveyorL") ? -conveyorAnimOffset : conveyorAnimOffset;
+      // 擴大迴圈範圍，確保線條平滑移入移出
+      for (let i = -12; i < p.width + 12; i += 12) {
+        ctx.beginPath();
+        ctx.moveTo(p.x + i + animOffset, p.y + 2);
+        ctx.lineTo(p.x + i + animOffset, p.y + p.height - 2);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // 畫三個黃色箭頭
+      ctx.strokeStyle = "#ff0";
+      ctx.lineWidth = 4;
       ctx.beginPath();
       let arrowY = p.y + p.height / 2;
       // 計算三個箭頭的位置，均勻分布在平台上
@@ -933,6 +1073,7 @@ function updatePlayer() {
       playSfxPool('spike'); // 播放被刺到音效
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
+      createBloodSplatter(player.x + player.width / 2, player.y, 30); // 從頭頂噴血
       player.isHurt = true;
       player.hurtTimer = 1000;
       // 將正下方平台設為 hidden
@@ -968,6 +1109,8 @@ function updatePlayer() {
   if (!player.fallThrough) {
     for (let p of platforms) {
       if (p.hidden) continue;
+      // 彈簧平台壓縮判斷
+      if (p.type === 'jump') p.targetSquash = 1;
       if (player.vy >= 0 &&
           player.x + player.width > p.x &&
           player.x < p.x + p.width &&
@@ -980,12 +1123,16 @@ function updatePlayer() {
             playSfxPool('spike'); // 播放被刺到音效
             player.hp -= 5;
             lastPlatformTouched = p;
+            createBloodSplatter(player.x + player.width / 2, player.y + player.height, 30); // 從腳底噴血
             player.isHurt = true;
             player.hurtTimer = 1000;
           }
           player.vy = 0;
         } else if (p.type === "jump") {
           playSfxPool('jump'); // 播放彈跳音效
+          // 彈簧平台壓縮動畫
+          p.targetSquash = 0;
+          p.squashLock = 0.15; // 0.15秒鎖定壓縮
           // 取得平台間距
           const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
           const g = player.gravity;
@@ -1009,6 +1156,7 @@ function updatePlayer() {
             player.hp = Math.min(player.hp + 1, 12);
           } else if (Date.now() - p.vanishTimer >= 200) {
             p.hidden = true;
+            createDebris(p.x, p.y, p.width, p.height); // 觸發碎裂效果
             playSfxPool('vanish'); // 播放消失音效
             break;
           }
@@ -1080,7 +1228,7 @@ function updatePlatforms() {
       }
       // 平台重生
       const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
-      const platformHeight = 10;
+      const platformHeight = 12; // 增加厚度
       const platformSpacing = getHeight() / 8; // 固定間距
       // 找到最下方的平台，在其下方固定間距處生成新平台
       let lowestPlatform = null;
@@ -1112,6 +1260,37 @@ function updatePlatforms() {
       p.type = selectPlatformType();
       p.vanishTimer = null;
       p.hidden = false;
+      // 為消失平台生成固定裂痕
+      if (p.type === 'vanish') {
+        p.cracks = [];
+        for (let c = 0; c < 8; c++) {
+          let x1 = Math.random() * platformWidth;
+          let y1 = Math.random() * platformHeight;
+          let x2 = x1 + (Math.random() - 0.5) * platformWidth * 0.5;
+          let y2 = y1 + (Math.random() - 0.5) * platformHeight * 0.7;
+          let branch = undefined;
+          if (Math.random() < 0.5) {
+            let x3 = x2 + (Math.random() - 0.5) * platformWidth * 0.2;
+            let y3 = y2 + (Math.random() - 0.5) * platformHeight * 0.2;
+            branch = [x3, y3];
+          }
+          p.cracks.push({x1, y1, x2, y2, branch});
+        }
+      } else {
+        p.cracks = undefined;
+      }
+      // 彈簧平台預設 squash=false
+      if (p.type === 'jump') {
+        p.squash = false;
+        p.squashAnim = 1;
+        p.targetSquash = 1;
+        p.squashLock = 0;
+      } else {
+        p.squash = undefined;
+        p.squashAnim = undefined;
+        p.targetSquash = undefined;
+        p.squashLock = undefined;
+      }
     }
   }
   
@@ -1119,7 +1298,7 @@ function updatePlatforms() {
   const targetPlatformCount = 8;
   while (platforms.length < targetPlatformCount) {
     const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
-    const platformHeight = 10;
+    const platformHeight = 12; // 增加厚度
     const platformSpacing = getHeight() / 8; // 固定間距
     
     // 找到最下方的平台，在其下方固定間距處生成新平台
@@ -1175,6 +1354,7 @@ function togglePause() {
 
 function gameLoop() {
   if (paused) return;
+  animateSpringPlatforms();
   ctx.clearRect(0, 0, getWidth(), getHeight());
   // 畫深藍色漸層背景（更接近原作）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
@@ -1183,6 +1363,13 @@ function gameLoop() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, getWidth(), getHeight());
   drawTopSpikes(); // 畫頂端尖刺
+  
+  updateBloodParticles();
+  drawBloodParticles();
+  
+  updateDebrisParticles();
+  drawDebrisParticles();
+
   if (!updatePlayer()) return;
   updatePlatforms();
   drawPlatforms();
@@ -1244,14 +1431,14 @@ window.addEventListener('touchcancel', function(e) {
   setKey('ArrowRight', false);
 });
 
-btnLeft.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowLeft', true); });
-btnLeft.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowLeft', false); });
+btnLeft.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); setKey('ArrowLeft', true); });
+btnLeft.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); setKey('ArrowLeft', false); });
 btnLeft.addEventListener('mousedown', e => { setKey('ArrowLeft', true); });
 btnLeft.addEventListener('mouseup', e => { setKey('ArrowLeft', false); });
 btnLeft.addEventListener('mouseleave', e => { setKey('ArrowLeft', false); });
 
-btnRight.addEventListener('touchstart', e => { e.preventDefault(); setKey('ArrowRight', true); });
-btnRight.addEventListener('touchend', e => { e.preventDefault(); setKey('ArrowRight', false); });
+btnRight.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); setKey('ArrowRight', true); });
+btnRight.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); setKey('ArrowRight', false); });
 btnRight.addEventListener('mousedown', e => { setKey('ArrowRight', true); });
 btnRight.addEventListener('mouseup', e => { setKey('ArrowRight', false); });
 btnRight.addEventListener('mouseleave', e => { setKey('ArrowRight', false); });
@@ -1357,6 +1544,111 @@ function handleFirstInteraction() {
 }
 window.addEventListener('click', handleFirstInteraction, { once: true });
 window.addEventListener('touchstart', handleFirstInteraction, { once: true });
+
+// ===== 新增噴血效果相關函數 =====
+function createBloodSplatter(x, y, count = 30) {
+  for (let i = 0; i < count; i++) {
+    bloodParticles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 10 - 5,
+      size: Math.random() * 2.5 + 1,
+      lifespan: Math.random() * 50 + 20,
+      gravity: 0.25
+    });
+  }
+}
+
+function updateBloodParticles() {
+  for (let i = bloodParticles.length - 1; i >= 0; i--) {
+    let p = bloodParticles[i];
+    p.vy += p.gravity;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.lifespan--;
+    if (p.lifespan <= 0) {
+      bloodParticles.splice(i, 1);
+    }
+  }
+}
+
+function drawBloodParticles() {
+  ctx.fillStyle = '#c00'; // 深紅色
+  for (const p of bloodParticles) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+// ===== 新增平台碎裂效果相關函數 =====
+function createDebris(x, y, width, height, count = 25) {
+  for (let i = 0; i < count; i++) {
+    debrisParticles.push({
+      x: x + Math.random() * width,
+      y: y + Math.random() * height,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 5,
+      size: Math.random() * 5 + 2,
+      lifespan: Math.random() * 60 + 40,
+      gravity: 0.2,
+      color: `rgb(${150 + Math.random()*20}, ${150 + Math.random()*20}, ${150 + Math.random()*20})`
+    });
+  }
+}
+
+function updateDebrisParticles() {
+  for (let i = debrisParticles.length - 1; i >= 0; i--) {
+    let p = debrisParticles[i];
+    p.vy += p.gravity;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.lifespan--;
+    if (p.lifespan <= 0) {
+      debrisParticles.splice(i, 1);
+    }
+  }
+}
+
+function drawDebrisParticles() {
+  for (const p of debrisParticles) {
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  }
+}
+
+// 固定裂痕資料（相對於平台寬高，0~1）
+const FIXED_CRACKS = [
+  // 主裂痕
+  { points: [ [0.12,0.7], [0.28,0.4], [0.38,0.8] ] },
+  { points: [ [0.7,0.2], [0.55,0.6], [0.8,0.7] ] },
+  { points: [ [0.3,0.2], [0.5,0.5], [0.4,0.8] ] },
+  // 分岔
+  { points: [ [0.28,0.4], [0.22,0.25] ] },
+  { points: [ [0.55,0.6], [0.65,0.45] ] }
+];
+
+// 彈簧平台動畫補間（每幀呼叫）
+function animateSpringPlatforms() {
+  const dt = 1/60; // 假設60fps
+  for (let p of platforms) {
+    if (p.type === 'jump' && typeof p.squashAnim === 'number' && typeof p.targetSquash === 'number') {
+      if (typeof p.squashLock === 'number' && p.squashLock > 0) {
+        p.squashLock -= dt;
+        p.targetSquash = 0;
+        if (p.squashLock < 0) p.squashLock = 0;
+      }
+      // 0.5秒補間，假設60fps，每幀約0.033s，則每幀進度約0.033
+      const speed = 1 / (0.5 * 60); // 約0.033
+      if (p.squashAnim < p.targetSquash) {
+        p.squashAnim = Math.min(p.squashAnim + speed, p.targetSquash);
+      } else if (p.squashAnim > p.targetSquash) {
+        p.squashAnim = Math.max(p.squashAnim - speed, p.targetSquash);
+      }
+    }
+  }
+}
 
 initGame();
 </script>
