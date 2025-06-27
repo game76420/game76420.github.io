@@ -371,8 +371,10 @@ function initGame() {
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
   const platformHeight = 12; // 增加厚度
-  const numPlatforms = 8;
-  const platformSpacing = getHeight() / numPlatforms; // 固定間距
+  const playerWidth = Math.floor(platformWidth / 2); // 精靈視覺寬度為平台寬度的1/2
+  const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
+  const platformSpacing = playerHeight + 2 * platformHeight; // 平台間距 = 精靈身高 + 2個平台厚度
+  const numPlatforms = Math.ceil(getHeight() / platformSpacing);
 
   for (let i = 0; i < numPlatforms; i++) {
     let type;
@@ -444,8 +446,6 @@ function initGame() {
 
   // 讓精靈一開始站在最底下那個平台正上方
   const firstPlatform = platforms[platforms.length - 1];
-  const playerWidth = Math.floor(platformWidth / 2); // 精靈視覺寬度為平台寬度的1/2
-  const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
   const playerCollisionWidth = Math.floor(platformWidth / 3); // 精靈碰撞寬度為平台寬度的1/3
   player = {
     x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
@@ -457,7 +457,7 @@ function initGame() {
     vy: 0,
     speed: 4.0,
     gravity: 0.3,
-    jumpForce: -8,
+    jumpForce: -6, // 減少彈跳力
     onGround: false,
     hp: 12,
     score: 0,
@@ -1142,7 +1142,7 @@ function updatePlayer() {
           const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
           const g = player.gravity;
           // 計算比一層高一點點的初速度（1.15倍平台間距）
-          const maxVy = -Math.sqrt(2 * g * platformSpacing * 1.15);
+          const maxVy = -Math.sqrt(2 * g * platformSpacing * 0.9); // 減少彈跳力
           player.vy = maxVy;
           player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
           lastPlatformTouched = p;
@@ -1234,7 +1234,9 @@ function updatePlatforms() {
       // 平台重生
       const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
       const platformHeight = 12; // 增加厚度
-      const platformSpacing = getHeight() / 8; // 固定間距
+      const playerWidth = Math.floor(platformWidth / 2);
+      const playerHeight = playerWidth;
+      const platformSpacing = playerHeight + 2 * platformHeight;
       // 找到最下方的平台，在其下方固定間距處生成新平台
       let lowestPlatform = null;
       for (let otherP of platforms) {
@@ -1300,12 +1302,13 @@ function updatePlatforms() {
   }
   
   // 檢查平台數量，如果少於8個就補充
-  const targetPlatformCount = 8;
+  const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
+  const platformHeight = 12; // 增加厚度
+  const playerWidth = Math.floor(platformWidth / 2);
+  const playerHeight = playerWidth;
+  const platformSpacing = playerHeight + 2 * platformHeight;
+  const targetPlatformCount = Math.ceil(getHeight() / platformSpacing);
   while (platforms.length < targetPlatformCount) {
-    const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
-    const platformHeight = 12; // 增加厚度
-    const platformSpacing = getHeight() / 8; // 固定間距
-    
     // 找到最下方的平台，在其下方固定間距處生成新平台
     let lowestPlatform = null;
     for (let p of platforms) {
