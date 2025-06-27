@@ -753,7 +753,16 @@ function initGame() {
           }
         }
       }
-      stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill});
+      stairs.push({x, y, width: stairWidth, height: stairHeight, type, vx, vy, baseX: x, baseY: y, rangeX, rangeY, phase, hasShoe, hasPill
+        // 新增彈簧平台動畫屬性
+        , ...(type === 'spring' ? {
+          springState: 'normal', // 'normal' | 'compressed' | 'stretching'
+          springAnimStart: 0,
+          springAnimFrom: stairHeight,
+          springAnimTo: stairHeight,
+          springCurrentHeight: stairHeight
+        } : {})
+      });
       y -= stairGap;
     }
   }
@@ -1067,23 +1076,49 @@ function drawStairs() {
   for (let s of stairs) {
     let drawY = s.y - cameraOffsetY;
     if (s.type === 'spring') {
-      // 綠色底
-      ctx.fillStyle = '#00e000';
-      ctx.fillRect(s.x, drawY, s.width, s.height);
-      ctx.strokeStyle = '#007700';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(s.x, drawY, s.width, s.height);
-      // 畫白色彈簧線圈
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
+      // 以 springCurrentHeight 畫，底部固定
+      const springH = s.springCurrentHeight || s.height;
+      const drawY = s.y - cameraOffsetY + (s.height - springH);
+      // 黑色主體
+      ctx.fillStyle = '#000';
+      ctx.fillRect(s.x, drawY, s.width, springH);
+      // 上下亮綠色邊
+      const borderWidth = Math.max(3, springH * 0.18);
+      ctx.fillStyle = '#39FF14';
+      ctx.fillRect(s.x, drawY, s.width, borderWidth); // 上
+      ctx.fillRect(s.x, drawY + springH - borderWidth, s.width, borderWidth); // 下
+      // 四根彈簧
+      ctx.save();
       ctx.beginPath();
-      let springY = drawY + s.height / 2 + 1;
-      for (let i = 0; i < s.width - 8; i += 8) {
-        ctx.moveTo(s.x + 4 + i, springY - 2);
-        ctx.lineTo(s.x + 8 + i, springY + 2);
-        ctx.lineTo(s.x + 12 + i, springY - 2);
+      ctx.rect(s.x, drawY, s.width, springH);
+      ctx.clip();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = Math.max(2, springH * 0.13);
+      const springCount = 4;
+      const springSpacing = s.width / 5;
+      // springH 取代 s.height
+      const springWaveH = springH - borderWidth * 2;
+      const springW = springSpacing * 0.8;
+      const springY = drawY + borderWidth;
+      const springPositions = [
+        s.x + springSpacing * 1.0,
+        s.x + springSpacing * 2.0,
+        s.x + springSpacing * 3.0,
+        s.x + springSpacing * 4.0
+      ];
+      for (let sp = 0; sp < springCount; sp++) {
+        const centerX = springPositions[sp];
+        ctx.beginPath();
+        for (let t = 0; t <= 1; t += 0.05) {
+          const wave = Math.sin(t * Math.PI * 4) * (springW / 2.5);
+          const x = centerX + wave;
+          const y = springY + t * springWaveH;
+          if (t === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
+      ctx.restore();
       ctx.lineWidth = 1;
     } else if (s.type === 'conveyorL' || s.type === 'conveyorR') {
       // 灰色底
@@ -1290,8 +1325,19 @@ function updatePlayer() {
     if (player.x + player.width > platform.x - tolerance && player.x < platform.x + platform.width + tolerance) {
         player.y = platform.y - player.height; // 鎖定Y座標
         player.vy = 0; // 站在平台上時沒有垂直速度
+        // 彈簧平台壓縮
+        if (platform.type === 'spring' && platform.springState !== 'compressed') {
+          platform.springState = 'compressed';
+        }
     } else {
         // 玩家走出了平台X軸範圍
+        // 彈簧平台拉伸動畫
+        if (platform.type === 'spring' && platform.springState === 'compressed') {
+          platform.springState = 'stretching';
+          platform.springAnimStart = performance.now();
+          platform.springAnimFrom = platform.height / 2;
+          platform.springAnimTo = platform.height * 2;
+        }
         player.onStair = false;
         player.landedOn = null;
         player.lastLeaveTime = performance.now() / 1000;
@@ -1337,59 +1383,62 @@ function updatePlayer() {
                 player.x < s.x + s.width + tolerance &&
                 prevBottom <= s.y &&
                 currBottom >= s.y) {
-              
-                player.y = s.y - player.height;
-                player.vy = 0;
-                player.onStair = true;
-                player.landedOn = s;
-                justLanded = true;
-                player.lastLandTime = performance.now() / 1000;
+              // 彈簧平台壓縮
+              if (s.type === 'spring' && s.springState !== 'compressed') {
+                s.springState = 'compressed';
+              }
+              player.y = s.y - player.height;
+              player.vy = 0;
+              player.onStair = true;
+              player.landedOn = s;
+              justLanded = true;
+              player.lastLandTime = performance.now() / 1000;
 
-                // 如果在空中時已按下(pending)，則落地瞬間立即開始集氣
-                if (player.chargePending) {
-                    startCharge();
-                    player.chargePending = false; // 清除等待狀態
-                }
+              // 如果在空中時已按下(pending)，則落地瞬間立即開始集氣
+              if (player.chargePending) {
+                  startCharge();
+                  player.chargePending = false; // 清除等待狀態
+              }
 
-                // Jump buffer: 如果有緩衝，落地瞬間自動跳
-                if (jumpBufferTimer > 0) {
-                    jumpBufferTimer = 0;
-                    // 若沒集氣，給最小力量
-                    if (!player.charging) {
-                        player.power = 1;
-                        player.charging = true;
-                    }
-                    releaseJump();
-                }
-
-                // 處理剛落地時的平台效果（受遊戲速度影響）
-                if (s.type === 'conveyorL') {
-                    player.x -= 0.6 * gameSpeedFactor;
-                } else if (s.type === 'conveyorR') {
-                    player.x += 0.6 * gameSpeedFactor;
-                }
-                if (player.jumping) {
-                    player.jumping = false;
-                    if (s.y !== getHeight() - stairHeight && lastLandedStairY !== s.y && (player.y + player.height - cameraOffsetY) < getHeight() * 0.5) {
-                        needScrollToStair = true;
-                        lastLandedStairY = s.y;
-                    }
-                }
-                // 檢查是否吃到運動鞋
-                if (s.hasShoe) {
-                  s.hasShoe = false;
-                  // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
-                  if (pillBuffActive || pillScale > 1) {
-                    pillScaleTarget = 1;
-                    pillScaleAnimStartTime = performance.now();
+              // Jump buffer: 如果有緩衝，落地瞬間自動跳
+              if (jumpBufferTimer > 0) {
+                  jumpBufferTimer = 0;
+                  // 若沒集氣，給最小力量
+                  if (!player.charging) {
+                      player.power = 1;
+                      player.charging = true;
                   }
-                  pillBuffActive = false;
-                  shoeBuffActive = true;
-                  shoeBuffEndTime = performance.now() + 10000;
+                  releaseJump();
+              }
+
+              // 處理剛落地時的平台效果（受遊戲速度影響）
+              if (s.type === 'conveyorL') {
+                  player.x -= 0.6 * gameSpeedFactor;
+              } else if (s.type === 'conveyorR') {
+                  player.x += 0.6 * gameSpeedFactor;
+              }
+              if (player.jumping) {
+                  player.jumping = false;
+                  if (s.y !== getHeight() - stairHeight && lastLandedStairY !== s.y && (player.y + player.height - cameraOffsetY) < getHeight() * 0.5) {
+                      needScrollToStair = true;
+                      lastLandedStairY = s.y;
+                  }
+              }
+              // 檢查是否吃到運動鞋
+              if (s.hasShoe) {
+                s.hasShoe = false;
+                // 互斥：吃到雞腿時取消膠囊buff，並觸發縮小動畫
+                if (pillBuffActive || pillScale > 1) {
+                  pillScaleTarget = 1;
+                  pillScaleAnimStartTime = performance.now();
                 }
-                break; // 找到平台就停止檢查
-            }
-        }
+                pillBuffActive = false;
+                shoeBuffActive = true;
+                shoeBuffEndTime = performance.now() + 10000;
+              }
+              break; // 找到平台就停止檢查
+          }
+      }
     }
   } else {
     // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響）
@@ -1586,7 +1635,16 @@ function updateStairs() {
           }
         }
       }
-      stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill});
+      stairs.push({x: newX, y: newY, width: stairWidth, height: stairHeight, type, vx, vy, baseX: newX, baseY: newY, rangeX, rangeY, phase, hasShoe, hasPill
+        // 新增彈簧平台動畫屬性
+        , ...(type === 'spring' ? {
+          springState: 'normal', // 'normal' | 'compressed' | 'stretching'
+          springAnimStart: 0,
+          springAnimFrom: stairHeight,
+          springAnimTo: stairHeight,
+          springCurrentHeight: stairHeight
+        } : {})
+      });
       lastY = newY;
     }
   }
@@ -1601,6 +1659,26 @@ function updateStairs() {
       s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
     } else if (s.type === "upward") {
       s.y = s.baseY + Math.sin(t + s.phase) * s.rangeY;
+    }
+    // 彈簧平台動畫狀態
+    if (s.type === 'spring') {
+      if (s.springState === 'normal') {
+        s.springCurrentHeight = s.height;
+      } else if (s.springState === 'compressed') {
+        s.springCurrentHeight = s.height / 2;
+      } else if (s.springState === 'stretching') {
+        const duration = 500; // ms
+        const now = performance.now();
+        const elapsed = now - s.springAnimStart;
+        if (elapsed < duration) {
+          // 線性插值從2倍高度回到正常高度
+          const t = elapsed / duration;
+          s.springCurrentHeight = s.springAnimFrom + (s.springAnimTo - s.springAnimFrom) * (1 - t);
+        } else {
+          s.springCurrentHeight = s.height;
+          s.springState = 'normal';
+        }
+      }
     }
   }
 }
@@ -1714,15 +1792,20 @@ function releaseJump() {
       const adjustedGravity = player.gravity * gameSpeedFactor;
       const maxVy = -Math.sqrt(2 * adjustedGravity * maxJumpHeight);
       player.vy = player.jumpPower + (maxVy - player.jumpPower) * powerRatio;
-
       const onSpring = player.landedOn && player.landedOn.type === 'spring';
       if (onSpring) {
+        // 彈簧平台拉伸動畫
+        if (player.landedOn.springState === 'compressed') {
+          player.landedOn.springState = 'stretching';
+          player.landedOn.springAnimStart = performance.now();
+          player.landedOn.springAnimFrom = player.landedOn.height / 2;
+          player.landedOn.springAnimTo = player.landedOn.height * 2;
+        }
         player.vy *= 1.5; // 從彈簧平台跳得更高
         playSfx(sfxSpringJump);
       } else {
         playSfx(sfxJump);
       }
-      
       player.jumping = true;
       player.onStair = false;
       player.landedOn = null;
