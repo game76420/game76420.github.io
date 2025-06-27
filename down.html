@@ -422,6 +422,8 @@ function initGame() {
     let squashAnim = (type === 'jump') ? 1 : undefined; // 1=展開, 0=壓縮
     let targetSquash = (type === 'jump') ? 1 : undefined;
     let squashLock = (type === 'jump') ? 0 : undefined;
+    let squashState = (type === 'jump') ? 'idle' : undefined;
+    let squashTimer = (type === 'jump') ? 0 : undefined;
     platforms.push({
       x: x,
       y: i * platformSpacing,
@@ -434,19 +436,23 @@ function initGame() {
       squash,  // 只給jump
       squashAnim, // 只給jump
       targetSquash, // 只給jump
-      squashLock // 只給jump
+      squashLock, // 只給jump
+      squashState, // 'idle', 'compressing', 'hold', 'expanding'
+      squashTimer // 秒數
     });
   }
 
   // 讓精靈一開始站在最底下那個平台正上方
   const firstPlatform = platforms[platforms.length - 1];
-  const playerWidth = Math.floor(platformWidth / 2); // 精靈寬度為平台寬度的1/3
+  const playerWidth = Math.floor(platformWidth / 2); // 精靈視覺寬度為平台寬度的1/2
   const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
+  const playerCollisionWidth = Math.floor(platformWidth / 3); // 精靈碰撞寬度為平台寬度的1/3
   player = {
     x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
     y: firstPlatform.y - playerHeight,
-    width: playerWidth,
+    width: playerWidth, // 視覺寬度
     height: playerHeight,
+    collisionWidth: playerCollisionWidth, // 碰撞寬度
     vx: 0,
     vy: 0,
     speed: 4.0,
@@ -876,61 +882,60 @@ function drawPlatforms() {
       ctx.strokeStyle = "#001a44";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
     } else if (p.type === "jump") {
-      // 彈簧平台厚度根據 squashAnim 補間變化（上緣固定，下緣上移）
+      // 彈簧平台：黑底，兩側亮綠色邊框，四根彈簧（最左往左移動，最右往右移動，中間兩根平均）
       const normalHeight = p.height;
-      const thickHeight = normalHeight * 2;
+      const maxHeight = normalHeight * 2;
       const squashAnim = (typeof p.squashAnim === 'number') ? p.squashAnim : 1;
-      const drawHeight = thickHeight - (thickHeight - normalHeight) * squashAnim;
-      const yOffset = p.y; // 上緣固定
-      // 1. 黑色背景
+      const currentHeight = normalHeight + (maxHeight - normalHeight) * (1 - squashAnim);
+      const yOffset = p.y + normalHeight - currentHeight;
+
+      // 1. 黑色主體
       ctx.fillStyle = "#000";
-      ctx.fillRect(p.x, yOffset, p.width, drawHeight);
-      // 2. 綠色邊框
-      const borderWidth = drawHeight * 0.15;
-      ctx.fillStyle = "#0f0"; // 亮綠色
-      ctx.fillRect(p.x, yOffset, p.width, borderWidth); // 上邊框
-      ctx.fillRect(p.x, yOffset + drawHeight - borderWidth, p.width, borderWidth); // 下邊框
-      // 3. 改良版白色彈簧圖案（增加陰影層）
+      ctx.fillRect(p.x, yOffset, p.width, currentHeight);
+
+      // 2. 上下亮綠色邊
+      const borderWidth = Math.max(3, currentHeight * 0.18);
+      ctx.fillStyle = "#39FF14";
+      ctx.fillRect(p.x, yOffset, p.width, borderWidth); // 上
+      ctx.fillRect(p.x, yOffset + currentHeight - borderWidth, p.width, borderWidth); // 下
+
+      // 3. 四根彈簧
       ctx.save();
-      const springY = yOffset + borderWidth;
-      const springHeight = drawHeight - (2 * borderWidth);
-      const segmentWidth = springHeight * 1.8;
-      const lineWidth = segmentWidth * 0.4;
-      // 建立一個剪裁區域
       ctx.beginPath();
-      ctx.rect(p.x, springY, p.width, springHeight);
+      ctx.rect(p.x, yOffset, p.width, currentHeight);
       ctx.clip();
-      ctx.lineWidth = lineWidth;
-      ctx.lineCap = 'butt';
-      // 繪製陰影層
-      ctx.save();
-      ctx.translate(1.5, 1.5); // 向右下角偏移製造陰影
-      ctx.strokeStyle = '#777'; // 深灰色陰影
-      for (let i = -segmentWidth; i < p.width + segmentWidth; i += segmentWidth) {
-        const startX = p.x + i;
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = Math.max(2, currentHeight * 0.13);
+      const springCount = 4;
+      // 計算等寬間距：將平台寬度分成5等份，彈簧在第1、2、3、4份的中心
+      const springSpacing = p.width / 5;
+      const springH = currentHeight - borderWidth * 2;
+      const springW = springSpacing * 0.8; // 彈簧寬度為間距的80%
+      const springY = yOffset + borderWidth;
+      
+      // 計算彈簧的X位置，確保四根彈簧之間的間距完全等寬
+      // 從左到右：1.0, 2.0, 3.0, 4.0 倍間距，這樣間距都是1.0倍
+      const springPositions = [
+        p.x + springSpacing * 1.0, // 最左彈簧
+        p.x + springSpacing * 2.0, // 第二根
+        p.x + springSpacing * 3.0, // 第三根
+        p.x + springSpacing * 4.0  // 最右彈簧
+      ];
+      
+      for (let s = 0; s < springCount; s++) {
+        const centerX = springPositions[s];
         ctx.beginPath();
-        ctx.moveTo(startX, springY + springHeight);
-        ctx.lineTo(startX + segmentWidth / 2, springY);
-        ctx.lineTo(startX + segmentWidth, springY + springHeight);
+        for (let t = 0; t <= 1; t += 0.05) {
+          const wave = Math.sin(t * Math.PI * 4) * (springW / 2.5);
+          const x = centerX + wave;
+          const y = springY + t * springH;
+          if (t === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
         ctx.stroke();
       }
       ctx.restore();
-      // 繪製前景層
-      const gradient = ctx.createLinearGradient(p.x, springY, p.x, springY + springHeight);
-      gradient.addColorStop(0.1, '#fff');
-      gradient.addColorStop(0.5, '#ccc');
-      gradient.addColorStop(0.9, '#fff');
-      ctx.strokeStyle = gradient;
-      for (let i = -segmentWidth; i < p.width + segmentWidth; i += segmentWidth) {
-        const startX = p.x + i;
-        ctx.beginPath();
-        ctx.moveTo(startX, springY + springHeight);
-        ctx.lineTo(startX + segmentWidth / 2, springY);
-        ctx.lineTo(startX + segmentWidth, springY + springHeight);
-        ctx.stroke();
-      }
-      ctx.restore();
-      ctx.lineWidth = 1; // 重設線寬
+      ctx.lineWidth = 1;
     } else if (p.type === "spike") {
       // 尖刺平台：先繪製平台本身，再繪製尖刺
       ctx.fillStyle = "#cccccc"; // 灰色平台
@@ -1073,13 +1078,13 @@ function updatePlayer() {
       playSfxPool('spike'); // 播放被刺到音效
       player.hp -= 5;
       lastPlatformTouched = 'topSpike';
-      createBloodSplatter(player.x + player.width / 2, player.y, 30); // 從頭頂噴血
+      createBloodSplatter(player.x + player.width / 2, player.y, 60); // 從頭頂噴血
       player.isHurt = true;
       player.hurtTimer = 1000;
       // 將正下方平台設為 hidden
       platforms.forEach(p => {
         const overlap =
-          player.x + player.width > p.x &&
+          player.x + player.collisionWidth > p.x &&
           player.x < p.x + p.width &&
           player.y + player.height <= p.y + p.height &&
           player.y + player.height >= p.y;
@@ -1102,7 +1107,7 @@ function updatePlayer() {
 
   player.x += player.vx;
   if (player.x < 0) player.x = 0;
-  if (player.x + player.width > getWidth()) player.x = getWidth() - player.width;
+  if (player.x + player.collisionWidth > getWidth()) player.x = getWidth() - player.collisionWidth;
 
   player.onGround = false;
   // 若在穿透狀態，跳過平台碰撞
@@ -1112,7 +1117,7 @@ function updatePlayer() {
       // 彈簧平台壓縮判斷
       if (p.type === 'jump') p.targetSquash = 1;
       if (player.vy >= 0 &&
-          player.x + player.width > p.x &&
+          player.x + player.collisionWidth > p.x &&
           player.x < p.x + p.width &&
           player.y + player.height > p.y &&
           player.y + player.height < p.y + p.height + player.vy) {
@@ -1123,16 +1128,16 @@ function updatePlayer() {
             playSfxPool('spike'); // 播放被刺到音效
             player.hp -= 5;
             lastPlatformTouched = p;
-            createBloodSplatter(player.x + player.width / 2, player.y + player.height, 30); // 從腳底噴血
+            createBloodSplatter(player.x + player.width / 2, player.y + player.height, 60); // 從腳底噴血
             player.isHurt = true;
             player.hurtTimer = 1000;
           }
           player.vy = 0;
         } else if (p.type === "jump") {
           playSfxPool('jump'); // 播放彈跳音效
-          // 彈簧平台壓縮動畫
-          p.targetSquash = 0;
-          p.squashLock = 0.15; // 0.15秒鎖定壓縮
+          // 彈簧平台拉升動畫
+          p.targetSquash = 0; // 拉升狀態（高度變為2倍）
+          p.squashLock = 0.2; // 0.2秒鎖定拉升狀態
           // 取得平台間距
           const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
           const g = player.gravity;
@@ -1156,7 +1161,7 @@ function updatePlayer() {
             player.hp = Math.min(player.hp + 1, 12);
           } else if (Date.now() - p.vanishTimer >= 200) {
             p.hidden = true;
-            createDebris(p.x, p.y, p.width, p.height); // 觸發碎裂效果
+            createDebris(p.x, p.y, p.width, p.height, 80); // 觸發碎裂效果
             playSfxPool('vanish'); // 播放消失音效
             break;
           }
@@ -1249,7 +1254,7 @@ function updatePlatforms() {
         tryCount++;
       } while (
         tryCount < 20 &&
-        player.x + player.width > newX &&
+        player.x + player.collisionWidth > newX &&
         player.x < newX + platformWidth &&
         player.y + player.height <= newY + platformHeight &&
         player.y + player.height >= newY
@@ -1325,7 +1330,7 @@ function updatePlatforms() {
       attempts++;
     } while (
       attempts < 20 &&
-      player.x + player.width > newX &&
+      player.x + player.collisionWidth > newX &&
       player.x < newX + platformWidth &&
       player.y + player.height <= newY + platformHeight &&
       player.y + player.height >= newY
@@ -1546,16 +1551,22 @@ window.addEventListener('click', handleFirstInteraction, { once: true });
 window.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
 // ===== 新增噴血效果相關函數 =====
-function createBloodSplatter(x, y, count = 30) {
+function createBloodSplatter(x, y, count = 50) {
   for (let i = 0; i < count; i++) {
+    // 添加一些隨機偏移，讓噴血效果更自然
+    const offsetX = (Math.random() - 0.5) * 20;
+    const offsetY = (Math.random() - 0.5) * 10;
+    
     bloodParticles.push({
-      x: x,
-      y: y,
-      vx: (Math.random() - 0.5) * 8,
-      vy: (Math.random() - 0.5) * 10 - 5,
-      size: Math.random() * 2.5 + 1,
-      lifespan: Math.random() * 50 + 20,
-      gravity: 0.25
+      x: x + offsetX,
+      y: y + offsetY,
+      vx: (Math.random() - 0.5) * 12,
+      vy: (Math.random() - 0.5) * 15 - 8,
+      size: Math.random() * 4 + 2,
+      lifespan: Math.random() * 120 + 80,
+      gravity: 0.2,
+      // 添加一些隨機的顏色變化
+      colorVariation: Math.random() * 0.3 - 0.15
     });
   }
 }
@@ -1574,26 +1585,85 @@ function updateBloodParticles() {
 }
 
 function drawBloodParticles() {
-  ctx.fillStyle = '#c00'; // 深紅色
   for (const p of bloodParticles) {
+    // 計算透明度（基於生命週期）
+    const alpha = p.lifespan / 200; // 200是最大生命週期
+    
+    // 使用顏色變化
+    const redVariation = Math.floor(255 + (p.colorVariation || 0) * 50);
+    const greenVariation = Math.floor(50 + (p.colorVariation || 0) * 30);
+    
+    // 繪製陰影
+    ctx.fillStyle = 'rgba(80, 0, 0, 0.3)';
+    ctx.beginPath();
+    ctx.arc(p.x + 1, p.y + 1, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 繪製主體（亮紅色，帶顏色變化）
+    ctx.fillStyle = `rgba(${redVariation}, ${greenVariation}, 50, ${alpha})`;
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 繪製高光
+    ctx.fillStyle = `rgba(255, 150, 150, ${alpha * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(p.x - p.size * 0.3, p.y - p.size * 0.3, p.size * 0.4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
 
 // ===== 新增平台碎裂效果相關函數 =====
-function createDebris(x, y, width, height, count = 25) {
+function createDebris(x, y, width, height, count = 50) {
   for (let i = 0; i < count; i++) {
+    // 添加一些隨機偏移，讓碎裂效果更自然
+    const offsetX = (Math.random() - 0.5) * width * 0.2;
+    const offsetY = (Math.random() - 0.5) * height * 0.2;
+    
+    // 灰白色系的粉塵顏色 - 主要是白色、淺灰色、銀灰色
+    const colorTypes = [
+      // 純白色
+      `rgb(${240 + Math.random()*15}, ${240 + Math.random()*15}, ${240 + Math.random()*15})`,
+      // 淺灰色
+      `rgb(${200 + Math.random()*30}, ${200 + Math.random()*30}, ${200 + Math.random()*30})`,
+      // 銀灰色
+      `rgb(${180 + Math.random()*20}, ${180 + Math.random()*20}, ${180 + Math.random()*20})`,
+      // 中灰色
+      `rgb(${150 + Math.random()*30}, ${150 + Math.random()*30}, ${150 + Math.random()*30})`,
+      // 淺銀色
+      `rgb(${220 + Math.random()*20}, ${220 + Math.random()*20}, ${220 + Math.random()*20})`
+    ];
+    const selectedColor = colorTypes[Math.floor(Math.random() * colorTypes.length)];
+    
+    // 隨機決定粒子類型
+    const particleType = Math.random();
+    const isSmoke = particleType < 0.4; // 40%煙霧
+    const isDust = particleType < 0.7; // 30%粉塵
+    const isFragment = particleType >= 0.7; // 30%碎片
+    
     debrisParticles.push({
-      x: x + Math.random() * width,
-      y: y + Math.random() * height,
-      vx: (Math.random() - 0.5) * 4,
-      vy: (Math.random() - 0.5) * 5,
-      size: Math.random() * 5 + 2,
-      lifespan: Math.random() * 60 + 40,
-      gravity: 0.2,
-      color: `rgb(${150 + Math.random()*20}, ${150 + Math.random()*20}, ${150 + Math.random()*20})`
+      x: x + Math.random() * width + offsetX,
+      y: y + Math.random() * height + offsetY,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 8 - 3,
+      size: Math.random() * 8 + 3,
+      lifespan: Math.random() * 120 + 80,
+      gravity: 0.15,
+      // 粒子類型
+      isSmoke: isSmoke,
+      isDust: isDust,
+      isFragment: isFragment,
+      smokeSize: Math.random() * 12 + 8,
+      // 添加旋轉效果
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.2,
+      // 顏色變化
+      colorVariation: Math.random() * 0.4 - 0.2,
+      color: selectedColor,
+      // 不規則形狀
+      shape: Math.random() < 0.3 ? 'circle' : 'square',
+      // 風力影響
+      windEffect: Math.random() * 0.5 - 0.25
     });
   }
 }
@@ -1604,7 +1674,20 @@ function updateDebrisParticles() {
     p.vy += p.gravity;
     p.x += p.vx;
     p.y += p.vy;
+    
+    // 添加風力效果
+    if (p.windEffect !== undefined) {
+      p.x += p.windEffect;
+      p.windEffect *= 0.98; // 風力逐漸減弱
+    }
+    
     p.lifespan--;
+    
+    // 更新旋轉
+    if (p.rotation !== undefined) {
+      p.rotation += p.rotationSpeed || 0;
+    }
+    
     if (p.lifespan <= 0) {
       debrisParticles.splice(i, 1);
     }
@@ -1613,8 +1696,79 @@ function updateDebrisParticles() {
 
 function drawDebrisParticles() {
   for (const p of debrisParticles) {
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, p.size, p.size);
+    // 計算透明度（基於生命週期）
+    const alpha = p.lifespan / 200; // 200是最大生命週期
+    
+    if (p.isSmoke) {
+      // 煙霧效果 - 使用灰白色系的漸變
+      const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.smokeSize);
+      gradient.addColorStop(0, `rgba(240, 240, 240, ${alpha * 0.7})`);
+      gradient.addColorStop(0.3, `rgba(220, 220, 220, ${alpha * 0.5})`);
+      gradient.addColorStop(0.7, `rgba(200, 200, 200, ${alpha * 0.3})`);
+      gradient.addColorStop(1, `rgba(180, 180, 180, 0)`);
+      
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.smokeSize, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.isDust) {
+      // 粉塵效果 - 小顆粒，半透明，灰白色系
+      const dustSize = p.size * 0.6;
+      ctx.fillStyle = `rgba(220, 220, 220, ${alpha * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, dustSize, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // 固體碎片 - 添加旋轉、陰影和漸變
+      ctx.save();
+      ctx.translate(p.x + p.size / 2, p.y + p.size / 2);
+      if (p.rotation !== undefined) {
+        ctx.rotate(p.rotation);
+      }
+      ctx.translate(-p.size / 2, -p.size / 2);
+      
+      // 使用顏色變化 - 確保綠色通道不會增加，避免出現綠色
+      const colorVariation = p.colorVariation || 0;
+      const baseColor = p.color.match(/\d+/g);
+      const r = Math.min(255, Math.max(0, parseInt(baseColor[0]) + colorVariation * 20));
+      const g = Math.min(255, Math.max(0, parseInt(baseColor[1]) - Math.abs(colorVariation) * 15)); // 綠色通道只能減少
+      const b = Math.min(255, Math.max(0, parseInt(baseColor[2]) + colorVariation * 20));
+      
+      // 額外確保綠色通道不會太高
+      const finalG = Math.min(g, Math.max(r, b) * 0.9); // 綠色通道不能超過紅藍通道的90%
+      
+      // 陰影 - 使用灰白色系的陰影
+      ctx.fillStyle = `rgba(120, 120, 120, ${alpha * 0.4})`;
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(p.size/2 + 1, p.size/2 + 1, p.size/2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(1, 1, p.size, p.size);
+      }
+      
+      // 主體
+      ctx.fillStyle = `rgba(${r}, ${finalG}, ${b}, ${alpha})`;
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(p.size/2, p.size/2, p.size/2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(0, 0, p.size, p.size);
+      }
+      
+      // 高光 - 更亮的白色高光
+      ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(p.size * 0.3, p.size * 0.3, p.size * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(p.size * 0.2, p.size * 0.2, p.size * 0.3, p.size * 0.3);
+      }
+      
+      ctx.restore();
+    }
   }
 }
 
@@ -1636,11 +1790,14 @@ function animateSpringPlatforms() {
     if (p.type === 'jump' && typeof p.squashAnim === 'number' && typeof p.targetSquash === 'number') {
       if (typeof p.squashLock === 'number' && p.squashLock > 0) {
         p.squashLock -= dt;
-        p.targetSquash = 0;
+        p.targetSquash = 0; // 拉伸狀態
         if (p.squashLock < 0) p.squashLock = 0;
+      } else {
+        // 鎖定結束後，回到正常狀態
+        p.targetSquash = 1; // 正常高度
       }
-      // 0.5秒補間，假設60fps，每幀約0.033s，則每幀進度約0.033
-      const speed = 1 / (0.5 * 60); // 約0.033
+      // 0.3秒補間，假設60fps，每幀約0.033s，則每幀進度約0.033
+      const speed = 1 / (0.3 * 60); // 約0.056，更快的動畫
       if (p.squashAnim < p.targetSquash) {
         p.squashAnim = Math.min(p.squashAnim + speed, p.targetSquash);
       } else if (p.squashAnim > p.targetSquash) {
