@@ -371,7 +371,7 @@ function initGame() {
   platforms = [];
   const platformWidth = Math.floor(getWidth() * 0.25); // 平台寬度為總寬度的25%
   const platformHeight = 12; // 增加厚度
-  const playerWidth = Math.floor(platformWidth / 2); // 精靈視覺寬度為平台寬度的1/2
+  const playerWidth = Math.floor(platformWidth / 2);
   const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
   const platformSpacing = playerHeight + 2 * platformHeight; // 平台間距 = 精靈身高 + 2個平台厚度
   const numPlatforms = Math.ceil(getHeight() / platformSpacing);
@@ -446,7 +446,7 @@ function initGame() {
 
   // 讓精靈一開始站在最底下那個平台正上方
   const firstPlatform = platforms[platforms.length - 1];
-  const playerCollisionWidth = Math.floor(platformWidth / 3); // 精靈碰撞寬度為平台寬度的1/3
+  const playerCollisionWidth = Math.floor(playerWidth * 0.5); // 精靈碰撞寬度為視覺寬度的50%
   player = {
     x: firstPlatform.x + (firstPlatform.width - playerWidth) / 2,
     y: firstPlatform.y - playerHeight,
@@ -1083,9 +1083,12 @@ function updatePlayer() {
       player.hurtTimer = 1000;
       // 將正下方平台設為 hidden
       platforms.forEach(p => {
+        const playerCenterX = player.x + player.width / 2;
+        const playerCollisionLeft = playerCenterX - player.collisionWidth / 2;
+        const playerCollisionRight = playerCenterX + player.collisionWidth / 2;
         const overlap =
-          player.x + player.collisionWidth > p.x &&
-          player.x < p.x + p.width &&
+          playerCollisionRight > p.x &&
+          playerCollisionLeft < p.x + p.width &&
           player.y + player.height <= p.y + p.height &&
           player.y + player.height >= p.y;
         if (overlap && (p.type === 'normal' || p.type === 'spike' || p.type === 'conveyorL' || p.type === 'conveyorR')) {
@@ -1106,8 +1109,14 @@ function updatePlayer() {
   else player.vx = 0;
 
   player.x += player.vx;
-  if (player.x < 0) player.x = 0;
-  if (player.x + player.collisionWidth > getWidth()) player.x = getWidth() - player.collisionWidth;
+  
+  // 計算精靈碰撞區域的中心點
+  const playerCenterX = player.x + player.width / 2;
+  const playerCollisionLeft = playerCenterX - player.collisionWidth / 2;
+  const playerCollisionRight = playerCenterX + player.collisionWidth / 2;
+  
+  if (playerCollisionLeft < 0) player.x = player.collisionWidth / 2 - player.width / 2;
+  if (playerCollisionRight > getWidth()) player.x = getWidth() - player.collisionWidth / 2 - player.width / 2;
 
   player.onGround = false;
   // 若在穿透狀態，跳過平台碰撞
@@ -1116,9 +1125,10 @@ function updatePlayer() {
       if (p.hidden) continue;
       // 彈簧平台壓縮判斷
       if (p.type === 'jump') p.targetSquash = 1;
+      
       if (player.vy >= 0 &&
-          player.x + player.collisionWidth > p.x &&
-          player.x < p.x + p.width &&
+          playerCollisionRight > p.x &&
+          playerCollisionLeft < p.x + p.width &&
           player.y + player.height > p.y &&
           player.y + player.height < p.y + p.height + player.vy) {
         player.y = p.y - player.height;
@@ -1256,10 +1266,15 @@ function updatePlatforms() {
         tryCount++;
       } while (
         tryCount < 20 &&
-        player.x + player.collisionWidth > newX &&
-        player.x < newX + platformWidth &&
-        player.y + player.height <= newY + platformHeight &&
-        player.y + player.height >= newY
+        (() => {
+          const playerCenterX = player.x + player.width / 2;
+          const playerCollisionLeft = playerCenterX - player.collisionWidth / 2;
+          const playerCollisionRight = playerCenterX + player.collisionWidth / 2;
+          return playerCollisionRight > newX &&
+                 playerCollisionLeft < newX + platformWidth &&
+                 player.y + player.height <= newY + platformHeight &&
+                 player.y + player.height >= newY;
+        })()
       );
       p.y = newY;
       p.x = newX;
@@ -1333,10 +1348,15 @@ function updatePlatforms() {
       attempts++;
     } while (
       attempts < 20 &&
-      player.x + player.collisionWidth > newX &&
-      player.x < newX + platformWidth &&
-      player.y + player.height <= newY + platformHeight &&
-      player.y + player.height >= newY
+      (() => {
+        const playerCenterX = player.x + player.width / 2;
+        const playerCollisionLeft = playerCenterX - player.collisionWidth / 2;
+        const playerCollisionRight = playerCenterX + player.collisionWidth / 2;
+        return playerCollisionRight > newX &&
+               playerCollisionLeft < newX + platformWidth &&
+               player.y + player.height <= newY + platformHeight &&
+               player.y + player.height >= newY;
+      })()
     );
     
     // 生成新平台
