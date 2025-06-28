@@ -1412,7 +1412,9 @@ function updatePlayer() {
               const baseJumpMultiplier = 0.9;
               const speedAdjustment = Math.min(1.5, gameSpeed); // 速度調整係數，最大1.5倍
               const adjustedMultiplier = baseJumpMultiplier * speedAdjustment;
-              const maxVy = -Math.sqrt(2 * g * platformSpacing * adjustedMultiplier);
+              // 修改：跳躍高度等於精靈身高 * 1.5
+              const jumpHeight = player.height * 1.5;
+              const maxVy = -Math.sqrt(2 * g * jumpHeight * adjustedMultiplier);
               player.vy = maxVy;
               player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
               lastPlatformTouched = p;
