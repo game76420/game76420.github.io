@@ -427,11 +427,6 @@ function resizeCanvas() {
   ctx.scale(ratio, ratio);
   // 動態設置 padding-bottom，確保地面不被擋住
   canvas.style.paddingBottom = bottomPad + 'px';
-  
-  // 新增：螢幕大小改變時重新計算玩家速度
-  if (player) {
-    player.vx = getFinalWalkSpeed();
-  }
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -553,20 +548,13 @@ function tryPlayBgm() {
 
 // 新增：行走速度模式
 let walkSpeedMode = 'normal'; // 'slow' | 'normal' | 'fast'
-// 修正：基於螢幕寬度的速度設定，確保從左到右時間一致
-const walkSpeedMap = { 
-  slow: 0.8,    // 每秒移動螢幕寬度的80%
-  normal: 1.2,  // 每秒移動螢幕寬度的120%
-  fast: 1.8     // 每秒移動螢幕寬度的180%
-};
+const walkSpeedMap = { slow: 1.2, normal: 2.2, fast: 3.2 };
 
-// 計算最終行走速度（結合模式選擇和遊戲速度調整，基於螢幕寬度）
+// 計算最終行走速度（結合模式選擇和遊戲速度調整）
 function getFinalWalkSpeed() {
-  const baseSpeedRatio = walkSpeedMap[walkSpeedMode];
+  const baseSpeed = walkSpeedMap[walkSpeedMode];
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  const canvasWidth = getWidth();
-  // 計算每秒移動的像素數，基於螢幕寬度
-  return (baseSpeedRatio * canvasWidth) * gameSpeedFactor;
+  return baseSpeed * gameSpeedFactor;
 }
 
 // 分區輔助函數
@@ -660,9 +648,6 @@ function initGame() {
   // 新增：重設鏡頭偏移
   cameraOffsetY = 0;
   cameraTargetOffsetY = 0;
-  // 新增：重設時間控制變數
-  lastTime = 0;
-  accumulator = 0;
   resizeCanvas();
   paused = false;
   score = 0;
@@ -828,7 +813,7 @@ function drawPlayer() {
   const pW = player.width;
   const pH = player.height;
   
-  // 動畫參數（受遊戲速度影響，使用固定時間步長）
+  // 動畫參數（受遊戲速度影響）
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
   const animSpeed = 12 * gameSpeedFactor; // 動畫速度受遊戲速度影響
   const animCycle = (performance.now() / 1000) * animSpeed; // 動畫週期
@@ -1156,7 +1141,7 @@ function drawStairs() {
       ctx.arc(s.x + s.width, drawY + s.height / 2, s.height / 2, Math.PI * 3 / 2, Math.PI / 2, false);
       ctx.fill();
       ctx.restore();
-      // 畫移動的橫線（受遊戲速度影響，使用固定時間步長）
+      // 畫移動的橫線（受遊戲速度影響）
       ctx.strokeStyle = '#666';
       ctx.lineWidth = 1;
       let anim = (performance.now() / (30 / gameSpeedFactor)) % 12;
@@ -1320,11 +1305,8 @@ function updatePlayer() {
   // 計算遊戲速度倍數（用於所有物理和移動效果）
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
   
-  // 更新玩家移動速度（基於當前螢幕寬度）
-  player.vx = getFinalWalkSpeed();
-  
   // 自動左右移動（受遊戲速度影響，使用固定時間步長）
-  player.x += player.vx * player.dir * FIXED_TIMESTEP;
+  player.x += player.vx * player.dir * gameSpeedFactor * FIXED_TIMESTEP * 60;
   // 碰牆自動反向
   if (player.x < 0) {
     player.x = 0;
@@ -1433,13 +1415,9 @@ function updatePlayer() {
 
               // 處理剛落地時的平台效果（受遊戲速度影響，使用固定時間步長）
               if (s.type === 'conveyorL') {
-                  // 輸送帶效果也基於螢幕寬度
-                  const conveyorEffect = getWidth() * 0.001 * gameSpeedFactor * FIXED_TIMESTEP * 60;
-                  player.x -= conveyorEffect;
+                  player.x -= 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
               } else if (s.type === 'conveyorR') {
-                  // 輸送帶效果也基於螢幕寬度
-                  const conveyorEffect = getWidth() * 0.001 * gameSpeedFactor * FIXED_TIMESTEP * 60;
-                  player.x += conveyorEffect;
+                  player.x += 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
               }
               if (player.jumping) {
                   player.jumping = false;
@@ -1468,13 +1446,9 @@ function updatePlayer() {
     // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響，使用固定時間步長）
     const s = player.landedOn;
     if (s && s.type === 'conveyorL') {
-        // 輸送帶效果也基於螢幕寬度
-        const conveyorEffect = getWidth() * 0.0008 * gameSpeedFactor * FIXED_TIMESTEP * 60;
-        player.x -= conveyorEffect;
+        player.x -= 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
     } else if (s && s.type === 'conveyorR') {
-        // 輸送帶效果也基於螢幕寬度
-        const conveyorEffect = getWidth() * 0.0008 * gameSpeedFactor * FIXED_TIMESTEP * 60;
-        player.x += conveyorEffect;
+        player.x += 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
     }
   }
 
@@ -1677,9 +1651,9 @@ function updateStairs() {
     }
   }
   
-  // 更新移動平台位置（受遊戲速度影響，使用固定時間步長）
+  // 更新移動平台位置（受遊戲速度影響）
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  let t = (performance.now() / 1000) * gameSpeedFactor;
+  let t = performance.now() / 1000 * gameSpeedFactor;
   for (let s of stairs) {
     if (s.type === "horizontal") {
       s.x = s.baseX + Math.sin(t + s.phase) * s.rangeX;
@@ -1711,71 +1685,36 @@ function updateStairs() {
   }
 }
 
-function gameLoop(currentTime) {
-  if (paused) {
-    animationFrameId = requestAnimationFrame(gameLoop);
-    return;
-  }
+function gameLoop() {
+  if (paused) return;
 
-  // 計算時間差
-  if (lastTime === 0) {
-    lastTime = currentTime;
-  }
-  const deltaTime = (currentTime - lastTime) / 1000; // 轉換為秒
-  lastTime = currentTime;
+  // --- 移除隨機跳過幀的慢動作邏輯 ---
 
-  // 累積時間
-  accumulator += deltaTime;
-
-  // 使用固定時間步長更新遊戲邏輯
-  while (accumulator >= FIXED_TIMESTEP) {
-    // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
-    const wantsToCharge = inputState.isPressed || inputState.spacebar;
-    if (wantsToCharge && player.alive) {
-      if (player.onStair && !player.charging) {
-        // 處理在地面上按下時直接開始集氣
-        startCharge();
-        player.chargePending = false;
-      } else if (!player.onStair) {
-        // 處理在空中按下時，設定"等待集氣"狀態
-        player.chargePending = true;
-      }
-    } else { // released
-      if (player.charging) {
-        releaseJump();
-      }
-      // 只要放開，就清除等待狀態
+  // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
+  const wantsToCharge = inputState.isPressed || inputState.spacebar;
+  if (wantsToCharge && player.alive) {
+    if (player.onStair && !player.charging) {
+      // 處理在地面上按下時直接開始集氣
+      startCharge();
       player.chargePending = false;
+    } else if (!player.onStair) {
+      // 處理在空中按下時，設定"等待集氣"狀態
+      player.chargePending = true;
     }
-
-    // 每幀遞減 jump buffer timer
-    if (jumpBufferTimer > 0) {
-      jumpBufferTimer -= FIXED_TIMESTEP;
-      if (jumpBufferTimer < 0) jumpBufferTimer = 0;
+  } else { // released
+    if (player.charging) {
+      releaseJump();
     }
-
-    // 更新遊戲邏輯
-    if (!updatePlayer()) {
-      animationFrameId = requestAnimationFrame(gameLoop);
-      return;
-    }
-    updateStairs();
-
-    // 蓄力中每幀增加力量
-    if (player && player.charging && player.onStair && !player.jumping) {
-      // 力量重置開啟時，集氣速度較慢
-      player.powerIncrement = powerAutoReset ? 2 : 4;
-      if (powerAutoReset && player.power >= player.maxPower) {
-        player.power = 0; // 自動重置
-      } else {
-        player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
-      }
-    }
-
-    accumulator -= FIXED_TIMESTEP;
+    // 只要放開，就清除等待狀態
+    player.chargePending = false;
   }
 
-  // 渲染（不受時間步長影響，保持流暢）
+  // 每幀遞減 jump buffer timer
+  if (jumpBufferTimer > 0) {
+    jumpBufferTimer -= 1/60;
+    if (jumpBufferTimer < 0) jumpBufferTimer = 0;
+  }
+
   ctx.clearRect(0, 0, getWidth(), getHeight());
   // 背景（上半部 #3b0600 漸層到 #5a1b01）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
@@ -1785,7 +1724,7 @@ function gameLoop(currentTime) {
   ctx.fillRect(0, 0, getWidth(), getHeight());
   
   drawStairs();
-  
+  if (!updatePlayer()) return;
   // 鏡頭平滑移動
   const cameraSpeed = 18; // 每幀最大移動像素
   if (Math.abs(cameraOffsetY - cameraTargetOffsetY) > 1) {
@@ -1800,15 +1739,26 @@ function gameLoop(currentTime) {
     cameraTargetOffsetY = player.y + player.height - getHeight() / 2;
     needScrollToStair = false;
   }
-  
+  updateStairs();
   drawPlayer();
   drawHUD();
   ctx.strokeStyle = "#fff";
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
+
+  // 蓄力中每幀增加力量
+  if (player && player.charging && player.onStair && !player.jumping) {
+    // 力量重置開啟時，集氣速度較慢
+    player.powerIncrement = powerAutoReset ? 2 : 4;
+    if (powerAutoReset && player.power >= player.maxPower) {
+      player.power = 0; // 自動重置
+    } else {
+      player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
+    }
+  }
   
-  // 繼續下一幀
+  // 根據遊戲速度調整下一幀的延遲
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
