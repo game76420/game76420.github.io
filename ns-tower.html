@@ -427,6 +427,11 @@ function resizeCanvas() {
   ctx.scale(ratio, ratio);
   // 動態設置 padding-bottom，確保地面不被擋住
   canvas.style.paddingBottom = bottomPad + 'px';
+  
+  // 新增：螢幕大小改變時重新計算玩家速度
+  if (player) {
+    player.vx = getFinalWalkSpeed();
+  }
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -548,13 +553,20 @@ function tryPlayBgm() {
 
 // 新增：行走速度模式
 let walkSpeedMode = 'normal'; // 'slow' | 'normal' | 'fast'
-const walkSpeedMap = { slow: 1.2, normal: 2.2, fast: 3.2 };
+// 修正：基於螢幕寬度的速度設定，確保從左到右時間一致
+const walkSpeedMap = { 
+  slow: 0.8,    // 每秒移動螢幕寬度的80%
+  normal: 1.2,  // 每秒移動螢幕寬度的120%
+  fast: 1.8     // 每秒移動螢幕寬度的180%
+};
 
-// 計算最終行走速度（結合模式選擇和遊戲速度調整）
+// 計算最終行走速度（結合模式選擇和遊戲速度調整，基於螢幕寬度）
 function getFinalWalkSpeed() {
-  const baseSpeed = walkSpeedMap[walkSpeedMode];
+  const baseSpeedRatio = walkSpeedMap[walkSpeedMode];
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
-  return baseSpeed * gameSpeedFactor;
+  const canvasWidth = getWidth();
+  // 計算每秒移動的像素數，基於螢幕寬度
+  return (baseSpeedRatio * canvasWidth) * gameSpeedFactor;
 }
 
 // 分區輔助函數
@@ -1308,8 +1320,11 @@ function updatePlayer() {
   // 計算遊戲速度倍數（用於所有物理和移動效果）
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
   
+  // 更新玩家移動速度（基於當前螢幕寬度）
+  player.vx = getFinalWalkSpeed();
+  
   // 自動左右移動（受遊戲速度影響，使用固定時間步長）
-  player.x += player.vx * player.dir * gameSpeedFactor * FIXED_TIMESTEP * 60;
+  player.x += player.vx * player.dir * FIXED_TIMESTEP;
   // 碰牆自動反向
   if (player.x < 0) {
     player.x = 0;
@@ -1418,9 +1433,13 @@ function updatePlayer() {
 
               // 處理剛落地時的平台效果（受遊戲速度影響，使用固定時間步長）
               if (s.type === 'conveyorL') {
-                  player.x -= 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  // 輸送帶效果也基於螢幕寬度
+                  const conveyorEffect = getWidth() * 0.001 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  player.x -= conveyorEffect;
               } else if (s.type === 'conveyorR') {
-                  player.x += 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  // 輸送帶效果也基於螢幕寬度
+                  const conveyorEffect = getWidth() * 0.001 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  player.x += conveyorEffect;
               }
               if (player.jumping) {
                   player.jumping = false;
@@ -1449,9 +1468,13 @@ function updatePlayer() {
     // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響，使用固定時間步長）
     const s = player.landedOn;
     if (s && s.type === 'conveyorL') {
-        player.x -= 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        // 輸送帶效果也基於螢幕寬度
+        const conveyorEffect = getWidth() * 0.0008 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        player.x -= conveyorEffect;
     } else if (s && s.type === 'conveyorR') {
-        player.x += 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        // 輸送帶效果也基於螢幕寬度
+        const conveyorEffect = getWidth() * 0.0008 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        player.x += conveyorEffect;
     }
   }
 
