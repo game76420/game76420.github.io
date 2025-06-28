@@ -336,14 +336,22 @@ resizeCanvas();
 let player, platforms, keys, lastPlatformTouched;
 let bloodParticles = []; // 新增：用於存放噴血粒子
 let debrisParticles = []; // 新增：用於存放平台碎塊
-let gameSpeed = 1;
+let gameSpeed = 1; // 修改預設速度為1
 let lastPlayerFloorY = null;
 let platformPassedCount = 0; // 記錄經過的平台數
 let highScore = 0;
 let paused = false;
 let firstInteraction = false;
 let animationFrameId = null;
-let walkSpeed = 6.0;
+let walkSpeed = 4.0;
+
+// 新增：統一平台間距計算函數
+function getPlatformSpacing() {
+  const platformWidth = Math.floor(getWidth() * 0.25);
+  const playerWidth = Math.floor(platformWidth / 2);
+  const playerHeight = playerWidth;
+  return playerHeight * 1.4; // 平台間距 = 精靈身高 * 1.4
+}
 
 // 讀取最高分數
 if (localStorage.getItem('ns_shaft_highscore')) {
@@ -484,7 +492,7 @@ function initGame() {
   const platformHeight = 12; // 增加厚度
   const playerWidth = Math.floor(platformWidth / 2);
   const playerHeight = playerWidth; // 精靈高度等於寬度，保持正方形
-  const platformSpacing = playerHeight + 2 * platformHeight; // 平台間距 = 精靈身高 + 2個平台厚度
+  const platformSpacing = getPlatformSpacing(); // 使用統一函數
   const numPlatforms = Math.ceil(getHeight() / platformSpacing);
 
   for (let i = 0; i < numPlatforms; i++) {
@@ -782,9 +790,9 @@ function drawPlayer() {
     // ===== 側面也繪製血條 =====
     const maxHp = 12;
     const barW = pW;
-    const barH = pH * 0.11;
+    const barH = pH * 0.15; // 提高血條高度
     const barX = player.x;
-    const barY = player.y - pH * 0.18 - barH;
+    const barY = player.y - pH * 0.25 - barH; // 調整位置，讓血條更高
     for (let i = 0; i < maxHp; i++) {
       let color = '#ff0';
       if (player.hp === maxHp) color = '#0f0';
@@ -976,9 +984,9 @@ function drawPlayer() {
   // ===== 在頭頂上方繪製血條 =====
   const maxHp = 12;
   const barW = pW;
-  const barH = pH * 0.11;
+  const barH = pH * 0.15; // 提高血條高度
   const barX = player.x;
-  const barY = player.y - pH * 0.18 - barH;
+  const barY = player.y - pH * 0.25 - barH; // 調整位置，讓血條更高
   for (let i = 0; i < maxHp; i++) {
     let color = '#ff0';
     if (player.hp === maxHp) color = '#0f0';
@@ -1075,13 +1083,19 @@ function drawPlatforms() {
       ctx.fillRect(p.x, p.y, p.width, p.height);
       ctx.strokeStyle = "#999999";
       ctx.strokeRect(p.x, p.y, p.width, p.height);
-      // 在平台上方繪製尖刺
+      // 在平台上方繪製尖刺 - 修正：根據平台寬度動態調整刺的數量和間距
       ctx.fillStyle = "#cccccc"; // 與頂部尖刺相同的顏色
-      for (let i = 0; i < p.width; i += 10) {
+      const spikeWidth = 10; // 每個刺的寬度
+      const spikeSpacing = spikeWidth; // 刺之間的間距
+      const totalSpikes = Math.floor(p.width / spikeSpacing); // 計算能放幾個刺
+      const startX = p.x + (p.width - totalSpikes * spikeSpacing) / 2; // 居中對齊
+      
+      for (let i = 0; i < totalSpikes; i++) {
+        const spikeX = startX + i * spikeSpacing;
         ctx.beginPath();
-        ctx.moveTo(p.x + i, p.y);
-        ctx.lineTo(p.x + i + 5, p.y - 12); // 將尖刺繪製在平台上方，高度12
-        ctx.lineTo(p.x + i + 10, p.y);
+        ctx.moveTo(spikeX, p.y);
+        ctx.lineTo(spikeX + spikeWidth / 2, p.y - 12); // 將尖刺繪製在平台上方，高度12
+        ctx.lineTo(spikeX + spikeWidth, p.y);
         ctx.closePath();
         ctx.fill();
       }
@@ -1392,7 +1406,7 @@ function updatePlayer() {
               p.targetSquash = 0; // 拉升狀態（高度變為2倍）
               p.squashLock = 0.2; // 0.2秒鎖定拉升狀態
               // 取得平台間距
-              const platformSpacing = getHeight() / 8; // 你的遊戲每8層分布
+              const platformSpacing = getPlatformSpacing(); // 使用統一函數
               const g = player.gravity;
               // 根據遊戲速度調整彈跳力，確保在高速移動時也有足夠的彈跳效果
               const baseJumpMultiplier = 0.9;
@@ -1508,7 +1522,7 @@ function updatePlatforms() {
       const platformHeight = 12; // 增加厚度
       const playerWidth = Math.floor(platformWidth / 2);
       const playerHeight = playerWidth;
-      const platformSpacing = playerHeight + 2 * platformHeight;
+      const platformSpacing = getPlatformSpacing(); // 使用統一函數
       // 找到最下方的平台，在其下方固定間距處生成新平台
       let lowestPlatform = null;
       for (let otherP of platforms) {
@@ -1583,7 +1597,7 @@ function updatePlatforms() {
   const platformHeight = 12; // 增加厚度
   const playerWidth = Math.floor(platformWidth / 2);
   const playerHeight = playerWidth;
-  const platformSpacing = playerHeight + 2 * platformHeight;
+  const platformSpacing = getPlatformSpacing(); // 平台間距 = 精靈身高 * 2
   const targetPlatformCount = Math.ceil(getHeight() / platformSpacing);
   while (platforms.length < targetPlatformCount) {
     // 找到最下方的平台，在其下方固定間距處生成新平台
