@@ -139,6 +139,11 @@ const pipeWidth = 50;
 const pipeGap = 150;
 const pipeSpeed = 2;
 
+// 新增時間控制變數
+let lastTime = 0;
+const targetFPS = 60;
+const frameTime = 1000 / targetFPS;
+
 // Initialize clouds
 for (let i = 0; i < 3; i++) {
     clouds.push(new Cloud());
@@ -241,7 +246,18 @@ function drawPipes() {
     });
 }
 
-function update() {
+function update(currentTime) {
+    // 時間控制：確保遊戲速度一致
+    if (!lastTime) lastTime = currentTime;
+    const deltaTime = currentTime - lastTime;
+    
+    if (deltaTime < frameTime) {
+        requestAnimationFrame(update);
+        return;
+    }
+    
+    lastTime = currentTime;
+    
     if (gameOver) {
         // Update high score if current score is higher
         if (score > highScore) {
@@ -321,6 +337,7 @@ function resetGame() {
     score = 0;
     gameOver = false;
     frameCount = 0;
+    lastTime = 0; // 重置時間控制
     scoreDisplay.textContent = '0';
     restartBtn.style.display = 'none';
     update();
