@@ -1563,8 +1563,8 @@ function updatePlayer() {
 function updatePlatforms() {
   // 平台速度隨分數增加而變快，並應用遊戲速度設定
   const baseSpeed = 1.5;
-  const speedIncrement = 0.05; // 每層增加的速度
-  let platformSpeed = (baseSpeed + (player.score * speedIncrement)) * gameSpeed;
+  // 修改：每階速度乘以1.02倍（指數增長）
+  let platformSpeed = baseSpeed * Math.pow(1.02, player.score) * gameSpeed;
   
   // 使用固定時間步長
   const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
