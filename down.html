@@ -345,6 +345,11 @@ let firstInteraction = false;
 let animationFrameId = null;
 let walkSpeed = 4.0;
 
+// 新增：固定時間步長系統
+const FIXED_TIMESTEP = 1/60; // 固定時間步長 60FPS
+let lastTime = 0;
+let accumulator = 0;
+
 // 新增：統一平台間距計算函數
 function getPlatformSpacing() {
   const platformWidth = Math.floor(getWidth() * 0.25);
@@ -485,6 +490,11 @@ function initGame() {
   }
   bloodParticles = []; // 新增：重置時清空粒子
   debrisParticles = []; // 新增：重置時清空粒子
+  
+  // 重置固定時間步長系統
+  lastTime = 0;
+  accumulator = 0;
+  
   resizeCanvas();
   paused = false;
   platforms = [];
@@ -587,6 +597,7 @@ function initGame() {
     runAnim: 0, // 跑步動畫用
     jumpProtection: false, // 彈跳保護狀態
     jumpProtectionTimer: 0, // 彈跳保護計時器
+    fallStartTime: null, // 新增：記錄開始掉落的時間，用於手部擺動補間
   };
 
   lastPlatformTouched = null;
@@ -660,9 +671,34 @@ function drawPlayer() {
     const frontArmCycle = animCycle;
     const backLegCycle = animCycle;
     const frontLegCycle = animCycle + Math.PI;
-    // 四肢擺動角度
-    const armAngle = Math.sin(frontArmCycle) * 1.4;
-    const legAngle = Math.sin(backLegCycle) * 1.2;
+    // 四肢擺動角度 - 添加掉落時的補間動畫
+    let armAngle = Math.sin(frontArmCycle) * 1.4;
+    let legAngle = Math.sin(backLegCycle) * 1.2;
+    
+    // 掉落時手臂擺動增強
+    if (player.vy > 0.5 && !player.onGround) {
+      // 如果剛開始掉落，記錄時間
+      if (!player.fallStartTime) {
+        player.fallStartTime = performance.now();
+      }
+      
+      const fallTime = (performance.now() - player.fallStartTime) / 1000;
+      const swingProgress = Math.min(1, fallTime / 0.1); // 縮短過渡時間到0.1秒
+      
+      // 使用固定的擺動頻率，確保速度均勻
+      const fixedSwingSpeed = 35.0; // 固定擺動速度（弧度/秒）
+      const swingTime = fallTime * fixedSwingSpeed; // 累積的擺動時間
+      
+      // 掉落時手臂擺動幅度增大
+      const fallArmRange = 2.0; // 掉落時更大的擺動幅度
+      const fallArmAngle = Math.sin(swingTime) * fallArmRange; // 使用固定頻率
+      
+      // 補間：從正常擺動到掉落擺動
+      const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4);
+      const smoothProgress = easeOutQuart(swingProgress);
+      armAngle = armAngle + (fallArmAngle - armAngle) * smoothProgress;
+    }
+    
     // 共用的四肢屬性
     const armX = pW / 2;
     const shoulderY = pH * 0.45;
@@ -875,16 +911,40 @@ function drawPlayer() {
   let leftArmAngle = 0.7;
   let rightArmAngle = -0.7;
 
-  // 新增：掉落時手臂揮動
+  // 新增：掉落時手臂揮動 - 添加補間動畫
   if (player.vy > 0.5 && !player.onGround) { // 增加一個vy閾值，避免小幅下降也觸發
-    // 調整動畫參數，使其為快速地上下拍動，且不會過低
-    const fallAnimCycle = (performance.now() / 50) % (Math.PI * 2); // 更快的頻率
-    const baseAngle = 0.7; // 揮動的中心角度 (同靜止站姿)
-    const flapRange = 0.5; // 揮動的幅度
-    const flapAngle = baseAngle + Math.sin(fallAnimCycle) * flapRange;
+    // 如果剛開始掉落，記錄時間
+    if (!player.fallStartTime) {
+      player.fallStartTime = performance.now();
+    }
     
-    leftArmAngle = flapAngle;
-    rightArmAngle = -flapAngle;
+    // 計算擺動動畫的進度（0到1之間）
+    const fallTime = (performance.now() - player.fallStartTime) / 1000;
+    const swingProgress = Math.min(1, fallTime / 0.1); // 縮短過渡時間到0.1秒
+    
+    // 使用固定的擺動頻率，確保速度均勻
+    const fixedSwingSpeed = 35.0; // 固定擺動速度（弧度/秒）
+    const swingTime = fallTime * fixedSwingSpeed; // 累積的擺動時間
+    const baseAngle = 0.7; // 揮動的中心角度 (同靜止站姿)
+    
+    // 擺動幅度隨時間變化：開始時較小，逐漸增大
+    const baseFlapRange = 0.5;
+    const amplitudeProgress = Math.min(1, fallTime / 0.2); // 縮短幅度過渡時間到0.2秒
+    const flapRange = baseFlapRange * amplitudeProgress;
+    
+    // 使用固定的正弦波擺動，確保頻率恆定
+    const flapAngle = baseAngle + Math.sin(swingTime) * flapRange;
+    
+    // 使用補間函數平滑過渡
+    const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4); // 緩出四次方函數
+    const smoothProgress = easeOutQuart(swingProgress);
+    
+    // 補間：從靜止角度到擺動角度
+    leftArmAngle = 0.7 + (flapAngle - 0.7) * smoothProgress;
+    rightArmAngle = -0.7 + (-flapAngle - (-0.7)) * smoothProgress;
+  } else {
+    // 當不處於掉落狀態時，重置開始掉落的時間
+    player.fallStartTime = null;
   }
 
   // 左臂
@@ -1221,8 +1281,12 @@ function drawHUD() {
 function updatePlayer() {
   // 即時更新行走速度
   player.speed = walkSpeed;
-  player.vy += player.gravity;
-  player.y += player.vy;
+  
+  // 使用固定時間步長更新物理
+  const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
+  
+  player.vy += player.gravity * deltaTime;
+  player.y += player.vy * deltaTime;
 
   // 處理彈跳保護機制
   if (player.jumpProtection && player.jumpProtectionTimer > 0) {
@@ -1269,7 +1333,7 @@ function updatePlayer() {
   else if (keys["ArrowRight"]) player.vx = player.speed;
   else player.vx = 0;
 
-  player.x += player.vx;
+  player.x += player.vx * deltaTime;
   
   // 計算精靈碰撞區域的中心點
   const playerCenterX = player.x + player.width / 2;
@@ -1297,17 +1361,17 @@ function updatePlayer() {
       
       if (horizontalOverlap) {
         // 計算精靈前一幀的位置
-        const prevY = player.y - player.vy;
+        const prevY = player.y - player.vy * deltaTime;
         const prevBottom = prevY + player.height;
         
         // 檢查是否從上方進入平台
         const enteringFromAbove = prevBottom <= p.y && player.y + player.height >= p.y;
         
         // 檢查是否在平台範圍內
-        const withinPlatformY = player.y + player.height >= p.y && player.y + player.height <= p.y + p.height + player.vy;
+        const withinPlatformY = player.y + player.height >= p.y && player.y + player.height <= p.y + p.height + player.vy * deltaTime;
         
         // 預測性碰撞檢測：檢查下一幀是否會碰撞
-        const nextY = player.y + player.vy;
+        const nextY = player.y + player.vy * deltaTime;
         const nextBottom = nextY + player.height;
         const willCollideNextFrame = nextBottom >= p.y && nextBottom <= p.y + p.height;
         
@@ -1319,7 +1383,7 @@ function updatePlayer() {
           const steps = Math.max(1, Math.ceil(player.vy / maxStepSize));
           
           for (let i = 0; i <= steps; i++) {
-            const checkY = prevY + (player.vy * i / steps);
+            const checkY = prevY + (player.vy * deltaTime * i / steps);
             const checkBottom = checkY + player.height;
             
             if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
@@ -1335,7 +1399,7 @@ function updatePlayer() {
         if (!collisionDetected && player.vy > 8) { // 高速下落時額外檢查
           const extraSteps = Math.ceil(player.vy / 1); // 每1像素檢查一次
           for (let i = 0; i <= extraSteps; i++) {
-            const checkY = prevY + (player.vy * i / extraSteps);
+            const checkY = prevY + (player.vy * deltaTime * i / extraSteps);
             const checkBottom = checkY + player.height;
             
             if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
@@ -1350,7 +1414,7 @@ function updatePlayer() {
         if (!collisionDetected && player.jumpProtection && player.vy > 0) {
           const protectionSteps = Math.ceil(player.vy / 0.5); // 每0.5像素檢查一次
           for (let i = 0; i <= protectionSteps; i++) {
-            const checkY = prevY + (player.vy * i / protectionSteps);
+            const checkY = prevY + (player.vy * deltaTime * i / protectionSteps);
             const checkBottom = checkY + player.height;
             
             if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
@@ -1365,7 +1429,7 @@ function updatePlayer() {
         if (!collisionDetected && p.type === "jump" && player.vy > 0) {
           const jumpSteps = Math.ceil(player.vy / 2); // 每2像素檢查一次
           for (let i = 0; i <= jumpSteps; i++) {
-            const checkY = prevY + (player.vy * i / jumpSteps);
+            const checkY = prevY + (player.vy * deltaTime * i / jumpSteps);
             const checkBottom = checkY + player.height;
             
             if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
@@ -1452,9 +1516,9 @@ function updatePlayer() {
           } else if (p.type === "conveyorL" || p.type === "conveyorR") {
             player.vy = 0;
             if (p.type === "conveyorL") {
-              player.x -= 1.5;
+              player.x -= 1.5 * deltaTime;
             } else {
-              player.x += 1.5;
+              player.x += 1.5 * deltaTime;
             }
             if (lastPlatformTouched !== p) {
               playSfxPool('normal'); // 播放一般平台音效
@@ -1488,7 +1552,7 @@ function updatePlayer() {
   else player.direction = "front";
 
   if (player.vx !== 0) {
-    player.runAnim += Math.abs(player.vx) * 0.28;
+    player.runAnim += Math.abs(player.vx) * 0.28 * deltaTime;
   } else {
     player.runAnim = 0;
   }
@@ -1501,6 +1565,10 @@ function updatePlatforms() {
   const baseSpeed = 1.5;
   const speedIncrement = 0.05; // 每層增加的速度
   let platformSpeed = (baseSpeed + (player.score * speedIncrement)) * gameSpeed;
+  
+  // 使用固定時間步長
+  const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
+  platformSpeed *= deltaTime;
   
   // 移除總體速度限制，允許無限制的速度
   // const maxTotalSpeed = 8.0; // 最大總體速度限制
@@ -1658,9 +1726,33 @@ function togglePause() {
   drawHUD();
 }
 
-function gameLoop() {
+function gameLoop(currentTime) {
   if (paused) return;
-  animateSpringPlatforms();
+  
+  // 固定時間步長系統
+  if (lastTime === 0) {
+    lastTime = currentTime;
+  }
+  
+  const deltaTime = (currentTime - lastTime) / 1000; // 轉換為秒
+  lastTime = currentTime;
+  
+  // 累積時間
+  accumulator += deltaTime;
+  
+  // 執行固定時間步長的更新
+  while (accumulator >= FIXED_TIMESTEP) {
+    // 物理更新
+    if (!updatePlayer()) return;
+    updatePlatforms();
+    updateBloodParticles();
+    updateDebrisParticles();
+    animateSpringPlatforms();
+    
+    accumulator -= FIXED_TIMESTEP;
+  }
+  
+  // 渲染（不受時間步長影響）
   ctx.clearRect(0, 0, getWidth(), getHeight());
   // 畫深藍色漸層背景（更接近原作）
   let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
@@ -1670,14 +1762,8 @@ function gameLoop() {
   ctx.fillRect(0, 0, getWidth(), getHeight());
   drawTopSpikes(); // 畫頂端尖刺
   
-  updateBloodParticles();
   drawBloodParticles();
-  
-  updateDebrisParticles();
   drawDebrisParticles();
-
-  if (!updatePlayer()) return;
-  updatePlatforms();
   drawPlatforms();
   drawPlayer();
   drawHUD();
@@ -1686,6 +1772,7 @@ function gameLoop() {
   ctx.lineWidth = 4;
   ctx.strokeRect(0, 0, getWidth(), getHeight());
   ctx.lineWidth = 1;
+  
   if (player.isHurt && player.hurtTimer > 0) {
     player.hurtTimer -= 16; // 約等於一幀16ms
     if (player.hurtTimer <= 0) {
@@ -1693,6 +1780,7 @@ function gameLoop() {
       player.hurtTimer = 0;
     }
   }
+  
   animationFrameId = requestAnimationFrame(gameLoop);
 }
 
@@ -1942,11 +2030,12 @@ function createBloodSplatter(x, y, count = 50) {
 }
 
 function updateBloodParticles() {
+  const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
   for (let i = bloodParticles.length - 1; i >= 0; i--) {
     let p = bloodParticles[i];
-    p.vy += p.gravity;
-    p.x += p.vx;
-    p.y += p.vy;
+    p.vy += p.gravity * deltaTime;
+    p.x += p.vx * deltaTime;
+    p.y += p.vy * deltaTime;
     p.lifespan--;
     if (p.lifespan <= 0) {
       bloodParticles.splice(i, 1);
@@ -2039,15 +2128,16 @@ function createDebris(x, y, width, height, count = 50) {
 }
 
 function updateDebrisParticles() {
+  const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
   for (let i = debrisParticles.length - 1; i >= 0; i--) {
     let p = debrisParticles[i];
-    p.vy += p.gravity;
-    p.x += p.vx;
-    p.y += p.vy;
+    p.vy += p.gravity * deltaTime;
+    p.x += p.vx * deltaTime;
+    p.y += p.vy * deltaTime;
     
     // 添加風力效果
     if (p.windEffect !== undefined) {
-      p.x += p.windEffect;
+      p.x += p.windEffect * deltaTime;
       p.windEffect *= 0.98; // 風力逐漸減弱
     }
     
@@ -2055,7 +2145,7 @@ function updateDebrisParticles() {
     
     // 更新旋轉
     if (p.rotation !== undefined) {
-      p.rotation += p.rotationSpeed || 0;
+      p.rotation += (p.rotationSpeed || 0) * deltaTime;
     }
     
     if (p.lifespan <= 0) {
@@ -2155,7 +2245,7 @@ const FIXED_CRACKS = [
 
 // 彈簧平台動畫補間（每幀呼叫）
 function animateSpringPlatforms() {
-  const dt = 1/60; // 假設60fps
+  const dt = FIXED_TIMESTEP; // 使用固定時間步長
   for (let p of platforms) {
     if (p.type === 'jump' && typeof p.squashAnim === 'number' && typeof p.targetSquash === 'number') {
       if (typeof p.squashLock === 'number' && p.squashLock > 0) {
@@ -2166,12 +2256,13 @@ function animateSpringPlatforms() {
         // 鎖定結束後，回到正常狀態
         p.targetSquash = 1; // 正常高度
       }
-      // 0.3秒補間，假設60fps，每幀約0.033s，則每幀進度約0.033
-      const speed = 1 / (0.3 * 60); // 約0.056，更快的動畫
+      // 0.3秒補間，使用固定時間步長
+      const speed = 1 / 0.3; // 每秒補間速度
+      const frameSpeed = speed * dt; // 每幀補間量
       if (p.squashAnim < p.targetSquash) {
-        p.squashAnim = Math.min(p.squashAnim + speed, p.targetSquash);
+        p.squashAnim = Math.min(p.squashAnim + frameSpeed, p.targetSquash);
       } else if (p.squashAnim > p.targetSquash) {
-        p.squashAnim = Math.max(p.squashAnim - speed, p.targetSquash);
+        p.squashAnim = Math.max(p.squashAnim - frameSpeed, p.targetSquash);
       }
     }
   }
