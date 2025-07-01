@@ -343,7 +343,7 @@ let highScore = 0;
 let paused = false;
 let firstInteraction = false;
 let animationFrameId = null;
-let walkSpeed = 4.0;
+let walkSpeed = 4.5;
 
 // 新增：固定時間步長系統
 const FIXED_TIMESTEP = 1/60; // 固定時間步長 60FPS
@@ -1286,7 +1286,9 @@ function updatePlayer() {
   const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
   
   player.vy += player.gravity * deltaTime;
-  player.y += player.vy * deltaTime;
+  let prevY = player.y;
+  let nextY = player.y + player.vy * deltaTime;
+  player.y = nextY;
 
   // 處理彈跳保護機制
   if (player.jumpProtection && player.jumpProtectionTimer > 0) {
@@ -1346,198 +1348,134 @@ function updatePlayer() {
   player.onGround = false;
   // 若在穿透狀態，跳過平台碰撞
   if (!player.fallThrough) {
-    for (let p of platforms) {
-      if (p.hidden) continue;
-      // 彈簧平台壓縮判斷
-      if (p.type === 'jump') p.targetSquash = 1;
-      
-      // 改進的碰撞檢測：檢查整個移動路徑
-      const playerCenterX = player.x + player.width / 2;
-      const playerCollisionLeft = playerCenterX - player.collisionWidth / 2;
-      const playerCollisionRight = playerCenterX + player.collisionWidth / 2;
-      
-      // 檢查水平重疊
-      const horizontalOverlap = playerCollisionRight > p.x && playerCollisionLeft < p.x + p.width;
-      
-      if (horizontalOverlap) {
-        // 計算精靈前一幀的位置
-        const prevY = player.y - player.vy * deltaTime;
+    let landed = false;
+    let landedPlatform = null;
+    let minLandingY = Infinity;
+    // 只在下落時做連續碰撞偵測
+    if (player.vy > 0) {
+      for (let p of platforms) {
+        if (p.hidden) continue;
+        // 彈簧平台壓縮判斷
+        if (p.type === 'jump') p.targetSquash = 1;
+        // 檢查水平重疊
+        const horizontalOverlap = playerCollisionRight > p.x && playerCollisionLeft < p.x + p.width;
+        if (!horizontalOverlap) continue;
+        // 計算平台碰撞區間
         const prevBottom = prevY + player.height;
-        
-        // 檢查是否從上方進入平台
-        const enteringFromAbove = prevBottom <= p.y && player.y + player.height >= p.y;
-        
-        // 檢查是否在平台範圍內
-        const withinPlatformY = player.y + player.height >= p.y && player.y + player.height <= p.y + p.height + player.vy * deltaTime;
-        
-        // 預測性碰撞檢測：檢查下一幀是否會碰撞
-        const nextY = player.y + player.vy * deltaTime;
         const nextBottom = nextY + player.height;
-        const willCollideNextFrame = nextBottom >= p.y && nextBottom <= p.y + p.height;
-        
-        // 連續碰撞檢測：檢查移動路徑上的所有點
-        let collisionDetected = false;
-        if (player.vy > 0) { // 只有在下落時才需要連續檢測
-          // 根據速度動態調整檢測密度，確保高速時有足夠的檢測點
-          const maxStepSize = Math.max(1, Math.min(2, Math.floor(player.vy / 6))); // 更密集的檢測，每1-2像素檢查一次
-          const steps = Math.max(1, Math.ceil(player.vy / maxStepSize));
-          
-          for (let i = 0; i <= steps; i++) {
-            const checkY = prevY + (player.vy * deltaTime * i / steps);
-            const checkBottom = checkY + player.height;
-            
-            if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
-              collisionDetected = true;
-              // 精確定位到碰撞點
+        // 只要人物鞋底從平台上方進入平台碰撞區間就觸發落地
+        if (
+          prevBottom <= p.y + p.height &&
+          nextBottom >= p.y &&
+          prevBottom <= nextBottom // 確保是下落
+        ) {
+          if (p.y < minLandingY) {
+            minLandingY = p.y;
+            landedPlatform = p;
+            landed = true;
+          }
+        }
+      }
+      if (landed && landedPlatform) {
+        player.y = minLandingY - player.height;
+        player.vy = 0;
+        player.onGround = true;
+      }
+    } else {
+      // 非下落時，維持原本的碰撞檢查（如彈跳保護等）
+      for (let p of platforms) {
+        if (p.hidden) continue;
+        if (p.type === 'jump') p.targetSquash = 1;
+        const horizontalOverlap = playerCollisionRight > p.x && playerCollisionLeft < p.x + p.width;
+        if (horizontalOverlap) {
+          const currentInPlatform = player.y + player.height >= p.y && player.y + player.height <= p.y + p.height;
+          if (currentInPlatform) {
+            if (!landed) {
               player.y = p.y - player.height;
-              break;
+              player.vy = 0;
+              player.onGround = true;
+              landed = true;
+              landedPlatform = p;
             }
           }
         }
-        
-        // 額外檢查：如果精靈正在下落且速度很快，進行更密集的檢測
-        if (!collisionDetected && player.vy > 8) { // 高速下落時額外檢查
-          const extraSteps = Math.ceil(player.vy / 1); // 每1像素檢查一次
-          for (let i = 0; i <= extraSteps; i++) {
-            const checkY = prevY + (player.vy * deltaTime * i / extraSteps);
-            const checkBottom = checkY + player.height;
-            
-            if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
-              collisionDetected = true;
-              player.y = p.y - player.height;
-              break;
-            }
-          }
+      }
+    }
+    // 處理平台效果
+    if (landed && landedPlatform) {
+      let p = landedPlatform;
+      if (p.type === "spike") {
+        if (lastPlatformTouched !== p) {
+          playSfxPool('spike');
+          player.hp -= 5;
+          lastPlatformTouched = p;
+          createBloodSplatter(player.x + player.width / 2, player.y + player.height, 60);
+          player.isHurt = true;
+          player.hurtTimer = 1000;
         }
-        
-        // 彈跳保護期間的額外檢查
-        if (!collisionDetected && player.jumpProtection && player.vy > 0) {
-          const protectionSteps = Math.ceil(player.vy / 0.5); // 每0.5像素檢查一次
-          for (let i = 0; i <= protectionSteps; i++) {
-            const checkY = prevY + (player.vy * deltaTime * i / protectionSteps);
-            const checkBottom = checkY + player.height;
-            
-            if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
-              collisionDetected = true;
-              player.y = p.y - player.height;
-              break;
-            }
-          }
+      } else if (p.type === "jump") {
+        const timeSinceLastJump = p.lastJumpTime ? Date.now() - p.lastJumpTime : 1000;
+        if (timeSinceLastJump > 100) {
+          playSfxPool('jump');
+          p.targetSquash = 0;
+          p.squashLock = 0.2;
+          const platformSpacing = getPlatformSpacing();
+          const g = player.gravity;
+          const baseJumpMultiplier = 0.9;
+          const speedAdjustment = Math.min(1.5, gameSpeed);
+          const adjustedMultiplier = baseJumpMultiplier * speedAdjustment;
+          const jumpHeight = player.height * 1.5;
+          const maxVy = -Math.sqrt(2 * g * jumpHeight * adjustedMultiplier);
+          player.vy = maxVy;
+          player.hp = Math.min(player.hp + 1, 12);
+          lastPlatformTouched = p;
+          p.lastJumpTime = Date.now();
+          player.jumpProtection = true;
+          player.jumpProtectionTimer = 10;
+          player.onGround = false;
         }
-        
-        // 彈簧平台特殊檢查：確保在高速移動時也能正確觸發
-        if (!collisionDetected && p.type === "jump" && player.vy > 0) {
-          const jumpSteps = Math.ceil(player.vy / 2); // 每2像素檢查一次
-          for (let i = 0; i <= jumpSteps; i++) {
-            const checkY = prevY + (player.vy * deltaTime * i / jumpSteps);
-            const checkBottom = checkY + player.height;
-            
-            if (checkBottom >= p.y && checkBottom <= p.y + p.height) {
-              collisionDetected = true;
-              player.y = p.y - player.height;
-              break;
-            }
-          }
-        }
-        
-        // 最終檢查：如果當前位置已經在平台內，強制碰撞
-        const currentInPlatform = player.y + player.height >= p.y && player.y + player.height <= p.y + p.height;
-        
-        if ((enteringFromAbove && withinPlatformY && player.vy >= 0) || collisionDetected || willCollideNextFrame || currentInPlatform) {
-          // 精確定位到平台頂部
-          if (!collisionDetected) {
-            player.y = p.y - player.height;
-          }
-          player.onGround = true;
-          
-          if (p.type === "spike") {
-            if (lastPlatformTouched !== p) {
-              playSfxPool('spike'); // 播放被刺到音效
-              player.hp -= 5;
-              lastPlatformTouched = p;
-              createBloodSplatter(player.x + player.width / 2, player.y + player.height, 60); // 從腳底噴血
-              player.isHurt = true;
-              player.hurtTimer = 1000;
-            }
-            player.vy = 0;
-          } else if (p.type === "jump") {
-            // 彈簧平台特殊處理：確保彈跳效果不被覆蓋，允許連續跳躍
-            // 檢查是否已經離開平台一段時間，避免連續觸發
-            const timeSinceLastJump = p.lastJumpTime ? Date.now() - p.lastJumpTime : 1000;
-            if (timeSinceLastJump > 100) { // 100ms的冷卻時間
-              playSfxPool('jump'); // 播放彈跳音效
-              // 彈簧平台拉升動畫
-              p.targetSquash = 0; // 拉升狀態（高度變為2倍）
-              p.squashLock = 0.2; // 0.2秒鎖定拉升狀態
-              // 取得平台間距
-              const platformSpacing = getPlatformSpacing(); // 使用統一函數
-              const g = player.gravity;
-              // 根據遊戲速度調整彈跳力，確保在高速移動時也有足夠的彈跳效果
-              const baseJumpMultiplier = 0.9;
-              const speedAdjustment = Math.min(1.5, gameSpeed); // 速度調整係數，最大1.5倍
-              const adjustedMultiplier = baseJumpMultiplier * speedAdjustment;
-              // 修改：跳躍高度等於精靈身高 * 1.5
-              const jumpHeight = player.height * 1.5;
-              const maxVy = -Math.sqrt(2 * g * jumpHeight * adjustedMultiplier);
-              player.vy = maxVy;
-              player.hp = Math.min(player.hp + 1, 12); // 每次跳都補一滴
-              lastPlatformTouched = p;
-              
-              // 記錄跳躍時間
-              p.lastJumpTime = Date.now();
-              
-              // 添加彈跳後的碰撞保護：確保精靈不會立即穿越其他平台
-              player.jumpProtection = true;
-              player.jumpProtectionTimer = 10; // 10幀的保護時間
-              
-              // 重要：彈簧平台不設置 onGround = true，讓精靈可以繼續上升
-              player.onGround = false;
-            }
-          } else if (p.type === "normal") {
-            if (lastPlatformTouched !== p) {
-              playSfxPool('normal'); // 播放一般平台音效
-              player.hp = Math.min(player.hp + 1, 12);
-              lastPlatformTouched = p;
-            }
-            player.vy = 0;
-          } else if (p.type === "vanish") {
-            player.vy = 0;
-            if (p.vanishTimer === null) {
-              playSfxPool('normal'); // 先播放一般平台音效
-              p.vanishTimer = Date.now();
-              player.hp = Math.min(player.hp + 1, 12);
-            } else if (Date.now() - p.vanishTimer >= 200) {
-              p.hidden = true;
-              createDebris(p.x, p.y, p.width, p.height, 80); // 觸發碎裂效果
-              playSfxPool('vanish'); // 播放消失音效
-              break;
-            }
-            lastPlatformTouched = p;
-          } else if (p.type === "conveyorL" || p.type === "conveyorR") {
-            player.vy = 0;
-            if (p.type === "conveyorL") {
-              player.x -= 1.5 * deltaTime;
-            } else {
-              player.x += 1.5 * deltaTime;
-            }
-            if (lastPlatformTouched !== p) {
-              playSfxPool('normal'); // 播放一般平台音效
-              player.hp = Math.min(player.hp + 1, 12);
-              lastPlatformTouched = p;
-            }
-          }
+      } else if (p.type === "normal") {
+        if (lastPlatformTouched !== p) {
+          playSfxPool('normal');
+          player.hp = Math.min(player.hp + 1, 12);
+          lastPlatformTouched = p;
         }
       } else if (p.type === "vanish") {
-        // 離開平台時重設 vanishTimer
-        p.vanishTimer = null;
+        if (p.vanishTimer === null) {
+          playSfxPool('normal');
+          p.vanishTimer = Date.now();
+          player.hp = Math.min(player.hp + 1, 12);
+        } else if (Date.now() - p.vanishTimer >= 200) {
+          p.hidden = true;
+          createDebris(p.x, p.y, p.width, p.height, 80);
+          playSfxPool('vanish');
+        }
+        lastPlatformTouched = p;
+      } else if (p.type === "conveyorL" || p.type === "conveyorR") {
+        if (p.type === "conveyorL") {
+          player.x -= 1.5 * deltaTime;
+        } else {
+          player.x += 1.5 * deltaTime;
+        }
+        if (lastPlatformTouched !== p) {
+          playSfxPool('normal');
+          player.hp = Math.min(player.hp + 1, 12);
+          lastPlatformTouched = p;
+        }
+      }
+    } else {
+      // 離開平台時重設 vanishTimer
+      for (let p of platforms) {
+        if (p.type === "vanish") {
+          p.vanishTimer = null;
+        }
       }
     }
   }
 
   if (player.y > getHeight() || (player.hp <= 0 && !player.fallThrough)) {
     setTimeout(() => {
-      playSfxPool('dead'); // 播放死亡音效
-      // 更新最高分數
+      playSfxPool('dead');
       if (player.score > highScore) {
         highScore = player.score;
         localStorage.setItem('ns_shaft_highscore', highScore);
@@ -1563,8 +1501,8 @@ function updatePlayer() {
 function updatePlatforms() {
   // 平台速度隨分數增加而變快，並應用遊戲速度設定
   const baseSpeed = 1.5;
-  // 修改：每階速度乘以1.02倍（指數增長）
-  let platformSpeed = baseSpeed * Math.pow(1.02, player.score) * gameSpeed;
+  // 修改：每階速度乘以1.01倍（指數增長）
+  let platformSpeed = baseSpeed * Math.pow(1.01, player.score) * gameSpeed;
   
   // 使用固定時間步長
   const deltaTime = FIXED_TIMESTEP * 60; // 轉換為60FPS基準
@@ -1721,7 +1659,16 @@ function updatePlatforms() {
 
 function togglePause() {
   paused = !paused;
-  if (!paused) requestAnimationFrame(gameLoop);
+  if (paused) {
+    if (animationFrameId !== null) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+  } else {
+    // 恢復時重設 lastTime，避免補算暫停期間的遊戲邏輯
+    lastTime = 0;
+    animationFrameId = requestAnimationFrame(gameLoop);
+  }
   // 更新 HUD 顯示
   drawHUD();
 }
@@ -1742,9 +1689,9 @@ function gameLoop(currentTime) {
   
   // 執行固定時間步長的更新
   while (accumulator >= FIXED_TIMESTEP) {
+    updatePlatforms();
     // 物理更新
     if (!updatePlayer()) return;
-    updatePlatforms();
     updateBloodParticles();
     updateDebrisParticles();
     animateSpringPlatforms();
@@ -1781,7 +1728,10 @@ function gameLoop(currentTime) {
     }
   }
   
-  animationFrameId = requestAnimationFrame(gameLoop);
+  // 只有沒暫停時才繼續排程下一幀
+  if (!paused) {
+    animationFrameId = requestAnimationFrame(gameLoop);
+  }
 }
 
 // 觸控操作
