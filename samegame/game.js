@@ -42,13 +42,21 @@ function initGame() {
 
 // Set board size
 function setBoardSize() {
+    let rows, cols;
     if (gameState.size === 'normal') {
-        gameState.rows = 10;
-        gameState.cols = 20;
+        rows = 10;
+        cols = 20;
     } else {
-        gameState.rows = 15;
-        gameState.cols = 25;
+        rows = 15;
+        cols = 25;
     }
+    // 手機板自動對調長短邊
+    if (window.innerWidth < 700 && window.innerWidth < window.innerHeight) {
+        // 直向手機，rows/cols 對調
+        [rows, cols] = [cols, rows];
+    }
+    gameState.rows = rows;
+    gameState.cols = cols;
     const gameBoard = document.getElementById('game-board');
     gameBoard.style.gridTemplateColumns = `repeat(${gameState.cols}, ${CELL_SIZE}px)`;
     gameBoard.style.gridTemplateRows = `repeat(${gameState.rows}, ${CELL_SIZE}px)`;
