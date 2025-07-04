@@ -147,7 +147,7 @@
         </div>
 
         <div class="card-header">
-            <span>台中, 台灣<br>當前日期</span>
+            <span id="location">台中, 台灣<br>當前日期</span>
             <span id="date"></span>
         </div>
 
@@ -159,6 +159,28 @@
     </div>
 
     <script>
+        async function fetchLocationName(lat, lon) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh-TW`);
+                if (!response.ok) throw new Error('地名查詢失敗');
+                const data = await response.json();
+                // 你可以根據 data.address 取你想顯示的欄位
+                // 例如：鄉鎮市區、縣市、國家
+                const { suburb, city, town, county, state, country } = data.address;
+                // 組合地名（依實際資料調整）
+                let location = '';
+                if (suburb) location += suburb + ', ';
+                if (city) location += city + ', ';
+                else if (town) location += town + ', ';
+                if (county) location += county + ', ';
+                if (state) location += state + ', ';
+                if (country) location += country;
+                return location.replace(/, $/, '');
+            } catch (e) {
+                return '未知地點';
+            }
+        }
+
         async function fetchTemperature(lat, lon) {
             try {
                 const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -170,6 +192,10 @@
                 document.getElementById('temperature').innerText = `${temp}°`;
                 const today = new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' });
                 document.getElementById('date').innerText = today;
+
+                // 新增：查詢地名並顯示
+                const location = await fetchLocationName(lat, lon);
+                document.getElementById('location').innerHTML = location + '<br>當前日期';
             } catch (error) {
                 document.getElementById('temperature').innerText = `無法獲取氣溫資料: ${error.message}`;
             }
