@@ -40,6 +40,17 @@ function initGame() {
     updateStatus();
 }
 
+// 監聽螢幕方向改變，自動重設盤面
+let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+window.addEventListener('resize', function() {
+    const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+    if (currentOrientation !== lastOrientation) {
+        lastOrientation = currentOrientation;
+        // 重新開始遊戲以適應新方向
+        newGame();
+    }
+});
+
 // Set board size
 function setBoardSize() {
     let rows, cols;
