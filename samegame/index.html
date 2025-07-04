@@ -146,18 +146,29 @@
                 width: 100vw;
                 box-sizing: border-box;
                 margin: 0;
+                padding-bottom: 70px;
             }
             .menu-bar {
                 flex-direction: column;
                 gap: 8px;
                 align-items: stretch;
                 width: 100%;
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                z-index: 100;
+                background: #4CAF50;
+                padding: 8px 0 8px 0;
+                border-radius: 0;
+                box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
             }
             .menu-button {
                 padding: 16px 0;
                 font-size: 1.2em;
                 width: 100%;
                 min-height: 48px;
+                background-color: #388e3c;
+                border-bottom: 1px solid #66bb6a;
             }
             .game-board {
                 gap: 2px;
