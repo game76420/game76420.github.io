@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Same Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .game-board {
+            display: grid;
+            gap: 2px;
+            background-color: #00bf00;
+            padding: 2px;
+            border-radius: 5px;
+        }
+
+        .cell {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .cell.marble {
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .cell.marble::before {
+            content: '';
+            position: absolute;
+            top: 20%;
+            left: 20%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+        }
+
+        .cell.marble::after {
+            content: '';
+            position: absolute;
+            bottom: 20%;
+            right: 20%;
+            width: 30%;
+            height: 30%;
+            background: rgba(0,0,0,0.2);
+            border-radius: 50%;
+        }
+
+        /* Remove highlight and shadow for empty cells in Marble style */
+        .cell.marble.empty::before,
+        .cell.marble.empty::after {
+            display: none;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #C0C0C0;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .menu-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .menu-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .menu-button:hover {
+            background-color: #45a049;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 300px;
+        }
+
+        .score-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .score-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 5px;
+            }
+            .game-container {
+                padding: 8px;
+                border-radius: 6px;
+                min-width: unset;
+                width: 100vw;
+                box-sizing: border-box;
+            }
+            .menu-bar {
+                flex-direction: column;
+                gap: 6px;
+                align-items: stretch;
+            }
+            .menu-button {
+                padding: 10px 0;
+                font-size: 1.1em;
+                width: 100%;
+            }
+            .game-board {
+                gap: 1px;
+                padding: 1px;
+                border-radius: 3px;
+            }
+            .cell {
+                width: 22px;
+                height: 22px;
+                font-size: 0.9em;
+            }
+            .status-bar {
+                flex-direction: column;
+                gap: 4px;
+                font-size: 1em;
+                padding: 6px;
+                margin-top: 10px;
+                width: 100%;
+            }
+            .modal-content {
+                min-width: unset;
+                width: 90vw;
+                padding: 10px;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="menu-bar">
+            <button class="menu-button" onclick="newGame()">新遊戲</button>
+            <button class="menu-button" onclick="replay()">重播</button>
+            <button class="menu-button" onclick="undo()">復原</button>
+            <button class="menu-button" onclick="showScore()">分數</button>
+            <button class="menu-button" onclick="toggleSound()">音效：開啟</button>
+            <select class="menu-button" onchange="setSize(this.value)">
+                <option value="normal">一般尺寸</option>
+                <option value="large">大尺寸</option>
+            </select>
+            <select class="menu-button" onchange="setStyle(this.value)">
+                <option value="panel">方塊風格</option>
+                <option value="marble">彈珠風格</option>
+            </select>
+        </div>
+        <div id="game-board" class="game-board"></div>
+        <div class="status-bar">
+            <div id="mark-label">標記：0（點數：0）</div>
+            <div id="time-label">時間：0秒</div>
+            <div id="score-label">分數：0</div>
+        </div>
+    </div>
+
+    <!-- Score Modal -->
+    <div id="score-modal" class="modal">
+        <div class="modal-content">
+            <h2>最佳 10 分數</h2>
+            <ul id="score-list" class="score-list"></ul>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="menu-button" onclick="clearScores()">清除</button>
+                <button class="menu-button" onclick="closeModal('score-modal')">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal">
+        <div class="modal-content">
+            <h2>遊戲說明</h2>
+            <p>規則：<br>點擊相同顏色的連通方塊群可消除，消除越多分數越高。<br>分數公式：S(n) = (n-1)*(n-2)+2</p>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="menu-button" onclick="closeModal('info-modal')">確定</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html> 
