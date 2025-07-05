@@ -13,6 +13,12 @@
             align-items: center;
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .game-container {
@@ -20,6 +26,12 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .game-board {
@@ -28,6 +40,12 @@
             background-color: #00bf00;
             padding: 2px;
             border-radius: 5px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .cell {
@@ -40,6 +58,12 @@
             cursor: pointer;
             transition: all 0.2s;
             border-radius: 4px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .cell.marble {
@@ -91,6 +115,12 @@
             border-radius: 5px;
             width: 100%;
             box-sizing: border-box;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .menu-bar {
@@ -107,6 +137,12 @@
             color: white;
             cursor: pointer;
             transition: background-color 0.2s;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .menu-button:hover {
@@ -142,9 +178,16 @@
             border-bottom: 1px solid #eee;
         }
 
-        @media (max-width: 600px) {
+        /* 手機直屏模式 */
+        @media (max-width: 600px) and (orientation: portrait) {
             body {
                 padding: 0;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
             }
             .game-container {
                 padding: 4px;
@@ -205,6 +248,125 @@
             }
             #score-list li {
                 font-size: 1.1em;
+            }
+        }
+
+        /* 手機橫屏模式 */
+        @media (max-width: 900px) and (orientation: landscape) {
+            body {
+                padding: 8px;
+                min-height: 100vh;
+                justify-content: center;
+                align-items: center;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-touch-callout: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .game-container {
+                padding: 8px;
+                border-radius: 8px;
+                max-width: 95vw;
+                max-height: 95vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .menu-bar {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: center;
+                margin-bottom: 8px;
+                max-height: 20vh;
+                overflow-y: auto;
+            }
+            .menu-button {
+                padding: 6px 10px;
+                font-size: 0.85em;
+                min-height: 32px;
+                flex: 0 0 auto;
+                white-space: nowrap;
+            }
+            .game-board {
+                gap: 1px;
+                padding: 1px;
+                border-radius: 4px;
+                justify-content: center;
+                align-self: center;
+                max-width: 100%;
+                max-height: 65vh;
+                overflow: hidden;
+            }
+            .cell {
+                width: 28px;
+                height: 28px;
+                font-size: 0.85em;
+                min-width: 22px;
+                min-height: 22px;
+                border-radius: 3px;
+            }
+            .cell.marble {
+                border-radius: 50%;
+            }
+            .status-bar {
+                flex-direction: row;
+                gap: 8px;
+                font-size: 0.85em;
+                padding: 6px;
+                margin-top: 6px;
+                justify-content: space-around;
+                flex-wrap: wrap;
+                max-height: 15vh;
+            }
+            .status-bar > div {
+                flex: 1;
+                text-align: center;
+                min-width: 70px;
+                white-space: nowrap;
+            }
+            .modal-content {
+                min-width: 280px;
+                max-width: 75vw;
+                padding: 12px;
+                border-radius: 8px;
+            }
+            .modal {
+                align-items: center;
+                padding: 15px;
+            }
+            h2 {
+                font-size: 1.1em;
+            }
+            #score-list li {
+                font-size: 0.95em;
+            }
+        }
+
+        /* 平板橫屏模式 */
+        @media (min-width: 901px) and (max-width: 1200px) and (orientation: landscape) {
+            .game-container {
+                padding: 15px;
+                max-width: 90vw;
+            }
+            .menu-bar {
+                gap: 12px;
+                margin-bottom: 15px;
+            }
+            .menu-button {
+                padding: 10px 18px;
+                font-size: 1em;
+            }
+            .cell {
+                width: 30px;
+                height: 30px;
+                font-size: 1em;
+            }
+            .status-bar {
+                font-size: 1em;
+                padding: 10px;
             }
         }
     </style>
@@ -304,14 +466,26 @@
 
         // 監聽螢幕方向改變，自動重設盤面
         let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-        window.addEventListener('resize', function() {
+        let resizeTimeout;
+        
+        function handleOrientationChange() {
             const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
             if (currentOrientation !== lastOrientation) {
                 lastOrientation = currentOrientation;
-                // 重新開始遊戲以適應新方向
-                newGame();
+                // 延遲重新開始遊戲，避免頻繁觸發
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    newGame();
+                }, 300);
             }
-        });
+        }
+        
+        window.addEventListener('resize', handleOrientationChange);
+        
+        // 監聽設備方向變化（適用於支援的設備）
+        if (window.screen && window.screen.orientation) {
+            window.screen.orientation.addEventListener('change', handleOrientationChange);
+        }
 
         // Set board size
         function setBoardSize() {
@@ -323,16 +497,47 @@
                 rows = 15;
                 cols = 25;
             }
-            // 手機板自動對調長短邊
-            if (window.innerWidth < 700 && window.innerWidth < window.innerHeight) {
-                // 直向手機，rows/cols 對調
-                [rows, cols] = [cols, rows];
+            
+            // 根據螢幕方向和尺寸自動調整
+            const isLandscape = window.innerWidth > window.innerHeight;
+            const isMobile = window.innerWidth < 900;
+            
+            if (isMobile) {
+                if (isLandscape) {
+                    // 手機橫屏：使用較小的格子，保持原有比例
+                    if (gameState.size === 'normal') {
+                        rows = 8;
+                        cols = 16;
+                    } else {
+                        rows = 12;
+                        cols = 20;
+                    }
+                } else {
+                    // 手機直屏：對調長短邊以適應螢幕
+                    [rows, cols] = [cols, rows];
+                }
             }
+            
             gameState.rows = rows;
             gameState.cols = cols;
+            
+            // 動態計算格子大小以適應螢幕
+            let cellSize = CELL_SIZE;
+            if (isMobile) {
+                if (isLandscape) {
+                    // 橫屏時根據螢幕高度計算格子大小
+                    const maxHeight = window.innerHeight * 0.6; // 60% 的螢幕高度
+                    cellSize = Math.min(28, Math.floor(maxHeight / rows));
+                } else {
+                    // 直屏時根據螢幕寬度計算格子大小
+                    const maxWidth = window.innerWidth * 0.95; // 95% 的螢幕寬度
+                    cellSize = Math.min(36, Math.floor(maxWidth / cols));
+                }
+            }
+            
             const gameBoard = document.getElementById('game-board');
-            gameBoard.style.gridTemplateColumns = `repeat(${gameState.cols}, ${CELL_SIZE}px)`;
-            gameBoard.style.gridTemplateRows = `repeat(${gameState.rows}, ${CELL_SIZE}px)`;
+            gameBoard.style.gridTemplateColumns = `repeat(${gameState.cols}, ${cellSize}px)`;
+            gameBoard.style.gridTemplateRows = `repeat(${gameState.rows}, ${cellSize}px)`;
         }
 
         // Generate new board
@@ -694,6 +899,20 @@
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
         }
+
+        // 防止文字選取
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+        });
+        
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+        });
+        
+        // 防止雙擊選取
+        document.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+        });
 
         // Initialize game when page loads
         window.onload = initGame;
