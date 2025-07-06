@@ -347,13 +347,24 @@
 
         /* 平板橫屏模式 */
         @media (min-width: 901px) and (max-width: 1200px) and (orientation: landscape) {
+            body {
+                padding: 0;
+                align-items: flex-start;
+                overflow-x: auto;
+            }
             .game-container {
                 padding: 15px;
-                max-width: 90vw;
+                min-width: fit-content;
+                max-width: none;
+                overflow-x: visible;
+                margin: 0;
+                border-radius: 0;
             }
             .menu-bar {
                 gap: 12px;
                 margin-bottom: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
             }
             .menu-button {
                 padding: 10px 18px;
@@ -367,6 +378,14 @@
             .status-bar {
                 font-size: 1em;
                 padding: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .game-board {
+                width: fit-content;
+                max-width: none;
+                overflow: visible;
+                margin: 0 auto;
             }
         }
     </style>
@@ -498,24 +517,14 @@
                 cols = 25;
             }
             
-            // 根據螢幕方向和尺寸自動調整
+            // 根據螢幕方向自動對調（僅直屏時對調長短邊）
             const isLandscape = window.innerWidth > window.innerHeight;
             const isMobile = window.innerWidth < 900;
+            const isTablet = window.innerWidth >= 900 && window.innerWidth <= 1200;
             
-            if (isMobile) {
-                if (isLandscape) {
-                    // 手機橫屏：使用較小的格子，保持原有比例
-                    if (gameState.size === 'normal') {
-                        rows = 8;
-                        cols = 16;
-                    } else {
-                        rows = 12;
-                        cols = 20;
-                    }
-                } else {
-                    // 手機直屏：對調長短邊以適應螢幕
-                    [rows, cols] = [cols, rows];
-                }
+            if (isMobile && !isLandscape) {
+                // 手機直屏時，對調長短邊
+                [rows, cols] = [cols, rows];
             }
             
             gameState.rows = rows;
@@ -533,6 +542,17 @@
                     const maxWidth = window.innerWidth * 0.95; // 95% 的螢幕寬度
                     cellSize = Math.min(36, Math.floor(maxWidth / cols));
                 }
+            }
+            // 平板自動縮小 cellSize 以適應寬度
+            if (isTablet) {
+                // 考慮 gap (2px) 和 padding (2px) 的空間，以及容器的 padding (15px * 2)
+                const availableWidth = window.innerWidth - 30; // 減去容器的左右 padding
+                const totalGapWidth = (cols - 1) * 2; // gap 總寬度
+                const totalPaddingWidth = 4; // game-board 的左右 padding 各 2px
+                const maxCellSize = Math.floor((availableWidth - totalGapWidth - totalPaddingWidth) / cols);
+                cellSize = Math.min(cellSize, maxCellSize);
+                // 確保最小格子大小
+                cellSize = Math.max(cellSize, 24);
             }
             
             const gameBoard = document.getElementById('game-board');
