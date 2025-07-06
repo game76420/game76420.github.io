@@ -727,8 +727,10 @@
             // Collapse board and check game over after all eliminations complete
             setTimeout(() => {
                 collapseBoard();
+                gameState.markedGroup = null;
+                gameState.markedColor = null;
                 drawBoard();
-                
+                updateStatus();
                 // Check game over
                 if (!hasMoves()) {
                     setTimeout(() => {
@@ -737,7 +739,7 @@
                         showScore();
                     }, 100);
                 }
-            }, groupArray.length * 100 + 200); // Wait for all eliminations + extra time
+            }, groupArray.length * 100 + 200);
         }
 
         // Collapse board
