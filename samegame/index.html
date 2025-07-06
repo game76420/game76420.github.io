@@ -533,15 +533,9 @@
             // 動態計算格子大小以適應螢幕
             let cellSize = CELL_SIZE;
             if (isMobile) {
-                if (isLandscape) {
-                    // 橫屏時根據螢幕高度計算格子大小
-                    const maxHeight = window.innerHeight * 0.6; // 60% 的螢幕高度
-                    cellSize = Math.min(28, Math.floor(maxHeight / rows));
-                } else {
-                    // 直屏時根據螢幕寬度計算格子大小
-                    const maxWidth = window.innerWidth * 0.95; // 95% 的螢幕寬度
-                    cellSize = Math.min(36, Math.floor(maxWidth / cols));
-                }
+                // 無論橫直都根據螢幕寬度計算格子大小
+                const maxWidth = window.innerWidth * 0.95; // 95% 的螢幕寬度
+                cellSize = Math.min(36, Math.floor(maxWidth / cols));
             }
             // 平板自動縮小 cellSize 以適應寬度
             if (isTablet) {
