@@ -997,6 +997,14 @@
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
+                <div class="game-card" onclick="openSameGame()">
+                    <i class="fas fa-th-large"></i>
+                    <h3>Same Game</h3>
+                    <p>經典消除遊戲，點擊相同顏色方塊消除，挑戰高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -1120,7 +1128,7 @@
 
         // 開啟 Bingo 遊戲
         function openBingo() {
-            window.open("bingo", "_blank");
+            window.open("bingo.html", "_blank");
         }
 
         // 開啟小朋友下樓梯遊戲
@@ -1136,6 +1144,11 @@
         // 開啟小朋友上樓梯遊戲
         function openUpGame() {
             window.open("ns-tower.html", "_blank");
+        }
+
+        // Same Game
+        function openSameGame() {
+            window.open("samegame/index.html", "_blank");
         }
 
         // 導航列高亮
