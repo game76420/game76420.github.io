@@ -425,6 +425,7 @@
             <div id="mark-label">標記：0（點數：0）</div>
             <div id="time-label">時間：0秒</div>
             <div id="score-label">分數：0</div>
+            <div id="color-count-label"></div>
         </div>
     </div>
 
@@ -569,9 +570,37 @@
 
         // Generate new board
         function generateBoard() {
-            gameState.initBoard = Array(gameState.rows).fill().map(() => 
-                Array(gameState.cols).fill().map(() => Math.floor(Math.random() * 5))
-            );
+            const totalCells = gameState.rows * gameState.cols;
+            const baseCount = Math.floor(totalCells / 5);
+            const remainder = totalCells % 5;
+
+            // 先分配每種顏色的數量
+            const colorCounts = Array(5).fill(baseCount);
+            // 多餘的格子隨機分配
+            for (let i = 0; i < remainder; i++) {
+                colorCounts[i]++;
+            }
+
+            // 建立顏色陣列
+            let colorArray = [];
+            for (let i = 0; i < 5; i++) {
+                colorArray = colorArray.concat(Array(colorCounts[i]).fill(i));
+            }
+
+            // 洗牌（Fisher-Yates）
+            for (let i = colorArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [colorArray[i], colorArray[j]] = [colorArray[j], colorArray[i]];
+            }
+
+            // 填入盤面
+            gameState.initBoard = [];
+            for (let r = 0; r < gameState.rows; r++) {
+                gameState.initBoard[r] = [];
+                for (let c = 0; c < gameState.cols; c++) {
+                    gameState.initBoard[r][c] = colorArray[r * gameState.cols + c];
+                }
+            }
             gameState.board = gameState.initBoard.map(row => [...row]);
         }
 
@@ -867,6 +896,23 @@
             }
 
             scoreLabel.textContent = `分數：${gameState.score}`;
+
+            // 統計五種顏色數量
+            const colorCounts = [0, 0, 0, 0, 0];
+            for (let r = 0; r < gameState.rows; r++) {
+                for (let c = 0; c < gameState.cols; c++) {
+                    const v = gameState.board[r][c];
+                    if (v !== null && v >= 0 && v < 5) {
+                        colorCounts[v]++;
+                    }
+                }
+            }
+            // 顯示
+            const colorCountLabel = document.getElementById('color-count-label');
+            colorCountLabel.innerHTML = LETTERS.map((letter, i) => {
+                const color = COLORS[letter];
+                return `<span style="color:${color};font-weight:bold;">${letter}:${colorCounts[i]}</span>`;
+            }).join('　');
         }
 
         // Update timer
@@ -999,6 +1045,14 @@
 
         // Initialize game when page loads
         window.onload = initGame;
+
+        // 支援 Ctrl+Z 或 Cmd+Z 快捷鍵復原
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+        });
     </script>
 </body>
 </html> 
