@@ -786,7 +786,7 @@
                 }
             }
 
-            // 4. 下降動畫結束後，執行向左移動動畫
+            // 4. 下降動畫結束後，先更新資料結構，再重建 DOM
             setTimeout(() => {
                 // 先更新資料結構（下落）
                 for (let c = 0; c < gameState.cols; c++) {
@@ -806,64 +806,35 @@
                     }
                 }
 
-                // 清除下降動畫樣式
-                const allCells = document.querySelectorAll('.cell');
-                allCells.forEach(cell => {
-                    cell.classList.remove('falling');
-                    cell.style.transform = '';
-                });
-
-                // 重新繪製棋盤（因為資料結構已更新）
+                // 清除下降動畫樣式（重建 DOM 前）
+                // 直接重建 DOM，這樣 cell 會在正確位置
                 drawBoard();
 
-                // 執行向左移動動畫
-                let hasShifting = false;
-                for (let r = 0; r < gameState.rows; r++) {
-                    for (let c = 0; c < gameState.cols; c++) {
-                        if (gameState.board[r][c] !== null && colShift[c] > 0) {
-                            const cell = document.getElementById(`cell-${r}-${c}`);
-                            if (cell) {
-                                cell.classList.add('shifting');
-                                cell.style.transform = `translateX(${-colShift[c] * 32}px)`;
-                                hasShifting = true;
+                // 執行向左移動動畫（已移除動畫，直接資料結構左移並重建畫面）
+                // shift left（動畫已經移除，這裡只更新資料）
+                let writeCol = 0;
+                for (let readCol = 0; readCol < gameState.cols; readCol++) {
+                    if (gameState.board.some(row => row[readCol] !== null)) {
+                        if (writeCol !== readCol) {
+                            for (let r = 0; r < gameState.rows; r++) {
+                                gameState.board[r][writeCol] = gameState.board[r][readCol];
+                                gameState.board[r][readCol] = null;
                             }
                         }
+                        writeCol++;
                     }
                 }
-
-                // 向左移動動畫結束後，更新資料結構並重繪
-                setTimeout(() => {
-                    // shift left（動畫已經做過，這裡只更新資料）
-                    let writeCol = 0;
-                    for (let readCol = 0; readCol < gameState.cols; readCol++) {
-                        if (gameState.board.some(row => row[readCol] !== null)) {
-                            if (writeCol !== readCol) {
-                                for (let r = 0; r < gameState.rows; r++) {
-                                    gameState.board[r][writeCol] = gameState.board[r][readCol];
-                                    gameState.board[r][readCol] = null;
-                                }
-                            }
-                            writeCol++;
-                        }
-                    }
-                    // 清除向左移動動畫樣式
-                    const allCells = document.querySelectorAll('.cell');
-                    allCells.forEach(cell => {
-                        cell.classList.remove('shifting');
-                        cell.style.transform = '';
-                    });
-                    gameState.markedGroup = null;
-                    gameState.markedColor = null;
-                    drawBoard();
-                    updateStatus();
-                    if (!hasMoves()) {
-                        setTimeout(() => {
-                            alert('Game Over!');
-                            tryUpdateScores();
-                            showScore();
-                        }, 100);
-                    }
-                }, hasShifting ? 500 : 0);
+                gameState.markedGroup = null;
+                gameState.markedColor = null;
+                updateStatus();
+                drawBoard();
+                if (!hasMoves()) {
+                    setTimeout(() => {
+                        alert('Game Over!');
+                        tryUpdateScores();
+                        showScore();
+                    }, 100);
+                }
             }, hasFalling ? 300 : 0);
         }
 
@@ -948,7 +919,7 @@
                 gameState.score = gameState.prevScore;
                 gameState.markedGroup = null;
                 gameState.markedColor = null;
-                drawBoard();
+                drawBoard(); // 強制重建畫面，確保同步
                 updateStatus();
             } else {
                 alert('No moves to undo!');
