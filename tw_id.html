@@ -6,183 +6,294 @@
     <title>台灣身分證字號產生器與檢查器</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: #eaeaea;
+            color: #000;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+            box-sizing: border-box;
         }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        *, *::before, *::after {
+            box-sizing: inherit;
         }
-        h1, h2 {
-            text-align: center;
-            color: #007bff;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-        select, input {
+        .main-panel {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            padding: 10px 20px;
+            max-width: 410px;
+            margin: 0 auto;
+            background: #f5f5f5;
             border: none;
-            border-radius: 4px;
-            color: #fff;
-            background-color: #007bff;
-            cursor: pointer;
-            font-size: 16px;
-            margin-right: 10px;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 12px 6px 10px 6px;
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
-        button:hover {
-            background-color: #0056b3;
+        .group-box {
+            border: 1.5px solid #888;
+            border-radius: 3px;
+            background: #fff;
+            margin-bottom: 16px;
+            padding: 10px 12px 8px 12px;
+            max-width: 100%;
+            box-sizing: border-box;
         }
-        button:disabled {
-            background-color: #cccccc;
+        .group-title {
+            font-weight: bold;
+            color: #c00;
+            font-size: 15px;
+            margin-bottom: 2px;
+        }
+        .desc {
+            color: #0000cc;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .input-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .input-row label {
+            min-width: 120px;
+            font-size: 14px;
+            margin-right: 4px;
+            font-weight: normal;
+        }
+        .input-row input[type="text"],
+        .input-row input[type="number"],
+        .input-row select,
+        .input-row .btn {
+            font-size: 15px;
+            padding: 2px 4px;
+            border: 1px solid #888;
+            border-radius: 2px;
+            background: #eaffea;
+            width: 180px;
+            margin-right: 6px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .input-row input[type="text"]:disabled,
+        .input-row input[type="number"]:disabled {
+            background: #f5f5f5;
+        }
+        .input-row input[type="text"]#idResult {
+            background: #ffffcc;
+        }
+        .input-row .btn:active {
+            background: #d0d0d0;
+        }
+        .input-row .btn:disabled {
+            background: #f5f5f5;
+            color: #aaa;
+            border-color: #ccc;
             cursor: not-allowed;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 5px 0;
-            padding: 10px;
+        .radio-row {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            margin-bottom: 6px;
+            max-width: 100%;
+            box-sizing: border-box;
         }
-        .copy-btn {
-            background: #28a745;
+        .radio-row label {
+            margin-right: 8px;
+            font-size: 14px;
         }
-        .copy-btn:hover {
-            background: #218838;
+        .radio-row input[type="radio"] {
+            margin-right: 2px;
         }
-        .copy-btn:disabled {
-            background: #cccccc;
+        .select-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
         }
-        .result {
-            font-weight: bold;
-            color: green;
-            text-align: center;
+        .select-row select {
+            margin-right: 8px;
+            width: 90px;
         }
-        .error {
-            color: red;
+        .result-box {
+            font-size: 14px;
+            color: #000;
+            background: #ffffcc;
+            border: 1px solid #888;
+            border-radius: 2px;
+            padding: 2px 4px;
+            margin-bottom: 6px;
+            min-height: 20px;
+        }
+        .footer {
+            font-size: 13px;
+            color: #c00;
+            margin-top: 10px;
+            text-align: left;
+        }
+        .footer a {
+            color: #00f;
+            text-decoration: underline;
+        }
+        .footer .date {
+            color: #c00;
+            margin-left: 8px;
+        }
+        .footer .author {
+            color: #000;
         }
         @media (max-width: 600px) {
-            .container {
-                padding: 15px;
+            .main-panel {
+                max-width: 100vw;
+                padding: 8px 2vw 8px 2vw;
+                overflow-x: hidden;
             }
-            button {
+            .group-box {
+                padding: 8px 2vw 6px 2vw;
+                max-width: 100%;
+            }
+            .input-row input[type="text"],
+            .input-row input[type="number"],
+            .input-row select {
                 width: 100%;
-                margin-bottom: 10px;
+                min-width: 0;
+                box-sizing: border-box;
+                max-width: 100%;
+            }
+            .input-row {
+                flex-direction: column;
+                align-items: stretch;
+                max-width: 100%;
+            }
+            .radio-row {
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+                max-width: 100%;
+            }
+            .input-row label, .radio-row label {
+                margin-bottom: 4px;
+            }
+            .input-row .btn {
+                width: 100%;
+                margin: 6px 0 0 0;
+                max-width: 100%;
+            }
+            .radio-row .btn {
+                width: auto;
+                margin: 0 0 0 8px;
+                max-width: 100%;
+            }
+            #idResult, #genIDResult {
+                width: 100% !important;
+                max-width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>台灣身分證字號產生器</h1>
-        <form id="idForm">
-            <label for="city">縣市：</label>
-            <select id="city">
-                <option value="A">臺北市</option>
-                <option value="B">臺中市</option>
-                <option value="C">基隆市</option>
-                <option value="D">臺南市</option>
-                <option value="E">高雄市</option>
-                <option value="F">臺北縣</option>
-                <option value="G">宜蘭縣</option>
-                <option value="H">桃園縣</option>
-                <option value="I">嘉義市</option>
-                <option value="J">新竹縣</option>
-                <option value="K">苗栗縣</option>
-                <option value="L">臺中縣</option>
-                <option value="M">南投縣</option>
-                <option value="N">彰化縣</option>
-                <option value="O">新竹市</option>
-                <option value="P">雲林縣</option>
-                <option value="Q">嘉義縣</option>
-                <option value="R">臺南縣</option>
-                <option value="S">高雄縣</option>
-                <option value="T">屏東縣</option>
-                <option value="U">花蓮縣</option>
-                <option value="V">臺東縣</option>
-                <option value="W">金門縣</option>
-                <option value="X">澎湖縣</option>
-                <option value="Y">陽明山</option>
-                <option value="Z">連江縣</option>
-            </select>
+    <div class="main-panel">
+        <div class="group-box">
+            <div class="group-title">[功能1] 確認現有的身份證號碼</div>
+            <div class="input-row">
+                <label for="idInput">請輸入身份證號碼(連英文共10碼)</label>
+                <input type="text" id="idInput" maxlength="10" style="background:#eaffea;">
+                <button class="btn" type="button" onclick="checkID()">開始驗證</button>
+            </div>
+            <div class="desc">身份證號碼之分析結果：</div>
+            <div class="input-row">
+                <input type="text" id="idResult" disabled style="width:340px;">
+            </div>
+        </div>
+        <div class="group-box">
+            <div class="group-title">[功能2] 產生1組新的身份證字號</div>
+            <div class="input-row">
+                <label>請先選擇下方選項！</label>
+                <button class="btn" type="button" onclick="generateID()">開始產生</button>
+            </div>
+            <div class="radio-row">
+                <input type="radio" id="male" name="gender" value="1" checked><label for="male">男性</label>
+                <input type="radio" id="female" name="gender" value="2"><label for="female">女性</label>
+                <select id="city" style="width:90px;">
+                    <option value="A">台北市</option>
+                    <option value="B">台中市</option>
+                    <option value="C">基隆市</option>
+                    <option value="D">台南市</option>
+                    <option value="E">高雄市</option>
+                    <option value="F">台北縣</option>
+                    <option value="G">宜蘭縣</option>
+                    <option value="H">桃園縣</option>
+                    <option value="I">嘉義市</option>
+                    <option value="J">新竹縣</option>
+                    <option value="K">苗栗縣</option>
+                    <option value="L">台中縣</option>
+                    <option value="M">南投縣</option>
+                    <option value="N">彰化縣</option>
+                    <option value="O">新竹市</option>
+                    <option value="P">雲林縣</option>
+                    <option value="Q">嘉義縣</option>
+                    <option value="R">台南縣</option>
+                    <option value="S">高雄縣</option>
+                    <option value="T">屏東縣</option>
+                    <option value="U">花蓮縣</option>
+                    <option value="V">台東縣</option>
+                    <option value="W">金門縣</option>
+                    <option value="X">澎湖縣</option>
+                    <option value="Y">陽明山</option>
+                    <option value="Z">連江縣</option>
+                </select>
+                <button class="btn" type="button" onclick="copyID()">剪下</button>
+            </div>
+            <div class="input-row">
+                <input type="text" id="genIDResult" disabled style="width:260px;background:#ffffcc;">
 
-            <label for="gender">性別：</label>
-            <select id="gender">
-                <option value="1">男性</option>
-                <option value="2">女性</option>
-            </select>
-
-            <label for="count">數量：</label>
-            <input type="number" id="count" min="1" value="1" required>
-
-            <button type="button" onclick="generateIDs()">生成</button>
-            <button type="button" id="copyButton" onclick="copyIDs()" disabled class="copy-btn">複製</button>
-        </form>
-
-        <h2>產生的身分證字號：</h2>
-        <ul id="idList"></ul>
-
-        <h1>台灣身分證字號檢查器</h1>
-        <label for="idInput">請填入身分證字號：</label>
-        <input type="text" id="idInput" maxlength="10" placeholder="輸入身分證字號">
-        <button type="button" onclick="checkID()">檢查</button>
-        <p id="checkResult" class="result"></p>
+            </div>
+        </div>
+        <div class="footer">
+            設計者：<span class="author">張書維</span><br>
+            E-Mail信箱: <a href="mailto:game76420@gmail.com">game76420@gmail.com</a>
+        </div>
     </div>
-
     <script>
         const cityCodeMap = {
             A: 10, B: 11, C: 12, D: 13, E: 14, F: 15, G: 16, H: 17, I: 34,
             J: 18, K: 19, L: 20, M: 21, N: 22, O: 35, P: 23, Q: 24, R: 25,
             S: 26, T: 27, U: 28, V: 29, W: 32, X: 30, Y: 31, Z: 33
         };
-
-        function generateIDs() {
-            const cityCode = document.getElementById('city').value;
-            const gender = document.getElementById('gender').value;
-            const count = parseInt(document.getElementById('count').value);
-            const idList = document.getElementById('idList');
-            const copyButton = document.getElementById('copyButton');
-            idList.innerHTML = '';
-
-            for (let i = 0; i < count; i++) {
-                const idNumber = generateID(cityCode, gender);
-                const listItem = document.createElement('li');
-                listItem.textContent = idNumber;
-                idList.appendChild(listItem);
+        function checkID() {
+            const id = document.getElementById('idInput').value.toUpperCase();
+            const resultElement = document.getElementById('idResult');
+            if (!/^[A-Z][12]\d{8}$/.test(id)) {
+                resultElement.value = '格式不正確';
+                return;
             }
-
-            copyButton.disabled = idList.children.length === 0;
+            const cityCode = id[0];
+            const gender = id[1];
+            const serialNumber = id.slice(2, 9);
+            const checkDigit = id[9];
+            const calculatedCheckDigit = calculateCheckDigit(cityCode, gender, serialNumber);
+            const cityNames = {
+                A: '台北市', B: '台中市', C: '基隆市', D: '台南市', E: '高雄市', F: '台北縣', G: '宜蘭縣', H: '桃園縣', I: '嘉義市',
+                J: '新竹縣', K: '苗栗縣', L: '台中縣', M: '南投縣', N: '彰化縣', O: '新竹市', P: '雲林縣', Q: '嘉義縣', R: '台南縣',
+                S: '高雄縣', T: '屏東縣', U: '花蓮縣', V: '台東縣', W: '金門縣', X: '澎湖縣', Y: '陽明山', Z: '連江縣'
+            };
+            const genderStr = gender === '1' ? '男性' : '女性';
+            if (checkDigit == calculatedCheckDigit) {
+                resultElement.value = `這是正確的 [ ${cityNames[cityCode] || cityCode} ] 地區 [ ${genderStr} ] 身份證號碼 !`;
+            } else {
+                resultElement.value = '無效的身分證字號';
+            }
         }
-
-        function generateID(cityCode, gender) {
+        function clearIDResult() {
+            document.getElementById('idResult').value = '';
+        }
+        function generateID() {
+            const gender = document.querySelector('input[name="gender"]:checked').value;
+            const cityCode = document.getElementById('city').value;
             const serialNumber = generateRandomNumber(7);
             const checkDigit = calculateCheckDigit(cityCode, gender, serialNumber);
-            return `${cityCode}${gender}${serialNumber}${checkDigit}`;
+            const id = `${cityCode}${gender}${serialNumber}${checkDigit}`;
+            document.getElementById('genIDResult').value = id;
         }
-
         function generateRandomNumber(length) {
             let result = '';
             const characters = '0123456789';
@@ -191,50 +302,29 @@
             }
             return result;
         }
-
         function calculateCheckDigit(cityCode, gender, serialNumber) {
             const fullNumber = `${cityCodeMap[cityCode]}${gender}${serialNumber}`;
             const weights = [1, 9, 8, 7, 6, 5, 4, 3, 2, 1];
             let sum = 0;
-
             for (let i = 0; i < 10; i++) {
                 sum += parseInt(fullNumber.charAt(i)) * weights[i];
             }
-
             const remainder = sum % 10;
             return remainder === 0 ? 0 : (10 - remainder);
         }
-
-        function copyIDs() {
-            const idList = document.getElementById('idList');
-            const ids = Array.from(idList.children).map(li => li.textContent).join('\n');
-            navigator.clipboard.writeText(ids);
+        function copyID() {
+            const id = document.getElementById('genIDResult').value;
+            if (id) {
+                navigator.clipboard.writeText(id);
+            }
         }
-
-        // 檢查器功能
-        function checkID() {
-            const id = document.getElementById('idInput').value.toUpperCase();
-            const resultElement = document.getElementById('checkResult');
-
-            if (!/^[A-Z][12]\d{8}$/.test(id)) {
-                resultElement.textContent = '格式不正確';
-                resultElement.classList.add('error');
-                return;
-            }
-
-            const cityCode = id[0];
-            const gender = id[1];
-            const serialNumber = id.slice(2, 9);
-            const checkDigit = id[9];
-
-            const calculatedCheckDigit = calculateCheckDigit(cityCode, gender, serialNumber);
-            if (checkDigit == calculatedCheckDigit) {
-                resultElement.textContent = '有效的身分證字號';
-                resultElement.classList.remove('error');
-            } else {
-                resultElement.textContent = '無效的身分證字號';
-                resultElement.classList.add('error');
-            }
+        function clearGenIDResult() {
+            document.getElementById('genIDResult').value = '';
+        }
+        function clearAll() {
+            document.getElementById('genIDResult').value = '';
+            document.getElementById('idInput').value = '';
+            document.getElementById('idResult').value = '';
         }
     </script>
 </body>
