@@ -1,0 +1,245 @@
+#gameBg {
+  position: relative;
+  width: 800px;
+  height: 600px;
+  background: linear-gradient(to bottom, #b3e0ff 0%, #3399ff 100%);
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 0 20px #333;
+}
+#gameBg.responsive-bg {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  background: linear-gradient(to bottom, #b3e0ff 0%, #3399ff 100%);
+  border-radius: 20px;
+  box-shadow: 0 0 20px #333;
+  position: relative;
+}
+#scoreBar, #hungerBar {
+  position: absolute;
+  left: 20px;
+  top: 10px;
+  font-family: 'Noto Sans JP', 'Arial', sans-serif;
+  font-size: 32px;
+  color: #00f;
+  text-shadow: 2px 2px 0 #fff, 0 0 10px #00f;
+}
+#hungerBar {
+  top: 60px;
+  color: orange;
+  text-shadow: 2px 2px 0 #fff, 0 0 10px orange;
+}
+#scoreCircles, #hungerMeter {
+  margin-left: 20px;
+}
+#pot {
+  position: absolute;
+  left: 320px;
+  top: 40px;
+  width: 160px;
+  height: 80px;
+  background: #bbb;
+  border-radius: 80px 80px 80px 80px/40px 40px 40px 40px;
+  border: 4px solid #888;
+  z-index: 2;
+}
+#player {
+  position: absolute;
+  left: 400px;
+  top: 100px;
+  width: 60px;
+  height: 60px;
+  background: #f44;
+  border-radius: 50%;
+  border: 4px solid #fff;
+  z-index: 3;
+}
+#gameCanvas {
+  width: 100%;
+  height: auto;
+  max-width: 100vw;
+  max-height: 80vh;
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+.btn-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 12px auto 24px auto;
+  width: fit-content;
+}
+#restartBtn, #infoBtn {
+  font-size: 1.1em;
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 2px 8px #0002;
+  transition: background 0.2s;
+}
+#restartBtn:hover, #infoBtn:hover {
+  background: #e0e0ff;
+}
+.boot-pixel {
+  position: relative;
+  width: 40px;
+  height: 50px;
+  display: inline-block;
+}
+.boot-pixel::before, .boot-pixel::after {
+  content: "";
+  position: absolute;
+  background: #bbb;
+  border: 2px solid #222;
+  box-sizing: border-box;
+}
+.boot-pixel::before {
+  /* 鞋底 */
+  left: 0;
+  bottom: 0;
+  width: 36px;
+  height: 12px;
+  border-radius: 0 0 10px 10px;
+  background: #bbb;
+  border-top: none;
+  box-shadow: 0 8px 0 #222;
+}
+.boot-pixel::after {
+  /* 筒身 */
+  left: 20px;
+  top: 0;
+  width: 16px;
+  height: 38px;
+  border-radius: 0 0 8px 8px;
+  background: #bbb;
+  border-left: none;
+}
+.boot-pixel .boot-top {
+  position: absolute;
+  left: 20px;
+  top: -6px;
+  width: 16px;
+  height: 10px;
+  background: #444;
+  border-radius: 8px 8px 8px 8px / 5px 5px 5px 5px;
+  z-index: 2;
+}
+.boot-pixel .boot-highlight {
+  position: absolute;
+  left: 4px;
+  bottom: 16px;
+  width: 18px;
+  height: 6px;
+  border-radius: 8px 8px 8px 8px / 3px 3px 3px 3px;
+  background: rgba(255,255,255,0.5);
+  z-index: 2;
+}
+@media (max-width: 600px) {
+  #gameBg.responsive-bg {
+    max-width: 100vw;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #gameCanvas {
+    max-width: 100vw;
+    max-height: 60vh;
+    border-radius: 0;
+  }
+  .btn-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  #scoreBar, #hungerBar {
+    font-size: 20px;
+    left: 8px;
+    top: 4px;
+  }
+}
+/* 排行榜 modal 額外樣式 */
+#rankModal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#rankModal .modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 22px;
+  padding: 36px 32px 28px 32px;
+  min-width: 320px;
+  max-width: 90vw;
+  min-height: 220px;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-family: 'Noto Sans TC', 'Arial', sans-serif;
+  color: #222;
+  text-align: left;
+  margin: 0 auto;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 8px 32px #0004;
+}
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto 10px auto;
+}
+.rank-table th, .rank-table td {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 1.15em;
+}
+.rank-table th {
+  background: #f0f0ff;
+  color: #0077cc;
+}
+.rank-table tr:nth-child(even) { background: #f9f9f9; }
+.rank-table tr:nth-child(odd) { background: #fff; }
+.rank-table .self-score {
+  color: #e11;
+  font-weight: bold;
+  background: #ffeaea !important;
+}
+.rank-btn-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+.rank-btn-row button {
+  padding: 10px 28px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#playAgainBtn {
+  background: #0c0;
+  color: #fff;
+  border: 1.5px solid #0c0;
+}
+#playAgainBtn:hover {
+  background: #0a0;
+}
+#clearRankBtn {
+  background: #fff;
+  color: #e11;
+  border: 1.5px solid #e11;
+}
+#clearRankBtn:hover {
+  background: #ffeaea;
+} 
