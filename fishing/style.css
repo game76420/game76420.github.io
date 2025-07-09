@@ -73,12 +73,6 @@
   gap: 12px;
   margin: 12px auto 24px auto;
   width: fit-content;
-  max-width: 100%;
-}
-.btn-row-wrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
 }
 #restartBtn, #infoBtn {
   font-size: 1.1em;
@@ -167,4 +161,70 @@
     left: 8px;
     top: 4px;
   }
+}
+/* 排行榜 modal 額外樣式 */
+#rankModal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#rankModal .modal-content {
+  position: relative;
+  background: #fff;
+  border-radius: 22px;
+  padding: 36px 32px 28px 32px;
+  min-width: 320px;
+  max-width: 90vw;
+  min-height: 220px;
+  max-height: 80vh;
+  overflow-y: auto;
+  font-family: 'Noto Sans TC', 'Arial', sans-serif;
+  color: #222;
+  text-align: left;
+  margin: 0 auto;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 8px 32px #0004;
+}
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto 10px auto;
+}
+.rank-table th, .rank-table td {
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 1.15em;
+}
+.rank-table th {
+  background: #f0f0ff;
+  color: #0077cc;
+}
+.rank-table tr:nth-child(even) { background: #f9f9f9; }
+.rank-table tr:nth-child(odd) { background: #fff; }
+.rank-table .self-score {
+  color: #e11;
+  font-weight: bold;
+  background: #ffeaea !important;
+}
+#clearRankBtn {
+  margin-top: 18px;
+  float: right;
+  background: #fff;
+  color: #e11;
+  border: 1px solid #e11;
+  padding: 6px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.2s, color 0.2s;
+}
+#clearRankBtn:hover {
+  background: #ffeaea;
+  color: #a00;
 } 

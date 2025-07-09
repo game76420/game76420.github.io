@@ -57,13 +57,13 @@ function checkLineCollision() {
   // 檢查魚碰撞
   for (let fish of fishes) {
     if (fish.lifting || fish.caught) continue;
-    // 先判斷鉤子直接碰到
-    if (Math.abs(fish.x - bigFish.x) < 25 && Math.abs(fish.y - hookY) < 20) {
+    // 先判斷鉤子直接碰到（距離放寬）
+    if (Math.abs(fish.x - bigFish.x) < 32 && Math.abs(fish.y - hookY) < 28) {
       fish.lifting = true;
       fish.flyT = 0;
       continue;
     }
-    // 再判斷是否在線上
+    // 再判斷是否在線上（距離放寬）
     for (let i = 0; i < linePoints.length - 1; i++) {
       let x1 = linePoints[i].x, y1 = linePoints[i].y;
       let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
@@ -73,7 +73,7 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(fish.x - px, fish.y - py);
-      if (dist < 15) {
+      if (dist < 24) { // 原本 15，放寬到 24
         fish.lifting = true;
         fish.flyT = 0;
         lineCollisions[i] = true;
@@ -85,14 +85,13 @@ function checkLineCollision() {
   // 檢查垃圾碰撞
   for (let trash of trashes) {
     if (trash.lifting || trash.hit) continue;
-    if (Math.abs(trash.x - bigFish.x) < 25 && Math.abs(trash.y - hookY) < 20) {
+    if (Math.abs(trash.x - bigFish.x) < 32 && Math.abs(trash.y - hookY) < 28) {
       trash.lifting = true;
       trash.flyT = 0;
-      timeLeft -= 10;
-      if (timeLeft < 0) timeLeft = 0;
+      timeLeft = Math.max(0, timeLeft - 10);
       continue;
     }
-    // 線段碰撞
+    // 線段碰撞（距離放寬）
     for (let i = 0; i < linePoints.length - 1; i++) {
       let x1 = linePoints[i].x, y1 = linePoints[i].y;
       let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
@@ -102,11 +101,10 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(trash.x - px, trash.y - py);
-      if (dist < 15) {
+      if (dist < 24) { // 原本 15，放寬到 24
         trash.lifting = true;
         trash.flyT = 0;
-        timeLeft -= 10;
-        if (timeLeft < 0) timeLeft = 0;
+        timeLeft = Math.max(0, timeLeft - 10);
         lineCollisions[i] = true;
         break;
       }
@@ -114,12 +112,12 @@ function checkLineCollision() {
   }
   // 檢查魷魚碰撞
   if (squid && !squid.lifting && !squid.caught) {
-    // 先判斷鉤子直接碰到
-    if (Math.abs(squid.x - bigFish.x) < 28 && Math.abs(squid.y - hookY) < 24) {
+    // 先判斷鉤子直接碰到（距離放寬）
+    if (Math.abs(squid.x - bigFish.x) < 36 && Math.abs(squid.y - hookY) < 32) {
       squid.lifting = true;
       squid.flyT = 0;
     } else {
-      // 線段碰撞
+      // 線段碰撞（距離放寬）
       for (let i = 0; i < linePoints.length - 1; i++) {
         let x1 = linePoints[i].x, y1 = linePoints[i].y;
         let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
@@ -129,7 +127,7 @@ function checkLineCollision() {
         t = Math.max(0, Math.min(1, t));
         let px = x1 + t * dx, py = y1 + t * dy;
         let dist = Math.hypot(squid.x - px, squid.y - py);
-        if (dist < 18) {
+        if (dist < 28) { // 原本 18，放寬到 28
           squid.lifting = true;
           squid.flyT = 0;
           lineCollisions[i] = true;
@@ -556,283 +554,379 @@ function updateHungerBar(hunger) {
 let animationId = null;
 let countdownTimer = null;
 
+// --- 排行榜相關 ---
+const RANK_KEY = 'fishing_ranks';
+function getRanks() {
+  let arr = [];
+  try {
+    arr = JSON.parse(localStorage.getItem(RANK_KEY)) || [];
+  } catch(e) {}
+  return Array.isArray(arr) ? arr : [];
+}
+function saveRanks(arr) {
+  localStorage.setItem(RANK_KEY, JSON.stringify(arr));
+}
+function addRank(newScore) {
+  let arr = getRanks();
+  arr.push({ score: newScore, time: Date.now() });
+  arr.sort((a, b) => b.score - a.score || a.time - b.time);
+  if (arr.length > 10) arr = arr.slice(0, 10);
+  saveRanks(arr);
+  return arr;
+}
+function clearRanks() {
+  localStorage.removeItem(RANK_KEY);
+}
+function showRankModal(thisScore) {
+  const rankModal = document.getElementById('rankModal');
+  const rankList = document.getElementById('rankList');
+  let arr = getRanks();
+  let html = '<table class="rank-table"><thead><tr><th>名次</th><th>分數</th></tr></thead><tbody>';
+  let selfIdx = -1;
+  arr.forEach((r, i) => {
+    let isSelf = (selfIdx === -1 && r.score === thisScore && r.time === arr.find(x => x.score === thisScore && x.time === r.time).time);
+    if (isSelf) selfIdx = i;
+    html += `<tr${isSelf ? ' class="self-score"' : ''}><td${isSelf ? ' style="color:#e11;font-weight:bold;"' : ''}>${i+1}</td><td${isSelf ? ' style="color:#e11;font-weight:bold;"' : ''}>${r.score}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  if (arr.length === 0) html = '<div style="text-align:center;color:#888;">目前沒有紀錄</div>';
+  rankList.innerHTML = html;
+  rankModal.style.display = 'flex';
+}
+document.getElementById('closeRankModal').onclick = function() {
+  document.getElementById('rankModal').style.display = 'none';
+};
+document.getElementById('rankModal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('clearRankBtn').onclick = function() {
+  clearRanks();
+  showRankModal(-1);
+};
+window.addEventListener('keydown', function(e) {
+  if (document.getElementById('rankModal').style.display === 'flex' && (e.key === 'Escape' || e.key === 'Esc')) {
+    document.getElementById('rankModal').style.display = 'none';
+  }
+});
+
 // 遊戲主迴圈
 function gameLoop() {
-  updateLinePhysics();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  try {
+    // 防呆：確保 fishes、trashes 一定是陣列
+    if (!Array.isArray(fishes)) fishes = [];
+    if (!Array.isArray(trashes)) trashes = [];
+    
+    updateLinePhysics();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // 畫天空
-  let skyGradient = ctx.createLinearGradient(0, 0, 0, 200);
-  skyGradient.addColorStop(0, '#b3e0ff'); // 天空藍
-  skyGradient.addColorStop(0.3, '#e6f6ff'); // 淺白藍
-  skyGradient.addColorStop(0.7, '#a4c8e1'); // 淡藍
-  skyGradient.addColorStop(1, '#7bbbe6'); // 較深藍
-  ctx.fillStyle = skyGradient;
-  ctx.fillRect(0, 0, canvas.width, 200);
+    // 畫天空
+    let skyGradient = ctx.createLinearGradient(0, 0, 0, 200);
+    skyGradient.addColorStop(0, '#b3e0ff'); // 天空藍
+    skyGradient.addColorStop(0.3, '#e6f6ff'); // 淺白藍
+    skyGradient.addColorStop(0.7, '#a4c8e1'); // 淡藍
+    skyGradient.addColorStop(1, '#7bbbe6'); // 較深藍
+    ctx.fillStyle = skyGradient;
+    ctx.fillRect(0, 0, canvas.width, 200);
 
-  // 畫海
-  let seaGradient = ctx.createLinearGradient(0, 200, 0, canvas.height);
-  seaGradient.addColorStop(0, '#7bbbe6'); // 海平面亮藍
-  seaGradient.addColorStop(0.15, '#3a8cc1'); // 中藍
-  seaGradient.addColorStop(0.4, '#206090'); // 深藍
-  seaGradient.addColorStop(0.7, '#133a5c'); // 更深藍
-  seaGradient.addColorStop(1, '#0a1a2f'); // 海底深藍
-  ctx.fillStyle = seaGradient;
-  ctx.fillRect(0, 200, canvas.width, canvas.height - 200);
+    // 畫海
+    let seaGradient = ctx.createLinearGradient(0, 200, 0, canvas.height);
+    seaGradient.addColorStop(0, '#7bbbe6'); // 海平面亮藍
+    seaGradient.addColorStop(0.15, '#3a8cc1'); // 中藍
+    seaGradient.addColorStop(0.4, '#206090'); // 深藍
+    seaGradient.addColorStop(0.7, '#133a5c'); // 更深藍
+    seaGradient.addColorStop(1, '#0a1a2f'); // 海底深藍
+    ctx.fillStyle = seaGradient;
+    ctx.fillRect(0, 200, canvas.width, canvas.height - 200);
 
-  // 畫海平面線
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, 200);
-  ctx.lineTo(canvas.width, 200);
-  ctx.stroke();
+    // 畫海平面線
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 200);
+    ctx.lineTo(canvas.width, 200);
+    ctx.stroke();
 
-  // 控制主角與大魚左右移動
-  if (keyState.left) {
-    bigFish.x -= 6;
-    playerDir = -1;
-  }
-  if (keyState.right) {
-    bigFish.x += 6;
-    playerDir = 1;
-  }
-  if (bigFish.x < bigFish.w/2) bigFish.x = bigFish.w/2;
-  if (bigFish.x > canvas.width - bigFish.w/2) bigFish.x = canvas.width - bigFish.w/2;
-  // 釣魚線起點、鉤子都跟著 bigFish.x
+    // 控制主角與大魚左右移動
+    if (keyState.left) {
+      bigFish.x -= 6;
+      playerDir = -1;
+    }
+    if (keyState.right) {
+      bigFish.x += 6;
+      playerDir = 1;
+    }
+    if (bigFish.x < bigFish.w/2) bigFish.x = bigFish.w/2;
+    if (bigFish.x > canvas.width - bigFish.w/2) bigFish.x = canvas.width - bigFish.w/2;
+    // 釣魚線起點、鉤子都跟著 bigFish.x
 
-  // 控制魚鉤上下移動（慣性/拉力）
-  if (!fishing) {
-    if (keyState.up) {
-      hookVelY -= 1.5; // 向上拉
-    } else if (keyState.down) {
-      hookVelY += 1.5; // 向下拉
-    } else {
-      // 沒有按上下時，緩慢回到中間
-      let diff = hookDefaultY - hookY;
-      if (diff > 0) {
-        // 上浮（鉤子在下方）
-        hookVelY += diff * 0.001; // 上浮速度
+    // 控制魚鉤上下移動（慣性/拉力）
+    if (!fishing) {
+      if (keyState.up) {
+        hookVelY -= 1.5; // 向上拉
+      } else if (keyState.down) {
+        hookVelY += 1.5; // 向下拉
       } else {
-        // 下沉（鉤子在上方）
-        hookVelY += diff * 0.0002; // 下沉更慢
+        // 沒有按上下時，緩慢回到中間
+        let diff = hookDefaultY - hookY;
+        if (diff > 0) {
+          // 上浮（鉤子在下方）
+          hookVelY += diff * 0.001; // 上浮速度
+        } else {
+          // 下沉（鉤子在上方）
+          hookVelY += diff * 0.0002; // 下沉更慢
+        }
+      }
+      // 阻尼
+      hookVelY *= 0.92;
+      hookY += hookVelY;
+      if (hookY < 120) {
+        hookY = 120;
+        hookVelY = 0;
+      }
+      if (hookY > 580) {
+        hookY = 580;
+        hookVelY = 0;
       }
     }
-    // 阻尼
-    hookVelY *= 0.92;
-    hookY += hookVelY;
-    if (hookY < 120) {
-      hookY = 120;
-      hookVelY = 0;
-    }
-    if (hookY > 580) {
-      hookY = 580;
-      hookVelY = 0;
-    }
-  }
 
-  // 畫主角和釣竿
-  drawPlayer();
-  drawRod();
+    // 畫主角和釣竿
+    drawPlayer();
+    drawRod();
 
-  // 畫魚
-  for (let fish of fishes) {
-    if (!fish.caught) {
-      fish.x += fish.speed * fish.dir;
-      // 只有當魚已經完全進到畫面內時才允許反彈
-      if ((fish.dir === 1 && fish.x > 780) || (fish.dir === -1 && fish.x < 20)) {
-        fish.dir *= -1;
+    // 畫魚
+    for (let fish of fishes) {
+      if (!fish.caught) {
+        fish.x += fish.speed * fish.dir;
+        // 只有當魚已經完全進到畫面內時才允許反彈
+        if ((fish.dir === 1 && fish.x > 780) || (fish.dir === -1 && fish.x < 20)) {
+          fish.dir *= -1;
+        }
+      }
+      drawFish(fish);
+    }
+
+    // 畫垃圾
+    for (let trash of trashes) {
+      if (!trash.lifting && !trash.hit) {
+        trash.x += trash.speed * trash.dir;
+        if ((trash.dir === 1 && trash.x > 820) || (trash.dir === -1 && trash.x < -20)) {
+          // 重新生成
+          Object.assign(trash, createTrash());
+        }
+      }
+      drawTrash(trash);
+    }
+
+    // 垃圾被釣起來動畫
+    for (let trash of trashes) {
+      if (trash.lifting && !trash.hit) {
+        if (!trash.flyT) trash.flyT = 0;
+        trash.flyT += 0.04;
+        let startX = trash.x, startY = trash.y;
+        let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
+        let endY = pot.y + pot.h/2 - 10;
+        let t = trash.flyT;
+        if (t > 1) t = 1;
+        trash.x = startX * (1-t) + endX * t;
+        trash.y = startY * (1-t) + endY * t - 80*t*(1-t);
+        if (t === 1) {
+          trash.hit = true;
+          trash.lifting = false;
+          trash.flyT = 0;
+          // 重新生成新垃圾
+          Object.assign(trash, createTrash());
+        }
       }
     }
-    drawFish(fish);
-  }
 
-  // 畫垃圾
-  for (let trash of trashes) {
-    if (!trash.lifting && !trash.hit) {
-      trash.x += trash.speed * trash.dir;
-      if ((trash.dir === 1 && trash.x > 820) || (trash.dir === -1 && trash.x < -20)) {
-        // 重新生成
-        Object.assign(trash, createTrash());
+    // 畫魷魚
+    if (squid && !squid.caught) {
+      if (!squid.lifting) {
+        squid.x += squid.speed * squid.dir;
+        if ((squid.dir === 1 && squid.x > 820) || (squid.dir === -1 && squid.x < -20)) {
+          squid = null; // 游出畫面消失
+        }
       }
+      drawSquid(squid);
     }
-    drawTrash(trash);
-  }
-
-  // 垃圾被釣起來動畫
-  for (let trash of trashes) {
-    if (trash.lifting && !trash.hit) {
-      if (!trash.flyT) trash.flyT = 0;
-      trash.flyT += 0.04;
-      let startX = trash.x, startY = trash.y;
+    // 魷魚被釣上來動畫
+    if (squid && squid.lifting && !squid.caught) {
+      if (!squid.flyT) squid.flyT = 0;
+      squid.flyT += 0.04;
+      let startX = squid.x, startY = squid.y;
       let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
       let endY = pot.y + pot.h/2 - 10;
-      let t = trash.flyT;
+      let t = squid.flyT;
       if (t > 1) t = 1;
-      trash.x = startX * (1-t) + endX * t;
-      trash.y = startY * (1-t) + endY * t - 80*t*(1-t);
-      if (t === 1) {
-        trash.hit = true;
-        trash.lifting = false;
-        trash.flyT = 0;
-        // 重新生成新垃圾
-        Object.assign(trash, createTrash());
-      }
-    }
-  }
-
-  // 畫魷魚
-  if (squid && !squid.caught) {
-    if (!squid.lifting) {
-      squid.x += squid.speed * squid.dir;
-      if ((squid.dir === 1 && squid.x > 820) || (squid.dir === -1 && squid.x < -20)) {
-        squid = null; // 游出畫面消失
-      }
-    }
-    drawSquid(squid);
-  }
-  // 魷魚被釣上來動畫
-  if (squid && squid.lifting && !squid.caught) {
-    if (!squid.flyT) squid.flyT = 0;
-    squid.flyT += 0.04;
-    let startX = squid.x, startY = squid.y;
-    let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
-    let endY = pot.y + pot.h/2 - 10;
-    let t = squid.flyT;
-    if (t > 1) t = 1;
-    squid.x = startX * (1-t) + endX * t;
-    squid.y = startY * (1-t) + endY * t - 80*t*(1-t);
-    if (t === 1) {
-      if (
-        squid.x > pot.x && squid.x < pot.x + pot.w &&
-        squid.y > pot.y && squid.y < pot.y + pot.h
-      ) {
-        squid.caught = true;
-        timeLeft += 20;
-        if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-        // 進入漸層消失動畫
-        squid.fadeOut = true;
-        squid.alpha = 1;
-        squid.fadeStep = 0.04;
-        // 下一隻魷魚計時
-        scheduleSquid();
-      }
-      squid.lifting = false;
-      squid.flyT = 0;
-      // 魷魚消失
-      setTimeout(() => { squid = null; }, 800);
-    }
-  }
-
-  // 分數顯示在畫面上方
-  ctx.save();
-  ctx.font = "bold 36px Arial";
-  ctx.fillStyle = "#00f";
-  ctx.fillText("分數: " + score, 30, 60);
-  ctx.restore();
-
-  // 時間百分比條
-  const barX = 200, barY = 20, barW = 400, barH = 18;
-  ctx.save();
-  // 底色
-  ctx.fillStyle = '#ccc';
-  ctx.fillRect(barX, barY, barW, barH);
-  // 進度（彩色漸層條，依照圖片：紅-橙-黃-金黃）
-  let percent = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
-  let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-  grad.addColorStop(0, '#f00'); // 紅
-  grad.addColorStop(0.25, '#ff8000'); // 橙
-  grad.addColorStop(0.6, '#ffe600'); // 黃
-  grad.addColorStop(1, '#ffe600'); // 金黃
-  ctx.fillStyle = grad;
-  ctx.fillRect(barX, barY, barW * percent, barH);
-  // 邊框
-  ctx.strokeStyle = '#333';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(barX, barY, barW, barH);
-  ctx.restore();
-
-  // 時間
-  ctx.fillStyle = "#fff";
-  ctx.font = "24px Arial";
-  ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
-
-  // 魚被釣上來動畫
-  for (let fish of fishes) {
-    if (fish.lifting && !fish.caught) {
-      // 飛行進度
-      if (!fish.flyT) fish.flyT = 0;
-      fish.flyT += 0.04;
-      // 拋物線飛到空中
-      let startX = fish.x, startY = fish.y;
-      let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
-      let endY = pot.y + pot.h/2 - 10;
-      let t = fish.flyT;
-      if (t > 1) t = 1;
-      // 拋物線插值
-      fish.x = startX * (1-t) + endX * t;
-      fish.y = startY * (1-t) + endY * t - 80*t*(1-t); // 拋物線效果
-      // 進入船範圍才加分
+      squid.x = startX * (1-t) + endX * t;
+      squid.y = startY * (1-t) + endY * t - 80*t*(1-t);
       if (t === 1) {
         if (
-          fish.x > pot.x && fish.x < pot.x + pot.w &&
-          fish.y > pot.y && fish.y < pot.y + pot.h
+          squid.x > pot.x && squid.x < pot.x + pot.w &&
+          squid.y > pot.y && squid.y < pot.y + pot.h
         ) {
-          fish.caught = true;
-          // 根據魚的顏色決定分數和時間
-          if (fish.color === "gold") {
-            // 黃色魚：加分加時間
-            score += 100;
-            timeLeft += 3;
-            if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-          } else if (fish.color === "#fcf") {
-            // 紫色魚：扣分扣時間
-            score -= 50;
-            timeLeft -= 5;
-            if (timeLeft < 0) timeLeft = 0;
-          }
-          // 立刻生成新魚
-          fishes.push(createFish());
-          // 新增：進入漸層消失動畫
-          fish.fadeOut = true;
-          fish.alpha = 1;
-          fish.fadeStep = 0.04;
+          squid.caught = true;
+          score += 200; // 魷魚加分
+          timeLeft += 20;
+          if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+          // 進入漸層消失動畫
+          squid.fadeOut = true;
+          squid.alpha = 1;
+          squid.fadeStep = 0.04;
+          // 下一隻魷魚計時
+          scheduleSquid();
         }
-        fish.lifting = false;
-        fish.flyT = 0;
+        squid.lifting = false;
+        squid.flyT = 0;
+        // 魷魚消失
+        setTimeout(() => { squid = null; }, 800);
       }
     }
-  }
 
-  // 鉤子動畫
-  if (fishing) {
-    if (hookY > player.y + 10) {
-      hookY -= 18;
-      if (hookY < player.y + 10) hookY = player.y + 10;
-    } else {
-      // 拉到空中，甩魚
-      fishing = false;
-      hookTargetY = 400;
+    // 分數顯示在畫面上方
+    ctx.save();
+    ctx.font = "bold 36px Arial";
+    ctx.fillStyle = "#0c0"; // 綠色
+    ctx.fillText("分數: " + score, 30, 60);
+    ctx.restore();
+
+    // 時間百分比條
+    const barX = 200, barY = 20, barW = 400, barH = 18;
+    ctx.save();
+    // 底色
+    ctx.fillStyle = '#ccc';
+    ctx.fillRect(barX, barY, barW, barH);
+    // 進度（彩色漸層條，依照圖片：紅-橙-黃-金黃）
+    let percent = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
+    let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+    grad.addColorStop(0, '#f00'); // 紅
+    grad.addColorStop(0.25, '#ff8000'); // 橙
+    grad.addColorStop(0.6, '#ffe600'); // 黃
+    grad.addColorStop(1, '#ffe600'); // 金黃
+    ctx.fillStyle = grad;
+    ctx.fillRect(barX, barY, barW * percent, barH);
+    // 邊框
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(barX, barY, barW, barH);
+    ctx.restore();
+
+    // 時間
+    ctx.fillStyle = "#06c"; // 藍色
+    ctx.font = "24px Arial";
+    ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
+
+    // 魚被釣上來動畫
+    for (let fish of fishes) {
+      if (fish.lifting && !fish.caught) {
+        // 飛行進度
+        if (!fish.flyT) fish.flyT = 0;
+        fish.flyT += 0.04;
+        // 拋物線飛到空中
+        let startX = fish.x, startY = fish.y;
+        let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
+        let endY = pot.y + pot.h/2 - 10;
+        let t = fish.flyT;
+        if (t > 1) t = 1;
+        // 拋物線插值
+        fish.x = startX * (1-t) + endX * t;
+        fish.y = startY * (1-t) + endY * t - 80*t*(1-t); // 拋物線效果
+        // 進入船範圍才加分
+        if (t === 1) {
+          if (
+            fish.x > pot.x && fish.x < pot.x + pot.w &&
+            fish.y > pot.y && fish.y < pot.y + pot.h
+          ) {
+            fish.caught = true;
+            // 根據魚的顏色決定分數和時間
+            if (fish.color === "gold") {
+              // 黃色魚：加分加時間
+              score += 100;
+              timeLeft += 3;
+              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+            } else if (fish.color === "#fcf") {
+              // 紫色魚：只扣時間不扣分
+              timeLeft = Math.max(0, timeLeft - 5);
+            }
+            // 立刻生成新魚
+            fishes.push(createFish());
+            // 新增：進入漸層消失動畫
+            fish.fadeOut = true;
+            fish.alpha = 1;
+            fish.fadeStep = 0.04;
+          }
+          fish.lifting = false;
+          fish.flyT = 0;
+        }
+      }
     }
-  } else if (hookY < hookTargetY) {
-    hookY += 8;
-    if (hookY > hookTargetY) hookY = hookTargetY;
-  }
 
-  // 遊戲結束
-  if (timeLeft <= 0) {
-    gameOver = true;
-    restartBtn.style.display = "block";
-    ctx.fillStyle = "rgba(0,0,0,0.7)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#fff";
-    ctx.font = "48px Arial";
-    ctx.fillText("遊戲結束", 300, 300);
-    ctx.font = "36px Arial";
-    ctx.fillText("分數: " + score, 320, 360);
-    return;
+    // 鉤子動畫
+    if (fishing) {
+      if (hookY > hookTargetY) {
+        hookY -= 18;
+        if (hookY < hookTargetY) hookY = hookTargetY;
+      } else {
+        // 拉到空中，甩魚
+        fishing = false;
+        hookTargetY = 400;
+      }
+    } else if (hookY < hookTargetY) {
+      hookY += 8;
+      if (hookY > hookTargetY) hookY = hookTargetY;
+    }
+
+    // 遊戲結束
+    if (timeLeft <= 0) {
+      gameOver = true;
+      restartBtn.style.display = "block";
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // 先畫遮罩，再畫分數與時間條，最後畫結束字樣
+      ctx.save();
+      ctx.font = "bold 36px Arial";
+      ctx.fillStyle = "#0c0"; // 綠色
+      ctx.fillText("分數: " + score, 30, 60);
+      ctx.restore();
+      // 時間百分比條
+      const barX = 200, barY = 20, barW = 400, barH = 18;
+      ctx.save();
+      ctx.fillStyle = '#ccc';
+      ctx.fillRect(barX, barY, barW, barH);
+      let percent = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
+      let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+      grad.addColorStop(0, '#f00');
+      grad.addColorStop(0.25, '#ff8000');
+      grad.addColorStop(0.6, '#ffe600');
+      grad.addColorStop(1, '#ffe600');
+      ctx.fillStyle = grad;
+      ctx.fillRect(barX, barY, barW * percent, barH);
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(barX, barY, barW, barH);
+      ctx.restore();
+      ctx.fillStyle = "#06c"; // 藍色
+      ctx.font = "24px Arial";
+      ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
+      ctx.fillStyle = "#fff";
+      ctx.font = "48px Arial";
+      ctx.fillText("遊戲結束", 300, 300);
+      ctx.font = "36px Arial";
+      ctx.fillStyle = "#0c0"; // 綠色
+      ctx.fillText("分數: " + score, 320, 360);
+      // 排行榜
+      setTimeout(() => {
+        let arr = addRank(score);
+        showRankModal(score);
+      }, 300);
+      return;
+    }
+    animationId = requestAnimationFrame(gameLoop);
+  } catch (e) {
+    // 若有錯誤，顯示在 console，並嘗試繼續下一幀
+    console.error('gameLoop error:', e);
+    animationId = requestAnimationFrame(gameLoop);
   }
-  animationId = requestAnimationFrame(gameLoop);
 }
 
 // 倒數計時
@@ -841,6 +935,9 @@ function countdown() {
     timeLeft--;
     if (timeLeft > 0) {
       countdownTimer = setTimeout(countdown, 1000);
+    } else {
+      timeLeft = 0;
+      gameOver = true;
     }
   }
 }
@@ -850,6 +947,7 @@ canvas.addEventListener("mousedown", () => {
   if (!gameOver && !fishing) {
     checkLineCollision(); // 檢查碰撞
     fishing = true;
+    hookTargetY = 80; // 甩到海平面以上
   }
 });
 document.addEventListener("keydown", (e) => {
@@ -857,6 +955,7 @@ document.addEventListener("keydown", (e) => {
   if (!gameOver && !fishing && e.code === "Space") {
     checkLineCollision(); // 檢查碰撞
     fishing = true;
+    hookTargetY = 80; // 甩到海平面以上
   }
 });
 
@@ -920,9 +1019,55 @@ restartBtn.addEventListener("click", () => {
 });
 // 新增：遊戲說明按鈕
 const infoBtn = document.getElementById('infoBtn');
+const infoModal = document.getElementById('infoModal');
+const infoModalText = document.getElementById('infoModalText');
+const closeInfoModal = document.getElementById('closeInfoModal');
+
 infoBtn.addEventListener('click', () => {
-  alert(`遊戲說明：\n\n1. 方向鍵移動主角與魚鉤。\n2. 空白鍵或滑鼠點擊釣魚。\n3. 黃色魚加分加時間，紫色魚扣分扣時間。\n4. 勿釣到垃圾，會扣時間。\n5. 時間歸零遊戲結束，可隨時再玩一次。`);
+  infoModal.style.display = 'flex';
+  infoModalText.innerHTML = `
+    <ol style="padding-left: 1.2em;">
+      <li>方向鍵移動主角與魚鉤。</li>
+      <li>空白鍵或滑鼠點擊釣魚。</li>
+      <li>黃色魚加分加時間，紫色魚只扣時間。</li>
+      <li>勿釣到垃圾，會扣時間。</li>
+      <li>時間歸零遊戲結束，可隨時再玩一次。</li>
+    </ol>
+    <hr style="margin: 12px 0;">
+    <div style="font-size:1.1em;">
+      <b>【詳細分數與時間規則】</b><br>
+      <ul style="padding-left: 1.2em;">
+        <li><b>黃色魚</b><br>分數：+100 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
+        <li><b>紫色魚</b><br>分數：不變<br>時間：-5 秒（但剩餘時間不會低於 0）</li>
+        <li><b>垃圾（罐頭、瓶子）</b><br>分數：不變<br>時間：-10 秒（但剩餘時間不會低於 0）</li>
+        <li><b>魷魚</b><br>分數：+200 分<br>時間：+20 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
+      </ul>
+    </div>
+  `;
 });
+closeInfoModal.addEventListener('click', () => {
+  infoModal.style.display = 'none';
+});
+// 點擊 modal 外部也可關閉
+infoModal.addEventListener('click', (e) => {
+  if (e.target === infoModal) infoModal.style.display = 'none';
+});
+// 按 ESC 關閉
+window.addEventListener('keydown', (e) => {
+  if (infoModal.style.display === 'flex' && (e.key === 'Escape' || e.key === 'Esc')) {
+    infoModal.style.display = 'none';
+  }
+});
+
+// 新增：排行榜內再玩一次按鈕
+const playAgainBtn = document.getElementById('playAgainBtn');
+if (playAgainBtn) {
+  playAgainBtn.onclick = function() {
+    document.getElementById('rankModal').style.display = 'none';
+    // 觸發 restartBtn 的 click 事件
+    restartBtn.click();
+  };
+}
 
 // 初始化
 // 停止殘留動畫和計時

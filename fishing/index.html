@@ -23,6 +23,74 @@
       display: flex;
       justify-content: center;
     }
+    /* Modal styles */
+    #infoModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      position: relative;
+      background: #fff;
+      border-radius: 22px;
+      padding: 36px 32px 28px 32px;
+      min-width: 320px;
+      max-width: 90vw;
+      min-height: 220px;
+      max-height: 80vh;
+      overflow-y: auto;
+      font-family: 'Noto Sans TC', 'Arial', sans-serif;
+      color: #222;
+      text-align: left;
+    }
+    .modal-close-x {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: none;
+      border: none;
+      font-size: 26px;
+      color: #888;
+      cursor: pointer;
+      font-weight: bold;
+      z-index: 10;
+      transition: color 0.2s;
+    }
+    .modal-close-x:hover {
+      color: #e11;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      margin-bottom: 18px;
+      text-align: center;
+      font-size: 1.5em;
+      color: #0077cc;
+    }
+    @media (max-width: 600px) {
+      .modal-content {
+        min-width: 0;
+        width: 96vw;
+        padding: 18px 6vw 18px 6vw;
+      }
+      .modal-close-x {
+        top: 8px;
+        right: 8px;
+        font-size: 22px;
+      }
+    }
+    #rankModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
 </head>
 <body>
@@ -36,6 +104,26 @@
       <span id="hungerMeter"></span>
     </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
+  </div>
+  <!-- 遊戲說明圖層（預設隱藏） -->
+  <div id="infoModal" style="display:none;">
+    <div class="modal-content">
+      <button id="closeInfoModal" class="modal-close-x" title="關閉">×</button>
+      <h2>遊戲說明</h2>
+      <div id="infoModalText">
+        <!-- 說明內容由 JS 動態填入 -->
+      </div>
+    </div>
+  </div>
+  <!-- 排行榜圖層（預設隱藏） -->
+  <div id="rankModal" style="display:none;">
+    <div class="modal-content" id="rankModalContent">
+      <button id="closeRankModal" class="modal-close-x" title="關閉">×</button>
+      <h2>排行榜</h2>
+      <div id="rankList"></div>
+      <button id="playAgainBtn" style="margin-top:18px;float:right;background:#0c0;color:#fff;border:1px solid #0c0;padding:6px 18px;border-radius:8px;margin-right:18px;">再玩一次</button>
+      <button id="clearRankBtn" style="margin-top:18px;float:right;background:#fff;color:#e11;border:1px solid #e11;padding:6px 18px;border-radius:8px;">清除紀錄</button>
+    </div>
   </div>
   <div class="btn-row-wrapper">
     <div class="btn-row">
