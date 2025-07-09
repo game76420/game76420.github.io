@@ -162,6 +162,19 @@
     top: 4px;
   }
 }
+@media (orientation: landscape) and (max-width: 900px) {
+  #gameBg.responsive-bg {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #gameCanvas {
+    max-width: 100vw;
+    max-height: 98vh;
+    border-radius: 0;
+  }
+}
 /* 排行榜 modal 額外樣式 */
 #rankModal {
   position: fixed;

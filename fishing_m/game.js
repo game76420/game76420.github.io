@@ -1232,12 +1232,22 @@ window.addEventListener('keyup', (e) => {
 function resizeGameCanvas() {
   const container = document.getElementById('gameBg');
   const canvas = document.getElementById('gameCanvas');
-  // 預設比例 4:3
-  let w = container.clientWidth;
-  let h = Math.round(w * 3 / 4);
-  if (h > window.innerHeight * 0.8) {
-    h = Math.round(window.innerHeight * 0.8);
-    w = Math.round(h * 4 / 3);
+  let w, h;
+  // 手機橫版優先以高度為主
+  if (window.innerWidth > window.innerHeight && window.innerWidth < 900) {
+    h = Math.round(window.innerHeight * 0.98); // 幾乎填滿高度
+    w = Math.round(h * 4 / 3); // 或可改 16/9
+    if (w > window.innerWidth) {
+      w = window.innerWidth;
+      h = Math.round(w * 3 / 4);
+    }
+  } else {
+    w = container.clientWidth;
+    h = Math.round(w * 3 / 4);
+    if (h > window.innerHeight * 0.8) {
+      h = Math.round(window.innerHeight * 0.8);
+      w = Math.round(h * 4 / 3);
+    }
   }
   canvas.width = w;
   canvas.height = h;
@@ -1402,6 +1412,7 @@ window.addEventListener('keydown', function(e) {
     actionBtn.addEventListener('touchstart', function(e) {
       // 觸發釣魚動作
       if (!fishing && !hookThrowing && !gameOver) {
+        checkLineCollision(); // ← 加這行
         fishing = true;
         hookThrowing = true;
         hookThrowT = 0;
