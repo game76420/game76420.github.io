@@ -8,6 +8,7 @@ const GAME_TIME = 85; // 秒
 let fishes = [];
 let score = 0;
 let timeLeft = GAME_TIME;
+let displayTimeLeft = GAME_TIME; // 新增：用於時間條補間動畫
 let gameOver = false;
 let fishing = false;
 // 新增：鉤子拋物線動畫狀態
@@ -62,6 +63,7 @@ let bowlSinkSpeed = 6;
 let bowlSinkCallback = null;
 // --- 新增：鍋子浮動速度 ---
 let bowlY_vel = 0;
+let bowlImpulseY = 0; // 新增：碗的下沉衝擊
 
 // --- 新增：主角移動影響波浪 ---
 let waveDisturb = { x: 0, v: 0, t: 0 };
@@ -104,7 +106,14 @@ function checkLineCollision() {
     if (Math.abs(trash.x - bigFish.x) < 32 && Math.abs(trash.y - hookY) < 28) {
       trash.lifting = true;
       trash.flyT = 0;
-      timeLeft = Math.max(0, timeLeft - 10);
+      if (timeLeft > 0 && !gameOver) {
+        if (timeLeft - 30 <= 0) {
+          timeLeft = 0;
+          pendingGameOver = true;
+        } else {
+          timeLeft = Math.max(0, timeLeft - 30);
+        }
+      }
       continue;
     }
     // 線段碰撞（距離放寬）
@@ -120,7 +129,14 @@ function checkLineCollision() {
       if (dist < 24) { // 原本 15，放寬到 24
         trash.lifting = true;
         trash.flyT = 0;
-        timeLeft = Math.max(0, timeLeft - 10);
+        if (timeLeft > 0 && !gameOver) {
+          if (timeLeft - 30 <= 0) {
+            timeLeft = 0;
+            pendingGameOver = true;
+          } else {
+            timeLeft = Math.max(0, timeLeft - 30);
+          }
+        }
         lineCollisions[i] = true;
         break;
       }
@@ -766,7 +782,10 @@ function gameLoop() {
       let bowlTargetY = getWaveY(pot.x + pot.w/2, wavePhase) - pot.h/2;
       let spring = 0.18, damp = 0.72;
       if (typeof bowlY !== 'number') bowlY = pot.y;
-      bowlY_vel = (bowlY_vel || 0) + (bowlTargetY - bowlY) * spring;
+      // 新增：碗下沉彈跳
+      bowlY_vel += (bowlTargetY - bowlY) * spring;
+      bowlY_vel += bowlImpulseY;
+      bowlImpulseY *= 0.85; // 衰減
       bowlY_vel *= damp;
       bowlY += bowlY_vel;
     }
@@ -814,8 +833,21 @@ function gameLoop() {
           trash.hit = true;
           trash.lifting = false;
           trash.flyT = 0;
-          // 重新生成新垃圾
-          Object.assign(trash, createTrash());
+          Object.assign(trash, createTrash()); // 先讓垃圾消失
+          // --- 新增：如果 pendingGameOver，這時才正式 gameOver ---
+          if (pendingGameOver) {
+            pendingGameOver = false;
+            timeLeft = 0;
+            displayTimeLeft = 0;
+            gameOver = true;
+            if (countdownTimer) clearTimeout(countdownTimer); // 停止倒數
+            restartBtn.style.display = "block";
+            bowlSinking = true;
+            bowlY = pot.y;
+            bowlSinkTargetY = null;
+            animationId = requestAnimationFrame(gameLoop);
+            return;
+          }
         }
       }
     }
@@ -846,21 +878,23 @@ function gameLoop() {
           squid.x > pot.x && squid.x < pot.x + pot.w &&
           squid.y > pot.y && squid.y < pot.y + pot.h
         ) {
-          squid.caught = true;
-          score += 200; // 魷魚加分
-          timeLeft += 20;
-          if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-          // 進入漸層消失動畫
-          squid.fadeOut = true;
-          squid.alpha = 1;
-          squid.fadeStep = 0.04;
-          // 下一隻魷魚計時
-          scheduleSquid();
+          if (timeLeft > 0 && !gameOver) {
+            squid.caught = true;
+            score += 200; // 魷魚加分
+            timeLeft += 20;
+            if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+            // 進入漸層消失動畫
+            squid.fadeOut = true;
+            squid.alpha = 1;
+            squid.fadeStep = 0.04;
+            // 下一隻魷魚計時
+            scheduleSquid();
+          }
+          squid.lifting = false;
+          squid.flyT = 0;
+          // 魷魚消失
+          setTimeout(() => { squid = null; }, 800);
         }
-        squid.lifting = false;
-        squid.flyT = 0;
-        // 魷魚消失
-        setTimeout(() => { squid = null; }, 800);
       }
     }
 
@@ -871,6 +905,10 @@ function gameLoop() {
     ctx.fillText("分數: " + score, 30, 60);
     ctx.restore();
 
+    // 補間動畫：讓 displayTimeLeft 慢慢趨近 timeLeft
+    const lerpSpeed = 0.18; // 越大越快
+    displayTimeLeft += (timeLeft - displayTimeLeft) * lerpSpeed;
+    if (Math.abs(displayTimeLeft - timeLeft) < 0.1) displayTimeLeft = timeLeft;
     // 時間百分比條
     const barX = 200, barY = 20, barW = 400, barH = 18;
     ctx.save();
@@ -878,7 +916,7 @@ function gameLoop() {
     ctx.fillStyle = '#ccc';
     ctx.fillRect(barX, barY, barW, barH);
     // 進度（彩色漸層條，依照圖片：紅-橙-黃-金黃）
-    let percent = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
+    let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME)); // 用 displayTimeLeft
     let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
     grad.addColorStop(0, '#f00'); // 紅
     grad.addColorStop(0.25, '#ff8000'); // 橙
@@ -918,23 +956,28 @@ function gameLoop() {
             fish.x > pot.x && fish.x < pot.x + pot.w &&
             fish.y > pot.y && fish.y < pot.y + pot.h
           ) {
-            fish.caught = true;
-            // 根據魚的顏色決定分數和時間
-            if (fish.color === "gold") {
-              // 黃色魚：加分加時間
-              score += 100;
-              timeLeft += 3;
-              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-            } else if (fish.color === "#fcf") {
-              // 紫色魚：只扣時間不扣分
-              timeLeft = Math.max(0, timeLeft - 5);
+            // 若已經 gameOver 或 timeLeft <= 0，不再加分加時間
+            if (timeLeft > 0 && !gameOver) {
+              fish.caught = true;
+              // 新增：碗下沉衝擊
+              bowlImpulseY = 8; // 下沉
+              // 根據魚的顏色決定分數和時間
+              if (fish.color === "gold") {
+                score += 100;
+                timeLeft += 3;
+                if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+              } else if (fish.color === "#fcf") {
+                if (timeLeft > 0 && !gameOver) {
+                  timeLeft = Math.max(0, timeLeft - 5);
+                }
+              }
+              // 立刻生成新魚
+              fishes.push(createFish());
+              // 新增：進入漸層消失動畫
+              fish.fadeOut = true;
+              fish.alpha = 1;
+              fish.fadeStep = 0.04;
             }
-            // 立刻生成新魚
-            fishes.push(createFish());
-            // 新增：進入漸層消失動畫
-            fish.fadeOut = true;
-            fish.alpha = 1;
-            fish.fadeStep = 0.04;
           }
           fish.lifting = false;
           fish.flyT = 0;
@@ -1006,7 +1049,7 @@ function gameLoop() {
       ctx.save();
       ctx.fillStyle = '#ccc';
       ctx.fillRect(barX, barY, barW, barH);
-      let percent = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
+      let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME)); // 用 displayTimeLeft
       let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
       grad.addColorStop(0, '#f00');
       grad.addColorStop(0.25, '#ff8000');
@@ -1040,8 +1083,11 @@ function gameLoop() {
       return;
     }
     // 遊戲結束
-    if (timeLeft <= 0) {
+    // --- 修改：只有沒垃圾動畫時才 gameOver ---
+    let trashAnimating = trashes.some(trash => trash.lifting);
+    if (timeLeft <= 0 && !gameOver && !trashAnimating && !pendingGameOver) {
       gameOver = true;
+      displayTimeLeft = 0; // 修正：同步顯示歸零
       restartBtn.style.display = "block";
       // --- 新增：啟動碗沉到底動畫 ---
       bowlSinking = true;
@@ -1066,6 +1112,7 @@ function countdown() {
       countdownTimer = setTimeout(countdown, 1000);
     } else {
       timeLeft = 0;
+      displayTimeLeft = 0; // 修正：同步顯示歸零
       gameOver = true;
     }
   }
@@ -1167,6 +1214,8 @@ restartBtn.addEventListener("click", () => {
   bowlSinking = false;
   bowlSinkTargetY = null;
   bowlY_vel = 0;
+  bowlImpulseY = 0; // 重置碗下沉衝擊
+  pendingGameOver = false; // 重置 pendingGameOver
   animationId = requestAnimationFrame(gameLoop);
   countdownTimer = setTimeout(countdown, 1000);
 });
@@ -1192,7 +1241,7 @@ infoBtn.addEventListener('click', () => {
       <ul style="padding-left: 1.2em;">
         <li><b>黃色魚</b><br>分數：+100 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
         <li><b>紫色魚</b><br>分數：不變<br>時間：-5 秒（但剩餘時間不會低於 0）</li>
-        <li><b>垃圾（罐頭、瓶子）</b><br>分數：不變<br>時間：-10 秒（但剩餘時間不會低於 0）</li>
+        <li><b>垃圾（罐頭、瓶子）</b><br>分數：不變<br><span style="color:#e11;"><b>時間：-30 秒</b></span>（但剩餘時間不會低於 0）</li>
         <li><b>魷魚</b><br>分數：+200 分<br>時間：+20 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
       </ul>
     </div>
@@ -1221,6 +1270,14 @@ if (playAgainBtn) {
     restartBtn.click();
   };
 }
+// 新增：排行榜顯示時按空白鍵可再玩一次
+window.addEventListener('keydown', function(e) {
+  const rankModal = document.getElementById('rankModal');
+  if (rankModal && rankModal.style.display === 'flex' && e.code === 'Space') {
+    e.preventDefault();
+    if (playAgainBtn) playAgainBtn.click();
+  }
+});
 
 // 初始化
 // 停止殘留動畫和計時
@@ -1238,5 +1295,6 @@ bowlY = pot.y;
 bowlSinking = false;
 bowlSinkTargetY = null;
 bowlY_vel = 0;
+bowlImpulseY = 0; // 重置碗下沉衝擊
 animationId = requestAnimationFrame(gameLoop);
 countdownTimer = setTimeout(countdown, 1000); 
