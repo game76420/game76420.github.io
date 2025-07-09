@@ -69,8 +69,10 @@
 .btn-row {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
-  margin: 12px 0 24px 0;
+  margin: 12px auto 24px auto;
+  width: fit-content;
 }
 #restartBtn, #infoBtn {
   font-size: 1.1em;
@@ -84,6 +86,60 @@
 }
 #restartBtn:hover, #infoBtn:hover {
   background: #e0e0ff;
+}
+.boot-pixel {
+  position: relative;
+  width: 40px;
+  height: 50px;
+  display: inline-block;
+}
+.boot-pixel::before, .boot-pixel::after {
+  content: "";
+  position: absolute;
+  background: #bbb;
+  border: 2px solid #222;
+  box-sizing: border-box;
+}
+.boot-pixel::before {
+  /* 鞋底 */
+  left: 0;
+  bottom: 0;
+  width: 36px;
+  height: 12px;
+  border-radius: 0 0 10px 10px;
+  background: #bbb;
+  border-top: none;
+  box-shadow: 0 8px 0 #222;
+}
+.boot-pixel::after {
+  /* 筒身 */
+  left: 20px;
+  top: 0;
+  width: 16px;
+  height: 38px;
+  border-radius: 0 0 8px 8px;
+  background: #bbb;
+  border-left: none;
+}
+.boot-pixel .boot-top {
+  position: absolute;
+  left: 20px;
+  top: -6px;
+  width: 16px;
+  height: 10px;
+  background: #444;
+  border-radius: 8px 8px 8px 8px / 5px 5px 5px 5px;
+  z-index: 2;
+}
+.boot-pixel .boot-highlight {
+  position: absolute;
+  left: 4px;
+  bottom: 16px;
+  width: 18px;
+  height: 6px;
+  border-radius: 8px 8px 8px 8px / 3px 3px 3px 3px;
+  background: rgba(255,255,255,0.5);
+  z-index: 2;
 }
 @media (max-width: 600px) {
   #gameBg.responsive-bg {
