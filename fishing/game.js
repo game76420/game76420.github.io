@@ -10,6 +10,11 @@ let score = 0;
 let timeLeft = GAME_TIME;
 let gameOver = false;
 let fishing = false;
+// 新增：鉤子拋物線動畫狀態
+let hookThrowing = false;
+let hookThrowT = 0;
+let hookThrowStartY = 0, hookThrowEndY = 0;
+let hookThrowStartX = 0, hookThrowEndX = 0;
 // 鉤子預設在水下
 let hookY = 400;
 let hookTargetY = 400;
@@ -49,6 +54,17 @@ const bigFish = {
 };
 // 新增：主角方向（1=右，-1=左）
 let playerDir = 1;
+// --- 新增：碗沉到底動畫 ---
+let bowlSinking = false;
+let bowlY = pot.y;
+let bowlSinkTargetY = null;
+let bowlSinkSpeed = 6;
+let bowlSinkCallback = null;
+// --- 新增：鍋子浮動速度 ---
+let bowlY_vel = 0;
+
+// --- 新增：主角移動影響波浪 ---
+let waveDisturb = { x: 0, v: 0, t: 0 };
 
 // 檢查魚線碰撞的函數
 function checkLineCollision() {
@@ -392,14 +408,16 @@ function drawPlayer() {
   ctx.save();
   ctx.fillStyle = "#bbb";
   ctx.beginPath();
-  ctx.ellipse(pot.x + pot.w/2, pot.y + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
+  // --- 修改：y 改用 bowlY ---
+  let drawPotY = (typeof bowlY === 'number') ? bowlY : pot.y;
+  ctx.ellipse(pot.x + pot.w/2, drawPotY + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#888";
   ctx.lineWidth = 4;
   ctx.stroke();
   // 鍋邊
   ctx.beginPath();
-  ctx.ellipse(pot.x + pot.w/2, pot.y + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
+  ctx.ellipse(pot.x + pot.w/2, drawPotY + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
   ctx.fillStyle = "#eee";
   ctx.fill();
   ctx.stroke();
@@ -609,6 +627,18 @@ window.addEventListener('keydown', function(e) {
   }
 });
 
+// --- 新增：海浪波動 ---
+let wavePhase = 0;
+function getWaveY(x, t) {
+  // 主波浪 + 次波浪疊加
+  let y = 200 + Math.sin((x/120) + t) * 12 + Math.sin((x/40) - t*1.7) * 4;
+  // --- 疊加主角擾動波 ---
+  let dx = x - waveDisturb.x;
+  let disturb = waveDisturb.v * Math.exp(-dx*dx/900) * Math.sin(t*2 + dx/30);
+  y += disturb * 10; // 擾動強度
+  return y;
+}
+
 // 遊戲主迴圈
 function gameLoop() {
   try {
@@ -617,6 +647,13 @@ function gameLoop() {
     if (!Array.isArray(trashes)) trashes = [];
     
     updateLinePhysics();
+    wavePhase += 0.035; // 波浪推進
+    // --- 主角移動速度影響波浪 ---
+    let prevX = waveDisturb.x;
+    waveDisturb.x = pot.x + pot.w/2;
+    waveDisturb.v = (waveDisturb.x - prevX);
+    // 可加一點阻尼讓波動慢慢消失
+    waveDisturb.v *= 0.92;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 畫天空
@@ -628,7 +665,23 @@ function gameLoop() {
     ctx.fillStyle = skyGradient;
     ctx.fillRect(0, 0, canvas.width, 200);
 
-    // 畫海
+    // --- 畫波浪海平面 ---
+    ctx.save();
+    ctx.beginPath();
+    for (let x = 0; x <= canvas.width; x += 4) {
+      let y = getWaveY(x, wavePhase);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(canvas.width, 0);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#b3e0ff';
+    ctx.globalAlpha = 0.18;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    // --- 畫海 ---
     let seaGradient = ctx.createLinearGradient(0, 200, 0, canvas.height);
     seaGradient.addColorStop(0, '#7bbbe6'); // 海平面亮藍
     seaGradient.addColorStop(0.15, '#3a8cc1'); // 中藍
@@ -637,14 +690,18 @@ function gameLoop() {
     seaGradient.addColorStop(1, '#0a1a2f'); // 海底深藍
     ctx.fillStyle = seaGradient;
     ctx.fillRect(0, 200, canvas.width, canvas.height - 200);
-
-    // 畫海平面線
+    // --- 畫波浪線 ---
+    ctx.save();
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 200);
-    ctx.lineTo(canvas.width, 200);
+    for (let x = 0; x <= canvas.width; x += 2) {
+      let y = getWaveY(x, wavePhase);
+      if (x === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
     ctx.stroke();
+    ctx.restore();
 
     // 控制主角與大魚左右移動
     if (keyState.left) {
@@ -660,7 +717,7 @@ function gameLoop() {
     // 釣魚線起點、鉤子都跟著 bigFish.x
 
     // 控制魚鉤上下移動（慣性/拉力）
-    if (!fishing) {
+    if (!fishing && !hookThrowing) {
       if (keyState.up) {
         hookVelY -= 1.5; // 向上拉
       } else if (keyState.down) {
@@ -688,7 +745,31 @@ function gameLoop() {
         hookVelY = 0;
       }
     }
+    // --- 鉤子拋物線動畫 ---
+    if (hookThrowing) {
+      hookThrowT += 0.04; // 動畫進度
+      if (hookThrowT > 1) hookThrowT = 1;
+      let t = hookThrowT;
+      // y 拋物線
+      hookY = hookThrowStartY * (1 - t) + hookThrowEndY * t - 120 * t * (1 - t);
+      // x 可微幅左右偏移（如需鉤子左右動，bigFish.x 也要跟著動，這裡只動 hookY）
+      // bigFish.x = hookThrowStartX * (1 - t) + hookThrowEndX * t;
+      if (hookThrowT === 1) {
+        hookThrowing = false;
+        fishing = false;
+        hookTargetY = hookDefaultY;
+      }
+    }
 
+    // --- 鍋子隨波浪浮動 ---
+    if (!bowlSinking) {
+      let bowlTargetY = getWaveY(pot.x + pot.w/2, wavePhase) - pot.h/2;
+      let spring = 0.18, damp = 0.72;
+      if (typeof bowlY !== 'number') bowlY = pot.y;
+      bowlY_vel = (bowlY_vel || 0) + (bowlTargetY - bowlY) * spring;
+      bowlY_vel *= damp;
+      bowlY += bowlY_vel;
+    }
     // 畫主角和釣竿
     drawPlayer();
     drawRod();
@@ -862,7 +943,7 @@ function gameLoop() {
     }
 
     // 鉤子動畫
-    if (fishing) {
+    if (fishing && !hookThrowing) {
       if (hookY > hookTargetY) {
         hookY -= 18;
         if (hookY < hookTargetY) hookY = hookTargetY;
@@ -871,24 +952,56 @@ function gameLoop() {
         fishing = false;
         hookTargetY = 400;
       }
-    } else if (hookY < hookTargetY) {
+    } else if (hookY < hookTargetY && !hookThrowing) {
       hookY += 8;
       if (hookY > hookTargetY) hookY = hookTargetY;
     }
 
-    // 遊戲結束
-    if (timeLeft <= 0) {
-      gameOver = true;
-      restartBtn.style.display = "block";
+    // --- 新增：碗沉到底動畫 ---
+    if (bowlSinking) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // 畫天空
+      let skyGradient = ctx.createLinearGradient(0, 0, 0, 200);
+      skyGradient.addColorStop(0, '#b3e0ff');
+      skyGradient.addColorStop(0.3, '#e6f6ff');
+      skyGradient.addColorStop(0.7, '#a4c8e1');
+      skyGradient.addColorStop(1, '#7bbbe6');
+      ctx.fillStyle = skyGradient;
+      ctx.fillRect(0, 0, canvas.width, 200);
+      // 畫海
+      let seaGradient = ctx.createLinearGradient(0, 200, 0, canvas.height);
+      seaGradient.addColorStop(0, '#7bbbe6');
+      seaGradient.addColorStop(0.15, '#3a8cc1');
+      seaGradient.addColorStop(0.4, '#206090');
+      seaGradient.addColorStop(0.7, '#133a5c');
+      seaGradient.addColorStop(1, '#0a1a2f');
+      ctx.fillStyle = seaGradient;
+      ctx.fillRect(0, 200, canvas.width, canvas.height - 200);
+      // 畫海平面線
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 200);
+      ctx.lineTo(canvas.width, 200);
+      ctx.stroke();
+      // --- 鍋子下沉動畫 ---
+      if (bowlSinkTargetY === null) {
+        bowlSinkTargetY = canvas.height - pot.h - 20;
+      }
+      if (bowlY < bowlSinkTargetY) {
+        bowlY += bowlSinkSpeed;
+        if (bowlY > bowlSinkTargetY) bowlY = bowlSinkTargetY;
+      }
+      drawPlayer();
+      // 遮罩與分數、結束字樣
       ctx.fillStyle = "rgba(0,0,0,0.7)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // 先畫遮罩，再畫分數與時間條，最後畫結束字樣
       ctx.save();
       ctx.font = "bold 36px Arial";
-      ctx.fillStyle = "#0c0"; // 綠色
+      ctx.fillStyle = "#0c0";
       ctx.fillText("分數: " + score, 30, 60);
       ctx.restore();
-      // 時間百分比條
+      // 時間條
       const barX = 200, barY = 20, barW = 400, barH = 18;
       ctx.save();
       ctx.fillStyle = '#ccc';
@@ -905,20 +1018,36 @@ function gameLoop() {
       ctx.lineWidth = 2;
       ctx.strokeRect(barX, barY, barW, barH);
       ctx.restore();
-      ctx.fillStyle = "#06c"; // 藍色
+      ctx.fillStyle = "#06c";
       ctx.font = "24px Arial";
       ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
       ctx.fillStyle = "#fff";
       ctx.font = "48px Arial";
       ctx.fillText("遊戲結束", 300, 300);
       ctx.font = "36px Arial";
-      ctx.fillStyle = "#0c0"; // 綠色
+      ctx.fillStyle = "#0c0";
       ctx.fillText("分數: " + score, 320, 360);
-      // 排行榜
-      setTimeout(() => {
-        let arr = addRank(score);
-        showRankModal(score);
-      }, 300);
+      // --- 動畫結束，顯示排行榜 ---
+      if (bowlY >= bowlSinkTargetY) {
+        bowlSinking = false;
+        setTimeout(() => {
+          let arr = addRank(score);
+          showRankModal(score);
+        }, 400);
+        return;
+      }
+      animationId = requestAnimationFrame(gameLoop);
+      return;
+    }
+    // 遊戲結束
+    if (timeLeft <= 0) {
+      gameOver = true;
+      restartBtn.style.display = "block";
+      // --- 新增：啟動碗沉到底動畫 ---
+      bowlSinking = true;
+      bowlY = pot.y;
+      bowlSinkTargetY = null;
+      animationId = requestAnimationFrame(gameLoop);
       return;
     }
     animationId = requestAnimationFrame(gameLoop);
@@ -944,18 +1073,30 @@ function countdown() {
 
 // 釣魚（滑鼠點擊或空白鍵）
 canvas.addEventListener("mousedown", () => {
-  if (!gameOver && !fishing) {
+  if (!gameOver && !fishing && !hookThrowing) {
     checkLineCollision(); // 檢查碰撞
     fishing = true;
-    hookTargetY = 80; // 甩到海平面以上
+    // 新增拋物線動畫
+    hookThrowing = true;
+    hookThrowT = 0;
+    hookThrowStartY = hookY;
+    hookThrowEndY = 60; // 天空高度
+    hookThrowStartX = bigFish.x;
+    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
   }
 });
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "ArrowDown") e.preventDefault();
-  if (!gameOver && !fishing && e.code === "Space") {
+  if (!gameOver && !fishing && !hookThrowing && e.code === "Space") {
     checkLineCollision(); // 檢查碰撞
     fishing = true;
-    hookTargetY = 80; // 甩到海平面以上
+    // 新增拋物線動畫
+    hookThrowing = true;
+    hookThrowT = 0;
+    hookThrowStartY = hookY;
+    hookThrowEndY = 60; // 天空高度
+    hookThrowStartX = bigFish.x;
+    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
   }
 });
 
@@ -967,9 +1108,16 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowDown') keyState.down = true;
   // 空白鍵、上下鍵釣魚
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "ArrowDown") e.preventDefault();
-  if (!gameOver && !fishing && e.code === "Space") {
+  if (!gameOver && !fishing && !hookThrowing && e.code === "Space") {
     checkLineCollision(); // 檢查碰撞
     fishing = true;
+    // 新增拋物線動畫
+    hookThrowing = true;
+    hookThrowT = 0;
+    hookThrowStartY = hookY;
+    hookThrowEndY = 60; // 天空高度
+    hookThrowStartX = bigFish.x;
+    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
   }
 });
 window.addEventListener('keyup', (e) => {
@@ -1014,6 +1162,11 @@ restartBtn.addEventListener("click", () => {
   if (squidTimer) clearTimeout(squidTimer);
   scheduleSquid();
   resizeGameCanvas();
+  // --- 新增：重設鍋子位置與動畫狀態 ---
+  bowlY = pot.y;
+  bowlSinking = false;
+  bowlSinkTargetY = null;
+  bowlY_vel = 0;
   animationId = requestAnimationFrame(gameLoop);
   countdownTimer = setTimeout(countdown, 1000);
 });
@@ -1080,5 +1233,10 @@ squid = null;
 if (squidTimer) clearTimeout(squidTimer);
 scheduleSquid();
 resizeGameCanvas();
+// --- 新增：重設鍋子位置與動畫狀態 ---
+bowlY = pot.y;
+bowlSinking = false;
+bowlSinkTargetY = null;
+bowlY_vel = 0;
 animationId = requestAnimationFrame(gameLoop);
 countdownTimer = setTimeout(countdown, 1000); 

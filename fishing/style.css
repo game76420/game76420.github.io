@@ -212,19 +212,34 @@
   font-weight: bold;
   background: #ffeaea !important;
 }
+.rank-btn-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+.rank-btn-row button {
+  padding: 10px 28px;
+  font-size: 1.1em;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+#playAgainBtn {
+  background: #0c0;
+  color: #fff;
+  border: 1.5px solid #0c0;
+}
+#playAgainBtn:hover {
+  background: #0a0;
+}
 #clearRankBtn {
-  margin-top: 18px;
-  float: right;
   background: #fff;
   color: #e11;
-  border: 1px solid #e11;
-  padding: 6px 18px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1em;
-  transition: background 0.2s, color 0.2s;
+  border: 1.5px solid #e11;
 }
 #clearRankBtn:hover {
   background: #ffeaea;
-  color: #a00;
 } 
