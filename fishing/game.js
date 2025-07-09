@@ -237,11 +237,9 @@ octopusImg.src = 'img/octopus.png';
 let specialSeaCreature = null; // 取代 squid
 let specialSeaCreatureTimer = null;
 const SPECIAL_CREATURE_INTERVAL = 30000; // 30秒
-let nextSpecialType = 'squid'; // 新增：輪流出現
 function createSpecialSeaCreature() {
-  // 輪流決定是魷魚還是章魚
-  const isSquid = nextSpecialType === 'squid';
-  nextSpecialType = isSquid ? 'octopus' : 'squid'; // 下次換另一種
+  // 隨機決定是魷魚還是章魚
+  const isSquid = Math.random() < 0.5;
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -40 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
@@ -1336,7 +1334,6 @@ if (countdownTimer) clearTimeout(countdownTimer);
 spawnFish();
 spawnTrash();
 initLinePoints();
-nextSpecialType = 'squid'; // 初始化時從魷魚開始
 specialSeaCreature = null;
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
