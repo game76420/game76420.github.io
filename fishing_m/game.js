@@ -1230,22 +1230,21 @@ window.addEventListener('keyup', (e) => {
 
 // 響應式 canvas 尺寸調整
 function resizeGameCanvas() {
-  const container = document.getElementById('gameBg');
-  const canvas = document.getElementById('gameCanvas');
-  let w, h;
-  // 手機橫版優先以高度為主
-  if (window.innerWidth > window.innerHeight && window.innerWidth < 900) {
-    h = Math.round(window.innerHeight * 0.98); // 幾乎填滿高度
-    w = Math.round(h * 4 / 3); // 或可改 16/9
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  // 保持 4:3 比例，優先以高度為主（橫版手機時）
+  if (w > h) { // 橫版
+    h = Math.min(h, Math.round(w * 3 / 4));
+    w = Math.round(h * 4 / 3);
     if (w > window.innerWidth) {
       w = window.innerWidth;
       h = Math.round(w * 3 / 4);
     }
-  } else {
-    w = container.clientWidth;
+  } else { // 直版
+    w = Math.min(w, Math.round(h * 4 / 3));
     h = Math.round(w * 3 / 4);
-    if (h > window.innerHeight * 0.8) {
-      h = Math.round(window.innerHeight * 0.8);
+    if (h > window.innerHeight) {
+      h = window.innerHeight;
       w = Math.round(h * 4 / 3);
     }
   }
@@ -1346,12 +1345,14 @@ window.addEventListener('keydown', function(e) {
 // === 虛擬搖桿與螢幕按鈕 ===
 (function() {
   function updateControlsVisibility() {
-    const isLandscape = window.innerWidth > window.innerHeight && window.innerWidth < 900;
+    const isLandscape = window.innerWidth > window.innerHeight;
     const joystick = document.getElementById('joystick');
     const screenButtons = document.getElementById('screenButtons');
     if (joystick && screenButtons) {
       joystick.style.display = isLandscape ? 'block' : 'none';
       screenButtons.style.display = isLandscape ? 'flex' : 'none';
+      // 強制 z-index
+      screenButtons.style.zIndex = 2000;
     }
   }
   window.addEventListener('resize', updateControlsVisibility);
@@ -1409,20 +1410,21 @@ window.addEventListener('keydown', function(e) {
   // 虛擬按鈕控制
   const actionBtn = document.getElementById('actionBtn');
   if (actionBtn) {
-    actionBtn.addEventListener('touchstart', function(e) {
-      // 觸發釣魚動作
+    function triggerFishingAction(e) {
       if (!fishing && !hookThrowing && !gameOver) {
-        checkLineCollision(); // ← 加這行
+        checkLineCollision();
         fishing = true;
         hookThrowing = true;
         hookThrowT = 0;
         hookThrowStartY = hookY;
-        hookThrowEndY = 520;
+        hookThrowEndY = 60; // 改為 60
         hookThrowStartX = bigFish.x;
         hookThrowEndX = bigFish.x;
       }
-      e.preventDefault();
-    });
+      if (e) e.preventDefault();
+    }
+    actionBtn.addEventListener('touchstart', triggerFishingAction);
+    actionBtn.addEventListener('click', triggerFishingAction);
   }
 })();
 
