@@ -1113,7 +1113,7 @@ function gameLoop() {
       ctx.fillText("分數: " + score, 320, 360);
       // --- 動畫結束，顯示排行榜 ---
       if (bowlY >= bowlSinkTargetY) {
-        bowlSinking = false;
+        bowlY = bowlSinkTargetY; // 鎖定在水底
         setTimeout(() => {
           let arr = addRank(score);
           showRankModal(score);
@@ -1162,6 +1162,12 @@ function countdown() {
       timeLeft = 0;
       displayTimeLeft = 0; // 修正：同步顯示歸零
       gameOver = true;
+      restartBtn.style.display = "block";
+      // 啟動碗沉到底動畫
+      bowlSinking = true;
+      bowlY = pot.y;
+      bowlSinkTargetY = null;
+      animationId = requestAnimationFrame(gameLoop);
     }
   }
 }
