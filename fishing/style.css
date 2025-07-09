@@ -73,6 +73,12 @@
   gap: 12px;
   margin: 12px auto 24px auto;
   width: fit-content;
+  max-width: 100%;
+}
+.btn-row-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 #restartBtn, #infoBtn {
   font-size: 1.1em;

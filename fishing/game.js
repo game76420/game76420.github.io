@@ -785,7 +785,7 @@ function gameLoop() {
             score += 100;
             timeLeft += 3;
             if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-          } else {
+          } else if (fish.color === "#fcf") {
             // 紫色魚：扣分扣時間
             score -= 50;
             timeLeft -= 5;
