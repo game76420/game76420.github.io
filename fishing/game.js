@@ -303,6 +303,10 @@ function updateHungerBar(hunger) {
   }
 }
 
+// --- 新增 ---
+let animationId = null;
+let countdownTimer = null;
+
 // 遊戲主迴圈
 function gameLoop() {
   updateLinePhysics();
@@ -567,8 +571,7 @@ function gameLoop() {
     ctx.fillText("分數: " + score, 320, 360);
     return;
   }
-
-  requestAnimationFrame(gameLoop);
+  animationId = requestAnimationFrame(gameLoop);
 }
 
 // 倒數計時
@@ -576,7 +579,7 @@ function countdown() {
   if (!gameOver) {
     timeLeft--;
     if (timeLeft > 0) {
-      setTimeout(countdown, 1000);
+      countdownTimer = setTimeout(countdown, 1000);
     }
   }
 }
@@ -613,6 +616,9 @@ window.addEventListener('keyup', (e) => {
 
 // 重新開始
 restartBtn.addEventListener("click", () => {
+  // 停止前一輪動畫和計時
+  if (animationId) cancelAnimationFrame(animationId);
+  if (countdownTimer) clearTimeout(countdownTimer);
   score = 0;
   timeLeft = GAME_TIME;
   gameOver = false;
@@ -623,13 +629,16 @@ restartBtn.addEventListener("click", () => {
   hookY = 400;
   hookVelY = 0;
   hookTargetY = 400;
-  gameLoop();
-  setTimeout(countdown, 1000);
+  animationId = requestAnimationFrame(gameLoop);
+  countdownTimer = setTimeout(countdown, 1000);
 });
 
 // 初始化
+// 停止殘留動畫和計時
+if (animationId) cancelAnimationFrame(animationId);
+if (countdownTimer) clearTimeout(countdownTimer);
 spawnFish();
 spawnTrash();
 initLinePoints();
-gameLoop();
-setTimeout(countdown, 1000); 
+animationId = requestAnimationFrame(gameLoop);
+countdownTimer = setTimeout(countdown, 1000); 
