@@ -150,6 +150,30 @@
     @media (orientation: landscape) and (max-width: 900px) {
       #joystick, #screenButtons { display: block !important; }
     }
+    @media (orientation: landscape) {
+      html, body {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #gameBg.responsive-bg {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+      #gameCanvas {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        border-radius: 0 !important;
+      }
+    }
   </style>
 </head>
 <body>

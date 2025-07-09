@@ -1230,46 +1230,35 @@ window.addEventListener('keyup', (e) => {
 
 // 響應式 canvas 尺寸調整
 function resizeGameCanvas() {
-  // 固定遊戲邏輯解析度
   const GAME_WIDTH = 800;
   const GAME_HEIGHT = 600;
-  canvas.width = GAME_WIDTH;
-  canvas.height = GAME_HEIGHT;
-
-  // 計算可用空間的縮放比例
-  const scaleX = window.innerWidth / GAME_WIDTH;
-  const scaleY = window.innerHeight / GAME_HEIGHT;
-  const scale = Math.min(scaleX, scaleY);
-
-  // 計算置中偏移
-  const left = (window.innerWidth - GAME_WIDTH * scale) / 2;
-  const top = (window.innerHeight - GAME_HEIGHT * scale) / 2;
-
-  // 設定 CSS transform
-  canvas.style.position = 'absolute';
-  canvas.style.left = left + 'px';
-  canvas.style.top = top + 'px';
-  canvas.style.width = GAME_WIDTH * scale + 'px';
   let w = window.innerWidth;
   let h = window.innerHeight;
-  // 保持 4:3 比例，優先以高度為主（橫版手機時）
-  if (w > h) { // 橫版
-    h = Math.min(h, Math.round(w * 3 / 4));
-    w = Math.round(h * 4 / 3);
-    if (w > window.innerWidth) {
-      w = window.innerWidth;
-      h = Math.round(w * 3 / 4);
-    }
-  } else { // 直版
-    w = Math.min(w, Math.round(h * 4 / 3));
-    h = Math.round(w * 3 / 4);
-    if (h > window.innerHeight) {
-      h = window.innerHeight;
-      w = Math.round(h * 4 / 3);
-    }
+  let isLandscape = w > h;
+
+  let scale;
+  if (isLandscape) {
+    // landscape: 以高度為主，維持 4:3
+    h = window.innerHeight;
+    w = Math.min(window.innerWidth, h * 4 / 3);
+    scale = w / GAME_WIDTH;
+  } else {
+    // portrait: 以寬度為主，維持 4:3
+    w = window.innerWidth;
+    h = Math.min(window.innerHeight, w * 3 / 4);
+    scale = h / GAME_HEIGHT;
   }
-  canvas.width = w;
-  canvas.height = h;
+
+  // 設定 canvas 實際繪圖解析度
+  canvas.width = GAME_WIDTH;
+  canvas.height = GAME_HEIGHT;
+  // 設定 CSS 尺寸
+  canvas.style.width = (GAME_WIDTH * scale) + 'px';
+  canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+  // 置中
+  canvas.style.position = 'absolute';
+  canvas.style.left = ((window.innerWidth - GAME_WIDTH * scale) / 2) + 'px';
+  canvas.style.top = ((window.innerHeight - GAME_HEIGHT * scale) / 2) + 'px';
 }
 window.addEventListener('resize', resizeGameCanvas);
 resizeGameCanvas();
