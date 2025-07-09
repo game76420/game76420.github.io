@@ -143,11 +143,11 @@ function checkLineCollision() {
     }
   }
   // 檢查魷魚碰撞
-  if (squid && !squid.lifting && !squid.caught) {
+  if (specialSeaCreature && !specialSeaCreature.lifting && !specialSeaCreature.caught) {
     // 先判斷鉤子直接碰到（距離放寬）
-    if (Math.abs(squid.x - bigFish.x) < 36 && Math.abs(squid.y - hookY) < 32) {
-      squid.lifting = true;
-      squid.flyT = 0;
+    if (Math.abs(specialSeaCreature.x - bigFish.x) < 36 && Math.abs(specialSeaCreature.y - hookY) < 32) {
+      specialSeaCreature.lifting = true;
+      specialSeaCreature.flyT = 0;
     } else {
       // 線段碰撞（距離放寬）
       for (let i = 0; i < linePoints.length - 1; i++) {
@@ -155,13 +155,13 @@ function checkLineCollision() {
         let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
         let dx = x2 - x1, dy = y2 - y1;
         let len2 = dx*dx + dy*dy;
-        let t = ((squid.x - x1) * dx + (squid.y - y1) * dy) / len2;
+        let t = ((specialSeaCreature.x - x1) * dx + (specialSeaCreature.y - y1) * dy) / len2;
         t = Math.max(0, Math.min(1, t));
         let px = x1 + t * dx, py = y1 + t * dy;
-        let dist = Math.hypot(squid.x - px, squid.y - py);
+        let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
         if (dist < 28) { // 原本 18，放寬到 28
-          squid.lifting = true;
-          squid.flyT = 0;
+          specialSeaCreature.lifting = true;
+          specialSeaCreature.flyT = 0;
           lineCollisions[i] = true;
           break;
         }
@@ -172,13 +172,13 @@ function checkLineCollision() {
 
 // 抽出單一魚生成函數
 function createFish() {
-  // 減少紫色魚的比例：80% 黃色，20% 紫色
-  const isGold = Math.random() < 0.8;
+  // 減少紫色魚的比例：90% 黃色，10% 紫色
+  const isGold = Math.random() < 0.9;
   const color = isGold ? "gold" : "#fcf";
   const face = Math.random() < 0.5 ? 'smile' : 'dot';
   // 隨機決定從左還是右進來
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -30 : 830; // 畫面外
+  const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
   const dir = fromLeft ? 1 : -1;
   return {
     x,
@@ -203,7 +203,7 @@ function spawnFish() {
 }
 
 // --- 垃圾相關 ---
-const TRASH_COUNT = 4;
+const TRASH_COUNT = 2;
 let trashes = [];
 // 新增：預載雨鞋圖片
 const bootImg = new Image();
@@ -225,15 +225,28 @@ catImg.src = 'img/cat.png';
 const squidImg = new Image();
 squidImg.src = 'img/squid.png';
 
-// --- 魷魚相關 ---
-let squid = null;
-let squidTimer = null;
-const SQUID_INTERVAL = 30000; // 30秒
-function createSquid() {
+// 新增：預載海膽圖片
+const seaUrchinImg = new Image();
+seaUrchinImg.src = 'img/seaurchin.png';
+
+// 新增：預載章魚圖片
+const octopusImg = new Image();
+octopusImg.src = 'img/octopus.png';
+
+// --- 魷魚/章魚相關 ---
+let specialSeaCreature = null; // 取代 squid
+let specialSeaCreatureTimer = null;
+const SPECIAL_CREATURE_INTERVAL = 30000; // 30秒
+let nextSpecialType = 'squid'; // 新增：輪流出現
+function createSpecialSeaCreature() {
+  // 輪流決定是魷魚還是章魚
+  const isSquid = nextSpecialType === 'squid';
+  nextSpecialType = isSquid ? 'octopus' : 'squid'; // 下次換另一種
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -40 : 840;
+  const x = fromLeft ? -40 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
   return {
+    type: isSquid ? 'squid' : 'octopus',
     x,
     y: Math.random() * 350 + 220,
     speed: 2.2 + Math.random() * 1.5,
@@ -246,45 +259,60 @@ function createSquid() {
     fadeStep: 0.04
   };
 }
-function spawnSquid() {
-  squid = createSquid();
+function spawnSpecialSeaCreature() {
+  specialSeaCreature = createSpecialSeaCreature();
 }
-function scheduleSquid() {
-  if (squidTimer) clearTimeout(squidTimer);
-  squidTimer = setTimeout(() => {
-    spawnSquid();
-    scheduleSquid();
-  }, SQUID_INTERVAL);
+function scheduleSpecialSeaCreature() {
+  if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
+  specialSeaCreatureTimer = setTimeout(() => {
+    spawnSpecialSeaCreature();
+    scheduleSpecialSeaCreature();
+  }, SPECIAL_CREATURE_INTERVAL);
 }
-function drawSquid(squid) {
+function drawSpecialSeaCreature(creature) {
   ctx.save();
-  ctx.translate(squid.x, squid.y);
-  ctx.scale(squid.dir, 1);
-  if (squid.fadeOut) {
-    ctx.globalAlpha = squid.alpha;
-    squid.alpha -= squid.fadeStep;
-    if (squid.alpha < 0) squid.alpha = 0;
+  ctx.translate(creature.x, creature.y);
+  ctx.scale(creature.dir, 1);
+  if (creature.fadeOut) {
+    ctx.globalAlpha = creature.alpha;
+    creature.alpha -= creature.fadeStep;
+    if (creature.alpha < 0) creature.alpha = 0;
   }
-  if (squidImg.complete && squidImg.naturalWidth > 0) {
-    ctx.drawImage(
-      squidImg,
-      -squidImg.naturalWidth / 2,
-      -squidImg.naturalHeight / 2
-    );
-  } else {
-    ctx.fillStyle = '#fff';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
-    ctx.fill();
+  if (creature.type === 'squid') {
+    if (squidImg.complete && squidImg.naturalWidth > 0) {
+      ctx.drawImage(
+        squidImg,
+        -squidImg.naturalWidth / 2,
+        -squidImg.naturalHeight / 2
+      );
+    } else {
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (creature.type === 'octopus') {
+    if (octopusImg.complete && octopusImg.naturalWidth > 0) {
+      ctx.drawImage(
+        octopusImg,
+        -octopusImg.naturalWidth / 2,
+        -octopusImg.naturalHeight / 2
+      );
+    } else {
+      ctx.fillStyle = '#f6a';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
 function createTrash() {
-  // 只保留罐頭、瓶子
-  const types = ['can', 'bottle'];
+  // 加入海膽類型
+  const types = ['can', 'bottle', 'seaurchin'];
   const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -30 : 830;
+  const x = fromLeft ? -30 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
   return {
     x,
@@ -333,6 +361,21 @@ function drawTrash(trash) {
       // 圖片尚未載入時，顯示灰色方塊作為佔位
       ctx.fillStyle = '#bbb';
       ctx.fillRect(-16, -16, 32, 32);
+    }
+  } else if (trash.type === 'seaurchin') {
+    // 顯示海膽圖片
+    if (seaUrchinImg.complete && seaUrchinImg.naturalWidth > 0) {
+      ctx.drawImage(
+        seaUrchinImg,
+        -seaUrchinImg.naturalWidth / 2,
+        -seaUrchinImg.naturalHeight / 2
+      );
+    } else {
+      // 圖片尚未載入時，顯示黑色圓形作為佔位
+      ctx.fillStyle = '#222';
+      ctx.beginPath();
+      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
   ctx.restore();
@@ -797,9 +840,9 @@ function gameLoop() {
     for (let fish of fishes) {
       if (!fish.caught) {
         fish.x += fish.speed * fish.dir;
-        // 只有當魚已經完全進到畫面內時才允許反彈
-        if ((fish.dir === 1 && fish.x > 780) || (fish.dir === -1 && fish.x < 20)) {
-          fish.dir *= -1;
+        // 如果游出畫面，重新生成一條新魚（根據 canvas.width 動態判斷）
+        if ((fish.dir === 1 && fish.x > canvas.width + 40) || (fish.dir === -1 && fish.x < -40)) {
+          Object.assign(fish, createFish());
         }
       }
       drawFish(fish);
@@ -809,7 +852,7 @@ function gameLoop() {
     for (let trash of trashes) {
       if (!trash.lifting && !trash.hit) {
         trash.x += trash.speed * trash.dir;
-        if ((trash.dir === 1 && trash.x > 820) || (trash.dir === -1 && trash.x < -20)) {
+        if ((trash.dir === 1 && trash.x > canvas.width + 40) || (trash.dir === -1 && trash.x < -40)) {
           // 重新生成
           Object.assign(trash, createTrash());
         }
@@ -852,48 +895,48 @@ function gameLoop() {
       }
     }
 
-    // 畫魷魚
-    if (squid && !squid.caught) {
-      if (!squid.lifting) {
-        squid.x += squid.speed * squid.dir;
-        if ((squid.dir === 1 && squid.x > 820) || (squid.dir === -1 && squid.x < -20)) {
-          squid = null; // 游出畫面消失
+    // 畫特殊海洋生物（魷魚/章魚）
+    if (specialSeaCreature && !specialSeaCreature.caught) {
+      if (!specialSeaCreature.lifting) {
+        specialSeaCreature.x += specialSeaCreature.speed * specialSeaCreature.dir;
+        if ((specialSeaCreature.dir === 1 && specialSeaCreature.x > canvas.width + 40) || (specialSeaCreature.dir === -1 && specialSeaCreature.x < -40)) {
+          specialSeaCreature = null; // 游出畫面消失
         }
       }
-      drawSquid(squid);
+      drawSpecialSeaCreature(specialSeaCreature);
     }
-    // 魷魚被釣上來動畫
-    if (squid && squid.lifting && !squid.caught) {
-      if (!squid.flyT) squid.flyT = 0;
-      squid.flyT += 0.04;
-      let startX = squid.x, startY = squid.y;
+    // 特殊生物被釣上來動畫
+    if (specialSeaCreature && specialSeaCreature.lifting && !specialSeaCreature.caught) {
+      if (!specialSeaCreature.flyT) specialSeaCreature.flyT = 0;
+      specialSeaCreature.flyT += 0.04;
+      let startX = specialSeaCreature.x, startY = specialSeaCreature.y;
       let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
       let endY = pot.y + pot.h/2 - 10;
-      let t = squid.flyT;
+      let t = specialSeaCreature.flyT;
       if (t > 1) t = 1;
-      squid.x = startX * (1-t) + endX * t;
-      squid.y = startY * (1-t) + endY * t - 80*t*(1-t);
+      specialSeaCreature.x = startX * (1-t) + endX * t;
+      specialSeaCreature.y = startY * (1-t) + endY * t - 80*t*(1-t);
       if (t === 1) {
         if (
-          squid.x > pot.x && squid.x < pot.x + pot.w &&
-          squid.y > pot.y && squid.y < pot.y + pot.h
+          specialSeaCreature.x > pot.x && specialSeaCreature.x < pot.x + pot.w &&
+          specialSeaCreature.y > pot.y && specialSeaCreature.y < pot.y + pot.h
         ) {
           if (timeLeft > 0 && !gameOver) {
-            squid.caught = true;
-            score += 200; // 魷魚加分
+            specialSeaCreature.caught = true;
+            score += 200; // 加分
             timeLeft += 20;
             if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
             // 進入漸層消失動畫
-            squid.fadeOut = true;
-            squid.alpha = 1;
-            squid.fadeStep = 0.04;
-            // 下一隻魷魚計時
-            scheduleSquid();
+            specialSeaCreature.fadeOut = true;
+            specialSeaCreature.alpha = 1;
+            specialSeaCreature.fadeStep = 0.04;
+            // 下一隻特殊生物計時
+            scheduleSpecialSeaCreature();
           }
-          squid.lifting = false;
-          squid.flyT = 0;
-          // 魷魚消失
-          setTimeout(() => { squid = null; }, 800);
+          specialSeaCreature.lifting = false;
+          specialSeaCreature.flyT = 0;
+          // 消失
+          setTimeout(() => { specialSeaCreature = null; }, 800);
         }
       }
     }
@@ -1094,6 +1137,13 @@ function gameLoop() {
       bowlY = pot.y;
       bowlSinkTargetY = null;
       animationId = requestAnimationFrame(gameLoop);
+      // --- 新增：時間歸零時直接顯示排行榜（若沒有垃圾動畫）---
+      if (!trashAnimating) {
+        setTimeout(() => {
+          let arr = addRank(score);
+          showRankModal(score);
+        }, 1200); // 與碗下沉動畫同步
+      }
       return;
     }
     animationId = requestAnimationFrame(gameLoop);
@@ -1205,9 +1255,9 @@ restartBtn.addEventListener("click", () => {
   hookY = 400;
   hookVelY = 0;
   hookTargetY = 400;
-  squid = null;
-  if (squidTimer) clearTimeout(squidTimer);
-  scheduleSquid();
+  specialSeaCreature = null;
+  if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
+  scheduleSpecialSeaCreature();
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
   bowlY = pot.y;
@@ -1286,9 +1336,10 @@ if (countdownTimer) clearTimeout(countdownTimer);
 spawnFish();
 spawnTrash();
 initLinePoints();
-squid = null;
-if (squidTimer) clearTimeout(squidTimer);
-scheduleSquid();
+nextSpecialType = 'squid'; // 初始化時從魷魚開始
+specialSeaCreature = null;
+if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
+scheduleSpecialSeaCreature();
 resizeGameCanvas();
 // --- 新增：重設鍋子位置與動畫狀態 ---
 bowlY = pot.y;
