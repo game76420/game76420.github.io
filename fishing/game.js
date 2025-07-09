@@ -46,10 +46,71 @@ const bigFish = {
   h: 50
 };
 
+// 檢查魚線碰撞的函數
+function checkLineCollision() {
+  // 檢查魚碰撞
+  for (let fish of fishes) {
+    if (fish.lifting || fish.caught) continue;
+    // 先判斷鉤子直接碰到
+    if (Math.abs(fish.x - bigFish.x) < 25 && Math.abs(fish.y - hookY) < 20) {
+      fish.lifting = true;
+      fish.flyT = 0;
+      continue;
+    }
+    // 再判斷是否在線上
+    for (let i = 0; i < linePoints.length - 1; i++) {
+      let x1 = linePoints[i].x, y1 = linePoints[i].y;
+      let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
+      let dx = x2 - x1, dy = y2 - y1;
+      let len2 = dx*dx + dy*dy;
+      let t = ((fish.x - x1) * dx + (fish.y - y1) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      let px = x1 + t * dx, py = y1 + t * dy;
+      let dist = Math.hypot(fish.x - px, fish.y - py);
+      if (dist < 15) {
+        fish.lifting = true;
+        fish.flyT = 0;
+        break;
+      }
+    }
+  }
+  
+  // 檢查垃圾碰撞
+  for (let trash of trashes) {
+    if (trash.lifting || trash.hit) continue;
+    if (Math.abs(trash.x - bigFish.x) < 25 && Math.abs(trash.y - hookY) < 20) {
+      trash.lifting = true;
+      trash.flyT = 0;
+      timeLeft -= 10;
+      if (timeLeft < 0) timeLeft = 0;
+      continue;
+    }
+    // 線段碰撞
+    for (let i = 0; i < linePoints.length - 1; i++) {
+      let x1 = linePoints[i].x, y1 = linePoints[i].y;
+      let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
+      let dx = x2 - x1, dy = y2 - y1;
+      let len2 = dx*dx + dy*dy;
+      let t = ((trash.x - x1) * dx + (trash.y - y1) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      let px = x1 + t * dx, py = y1 + t * dy;
+      let dist = Math.hypot(trash.x - px, trash.y - py);
+      if (dist < 15) {
+        trash.lifting = true;
+        trash.flyT = 0;
+        timeLeft -= 10;
+        if (timeLeft < 0) timeLeft = 0;
+        break;
+      }
+    }
+  }
+}
+
 // 抽出單一魚生成函數
 function createFish() {
-  const colors = ["gold", "#f77", "#7f7", "#77f", "#fcf", "#fa7"];
-  const color = colors[Math.floor(Math.random() * colors.length)];
+  // 減少紫色魚的比例：80% 黃色，20% 紫色
+  const isGold = Math.random() < 0.8;
+  const color = isGold ? "gold" : "#fcf";
   const face = Math.random() < 0.5 ? 'smile' : 'dot';
   // 隨機決定從左還是右進來
   const fromLeft = Math.random() < 0.5;
@@ -78,7 +139,7 @@ function spawnFish() {
 const TRASH_COUNT = 4;
 let trashes = [];
 function createTrash() {
-  // 兩種垃圾：罐頭、瓶子
+  // 只保留罐頭、瓶子
   const types = ['can', 'bottle'];
   const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
@@ -105,22 +166,46 @@ function drawTrash(trash) {
   ctx.save();
   ctx.translate(trash.x, trash.y);
   ctx.scale(trash.dir, 1);
+  ctx.lineWidth = 3;
+  // 不要黑色外框
   if (trash.type === 'can') {
-    // 畫罐頭
+    // 罐頭
     ctx.fillStyle = '#bbb';
-    ctx.fillRect(-10, -10, 20, 20);
+    ctx.beginPath();
+    ctx.rect(-10, -10, 20, 20);
+    ctx.fill();
     ctx.fillStyle = '#888';
     ctx.fillRect(-10, -10, 20, 6);
     ctx.fillStyle = '#f00';
     ctx.fillRect(-6, -2, 12, 8);
-  } else {
-    // 畫瓶子
-    ctx.fillStyle = '#8cf';
+  } else if (trash.type === 'bottle') {
+    // 瓶子（更像真實瓶子，有瓶蓋、瓶底、透明感）
+    // 瓶身
+    ctx.save();
+    let grad = ctx.createLinearGradient(0, -18, 0, 18);
+    grad.addColorStop(0, '#e0f7ff');
+    grad.addColorStop(1, '#8cf');
+    ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.ellipse(0, 0, 8, 18, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
+    // 瓶蓋
+    ctx.fillStyle = '#3af';
+    ctx.fillRect(-5, -18, 10, 6);
+    // 瓶底
+    ctx.fillStyle = '#7ad';
+    ctx.beginPath();
+    ctx.ellipse(0, 16, 7, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 亮光
+    ctx.save();
+    ctx.globalAlpha = 0.25;
     ctx.fillStyle = '#fff';
-    ctx.fillRect(-3, -14, 6, 8);
+    ctx.beginPath();
+    ctx.ellipse(-3, -4, 2, 8, Math.PI/8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -186,7 +271,7 @@ function drawPlayer() {
   ctx.restore();
   // 大魚
   ctx.save();
-  ctx.fillStyle = "#aaf";
+  ctx.fillStyle = "gold"; // 改為黃色
   ctx.beginPath();
   ctx.ellipse(bigFish.x, bigFish.y, bigFish.w/2, bigFish.h/2, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -196,26 +281,59 @@ function drawPlayer() {
   ctx.lineTo(bigFish.x - bigFish.w/2 - 20, bigFish.y - 20);
   ctx.lineTo(bigFish.x - bigFish.w/2 - 20, bigFish.y + 20);
   ctx.closePath();
-  ctx.fillStyle = "#88f";
+  ctx.fillStyle = "#fa0"; // 改為橙黃色魚尾
   ctx.fill();
   ctx.restore();
-  // 主角
+  // 主角（根據圖片重繪）
   ctx.save();
-  ctx.fillStyle = "#f44";
+  // 頭部紅色
+  ctx.fillStyle = "#e11";
   ctx.beginPath();
-  ctx.arc(bigFish.x, bigFish.y - 40, 22, 0, Math.PI * 2);
+  ctx.ellipse(bigFish.x, bigFish.y - 40, 22, 22, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 眼睛
+  // 左右紅耳朵
+  ctx.beginPath();
+  ctx.ellipse(bigFish.x - 16, bigFish.y - 52, 10, 12, 0, 0, Math.PI * 2);
+  ctx.ellipse(bigFish.x + 16, bigFish.y - 52, 10, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 臉部白色
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(bigFish.x - 7, bigFish.y - 45, 5, 0, Math.PI * 2);
-  ctx.arc(bigFish.x + 7, bigFish.y - 45, 5, 0, Math.PI * 2);
+  ctx.ellipse(bigFish.x, bigFish.y - 40, 16, 16, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#000";
+  // 綠色項圈
+  ctx.fillStyle = "#0c0";
   ctx.beginPath();
-  ctx.arc(bigFish.x - 7, bigFish.y - 45, 2, 0, Math.PI * 2);
-  ctx.arc(bigFish.x + 7, bigFish.y - 45, 2, 0, Math.PI * 2);
+  ctx.arc(bigFish.x, bigFish.y - 22, 6, 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(bigFish.x, bigFish.y - 22, 2, 0, Math.PI * 2);
+  ctx.fill();
+  // 眼鏡
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bigFish.x - 7, bigFish.y - 45, 6, 0, Math.PI * 2);
+  ctx.arc(bigFish.x + 7, bigFish.y - 45, 6, 0, Math.PI * 2);
+  ctx.moveTo(bigFish.x - 1, bigFish.y - 45);
+  ctx.lineTo(bigFish.x + 1, bigFish.y - 45);
+  ctx.stroke();
+  // 睡眼
+  ctx.strokeStyle = "#222";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bigFish.x - 11, bigFish.y - 45);
+  ctx.lineTo(bigFish.x - 3, bigFish.y - 45);
+  ctx.moveTo(bigFish.x + 3, bigFish.y - 45);
+  ctx.lineTo(bigFish.x + 11, bigFish.y - 45);
+  ctx.stroke();
+  // 嘴巴
+  ctx.strokeStyle = "#900";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(bigFish.x, bigFish.y - 34, 4, 0, Math.PI, false);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -223,7 +341,7 @@ function drawPlayer() {
 function drawRod() {
   updateLinePhysics();
   ctx.save();
-  ctx.strokeStyle = "#222";
+  ctx.strokeStyle = "#fff"; // 改為白色
   ctx.lineWidth = 2;
   ctx.setLineDash([6, 8]);
   ctx.beginPath();
@@ -246,41 +364,104 @@ function drawFish(fish) {
   ctx.save();
   ctx.translate(fish.x, fish.y);
   ctx.scale(fish.dir, 1);
-  ctx.fillStyle = fish.caught ? "#aaa" : fish.color;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // 魚尾
-  ctx.beginPath();
-  ctx.moveTo(-22, 0);
-  ctx.lineTo(-32, -8);
-  ctx.lineTo(-32, 8);
-  ctx.closePath();
-  ctx.fillStyle = fish.caught ? "#888" : "#f90";
-  ctx.fill();
-  // 眼睛
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.arc(10, -4, 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#000";
-  ctx.beginPath();
-  ctx.arc(11, -4, 1.5, 0, Math.PI * 2);
-  ctx.fill();
-  // 表情
-  ctx.save();
-  ctx.strokeStyle = "#000";
-  ctx.lineWidth = 2;
-  if (fish.face === 'smile') {
+  if (fish.color === '#fcf') {
+    // 紫色魚：粉紫色身體、綠色圓點、黑色魚鰭、紅色外框
+    // 紅色外框
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#c00';
     ctx.beginPath();
-    ctx.arc(10, 2, 3, 0, Math.PI, false);
+    ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
     ctx.stroke();
+    // 身體
+    ctx.fillStyle = '#fcf';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 綠色圓點
+    ctx.fillStyle = '#7c7';
+    for (let i = 0; i < 5; i++) {
+      let angle = Math.PI * 2 * i / 5 + 0.5;
+      let rx = Math.cos(angle) * 10;
+      let ry = Math.sin(angle) * 5;
+      ctx.beginPath();
+      ctx.ellipse(rx, ry, 4, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 魚尾
+    ctx.beginPath();
+    ctx.moveTo(-22, 0);
+    ctx.lineTo(-32, -8);
+    ctx.lineTo(-32, 8);
+    ctx.closePath();
+    ctx.fillStyle = '#fcf';
+    ctx.fill();
+    ctx.stroke();
+    // 黑色魚鰭
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.ellipse(8, -10, 5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 眼睛
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(10, -4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(11, -4, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // 表情（不變）
+    ctx.save();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    if (fish.face === 'smile') {
+      ctx.beginPath();
+      ctx.arc(10, 2, 3, 0, Math.PI, false);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(10, 2, 1, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   } else {
+    // 黃色魚維持原樣
+    ctx.fillStyle = fish.caught ? "#aaa" : fish.color;
     ctx.beginPath();
-    ctx.arc(10, 2, 1, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 魚尾
+    ctx.beginPath();
+    ctx.moveTo(-22, 0);
+    ctx.lineTo(-32, -8);
+    ctx.lineTo(-32, 8);
+    ctx.closePath();
+    ctx.fillStyle = fish.caught ? "#888" : "#f90";
+    ctx.fill();
+    // 眼睛
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(10, -4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(11, -4, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    // 表情
+    ctx.save();
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    if (fish.face === 'smile') {
+      ctx.beginPath();
+      ctx.arc(10, 2, 3, 0, Math.PI, false);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.arc(10, 2, 1, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
-  ctx.restore();
   ctx.restore();
 }
 
@@ -443,9 +624,9 @@ function gameLoop() {
   ctx.lineWidth = 2;
   ctx.strokeRect(barX, barY, barW, barH);
   // 數字
-  ctx.font = 'bold 18px Arial';
-  ctx.fillStyle = '#222';
-  ctx.fillText(timeLeft + ' / ' + GAME_TIME + ' 秒', barX + barW + 16, barY + barH - 3);
+  // ctx.font = 'bold 18px Arial';
+  // ctx.fillStyle = '#222';
+  // ctx.fillText(timeLeft + ' / ' + GAME_TIME + ' 秒', barX + barW + 16, barY + barH - 3);
   ctx.restore();
 
   // 時間
@@ -475,10 +656,18 @@ function gameLoop() {
           fish.y > pot.y && fish.y < pot.y + pot.h
         ) {
           fish.caught = true;
-          score += 100;
-          // 吃到魚增加遊戲時間
-          timeLeft += 3;
-          if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+          // 根據魚的顏色決定分數和時間
+          if (fish.color === "gold") {
+            // 黃色魚：加分加時間
+            score += 100;
+            timeLeft += 3;
+            if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+          } else {
+            // 紫色魚：扣分扣時間
+            score -= 50;
+            timeLeft -= 5;
+            if (timeLeft < 0) timeLeft = 0;
+          }
           // 立刻生成新魚
           fishes.push(createFish());
         }
@@ -493,61 +682,6 @@ function gameLoop() {
     if (hookY > player.y + 10) {
       hookY -= 18;
       if (hookY < player.y + 10) hookY = player.y + 10;
-      // 在拉鉤過程中，每一幀都判斷魚線碰撞
-      for (let fish of fishes) {
-        if (fish.lifting || fish.caught) continue;
-        // 先判斷鉤子直接碰到
-        if (Math.abs(fish.x - bigFish.x) < 25 && Math.abs(fish.y - hookY) < 20) {
-          fish.lifting = true;
-          fish.flyT = 0;
-          continue;
-        }
-        // 再判斷是否在線上
-        for (let i = 0; i < linePoints.length - 1; i++) {
-          let x1 = linePoints[i].x, y1 = linePoints[i].y;
-          let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
-          let dx = x2 - x1, dy = y2 - y1;
-          let len2 = dx*dx + dy*dy;
-          let t = ((fish.x - x1) * dx + (fish.y - y1) * dy) / len2;
-          t = Math.max(0, Math.min(1, t));
-          let px = x1 + t * dx, py = y1 + t * dy;
-          let dist = Math.hypot(fish.x - px, fish.y - py);
-          if (dist < 15) {
-            fish.lifting = true;
-            fish.flyT = 0;
-            break;
-          }
-        }
-      }
-      // 檢查垃圾碰撞
-      for (let trash of trashes) {
-        if (trash.lifting || trash.hit) continue;
-        if (Math.abs(trash.x - bigFish.x) < 25 && Math.abs(trash.y - hookY) < 20) {
-          trash.lifting = true;
-          trash.flyT = 0;
-          timeLeft -= 10;
-          if (timeLeft < 0) timeLeft = 0;
-          continue;
-        }
-        // 線段碰撞
-        for (let i = 0; i < linePoints.length - 1; i++) {
-          let x1 = linePoints[i].x, y1 = linePoints[i].y;
-          let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
-          let dx = x2 - x1, dy = y2 - y1;
-          let len2 = dx*dx + dy*dy;
-          let t = ((trash.x - x1) * dx + (trash.y - y1) * dy) / len2;
-          t = Math.max(0, Math.min(1, t));
-          let px = x1 + t * dx, py = y1 + t * dy;
-          let dist = Math.hypot(trash.x - px, trash.y - py);
-          if (dist < 15) {
-            trash.lifting = true;
-            trash.flyT = 0;
-            timeLeft -= 10;
-            if (timeLeft < 0) timeLeft = 0;
-            break;
-          }
-        }
-      }
     } else {
       // 拉到空中，甩魚
       fishing = false;
@@ -587,11 +721,13 @@ function countdown() {
 // 釣魚（滑鼠點擊或空白鍵）
 canvas.addEventListener("mousedown", () => {
   if (!gameOver && !fishing) {
+    checkLineCollision(); // 檢查碰撞
     fishing = true;
   }
 });
 document.addEventListener("keydown", (e) => {
   if (!gameOver && !fishing && e.code === "Space") {
+    checkLineCollision(); // 檢查碰撞
     fishing = true;
   }
 });
@@ -604,6 +740,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'ArrowDown') keyState.down = true;
   // 空白鍵釣魚
   if (!gameOver && !fishing && e.code === "Space") {
+    checkLineCollision(); // 檢查碰撞
     fishing = true;
   }
 });
@@ -614,6 +751,23 @@ window.addEventListener('keyup', (e) => {
   if (e.code === 'ArrowDown') keyState.down = false;
 });
 
+// 響應式 canvas 尺寸調整
+function resizeGameCanvas() {
+  const container = document.getElementById('gameBg');
+  const canvas = document.getElementById('gameCanvas');
+  // 預設比例 4:3
+  let w = container.clientWidth;
+  let h = Math.round(w * 3 / 4);
+  if (h > window.innerHeight * 0.8) {
+    h = Math.round(window.innerHeight * 0.8);
+    w = Math.round(h * 4 / 3);
+  }
+  canvas.width = w;
+  canvas.height = h;
+}
+window.addEventListener('resize', resizeGameCanvas);
+resizeGameCanvas();
+
 // 重新開始
 restartBtn.addEventListener("click", () => {
   // 停止前一輪動畫和計時
@@ -622,15 +776,20 @@ restartBtn.addEventListener("click", () => {
   score = 0;
   timeLeft = GAME_TIME;
   gameOver = false;
-  restartBtn.style.display = "none";
   spawnFish();
   spawnTrash();
   initLinePoints(); // 重新初始化魚線點
   hookY = 400;
   hookVelY = 0;
   hookTargetY = 400;
+  resizeGameCanvas();
   animationId = requestAnimationFrame(gameLoop);
   countdownTimer = setTimeout(countdown, 1000);
+});
+// 新增：遊戲說明按鈕
+const infoBtn = document.getElementById('infoBtn');
+infoBtn.addEventListener('click', () => {
+  alert(`遊戲說明：\n\n1. 方向鍵移動主角與魚鉤。\n2. 空白鍵或滑鼠點擊釣魚。\n3. 黃色魚加分加時間，紫色魚扣分扣時間。\n4. 勿釣到垃圾，會扣時間。\n5. 時間歸零遊戲結束，可隨時再玩一次。`);
 });
 
 // 初始化
@@ -640,5 +799,6 @@ if (countdownTimer) clearTimeout(countdownTimer);
 spawnFish();
 spawnTrash();
 initLinePoints();
+resizeGameCanvas();
 animationId = requestAnimationFrame(gameLoop);
 countdownTimer = setTimeout(countdown, 1000); 

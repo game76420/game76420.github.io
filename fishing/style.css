@@ -7,6 +7,15 @@
   border-radius: 20px;
   box-shadow: 0 0 20px #333;
 }
+#gameBg.responsive-bg {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  background: linear-gradient(to bottom, #b3e0ff 0%, #3399ff 100%);
+  border-radius: 20px;
+  box-shadow: 0 0 20px #333;
+  position: relative;
+}
 #scoreBar, #hungerBar {
   position: absolute;
   left: 20px;
@@ -47,9 +56,53 @@
   z-index: 3;
 }
 #gameCanvas {
-  position: absolute;
-  left: 0;
-  top: 0;
+  width: 100%;
+  height: auto;
+  max-width: 100vw;
+  max-height: 80vh;
+  display: block;
+  margin: 0 auto;
+  border-radius: 10px;
   z-index: 10;
   pointer-events: none;
+}
+.btn-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0 24px 0;
+}
+#restartBtn, #infoBtn {
+  font-size: 1.1em;
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  background: #fff;
+  color: #222;
+  box-shadow: 0 2px 8px #0002;
+  transition: background 0.2s;
+}
+#restartBtn:hover, #infoBtn:hover {
+  background: #e0e0ff;
+}
+@media (max-width: 600px) {
+  #gameBg.responsive-bg {
+    max-width: 100vw;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #gameCanvas {
+    max-width: 100vw;
+    max-height: 60vh;
+    border-radius: 0;
+  }
+  .btn-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  #scoreBar, #hungerBar {
+    font-size: 20px;
+    left: 8px;
+    top: 4px;
+  }
 } 
