@@ -1005,6 +1005,14 @@
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
+                <div class="game-card" onclick="openFishing()">
+                    <i class="fas fa-fish"></i>
+                    <h3>釣魚遊戲</h3>
+                    <p>經典釣魚遊戲，控制魚鉤釣魚，挑戰高分排行榜！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -1149,6 +1157,11 @@
         // Same Game
         function openSameGame() {
             window.open("samegame/index.html", "_blank");
+        }
+
+        // 釣魚遊戲
+        function openFishing() {
+            window.open("fishing/index.html", "_blank");
         }
 
         // 導航列高亮
