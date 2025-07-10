@@ -1559,22 +1559,16 @@ window.addEventListener('keydown', function(e) {
     const joystick = document.getElementById('joystick');
     const screenButtons = document.getElementById('screenButtons');
     if (joystick && screenButtons) {
-      // 橫版模式顯示虛擬搖桿和釣魚按鈕
       if (isLandscape && window.innerWidth <= 900) {
         joystick.style.display = 'block';
         screenButtons.style.display = 'block';
-      }
-      // 手機直版模式顯示虛擬搖桿和釣魚按鈕
-      else if (isPortrait && isMobile) {
+      } else if (isPortrait && isMobile) {
         joystick.style.display = 'block';
         screenButtons.style.display = 'block';
-      }
-      // 其他情況隱藏
-      else {
+      } else {
         joystick.style.display = 'none';
         screenButtons.style.display = 'none';
       }
-      // 強制 z-index
       screenButtons.style.zIndex = 2000;
     }
   }
@@ -1588,30 +1582,22 @@ window.addEventListener('keydown', function(e) {
   const directionIndicators = document.querySelectorAll('.direction-indicator');
   let dragging = false, startX = 0, startY = 0, baseRect = null;
   let joyDX = 0, joyDY = 0;
+  let activeTouchId = null;
 
-  // 更新方向指示器
   function updateDirectionIndicators() {
-    // 清除所有指示器
     directionIndicators.forEach(indicator => {
       indicator.classList.remove('active');
     });
-    
-    // 根據搖桿位置顯示對應的指示器
     if (Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1) {
       let direction = '';
-      
       if (joyDY < -0.3) direction += 'up';
       else if (joyDY > 0.3) direction += 'down';
-      
       if (joyDX < -0.3) direction += '-left';
       else if (joyDX > 0.3) direction += '-right';
-      
-      // 如果是對角線方向，使用組合類名
       if (direction.includes('-')) {
         const indicator = document.querySelector(`.direction-indicator.${direction}`);
         if (indicator) indicator.classList.add('active');
       } else if (direction) {
-        // 單一方向
         const indicator = document.querySelector(`.direction-indicator.${direction}`);
         if (indicator) indicator.classList.add('active');
       }
@@ -1620,20 +1606,29 @@ window.addEventListener('keydown', function(e) {
 
   if (joystick && knob) {
     knob.addEventListener('touchstart', function(e) {
+      if (dragging) return;
       dragging = true;
       const touch = e.touches[0];
+      activeTouchId = touch.identifier;
       baseRect = joystick.getBoundingClientRect();
-      startX = touch.clientX;
-      startY = touch.clientY;
+      startX = baseRect.left + baseRect.width / 2;
+      startY = baseRect.top + baseRect.height / 2;
       e.preventDefault();
       e.stopPropagation();
     }, { passive: false });
-    window.addEventListener('touchmove', function(e) {
+
+    document.addEventListener('touchmove', function(e) {
       if (!dragging) return;
-      const touch = e.touches[0];
+      let touch = null;
+      for (let t of e.touches) {
+        if (t.identifier === activeTouchId) {
+          touch = t;
+          break;
+        }
+      }
+      if (!touch) return;
       let dx = touch.clientX - startX;
       let dy = touch.clientY - startY;
-      // 限制最大距離
       const maxDist = 45;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist > maxDist) {
@@ -1644,30 +1639,34 @@ window.addEventListener('keydown', function(e) {
       knob.style.top = (35 + dy) + 'px';
       joyDX = dx / maxDist;
       joyDY = dy / maxDist;
-      // 對應 keyState
-      keyState.left = joyDX < -0.3;
-      keyState.right = joyDX > 0.3;
-      keyState.up = joyDY < -0.3;
-      keyState.down = joyDY > 0.3;
-      
-      // 更新方向指示器
+      keyState.left = joyDX < -0.2;
+      keyState.right = joyDX > 0.2;
+      keyState.up = joyDY < -0.2;
+      keyState.down = joyDY > 0.2;
       updateDirectionIndicators();
-      
       e.preventDefault();
     }, {passive: false});
-    window.addEventListener('touchend', function(e) {
+
+    document.addEventListener('touchend', function(e) {
       if (!dragging) return;
+      let stillTouching = false;
+      for (let t of e.touches) {
+        if (t.identifier === activeTouchId) {
+          stillTouching = true;
+          break;
+        }
+      }
+      if (stillTouching) return;
       dragging = false;
+      activeTouchId = null;
       knob.style.left = '35px';
       knob.style.top = '35px';
       joyDX = 0; joyDY = 0;
       keyState.left = keyState.right = keyState.up = keyState.down = false;
-      
-      // 清除所有方向指示器
       directionIndicators.forEach(indicator => {
         indicator.classList.remove('active');
       });
-    });
+    }, {passive: false});
   }
 
   // 虛擬按鈕控制
@@ -1683,7 +1682,6 @@ window.addEventListener('keydown', function(e) {
         hookThrowEndY = 60; // 改為 60
         hookThrowStartX = bigFish.x;
         hookThrowEndX = bigFish.x;
-        // 播放拉竿音效
         if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
       }
       if (e) {
@@ -1695,7 +1693,6 @@ window.addEventListener('keydown', function(e) {
     actionBtn.addEventListener('click', triggerFishingAction);
   }
 
-  // 新增：Canvas 點擊釣魚功能
   function triggerFishingFromCanvas(e) {
     if (!fishing && !hookThrowing && !gameOver) {
       checkLineCollision();
@@ -1706,13 +1703,10 @@ window.addEventListener('keydown', function(e) {
       hookThrowEndY = 60;
       hookThrowStartX = bigFish.x;
       hookThrowEndX = bigFish.x;
-      // 播放拉竿音效
       if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
     }
     if (e) e.preventDefault();
   }
-  
-  // 為 canvas 添加點擊和觸摸事件
   canvas.addEventListener('click', triggerFishingFromCanvas);
   canvas.addEventListener('touchstart', triggerFishingFromCanvas);
 })();
@@ -1772,3 +1766,41 @@ function playRandomCatchSound() {
 const penaltySound = new Audio('sound/Data_15.wav');
 // 新增：碗沉到底音效
 const bowlSinkSound = new Audio('sound/Data_16.wav');
+
+let isMuted = false;
+
+function setAllAudioMuted(muted) {
+  tensionSound.muted = muted;
+  rodPullSound.muted = muted;
+  catchSound.muted = muted;
+  catchSound2.muted = muted;
+  penaltySound.muted = muted;
+  bowlSinkSound.muted = muted;
+  if (Array.isArray(foodSounds)) {
+    foodSounds.forEach(s => s.muted = muted);
+  }
+}
+
+window.toggleMute = function() {
+  isMuted = !isMuted;
+  setAllAudioMuted(isMuted);
+  // 切換 emoji
+  const btn = document.getElementById('muteBtn');
+  const emojiOn = document.getElementById('muteEmojiOn');
+  const emojiOff = document.getElementById('muteEmojiOff');
+  if (btn) btn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
+  if (emojiOn) emojiOn.style.display = isMuted ? 'none' : 'inline';
+  if (emojiOff) emojiOff.style.display = isMuted ? 'inline' : 'none';
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+  const btn = document.getElementById('muteBtn');
+  if (btn) btn.addEventListener('click', window.toggleMute);
+  setAllAudioMuted(isMuted);
+  // 根據 isMuted 設定 emoji 狀態
+  const emojiOn = document.getElementById('muteEmojiOn');
+  const emojiOff = document.getElementById('muteEmojiOff');
+  if (btn) btn.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
+  if (emojiOn) emojiOn.style.display = isMuted ? 'none' : 'inline';
+  if (emojiOff) emojiOff.style.display = isMuted ? 'inline' : 'none';
+});

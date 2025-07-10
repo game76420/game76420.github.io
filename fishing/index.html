@@ -38,26 +38,57 @@
       object-fit: cover;
     }
     
-    #restartBtn, #infoBtn { 
-      display: inline-block; 
-      font-size: 24px; 
+    #restartBtn, #infoBtn, #muteBtn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
       margin: 8px;
-      padding: 16px;
+      padding: 8px 22px;
       background: rgba(74, 144, 226, 0.8);
       color: white;
       border: none;
-      border-radius: 50%;
+      border-radius: 0;
       cursor: pointer;
-      transition: all 0.2s;
-      width: 60px;
-      height: 60px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+      width: auto;
+      height: auto;
+      min-width: 48px;
+      min-height: 36px;
+      box-shadow: none;
+      backdrop-filter: none;
     }
-    
-    #restartBtn:hover, #infoBtn:hover {
+    #restartBtn:hover, #infoBtn:hover, #muteBtn:hover {
       background: rgba(53, 122, 189, 0.9);
-      transform: scale(1.1);
+      color: #fff;
+      transform: scale(1.07);
+    }
+    #muteBtn svg {
+      margin: 0 0 0 0;
+    }
+    @media (orientation: landscape) and (max-width: 900px) {
+      #restartBtn, #infoBtn, #muteBtn {
+        font-size: 15px;
+        padding: 6px 14px;
+        min-width: 36px;
+        min-height: 28px;
+      }
+    }
+    @media (max-width: 768px) {
+      #restartBtn, #infoBtn, #muteBtn {
+        font-size: 15px;
+        padding: 6px 14px;
+        min-width: 36px;
+        min-height: 28px;
+      }
+    }
+    @media (max-width: 480px) {
+      #restartBtn, #infoBtn, #muteBtn {
+        font-size: 13px;
+        padding: 4px 10px;
+        min-width: 28px;
+        min-height: 22px;
+      }
     }
     
     .btn-row {
@@ -83,10 +114,10 @@
       }
       
       #restartBtn, #infoBtn {
-        font-size: 18px;
-        width: 45px;
-        height: 45px;
-        padding: 10px;
+        font-size: 16px;
+        padding: 6px 14px;
+        min-width: 36px;
+        min-height: 28px;
       }
     }
     
@@ -279,17 +310,19 @@
     /* 手機直版模式 - 虛擬搖桿放在下方 */
     @media (orientation: portrait) and (max-width: 768px) {
       .btn-row {
+        flex-direction: row;
+        gap: 8px;
         top: 20px;
         right: 20px;
         transform: none;
-        gap: 12px;
+        left: auto;
       }
       
-      #restartBtn, #infoBtn {
-        font-size: 18px;
-        width: 45px;
-        height: 45px;
-        padding: 10px;
+      #restartBtn, #infoBtn, #muteBtn {
+        font-size: 15px;
+        padding: 6px 14px;
+        min-width: 36px;
+        min-height: 28px;
       }
       
       #joystick {
@@ -330,10 +363,10 @@
       }
       
       #restartBtn, #infoBtn {
-        font-size: 20px;
-        width: 50px;
-        height: 50px;
-        padding: 12px;
+        font-size: 16px;
+        padding: 6px 14px;
+        min-width: 36px;
+        min-height: 28px;
       }
     }
     
@@ -344,10 +377,10 @@
       }
       
       #restartBtn, #infoBtn {
-        font-size: 18px;
-        width: 45px;
-        height: 45px;
-        padding: 10px;
+        font-size: 14px;
+        padding: 4px 10px;
+        min-width: 28px;
+        min-height: 22px;
       }
     }
   </style>
@@ -389,6 +422,10 @@
   <div class="btn-row">
     <button id="restartBtn" title="重新開始">🔄</button>
     <button id="infoBtn" title="遊戲說明">ℹ️</button>
+    <button id="muteBtn" title="靜音/開啟聲音" aria-pressed="false">
+      <span id="muteEmojiOn" style="display:inline;">🔊</span>
+      <span id="muteEmojiOff" style="display:none;">🔇</span>
+    </button>
   </div>
   <div id="joystick" style="display:none;">
     <div id="joystick-base"></div>
