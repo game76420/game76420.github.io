@@ -73,6 +73,8 @@ let bowlImpulseY = 0; // 新增：碗的下沉衝擊
 // --- 新增：主角移動影響波浪 ---
 let waveDisturb = { x: 0, v: 0, t: 0 };
 
+const COLLISION_DIST = 38;
+
 // 檢查魚線碰撞的函數
 function checkLineCollision() {
   // 每次檢查前先重設碰撞標記
@@ -84,6 +86,8 @@ function checkLineCollision() {
     if (Math.abs(fish.x - bigFish.x) < 32 && Math.abs(fish.y - hookY) < 28) {
       fish.lifting = true;
       fish.flyT = 0;
+      // 播放釣到東西音效（隨機）
+      playRandomCatchSound();
       continue;
     }
     // 再判斷是否在線上（距離放寬）
@@ -96,10 +100,12 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(fish.x - px, fish.y - py);
-      if (dist < 24) { // 原本 15，放寬到 24
+      if (dist < COLLISION_DIST) { // 統一判斷距離
         fish.lifting = true;
         fish.flyT = 0;
         lineCollisions[i] = true;
+        // 播放釣到東西音效（隨機）
+        playRandomCatchSound();
         break;
       }
     }
@@ -111,6 +117,8 @@ function checkLineCollision() {
     if (Math.abs(trash.x - bigFish.x) < 32 && Math.abs(trash.y - hookY) < 28) {
       trash.lifting = true;
       trash.flyT = 0;
+      // 播放釣到東西音效（隨機）
+      playRandomCatchSound();
       if (timeLeft > 0 && !gameOver) {
         if (timeLeft - 30 <= 0) {
           timeLeft = 0;
@@ -131,9 +139,11 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(trash.x - px, trash.y - py);
-      if (dist < 24) { // 原本 15，放寬到 24
+      if (dist < COLLISION_DIST) { // 統一判斷距離
         trash.lifting = true;
         trash.flyT = 0;
+        // 播放釣到東西音效（隨機）
+        playRandomCatchSound();
         if (timeLeft > 0 && !gameOver) {
           if (timeLeft - 30 <= 0) {
             timeLeft = 0;
@@ -153,6 +163,8 @@ function checkLineCollision() {
     if (Math.abs(specialSeaCreature.x - bigFish.x) < 36 && Math.abs(specialSeaCreature.y - hookY) < 32) {
       specialSeaCreature.lifting = true;
       specialSeaCreature.flyT = 0;
+      // 播放釣到東西音效（隨機）
+      playRandomCatchSound();
     } else {
       // 線段碰撞（距離放寬）
       for (let i = 0; i < linePoints.length - 1; i++) {
@@ -164,10 +176,12 @@ function checkLineCollision() {
         t = Math.max(0, Math.min(1, t));
         let px = x1 + t * dx, py = y1 + t * dy;
         let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
-        if (dist < 28) { // 原本 18，放寬到 28
+        if (dist < COLLISION_DIST) { // 統一判斷距離
           specialSeaCreature.lifting = true;
           specialSeaCreature.flyT = 0;
           lineCollisions[i] = true;
+          // 播放釣到東西音效（隨機）
+          playRandomCatchSound();
           break;
         }
       }
@@ -196,7 +210,10 @@ function createFish() {
     face,
     fadeOut: false, // 新增：漸層消失動畫
     alpha: 1, // 新增：漸層消失動畫
-    fadeStep: 0.04 // 新增：漸層消失動畫
+    fadeStep: 0.04, // 新增：漸層消失動畫
+    // 新增：動畫相關屬性（僅黃魚）
+    animTime: 0, // 動畫時間
+    animSpeed: 4 // 動畫速度（0.25秒切換一次）
   };
 }
 // 修改 spawnFish 使用 createFish
@@ -219,9 +236,21 @@ canImg.src = 'img/can.png';
 // 新增：預載黃色魚圖片
 const yellowFishImg = new Image();
 yellowFishImg.src = 'img/yellow_fish.png';
+// 新增：預載黃色魚圖片2
+const yellowFishImg2 = new Image();
+yellowFishImg2.src = 'img/yellow_fish2.png';
+// 新增：預載黃色魚圖片3
+const yellowFishImg3 = new Image();
+yellowFishImg3.src = 'img/yellow_fish3.png';
 // 新增：預載紫色魚圖片
 const purpleFishImg = new Image();
 purpleFishImg.src = 'img/purple_fish.png';
+// 新增：預載紫色魚圖片2
+const purpleFishImg2 = new Image();
+purpleFishImg2.src = 'img/purple_fish2.png';
+// 新增：預載紫色魚圖片3
+const purpleFishImg3 = new Image();
+purpleFishImg3.src = 'img/purple_fish3.png';
 // 新增：預載主角貓咪圖片
 const catImg = new Image();
 catImg.src = 'img/cat.png';
@@ -238,18 +267,39 @@ seaUrchinImg.src = 'img/seaurchin.png';
 const octopusImg = new Image();
 octopusImg.src = 'img/octopus.png';
 
-// --- 魷魚/章魚相關 ---
+// 新增：預載海參圖片
+const seaCucumberImg = new Image();
+seaCucumberImg.src = 'img/sea​​cucumber.png'; // 使用正確的文件名
+// 添加圖片載入錯誤處理
+seaCucumberImg.onerror = function() {
+  console.error('海參圖片載入失敗:', seaCucumberImg.src);
+};
+seaCucumberImg.onload = function() {
+  console.log('海參圖片載入成功');
+};
+
+// 新增：預載海參圖片2
+const seaCucumberImg2 = new Image();
+seaCucumberImg2.src = 'img/sea​​cucumber2.png';
+// 添加圖片載入錯誤處理
+seaCucumberImg2.onerror = function() {
+  console.error('海參圖片2載入失敗:', seaCucumberImg2.src);
+};
+seaCucumberImg2.onload = function() {
+  console.log('海參圖片2載入成功');
+};
+
+// --- 魷魚/章魚/海參相關 ---
 let specialSeaCreature = null; // 取代 squid
 let specialSeaCreatureTimer = null;
-const SPECIAL_CREATURE_INTERVAL = 30000; // 30秒
+const SPECIAL_CREATURE_INTERVAL = 10000; // 10秒
 function createSpecialSeaCreature() {
-  // 隨機決定是魷魚還是章魚
-  const isSquid = Math.random() < 0.5;
+  // 只生成海參
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -40 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
   return {
-    type: isSquid ? 'squid' : 'octopus',
+    type: 'seacucumber',
     x,
     y: Math.random() * 350 + 220,
     speed: 2.2 + Math.random() * 1.5,
@@ -259,18 +309,46 @@ function createSpecialSeaCreature() {
     flyT: 0,
     fadeOut: false,
     alpha: 1,
-    fadeStep: 0.04
+    fadeStep: 0.04,
+    // 新增：動畫相關屬性
+    animTime: 0, // 動畫時間
+    animSpeed: 2 // 動畫速度（0.5秒切換一次）
   };
 }
 function spawnSpecialSeaCreature() {
   specialSeaCreature = createSpecialSeaCreature();
+  console.log('生成海參');
 }
 function scheduleSpecialSeaCreature() {
   if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
   specialSeaCreatureTimer = setTimeout(() => {
-    spawnSpecialSeaCreature();
+    // 只有當畫面上沒有海參時才生成
+    if (!specialSeaCreature || specialSeaCreature.caught || (specialSeaCreature.x < -60 || specialSeaCreature.x > canvas.width + 60)) {
+      spawnSpecialSeaCreature();
+    }
     scheduleSpecialSeaCreature();
   }, SPECIAL_CREATURE_INTERVAL);
+}
+
+// 測試函數：立即生成海參
+function spawnTestSeaCucumber() {
+  specialSeaCreature = {
+    type: 'seacucumber',
+    x: 400,
+    y: 300,
+    speed: 2,
+    dir: 1,
+    caught: false,
+    lifting: false,
+    flyT: 0,
+    fadeOut: false,
+    alpha: 1,
+    fadeStep: 0.04,
+    // 新增：動畫相關屬性
+    animTime: 0, // 動畫時間
+    animSpeed: 2 // 動畫速度（0.5秒切換一次）
+  };
+  console.log('測試：生成海參');
 }
 function drawSpecialSeaCreature(creature) {
   ctx.save();
@@ -281,32 +359,27 @@ function drawSpecialSeaCreature(creature) {
     creature.alpha -= creature.fadeStep;
     if (creature.alpha < 0) creature.alpha = 0;
   }
-  if (creature.type === 'squid') {
-    if (squidImg.complete && squidImg.naturalWidth > 0) {
-      ctx.drawImage(
-        squidImg,
-        -squidImg.naturalWidth / 2,
-        -squidImg.naturalHeight / 2
-      );
-    } else {
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  } else if (creature.type === 'octopus') {
-    if (octopusImg.complete && octopusImg.naturalWidth > 0) {
-      ctx.drawImage(
-        octopusImg,
-        -octopusImg.naturalWidth / 2,
-        -octopusImg.naturalHeight / 2
-      );
-    } else {
-      ctx.fillStyle = '#f6a';
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
+  
+  // 更新動畫時間
+  if (!creature.lifting && !creature.caught) {
+    creature.animTime += deltaTime / 1000; // 轉換為秒
+  }
+  
+  // 根據動畫時間決定使用哪張圖片（1秒切換一次）
+  const useSecondImage = Math.floor(creature.animTime * creature.animSpeed) % 2 === 1;
+  const currentImg = useSecondImage ? seaCucumberImg2 : seaCucumberImg;
+  
+  if (currentImg.complete && currentImg.naturalWidth > 0) {
+    ctx.drawImage(
+      currentImg,
+      -currentImg.naturalWidth / 2,
+      -currentImg.naturalHeight / 2
+    );
+  } else {
+    ctx.fillStyle = '#222';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -440,7 +513,7 @@ function updateLineCollisions() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(fish.x - px, fish.y - py);
-      if (dist < 15) {
+      if (dist < COLLISION_DIST) {
         lineCollisions[i] = true;
       }
     }
@@ -457,7 +530,23 @@ function updateLineCollisions() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(trash.x - px, trash.y - py);
-      if (dist < 15) {
+      if (dist < COLLISION_DIST) {
+        lineCollisions[i] = true;
+      }
+    }
+  }
+  // 檢查特殊海洋生物
+  if (specialSeaCreature && !specialSeaCreature.lifting && !specialSeaCreature.caught) {
+    for (let i = 0; i < linePoints.length - 1; i++) {
+      let x1 = linePoints[i].x, y1 = linePoints[i].y;
+      let x2 = linePoints[i+1].x, y2 = linePoints[i+1].y;
+      let dx = x2 - x1, dy = y2 - y1;
+      let len2 = dx*dx + dy*dy;
+      let t = ((specialSeaCreature.x - x1) * dx + (specialSeaCreature.y - y1) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      let px = x1 + t * dx, py = y1 + t * dy;
+      let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
+      if (dist < COLLISION_DIST) {
         lineCollisions[i] = true;
       }
     }
@@ -541,12 +630,24 @@ function drawFish(fish) {
     if (fish.alpha < 0) fish.alpha = 0;
   }
   if (fish.color === 'gold') {
+    // 更新動畫時間（僅黃魚）
+    if (!fish.lifting && !fish.caught) {
+      fish.animTime += deltaTime / 1000; // 轉換為秒
+    }
+    
+    // 根據動畫時間決定使用哪張圖片（0.5秒切換一次）
+    const animFrame = Math.floor(fish.animTime * fish.animSpeed) % 3; // 3張圖片循環
+    let currentImg;
+    if (animFrame === 0) currentImg = yellowFishImg;
+    else if (animFrame === 1) currentImg = yellowFishImg2;
+    else currentImg = yellowFishImg3;
+    
     // 用黃色魚圖片（原尺寸，置中）
-    if (yellowFishImg.complete && yellowFishImg.naturalWidth > 0) {
+    if (currentImg.complete && currentImg.naturalWidth > 0) {
       ctx.drawImage(
-        yellowFishImg,
-        -yellowFishImg.naturalWidth / 2,
-        -yellowFishImg.naturalHeight / 2
+        currentImg,
+        -currentImg.naturalWidth / 2,
+        -currentImg.naturalHeight / 2
       );
     } else {
       // 尚未載入時，顯示黃色橢圓作為佔位
@@ -555,13 +656,21 @@ function drawFish(fish) {
       ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
       ctx.fill();
     }
-  } else if (fish.color === '#fcf') {
-    // 用紫色魚圖片（原尺寸，置中）
-    if (purpleFishImg.complete && purpleFishImg.naturalWidth > 0) {
+  } else if (fish.color === "#fcf") {
+    // 新增：紫色魚動畫（0.25秒一張，三張循環）
+    if (!fish.lifting && !fish.caught) {
+      fish.animTime += deltaTime / 1000;
+    }
+    const animFrame = Math.floor(fish.animTime * 4) % 3; // 0.25秒一張
+    let currentImg;
+    if (animFrame === 0) currentImg = purpleFishImg;
+    else if (animFrame === 1) currentImg = purpleFishImg2;
+    else currentImg = purpleFishImg3;
+    if (currentImg.complete && currentImg.naturalWidth > 0) {
       ctx.drawImage(
-        purpleFishImg,
-        -purpleFishImg.naturalWidth / 2,
-        -purpleFishImg.naturalHeight / 2
+        currentImg,
+        -currentImg.naturalWidth / 2,
+        -currentImg.naturalHeight / 2
       );
     } else {
       // 尚未載入時，顯示紫色橢圓作為佔位
@@ -700,6 +809,11 @@ function getWaveY(x, t) {
   y += disturb * 10; // 擾動強度
   return y;
 }
+
+// 新增：緊張背景音效
+const tensionSound = new Audio('sound/Data_4.wav');
+let lastTensionSoundTime = 0;
+let tensionSoundInterval = 2000; // 初始2秒
 
 // 遊戲主迴圈
 function gameLoop(currentTime) {
@@ -893,6 +1007,9 @@ function gameLoop(currentTime) {
           trash.hit = true;
           trash.lifting = false;
           trash.flyT = 0;
+          // 新增：垃圾進入碗fadeOut時播放扣秒音效
+          penaltySound.currentTime = 0;
+          penaltySound.play();
           Object.assign(trash, createTrash()); // 先讓垃圾消失
           // --- 新增：如果 pendingGameOver，這時才正式 gameOver ---
           if (pendingGameOver) {
@@ -940,13 +1057,26 @@ function gameLoop(currentTime) {
         ) {
           if (timeLeft > 0 && !gameOver) {
             specialSeaCreature.caught = true;
-            score += 200; // 加分
-            timeLeft += 20;
-            if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+            // 根據特殊生物類型決定獎勵
+            if (specialSeaCreature.type === 'squid' || specialSeaCreature.type === 'octopus') {
+              score += 200; // 魷魚和章魚加分
+              timeLeft += 20;
+              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+              // playRandomFoodSound(); // 移除這行，改到下方
+            } else if (specialSeaCreature.type === 'seacucumber') {
+              score += 20; // 海參加分
+              timeLeft += 3;
+              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+              // playRandomFoodSound(); // 移除這行，改到下方
+            }
             // 進入漸層消失動畫
             specialSeaCreature.fadeOut = true;
             specialSeaCreature.alpha = 1;
             specialSeaCreature.fadeStep = 0.04;
+            // 新增：只有特殊生物進入fadeOut時才播放食物音效
+            if (specialSeaCreature.type === 'squid' || specialSeaCreature.type === 'octopus' || specialSeaCreature.type === 'seacucumber') {
+              playRandomFoodSound();
+            }
             // 下一隻特殊生物計時
             scheduleSpecialSeaCreature();
           }
@@ -1026,9 +1156,10 @@ function gameLoop(currentTime) {
                 score += 100;
                 timeLeft += 3;
                 if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
+                // playRandomFoodSound(); // 移除這行，改到下方
               } else if (fish.color === "#fcf") {
                 if (timeLeft > 0 && !gameOver) {
-                  timeLeft = Math.max(0, timeLeft - 5);
+                  timeLeft = Math.max(0, timeLeft - 10);
                 }
               }
               // 立刻生成新魚
@@ -1037,6 +1168,15 @@ function gameLoop(currentTime) {
               fish.fadeOut = true;
               fish.alpha = 1;
               fish.fadeStep = 0.04;
+              // 新增：紫色魚進入fadeOut時播放扣秒音效
+              if (fish.color === "#fcf") {
+                penaltySound.currentTime = 0;
+                penaltySound.play();
+              }
+              // 黃色魚進入fadeOut時才播放食物音效
+              if (fish.color === "gold") {
+                playRandomFoodSound();
+              }
             }
           }
           fish.lifting = false;
@@ -1133,6 +1273,9 @@ function gameLoop(currentTime) {
       // --- 動畫結束，顯示排行榜 ---
       if (bowlY >= bowlSinkTargetY) {
         bowlY = bowlSinkTargetY; // 鎖定在水底
+        // 新增：播放碗沉到底音效
+        bowlSinkSound.currentTime = 0;
+        bowlSinkSound.play();
         setTimeout(() => {
           let arr = addRank(score);
           showRankModal(score);
@@ -1164,6 +1307,25 @@ function gameLoop(currentTime) {
       return;
     }
     animationId = requestAnimationFrame(gameLoop);
+
+    // === 緊張背景音效 ===
+    if (!gameOver && timeLeft > 0) {
+      let minInterval = 80; // 幾乎連續
+      let maxInterval = 2000; // 最慢2秒
+      let t = Math.max(0, Math.min(1, timeLeft / GAME_TIME));
+      tensionSoundInterval = minInterval + (maxInterval - minInterval) * t;
+      if (!lastTensionSoundTime) lastTensionSoundTime = currentTime;
+      // 只有當音效沒在播放時才播放下一次
+      if ((currentTime - lastTensionSoundTime >= tensionSoundInterval) && tensionSound.paused) {
+        tensionSound.currentTime = 0;
+        tensionSound.play();
+        lastTensionSoundTime = currentTime;
+      }
+    } else {
+      tensionSound.pause();
+      tensionSound.currentTime = 0;
+      lastTensionSoundTime = 0;
+    }
   } catch (e) {
     // 若有錯誤，顯示在 console，並嘗試繼續下一幀
     console.error('gameLoop error:', e);
@@ -1203,6 +1365,8 @@ canvas.addEventListener("mousedown", () => {
     hookThrowEndY = 60; // 天空高度
     hookThrowStartX = bigFish.x;
     hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    // 播放拉竿音效
+    if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
 });
 document.addEventListener("keydown", (e) => {
@@ -1217,6 +1381,8 @@ document.addEventListener("keydown", (e) => {
     hookThrowEndY = 60; // 天空高度
     hookThrowStartX = bigFish.x;
     hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    // 播放拉竿音效
+    if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
 });
 
@@ -1238,6 +1404,8 @@ window.addEventListener('keydown', (e) => {
     hookThrowEndY = 60; // 天空高度
     hookThrowStartX = bigFish.x;
     hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    // 播放拉竿音效
+    if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
 });
 window.addEventListener('keyup', (e) => {
@@ -1300,8 +1468,16 @@ restartBtn.addEventListener("click", () => {
   hookVelY = 0;
   hookTargetY = 400;
   specialSeaCreature = null;
-  if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
-  scheduleSpecialSeaCreature();
+if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
+scheduleSpecialSeaCreature();
+// 測試：立即生成海參
+setTimeout(() => {
+  spawnTestSeaCucumber();
+}, 2000); // 2秒後生成測試海參
+// 測試：立即生成海參
+setTimeout(() => {
+  spawnTestSeaCucumber();
+}, 2000); // 2秒後生成測試海參
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
   bowlY = pot.y;
@@ -1334,9 +1510,10 @@ infoBtn.addEventListener('click', () => {
       <b>【詳細分數與時間規則】</b><br>
       <ul style="padding-left: 1.2em;">
         <li><b>黃色魚</b><br>分數：+100 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
-        <li><b>紫色魚</b><br>分數：不變<br>時間：-5 秒（但剩餘時間不會低於 0）</li>
+        <li><b>紫色魚</b><br>分數：不變<br>時間：-10 秒（但剩餘時間不會低於 0）</li>
         <li><b>垃圾（罐頭、瓶子）</b><br>分數：不變<br><span style="color:#e11;"><b>時間：-30 秒</b></span>（但剩餘時間不會低於 0）</li>
-        <li><b>魷魚</b><br>分數：+200 分<br>時間：+20 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
+        <li><b>魷魚/章魚</b><br>分數：+200 分<br>時間：+20 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
+        <li><b>海參</b><br>分數：+20 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
       </ul>
     </div>
   `;
@@ -1506,6 +1683,8 @@ window.addEventListener('keydown', function(e) {
         hookThrowEndY = 60; // 改為 60
         hookThrowStartX = bigFish.x;
         hookThrowEndX = bigFish.x;
+        // 播放拉竿音效
+        if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
       }
       if (e) {
         e.preventDefault();
@@ -1527,6 +1706,8 @@ window.addEventListener('keydown', function(e) {
       hookThrowEndY = 60;
       hookThrowStartX = bigFish.x;
       hookThrowEndX = bigFish.x;
+      // 播放拉竿音效
+      if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
     }
     if (e) e.preventDefault();
   }
@@ -1558,3 +1739,36 @@ bowlY_vel = 0;
 bowlImpulseY = 0; // 重置碗下沉衝擊
 animationId = requestAnimationFrame(gameLoop);
 countdownTimer = setTimeout(countdown, 1000); 
+
+// 新增：拉起釣竿音效
+const rodPullSound = new Audio('sound/Data_1.wav');
+// 新增：釣到東西音效
+const catchSound = new Audio('sound/Data_2.wav');
+// 新增：釣到東西音效2
+const catchSound2 = new Audio('sound/Data_3.wav');
+// 新增：釣到食物音效（加時間）
+const foodSounds = [
+  new Audio('sound/Data_10.wav'),
+  new Audio('sound/Data_11.wav'),
+  new Audio('sound/Data_12.wav'),
+  new Audio('sound/Data_13.wav'),
+  new Audio('sound/Data_14.wav')
+];
+
+// 隨機播放食物音效
+function playRandomFoodSound() {
+  const idx = Math.floor(Math.random() * foodSounds.length);
+  const sound = foodSounds[idx];
+  if (sound) { sound.currentTime = 0; sound.play(); }
+}
+
+// 將 catchSound 播放改為隨機播放 catchSound 或 catchSound2
+function playRandomCatchSound() {
+  const sound = Math.random() < 0.5 ? catchSound : catchSound2;
+  if (sound) { sound.currentTime = 0; sound.play(); }
+}
+
+// 新增：扣秒物品消失音效
+const penaltySound = new Audio('sound/Data_15.wav');
+// 新增：碗沉到底音效
+const bowlSinkSound = new Audio('sound/Data_16.wav');
