@@ -1,3 +1,10 @@
+html, body {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
 #gameBg {
   position: relative;
   width: 800px;
@@ -56,10 +63,6 @@
   z-index: 3;
 }
 #gameCanvas {
-  width: 100%;
-  height: auto;
-  max-width: 100vw;
-  max-height: 80vh;
   display: block;
   margin: 0 auto;
   border-radius: 10px;
@@ -160,6 +163,19 @@
     font-size: 20px;
     left: 8px;
     top: 4px;
+  }
+}
+@media (orientation: landscape) {
+  #gameBg.responsive-bg {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  #gameCanvas {
+    max-width: 100vw;
+    max-height: 98vh;
+    border-radius: 0;
   }
 }
 /* 排行榜 modal 額外樣式 */

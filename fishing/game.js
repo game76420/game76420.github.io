@@ -11,6 +11,11 @@ let timeLeft = GAME_TIME;
 let displayTimeLeft = GAME_TIME; // 新增：用於時間條補間動畫
 let gameOver = false;
 let fishing = false;
+// 新增：時間控制變數
+let lastTime = 0;
+let deltaTime = 0;
+const targetFPS = 60;
+const frameTime = 1000 / targetFPS;
 // 新增：鉤子拋物線動畫狀態
 let hookThrowing = false;
 let hookThrowT = 0;
@@ -697,14 +702,28 @@ function getWaveY(x, t) {
 }
 
 // 遊戲主迴圈
-function gameLoop() {
+function gameLoop(currentTime) {
   try {
+    // 時間控制：確保遊戲速度一致
+    if (!lastTime) lastTime = currentTime;
+    deltaTime = currentTime - lastTime;
+    
+    // 如果幀率太快，跳過這一幀
+    if (deltaTime < frameTime) {
+      animationId = requestAnimationFrame(gameLoop);
+      return;
+    }
+    
+    // 計算時間縮放因子
+    const timeScale = deltaTime / frameTime;
+    lastTime = currentTime;
+    
     // 防呆：確保 fishes、trashes 一定是陣列
     if (!Array.isArray(fishes)) fishes = [];
     if (!Array.isArray(trashes)) trashes = [];
     
     updateLinePhysics();
-    wavePhase += 0.035; // 波浪推進
+    wavePhase += 0.035 * timeScale; // 波浪推進（根據時間縮放）
     // --- 主角移動速度影響波浪 ---
     let prevX = waveDisturb.x;
     waveDisturb.x = pot.x + pot.w/2;
@@ -762,11 +781,11 @@ function gameLoop() {
 
     // 控制主角與大魚左右移動
     if (keyState.left) {
-      bigFish.x -= 6;
+      bigFish.x -= 6 * timeScale;
       playerDir = -1;
     }
     if (keyState.right) {
-      bigFish.x += 6;
+      bigFish.x += 6 * timeScale;
       playerDir = 1;
     }
     if (bigFish.x < bigFish.w/2) bigFish.x = bigFish.w/2;
@@ -776,23 +795,23 @@ function gameLoop() {
     // 控制魚鉤上下移動（慣性/拉力）
     if (!fishing && !hookThrowing) {
       if (keyState.up) {
-        hookVelY -= 1.5; // 向上拉
+        hookVelY -= 1.5 * timeScale; // 向上拉
       } else if (keyState.down) {
-        hookVelY += 1.5; // 向下拉
+        hookVelY += 1.5 * timeScale; // 向下拉
       } else {
         // 沒有按上下時，緩慢回到中間
         let diff = hookDefaultY - hookY;
         if (diff > 0) {
           // 上浮（鉤子在下方）
-          hookVelY += diff * 0.001; // 上浮速度
+          hookVelY += diff * 0.001 * timeScale; // 上浮速度
         } else {
           // 下沉（鉤子在上方）
-          hookVelY += diff * 0.0002; // 下沉更慢
+          hookVelY += diff * 0.0002 * timeScale; // 下沉更慢
         }
       }
       // 阻尼
-      hookVelY *= 0.92;
-      hookY += hookVelY;
+      hookVelY *= Math.pow(0.92, timeScale);
+      hookY += hookVelY * timeScale;
       if (hookY < 120) {
         hookY = 120;
         hookVelY = 0;
@@ -804,7 +823,7 @@ function gameLoop() {
     }
     // --- 鉤子拋物線動畫 ---
     if (hookThrowing) {
-      hookThrowT += 0.04; // 動畫進度
+      hookThrowT += 0.04 * timeScale; // 動畫進度
       if (hookThrowT > 1) hookThrowT = 1;
       let t = hookThrowT;
       // y 拋物線
@@ -837,7 +856,7 @@ function gameLoop() {
     // 畫魚
     for (let fish of fishes) {
       if (!fish.caught) {
-        fish.x += fish.speed * fish.dir;
+        fish.x += fish.speed * fish.dir * timeScale;
         // 如果游出畫面，重新生成一條新魚（根據 canvas.width 動態判斷）
         if ((fish.dir === 1 && fish.x > canvas.width + 40) || (fish.dir === -1 && fish.x < -40)) {
           Object.assign(fish, createFish());
@@ -849,7 +868,7 @@ function gameLoop() {
     // 畫垃圾
     for (let trash of trashes) {
       if (!trash.lifting && !trash.hit) {
-        trash.x += trash.speed * trash.dir;
+        trash.x += trash.speed * trash.dir * timeScale;
         if ((trash.dir === 1 && trash.x > canvas.width + 40) || (trash.dir === -1 && trash.x < -40)) {
           // 重新生成
           Object.assign(trash, createTrash());
@@ -862,7 +881,7 @@ function gameLoop() {
     for (let trash of trashes) {
       if (trash.lifting && !trash.hit) {
         if (!trash.flyT) trash.flyT = 0;
-        trash.flyT += 0.04;
+        trash.flyT += 0.04 * timeScale;
         let startX = trash.x, startY = trash.y;
         let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
         let endY = pot.y + pot.h/2 - 10;
@@ -896,7 +915,7 @@ function gameLoop() {
     // 畫特殊海洋生物（魷魚/章魚）
     if (specialSeaCreature && !specialSeaCreature.caught) {
       if (!specialSeaCreature.lifting) {
-        specialSeaCreature.x += specialSeaCreature.speed * specialSeaCreature.dir;
+        specialSeaCreature.x += specialSeaCreature.speed * specialSeaCreature.dir * timeScale;
         if ((specialSeaCreature.dir === 1 && specialSeaCreature.x > canvas.width + 40) || (specialSeaCreature.dir === -1 && specialSeaCreature.x < -40)) {
           specialSeaCreature = null; // 游出畫面消失
         }
@@ -906,7 +925,7 @@ function gameLoop() {
     // 特殊生物被釣上來動畫
     if (specialSeaCreature && specialSeaCreature.lifting && !specialSeaCreature.caught) {
       if (!specialSeaCreature.flyT) specialSeaCreature.flyT = 0;
-      specialSeaCreature.flyT += 0.04;
+      specialSeaCreature.flyT += 0.04 * timeScale;
       let startX = specialSeaCreature.x, startY = specialSeaCreature.y;
       let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
       let endY = pot.y + pot.h/2 - 10;
@@ -981,7 +1000,7 @@ function gameLoop() {
       if (fish.lifting && !fish.caught) {
         // 飛行進度
         if (!fish.flyT) fish.flyT = 0;
-        fish.flyT += 0.04;
+        fish.flyT += 0.04 * timeScale;
         // 拋物線飛到空中
         let startX = fish.x, startY = fish.y;
         let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
@@ -1029,7 +1048,7 @@ function gameLoop() {
     // 鉤子動畫
     if (fishing && !hookThrowing) {
       if (hookY > hookTargetY) {
-        hookY -= 18;
+        hookY -= 18 * timeScale;
         if (hookY < hookTargetY) hookY = hookTargetY;
       } else {
         // 拉到空中，甩魚
@@ -1037,7 +1056,7 @@ function gameLoop() {
         hookTargetY = 400;
       }
     } else if (hookY < hookTargetY && !hookThrowing) {
-      hookY += 8;
+      hookY += 8 * timeScale;
       if (hookY > hookTargetY) hookY = hookTargetY;
     }
 
@@ -1073,7 +1092,7 @@ function gameLoop() {
         bowlSinkTargetY = canvas.height - pot.h - 20;
       }
       if (bowlY < bowlSinkTargetY) {
-        bowlY += bowlSinkSpeed;
+        bowlY += bowlSinkSpeed * timeScale;
         if (bowlY > bowlSinkTargetY) bowlY = bowlSinkTargetY;
       }
       drawPlayer();
@@ -1230,17 +1249,35 @@ window.addEventListener('keyup', (e) => {
 
 // 響應式 canvas 尺寸調整
 function resizeGameCanvas() {
-  const container = document.getElementById('gameBg');
-  const canvas = document.getElementById('gameCanvas');
-  // 預設比例 4:3
-  let w = container.clientWidth;
-  let h = Math.round(w * 3 / 4);
-  if (h > window.innerHeight * 0.8) {
-    h = Math.round(window.innerHeight * 0.8);
-    w = Math.round(h * 4 / 3);
+  const GAME_WIDTH = 800;
+  const GAME_HEIGHT = 600;
+  let w = window.innerWidth;
+  let h = window.innerHeight;
+  let isLandscape = w > h;
+
+  let scale;
+  if (isLandscape) {
+    // landscape: 以高度為主，維持 4:3
+    h = window.innerHeight;
+    w = Math.min(window.innerWidth, h * 4 / 3);
+    scale = w / GAME_WIDTH;
+  } else {
+    // portrait: 以寬度為主，維持 4:3
+    w = window.innerWidth;
+    h = Math.min(window.innerHeight, w * 3 / 4);
+    scale = h / GAME_HEIGHT;
   }
-  canvas.width = w;
-  canvas.height = h;
+
+  // 設定 canvas 實際繪圖解析度
+  canvas.width = GAME_WIDTH;
+  canvas.height = GAME_HEIGHT;
+  // 設定 CSS 尺寸
+  canvas.style.width = (GAME_WIDTH * scale) + 'px';
+  canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+  // 置中
+  canvas.style.position = 'absolute';
+  canvas.style.left = ((window.innerWidth - GAME_WIDTH * scale) / 2) + 'px';
+  canvas.style.top = ((window.innerHeight - GAME_HEIGHT * scale) / 2) + 'px';
 }
 window.addEventListener('resize', resizeGameCanvas);
 resizeGameCanvas();
@@ -1253,6 +1290,9 @@ restartBtn.addEventListener("click", () => {
   score = 0;
   timeLeft = GAME_TIME;
   gameOver = false;
+  // 重置時間控制變數
+  lastTime = 0;
+  deltaTime = 0;
   spawnFish();
   spawnTrash();
   initLinePoints(); // 重新初始化魚線點
@@ -1284,7 +1324,7 @@ infoBtn.addEventListener('click', () => {
   infoModalText.innerHTML = `
     <ol style="padding-left: 1.2em;">
       <li>方向鍵移動主角與魚鉤。</li>
-      <li>空白鍵或滑鼠點擊釣魚。</li>
+      <li>點擊畫面或按空白鍵釣魚。</li>
       <li>黃色魚加分加時間，紫色魚只扣時間。</li>
       <li>勿釣到垃圾，會扣時間。</li>
       <li>時間歸零遊戲結束，可隨時再玩一次。</li>
@@ -1333,10 +1373,176 @@ window.addEventListener('keydown', function(e) {
   }
 });
 
+// === 虛擬搖桿與螢幕按鈕 ===
+(function() {
+  function updateControlsVisibility() {
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = window.innerWidth <= window.innerHeight;
+    const isMobile = window.innerWidth <= 768;
+    const joystick = document.getElementById('joystick');
+    const screenButtons = document.getElementById('screenButtons');
+    if (joystick && screenButtons) {
+      // 橫版模式顯示虛擬搖桿和釣魚按鈕
+      if (isLandscape && window.innerWidth <= 900) {
+        joystick.style.display = 'block';
+        screenButtons.style.display = 'block';
+      }
+      // 手機直版模式顯示虛擬搖桿和釣魚按鈕
+      else if (isPortrait && isMobile) {
+        joystick.style.display = 'block';
+        screenButtons.style.display = 'block';
+      }
+      // 其他情況隱藏
+      else {
+        joystick.style.display = 'none';
+        screenButtons.style.display = 'none';
+      }
+      // 強制 z-index
+      screenButtons.style.zIndex = 2000;
+    }
+  }
+  window.addEventListener('resize', updateControlsVisibility);
+  window.addEventListener('orientationchange', updateControlsVisibility);
+  updateControlsVisibility();
+
+  // 虛擬搖桿控制
+  const joystick = document.getElementById('joystick');
+  const knob = document.getElementById('joystick-knob');
+  const directionIndicators = document.querySelectorAll('.direction-indicator');
+  let dragging = false, startX = 0, startY = 0, baseRect = null;
+  let joyDX = 0, joyDY = 0;
+
+  // 更新方向指示器
+  function updateDirectionIndicators() {
+    // 清除所有指示器
+    directionIndicators.forEach(indicator => {
+      indicator.classList.remove('active');
+    });
+    
+    // 根據搖桿位置顯示對應的指示器
+    if (Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1) {
+      let direction = '';
+      
+      if (joyDY < -0.3) direction += 'up';
+      else if (joyDY > 0.3) direction += 'down';
+      
+      if (joyDX < -0.3) direction += '-left';
+      else if (joyDX > 0.3) direction += '-right';
+      
+      // 如果是對角線方向，使用組合類名
+      if (direction.includes('-')) {
+        const indicator = document.querySelector(`.direction-indicator.${direction}`);
+        if (indicator) indicator.classList.add('active');
+      } else if (direction) {
+        // 單一方向
+        const indicator = document.querySelector(`.direction-indicator.${direction}`);
+        if (indicator) indicator.classList.add('active');
+      }
+    }
+  }
+
+  if (joystick && knob) {
+    knob.addEventListener('touchstart', function(e) {
+      dragging = true;
+      const touch = e.touches[0];
+      baseRect = joystick.getBoundingClientRect();
+      startX = touch.clientX;
+      startY = touch.clientY;
+      e.preventDefault();
+      e.stopPropagation();
+    }, { passive: false });
+    window.addEventListener('touchmove', function(e) {
+      if (!dragging) return;
+      const touch = e.touches[0];
+      let dx = touch.clientX - startX;
+      let dy = touch.clientY - startY;
+      // 限制最大距離
+      const maxDist = 45;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > maxDist) {
+        dx = dx * maxDist / dist;
+        dy = dy * maxDist / dist;
+      }
+      knob.style.left = (35 + dx) + 'px';
+      knob.style.top = (35 + dy) + 'px';
+      joyDX = dx / maxDist;
+      joyDY = dy / maxDist;
+      // 對應 keyState
+      keyState.left = joyDX < -0.3;
+      keyState.right = joyDX > 0.3;
+      keyState.up = joyDY < -0.3;
+      keyState.down = joyDY > 0.3;
+      
+      // 更新方向指示器
+      updateDirectionIndicators();
+      
+      e.preventDefault();
+    }, {passive: false});
+    window.addEventListener('touchend', function(e) {
+      if (!dragging) return;
+      dragging = false;
+      knob.style.left = '35px';
+      knob.style.top = '35px';
+      joyDX = 0; joyDY = 0;
+      keyState.left = keyState.right = keyState.up = keyState.down = false;
+      
+      // 清除所有方向指示器
+      directionIndicators.forEach(indicator => {
+        indicator.classList.remove('active');
+      });
+    });
+  }
+
+  // 虛擬按鈕控制
+  const actionBtn = document.getElementById('actionBtn');
+  if (actionBtn) {
+    function triggerFishingAction(e) {
+      if (!fishing && !hookThrowing && !gameOver) {
+        checkLineCollision();
+        fishing = true;
+        hookThrowing = true;
+        hookThrowT = 0;
+        hookThrowStartY = hookY;
+        hookThrowEndY = 60; // 改為 60
+        hookThrowStartX = bigFish.x;
+        hookThrowEndX = bigFish.x;
+      }
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
+    actionBtn.addEventListener('touchstart', triggerFishingAction, { passive: false });
+    actionBtn.addEventListener('click', triggerFishingAction);
+  }
+
+  // 新增：Canvas 點擊釣魚功能
+  function triggerFishingFromCanvas(e) {
+    if (!fishing && !hookThrowing && !gameOver) {
+      checkLineCollision();
+      fishing = true;
+      hookThrowing = true;
+      hookThrowT = 0;
+      hookThrowStartY = hookY;
+      hookThrowEndY = 60;
+      hookThrowStartX = bigFish.x;
+      hookThrowEndX = bigFish.x;
+    }
+    if (e) e.preventDefault();
+  }
+  
+  // 為 canvas 添加點擊和觸摸事件
+  canvas.addEventListener('click', triggerFishingFromCanvas);
+  canvas.addEventListener('touchstart', triggerFishingFromCanvas);
+})();
+
 // 初始化
 // 停止殘留動畫和計時
 if (animationId) cancelAnimationFrame(animationId);
 if (countdownTimer) clearTimeout(countdownTimer);
+// 重置時間控制變數
+lastTime = 0;
+deltaTime = 0;
 spawnFish();
 spawnTrash();
 initLinePoints();

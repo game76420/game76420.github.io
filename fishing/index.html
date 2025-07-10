@@ -5,24 +5,91 @@
   <title>經典釣魚遊戲</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { background: #222; }
-    canvas { background: #87ceeb; display: block; margin: 30px auto; border-radius: 10px; max-width: 100%; height: auto; }
-    #restartBtn, #infoBtn { display: inline-block; font-size: 20px; margin: 10px 8px; }
-    .btn-row {
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body { 
+      background: #222; 
+      overflow: hidden;
+      font-family: 'Noto Sans TC', 'Arial', sans-serif;
+    }
+    
+    #gameBg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 12px;
-      margin: 12px 0 24px 0;
-      width: 100%;
-      max-width: 400px;
     }
-    /* 外層再加一層包裹，讓 .btn-row 水平置中 */
-    .btn-row-wrapper {
-      width: 100%;
+    
+    canvas { 
+      background: #87ceeb; 
+      display: block; 
+      border-radius: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    
+    #restartBtn, #infoBtn { 
+      display: inline-block; 
+      font-size: 24px; 
+      margin: 8px;
+      padding: 16px;
+      background: rgba(74, 144, 226, 0.8);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 60px;
+      height: 60px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    
+    #restartBtn:hover, #infoBtn:hover {
+      background: rgba(53, 122, 189, 0.9);
+      transform: scale(1.1);
+    }
+    
+    .btn-row {
+      position: fixed;
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
       display: flex;
+      flex-direction: column;
       justify-content: center;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
     }
+    
+    /* 手機橫版模式 - 按鈕改為左右排列 */
+    @media (orientation: landscape) and (max-width: 900px) {
+      .btn-row {
+        flex-direction: row;
+        gap: 12px;
+        top: 20px;
+        transform: none;
+      }
+      
+      #restartBtn, #infoBtn {
+        font-size: 18px;
+        width: 45px;
+        height: 45px;
+        padding: 10px;
+      }
+    }
+    
     .rank-btn-row {
       display: flex;
       justify-content: center;
@@ -30,10 +97,18 @@
       gap: 24px;
       margin-top: 24px;
     }
+    
     .rank-btn-row button {
       flex: 1 1 0;
       max-width: 180px;
+      padding: 12px 20px;
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
+    
     /* Modal styles */
     #infoModal {
       position: fixed;
@@ -44,6 +119,7 @@
       align-items: center;
       justify-content: center;
     }
+    
     .modal-content {
       position: relative;
       background: #fff;
@@ -58,6 +134,7 @@
       color: #222;
       text-align: left;
     }
+    
     .modal-close-x {
       position: absolute;
       top: 14px;
@@ -71,9 +148,11 @@
       z-index: 10;
       transition: color 0.2s;
     }
+    
     .modal-close-x:hover {
       color: #e11;
     }
+    
     .modal-content h2 {
       margin-top: 0;
       margin-bottom: 18px;
@@ -81,6 +160,7 @@
       font-size: 1.5em;
       color: #0077cc;
     }
+    
     @media (max-width: 600px) {
       .modal-content {
         min-width: 0;
@@ -93,6 +173,7 @@
         font-size: 22px;
       }
     }
+    
     #rankModal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -101,6 +182,173 @@
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+    
+    #joystick {
+      position: fixed;
+      left: 32px;
+      bottom: 32px;
+      width: 140px;
+      height: 140px;
+      z-index: 2000;
+      touch-action: none;
+    }
+    
+    #joystick-base {
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      border: 3px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      position: absolute;
+      backdrop-filter: blur(10px);
+    }
+    
+    #joystick-knob {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: 50%;
+      position: absolute;
+      left: 35px; top: 35px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      transition: left 0.05s, top 0.05s;
+    }
+    
+    #joystick-direction {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    .direction-indicator {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    
+    .direction-indicator.active {
+      opacity: 1;
+      background: #4a90e2;
+      box-shadow: 0 0 10px rgba(74,144,226,0.6);
+    }
+    
+    .direction-indicator.up { top: 10px; left: 50%; }
+    .direction-indicator.down { bottom: 10px; left: 50%; }
+    .direction-indicator.left { left: 10px; top: 50%; }
+    .direction-indicator.right { right: 10px; top: 50%; }
+    .direction-indicator.up-left { top: 15px; left: 15px; }
+    .direction-indicator.up-right { top: 15px; right: 15px; }
+    .direction-indicator.down-left { bottom: 15px; left: 15px; }
+    .direction-indicator.down-right { bottom: 15px; right: 15px; }
+    
+    #screenButtons {
+      position: fixed;
+      right: 32px;
+      bottom: 48px;
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    
+    #screenButtons button {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      font-size: 1.2em;
+      background: #ffb300;
+      color: #fff;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    @media (orientation: landscape) and (max-width: 900px) {
+      #joystick, #screenButtons { display: block !important; }
+    }
+    
+    /* 手機直版模式 - 虛擬搖桿放在下方 */
+    @media (orientation: portrait) and (max-width: 768px) {
+      .btn-row {
+        top: 20px;
+        right: 20px;
+        transform: none;
+        gap: 12px;
+      }
+      
+      #restartBtn, #infoBtn {
+        font-size: 18px;
+        width: 45px;
+        height: 45px;
+        padding: 10px;
+      }
+      
+      #joystick {
+        display: block !important;
+        left: 35%;
+        bottom: 20px;
+        transform: translateX(-50%);
+        width: 120px;
+        height: 120px;
+      }
+      
+      #joystick-knob {
+        width: 60px;
+        height: 60px;
+        left: 30px;
+        top: 30px;
+      }
+      
+      #screenButtons {
+        display: block !important;
+        right: 20px;
+        bottom: 20px;
+        gap: 12px;
+      }
+      
+      #screenButtons button {
+        width: 60px;
+        height: 60px;
+        font-size: 1em;
+      }
+    }
+    
+    /* 響應式設計 */
+    @media (max-width: 768px) {
+      .btn-row {
+        right: 15px;
+        gap: 12px;
+      }
+      
+      #restartBtn, #infoBtn {
+        font-size: 20px;
+        width: 50px;
+        height: 50px;
+        padding: 12px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .btn-row {
+        right: 10px;
+        gap: 10px;
+      }
+      
+      #restartBtn, #infoBtn {
+        font-size: 18px;
+        width: 45px;
+        height: 45px;
+        padding: 10px;
+      }
     }
   </style>
 </head>
@@ -138,11 +386,26 @@
       </div>
     </div>
   </div>
-  <div class="btn-row-wrapper">
-    <div class="btn-row">
-      <button id="restartBtn">再玩一次</button>
-      <button id="infoBtn">遊戲說明</button>
+  <div class="btn-row">
+    <button id="restartBtn" title="重新開始">🔄</button>
+    <button id="infoBtn" title="遊戲說明">ℹ️</button>
+  </div>
+  <div id="joystick" style="display:none;">
+    <div id="joystick-base"></div>
+    <div id="joystick-direction">
+      <div class="direction-indicator up"></div>
+      <div class="direction-indicator down"></div>
+      <div class="direction-indicator left"></div>
+      <div class="direction-indicator right"></div>
+      <div class="direction-indicator up-left"></div>
+      <div class="direction-indicator up-right"></div>
+      <div class="direction-indicator down-left"></div>
+      <div class="direction-indicator down-right"></div>
     </div>
+    <div id="joystick-knob"></div>
+  </div>
+  <div id="screenButtons" style="display:none;">
+    <button id="actionBtn">釣魚</button>
   </div>
   <script src="game.js"></script>
 </body>
