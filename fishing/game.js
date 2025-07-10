@@ -292,17 +292,28 @@ seaCucumberImg2.onload = function() {
 // --- 魷魚/章魚/海參相關 ---
 let specialSeaCreature = null; // 取代 squid
 let specialSeaCreatureTimer = null;
-const SPECIAL_CREATURE_INTERVAL = 10000; // 10秒
+const SPECIAL_CREATURE_INTERVAL = 3000; // 3秒
 function createSpecialSeaCreature() {
-  // 只生成海參
+  // 隨機生成魷魚或章魚
+  const types = ['squid', 'octopus'];
+  const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -40 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
+  let speed = 2.2 + Math.random() * 1.5;
+  let animSpeed = 2; // 預設動畫速度
+  if (type === 'squid') {
+    speed += 0.5;
+    animSpeed = 2.5;
+  } else if (type === 'octopus') {
+    speed += 0.2;
+    animSpeed = 2;
+  }
   return {
-    type: 'seacucumber',
+    type,
     x,
     y: Math.random() * 350 + 220,
-    speed: 2.2 + Math.random() * 1.5,
+    speed,
     dir,
     caught: false,
     lifting: false,
@@ -310,9 +321,8 @@ function createSpecialSeaCreature() {
     fadeOut: false,
     alpha: 1,
     fadeStep: 0.04,
-    // 新增：動畫相關屬性
-    animTime: 0, // 動畫時間
-    animSpeed: 2 // 動畫速度（0.5秒切換一次）
+    animTime: 0,
+    animSpeed
   };
 }
 function spawnSpecialSeaCreature() {
@@ -359,17 +369,21 @@ function drawSpecialSeaCreature(creature) {
     creature.alpha -= creature.fadeStep;
     if (creature.alpha < 0) creature.alpha = 0;
   }
-  
   // 更新動畫時間
   if (!creature.lifting && !creature.caught) {
     creature.animTime += deltaTime / 1000; // 轉換為秒
   }
-  
-  // 根據動畫時間決定使用哪張圖片（1秒切換一次）
-  const useSecondImage = Math.floor(creature.animTime * creature.animSpeed) % 2 === 1;
-  const currentImg = useSecondImage ? seaCucumberImg2 : seaCucumberImg;
-  
-  if (currentImg.complete && currentImg.naturalWidth > 0) {
+  let currentImg;
+  if (creature.type === 'squid') {
+    currentImg = squidImg;
+  } else if (creature.type === 'octopus') {
+    currentImg = octopusImg;
+  } else {
+    // 預設 sea cucumber 動畫
+    const useSecondImage = Math.floor(creature.animTime * creature.animSpeed) % 2 === 1;
+    currentImg = useSecondImage ? seaCucumberImg2 : seaCucumberImg;
+  }
+  if (currentImg && currentImg.complete && currentImg.naturalWidth > 0) {
     ctx.drawImage(
       currentImg,
       -currentImg.naturalWidth / 2,
