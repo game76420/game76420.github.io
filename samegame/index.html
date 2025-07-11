@@ -995,9 +995,16 @@
         function showScore() {
             const scoreList = document.getElementById('score-list');
             scoreList.innerHTML = '';
+            let highlighted = false;
             gameState.scores.forEach((score, index) => {
                 const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${score}`;
+                // 只標記第一個等於本局分數且分數大於0的項目
+                if (!highlighted && score === gameState.score && score > 0) {
+                    li.innerHTML = `<span style="color:red;font-weight:bold;">${index + 1}. ${score}</span>`;
+                    highlighted = true;
+                } else {
+                    li.textContent = `${index + 1}. ${score}`;
+                }
                 scoreList.appendChild(li);
             });
             document.getElementById('score-modal').style.display = 'flex';
