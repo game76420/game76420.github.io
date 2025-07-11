@@ -160,7 +160,7 @@ function updateInfo() {
 function drawPlayerSprite(p, color) {
   ctx.save();
   ctx.translate(p.x, p.y);
-  const offsetX = -25;  // 與集氣圈一致，讓玩家貼圖中心正確
+  const offsetX = -35;  // 與集氣圈一致，讓玩家貼圖中心正確
   const offsetY = -12;  // 向下偏移
   // 準備丟狀態顯示貼圖
   if (p.charging && charging && selectedPlayer === p) {
@@ -350,7 +350,7 @@ function drawPlayers() {
     }
     // 暈圈
     if (p.stunUntil > performance.now()) {
-      const offsetX = -25;
+      const offsetX = -45;
       const offsetY = -12;
       ctx.beginPath();
       ctx.arc(p.x + offsetX, p.y + offsetY, PLAYER_RADIUS+10, 0, Math.PI*2);
@@ -363,7 +363,7 @@ function drawPlayers() {
     }
     // 集氣圈
     if (p.charging && charging && selectedPlayer === p) {
-      const offsetX = -40;  // 與 drawPlayerSprite 一致
+      const offsetX = -45;  // 與 drawPlayerSprite 一致
       const offsetY = -12;
       let charge = Math.min(1, (performance.now() - chargeStart) / CHARGE_TIME);
       ctx.beginPath();
