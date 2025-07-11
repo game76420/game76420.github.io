@@ -471,8 +471,7 @@
             soundEnabled: true,
             board: [],
             initBoard: [],
-            prevBoard: null,
-            prevScore: 0,
+            moveHistory: [], // 保存所有移動歷史
             markedGroup: null,
             markedColor: null,
             score: 0,
@@ -660,22 +659,24 @@
 
             const group = findGroup(row, col);
             if (group.size > 1) {
-                if (gameState.markedGroup && 
-                    gameState.markedGroup.size === group.size && 
-                    Array.from(gameState.markedGroup).every(pos => group.has(pos))) {
-                    // Save previous state
-                    gameState.prevBoard = gameState.board.map(row => [...row]);
-                    gameState.prevScore = gameState.score;
+                            if (gameState.markedGroup && 
+                gameState.markedGroup.size === group.size && 
+                Array.from(gameState.markedGroup).every(pos => group.has(pos))) {
+                // Save current state to history
+                gameState.moveHistory.push({
+                    board: gameState.board.map(row => [...row]),
+                    score: gameState.score
+                });
 
-                    // Start timer if not started
-                    if (!gameState.timerStarted) {
-                        gameState.timerStarted = true;
-                        gameState.startTime = Date.now();
-                        updateTimer();
-                    }
+                // Start timer if not started
+                if (!gameState.timerStarted) {
+                    gameState.timerStarted = true;
+                    gameState.startTime = Date.now();
+                    updateTimer();
+                }
 
-                    // Eliminate group
-                    eliminateGroup(group);
+                // Eliminate group
+                eliminateGroup(group);
                 } else {
                     // Mark group
                     gameState.markedGroup = group;
@@ -932,8 +933,7 @@
             tryUpdateScores();
             setBoardSize();
             generateBoard();
-            gameState.prevBoard = null;
-            gameState.prevScore = 0;
+            gameState.moveHistory = []; // 清空移動歷史
             gameState.markedGroup = null;
             gameState.markedColor = null;
             gameState.score = 0;
@@ -947,8 +947,7 @@
         function replay() {
             tryUpdateScores();
             gameState.board = gameState.initBoard.map(row => [...row]);
-            gameState.prevBoard = null;
-            gameState.prevScore = 0;
+            gameState.moveHistory = []; // 清空移動歷史
             gameState.markedGroup = null;
             gameState.markedColor = null;
             gameState.score = 0;
@@ -960,15 +959,17 @@
         }
 
         function undo() {
-            if (gameState.prevBoard) {
-                gameState.board = gameState.prevBoard.map(row => [...row]);
-                gameState.score = gameState.prevScore;
+            if (gameState.moveHistory.length > 0) {
+                // 取出最後一次移動的狀態
+                const lastMove = gameState.moveHistory.pop();
+                gameState.board = lastMove.board.map(row => [...row]);
+                gameState.score = lastMove.score;
                 gameState.markedGroup = null;
                 gameState.markedColor = null;
                 drawBoard(); // 強制重建畫面，確保同步
                 updateStatus();
             } else {
-                alert('No moves to undo!');
+                alert('沒有可復原的移動！');
             }
         }
 
