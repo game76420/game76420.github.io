@@ -1,0 +1,123 @@
+body {
+  background: #eaf6ff;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+#ui {
+  margin: 16px auto 8px auto;
+  font-size: 20px;
+  background: rgba(255,255,255,0.8);
+  display: inline-block;
+  border-radius: 8px;
+  padding: 8px 24px;
+  box-shadow: 0 2px 8px #b0d0f0;
+}
+#ui span {
+  margin: 0 16px;
+  font-weight: bold;
+}
+#container {
+  max-width: 100vw;
+  padding: 0;
+  margin: 0 auto;
+}
+#canvasWrap {
+  width: 100vw;
+  max-width: 100vw;
+  overflow-x: auto;
+  display: flex;
+  justify-content: center;
+}
+#gameCanvas {
+  width: 100vw;
+  max-width: 800px;
+  height: auto;
+  aspect-ratio: 4/3;
+  display: block;
+  margin: 0 auto 16px auto;
+  background: #eaf6ff;
+  border: 2px solid #b0d0f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px #b0d0f0;
+}
+#result {
+  font-size: 36px;
+  font-weight: bold;
+  margin: 16px;
+  color: #d22;
+  min-height: 48px;
+}
+#restartBtn {
+  font-size: 20px;
+  padding: 8px 32px;
+  border-radius: 8px;
+  border: none;
+  background: #2a5;
+  color: #fff;
+  margin-bottom: 16px;
+  cursor: pointer;
+  display: inline-block;
+  box-shadow: 0 2px 8px #b0d0f0;
+}
+#restartBtn:hover {
+  background: #38b;
+}
+#desc {
+  margin: 24px auto;
+  max-width: 500px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 16px;
+  color: #333;
+  box-shadow: 0 2px 8px #b0d0f0;
+}
+@media (max-width: 900px) {
+  #ui {
+    font-size: 16px;
+    padding: 6px 8px;
+  }
+  #result {
+    font-size: 24px;
+    min-height: 32px;
+  }
+  #restartBtn {
+    font-size: 18px;
+    padding: 8px 16px;
+  }
+  #desc {
+    font-size: 14px;
+    padding: 8px 8px;
+  }
+  h1 {
+    font-size: 22px;
+  }
+}
+@media (max-width: 600px) {
+  #gameCanvas {
+    max-width: 100vw;
+    width: 100vw;
+    height: auto;
+  }
+  #ui {
+    font-size: 13px;
+    padding: 4px 2px;
+  }
+  #result {
+    font-size: 18px;
+    min-height: 24px;
+  }
+  #restartBtn {
+    font-size: 16px;
+    padding: 8px 8px;
+  }
+  #desc {
+    font-size: 12px;
+    padding: 6px 2px;
+  }
+  h1 {
+    font-size: 16px;
+  }
+} 
