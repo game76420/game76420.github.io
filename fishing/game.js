@@ -294,8 +294,8 @@ let specialSeaCreature = null; // 取代 squid
 let specialSeaCreatureTimer = null;
 const SPECIAL_CREATURE_INTERVAL = 3000; // 3秒
 function createSpecialSeaCreature() {
-  // 隨機生成魷魚或章魚
-  const types = ['squid', 'octopus'];
+  // 隨機生成魷魚、章魚或海參
+  const types = ['squid', 'octopus', 'seacucumber'];
   const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -40 : canvas.width + 40;
@@ -308,6 +308,9 @@ function createSpecialSeaCreature() {
   } else if (type === 'octopus') {
     speed += 0.2;
     animSpeed = 2;
+  } else if (type === 'seacucumber') {
+    speed = 1.5 + Math.random() * 1.0; // 海參速度較慢
+    animSpeed = 2; // 海參動畫速度
   }
   return {
     type,
@@ -327,7 +330,7 @@ function createSpecialSeaCreature() {
 }
 function spawnSpecialSeaCreature() {
   specialSeaCreature = createSpecialSeaCreature();
-  console.log('生成海參');
+  console.log('生成特殊海洋生物:', specialSeaCreature.type);
 }
 function scheduleSpecialSeaCreature() {
   if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
@@ -1021,9 +1024,9 @@ function gameLoop(currentTime) {
           trash.hit = true;
           trash.lifting = false;
           trash.flyT = 0;
-          // 新增：垃圾進入碗fadeOut時播放扣秒音效
+          // 新增：垃圾進入碗fadeOut時播放扣秒音效（延遲1秒）
           penaltySound.currentTime = 0;
-          penaltySound.play();
+          setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
           Object.assign(trash, createTrash()); // 先讓垃圾消失
           // --- 新增：如果 pendingGameOver，這時才正式 gameOver ---
           if (pendingGameOver) {
@@ -1182,10 +1185,10 @@ function gameLoop(currentTime) {
               fish.fadeOut = true;
               fish.alpha = 1;
               fish.fadeStep = 0.04;
-              // 新增：紫色魚進入fadeOut時播放扣秒音效
+              // 新增：紫色魚進入fadeOut時播放扣秒音效（延遲1秒）
               if (fish.color === "#fcf") {
                 penaltySound.currentTime = 0;
-                penaltySound.play();
+                setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
               }
               // 黃色魚進入fadeOut時才播放食物音效
               if (fish.color === "gold") {
@@ -1484,14 +1487,6 @@ restartBtn.addEventListener("click", () => {
   specialSeaCreature = null;
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
-// 測試：立即生成海參
-setTimeout(() => {
-  spawnTestSeaCucumber();
-}, 2000); // 2秒後生成測試海參
-// 測試：立即生成海參
-setTimeout(() => {
-  spawnTestSeaCucumber();
-}, 2000); // 2秒後生成測試海參
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
   bowlY = pot.y;
@@ -1763,11 +1758,14 @@ const foodSounds = [
   new Audio('sound/Data_14.wav')
 ];
 
-// 隨機播放食物音效
+// 隨機播放食物音效（延遲1秒）
 function playRandomFoodSound() {
   const idx = Math.floor(Math.random() * foodSounds.length);
   const sound = foodSounds[idx];
-  if (sound) { sound.currentTime = 0; sound.play(); }
+  if (sound) { 
+    sound.currentTime = 0; 
+    setTimeout(() => sound.play(), 1000); // 延遲1秒播放
+  }
 }
 
 // 將 catchSound 播放改為隨機播放 catchSound 或 catchSound2
