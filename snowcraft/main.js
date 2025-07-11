@@ -160,13 +160,15 @@ function updateInfo() {
 function drawPlayerSprite(p, color) {
   ctx.save();
   ctx.translate(p.x, p.y);
+  const offsetX = -25;  // 與集氣圈一致，讓玩家貼圖中心正確
+  const offsetY = -12;  // 向下偏移
   // 準備丟狀態顯示貼圖
   if (p.charging && charging && selectedPlayer === p) {
     if (playerPrepareImg.complete && playerPrepareImg.naturalWidth) {
       const targetH = 64;
       const scale = targetH / playerPrepareImg.naturalHeight;
       const targetW = playerPrepareImg.naturalWidth * scale;
-      ctx.drawImage(playerPrepareImg, -targetW/2, -targetH/2, targetW, targetH);
+      ctx.drawImage(playerPrepareImg, -targetW/2 + offsetX, -targetH/2 + offsetY, targetW, targetH);
       ctx.restore();
       return;
     }
@@ -177,7 +179,7 @@ function drawPlayerSprite(p, color) {
       const targetH = 64;
       const scale = targetH / playerIdleImg.naturalHeight;
       const targetW = playerIdleImg.naturalWidth * scale;
-      ctx.drawImage(playerIdleImg, -targetW/2, -targetH/2, targetW, targetH);
+      ctx.drawImage(playerIdleImg, -targetW/2 + offsetX, -targetH/2 + offsetY, targetW, targetH);
       ctx.restore();
       return;
     }
@@ -348,8 +350,10 @@ function drawPlayers() {
     }
     // 暈圈
     if (p.stunUntil > performance.now()) {
+      const offsetX = -25;
+      const offsetY = -12;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, PLAYER_RADIUS+10, 0, Math.PI*2);
+      ctx.arc(p.x + offsetX, p.y + offsetY, PLAYER_RADIUS+10, 0, Math.PI*2);
       ctx.strokeStyle = '#f9c';
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 3;
@@ -359,9 +363,11 @@ function drawPlayers() {
     }
     // 集氣圈
     if (p.charging && charging && selectedPlayer === p) {
+      const offsetX = -40;  // 與 drawPlayerSprite 一致
+      const offsetY = -12;
       let charge = Math.min(1, (performance.now() - chargeStart) / CHARGE_TIME);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, PLAYER_RADIUS+8, 0, Math.PI*2*charge);
+      ctx.arc(p.x + offsetX, p.y + offsetY, PLAYER_RADIUS+8, 0, Math.PI*2*charge);
       ctx.strokeStyle = '#f90';
       ctx.lineWidth = 4;
       ctx.stroke();
@@ -432,23 +438,6 @@ function drawEnemies() {
       ctx.lineWidth = 1;
       ctx.restore();
     }
-    // 狀態文字（debug）
-    ctx.save();
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#333';
-    const stateMap = {
-      'idle': '移動',
-      'crouch': '蹲下',
-      'prepare': '準備丟',
-      'throw': '丟出',
-      'standup': '起身',
-      'pain': '疼痛',
-      'fall': '倒地',
-      'dead': '死亡'
-    };
-    ctx.fillText(stateMap[e.throwState] || e.throwState, e.x, e.y - 48);
-    ctx.restore();
     ctx.restore();
   });
 }
@@ -501,31 +490,11 @@ function drawUI() {
   }
 }
 
-function drawChargeBar() {
-  if (charging && selectedPlayer && selectedPlayer.alive) {
-    let charge = Math.min(1, (performance.now() - chargeStart) / CHARGE_TIME);
-    let barW = 220, barH = 18;
-    let x = canvas.width/2 - barW/2, y = 40;
-    ctx.save();
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(x, y, barW, barH);
-    ctx.strokeStyle = '#bbb';
-    ctx.strokeRect(x, y, barW, barH);
-    ctx.fillStyle = '#f90';
-    ctx.fillRect(x, y, barW*charge, barH);
-    ctx.strokeStyle = '#f90';
-    ctx.strokeRect(x, y, barW*charge, barH);
-    ctx.restore();
-  }
-}
-
 function gameLoop(ts) {
   drawBackground();
   drawPlayers();
   drawEnemies();
   drawSnowballs();
-  drawChargeBar();
   drawUI();
   if (gameState === 'showGreeting') {
     if (performance.now() >= showGreetingUntil) {
