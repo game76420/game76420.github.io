@@ -706,8 +706,8 @@ function distance(a, b) {
 canvas.addEventListener('mousedown', e => {
   if (gameState !== 'playing') return;
   let rect = canvas.getBoundingClientRect();
-  let mx = e.clientX - rect.left;
-  let my = e.clientY - rect.top;
+  let mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  let my = (e.clientY - rect.top) * (canvas.height / rect.height);
   // 選擇最近紅衣角色
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
   if (candidates.length === 0) return;
@@ -737,8 +737,8 @@ canvas.addEventListener('mousemove', e => {
     return;
   }
   let rect = canvas.getBoundingClientRect();
-  let mx = e.clientX - rect.left;
-  let my = e.clientY - rect.top;
+  let mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+  let my = (e.clientY - rect.top) * (canvas.height / rect.height);
   draggingPlayer.x = mx - dragOffsetX;
   draggingPlayer.y = my - dragOffsetY;
 });
@@ -794,8 +794,8 @@ canvas.addEventListener('touchstart', e => {
   if (gameState !== 'playing') return;
   if (e.touches.length !== 1) return;
   let rect = canvas.getBoundingClientRect();
-  let mx = e.touches[0].clientX - rect.left;
-  let my = e.touches[0].clientY - rect.top;
+  let mx = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+  let my = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
   if (candidates.length === 0) return;
   let p = candidates.reduce((a,b)=>distance({x:mx,y:my},a)<distance({x:mx,y:my},b)?a:b);
@@ -823,8 +823,8 @@ canvas.addEventListener('touchmove', e => {
   }
   if (e.touches.length !== 1) return;
   let rect = canvas.getBoundingClientRect();
-  let mx = e.touches[0].clientX - rect.left;
-  let my = e.touches[0].clientY - rect.top;
+  let mx = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+  let my = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
   draggingPlayer.x = mx - dragOffsetX;
   draggingPlayer.y = my - dragOffsetY;
   e.preventDefault();
