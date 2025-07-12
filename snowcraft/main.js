@@ -251,7 +251,7 @@ function resizeCanvas() {
     console.log('是否為橫屏:', isLandscape);
     
     // 手機版預留UI空間，電腦版充分利用螢幕
-    let availableH = isMobileDevice ? h - 100 : h;
+    let availableH = isMobileDevice ? h : h; // 手機版不預留空間，完全利用螢幕
     let availableW = w;
     
     // 手機版：充分利用空間並保持長寬比
@@ -259,23 +259,28 @@ function resizeCanvas() {
       let targetW, targetH;
       
       if (isLandscape) {
-        // 橫屏模式：優先以高度為主，確保畫布最大化
+        // 橫屏模式：最大化利用螢幕空間
+        // 直接使用螢幕尺寸，讓CSS處理縮放
+        targetW = availableW;
         targetH = availableH;
-        targetW = targetH * 16 / 9;
-        // 如果寬度超出螢幕，則以寬度為主
-        if (targetW > availableW) {
-          targetW = availableW;
-          targetH = targetW * 9 / 16;
-        }
+        
+        // 計算縮放比例，確保遊戲邏輯正確
+        let scaleX = targetW / BASE_WIDTH;
+        let scaleY = targetH / BASE_HEIGHT;
+        let scale = Math.min(scaleX, scaleY); // 使用較小的縮放比例保持比例
+        
+        // 重新計算實際使用的尺寸
+        targetW = BASE_WIDTH * scale;
+        targetH = BASE_HEIGHT * scale;
       } else {
         // 直屏模式：充分利用高度
         targetH = availableH;
-        targetW = targetH * 16 / 9;
+        targetW = targetH * BASE_WIDTH / BASE_HEIGHT;
         
         // 如果寬度超出螢幕，則以寬度為準
         if (targetW > availableW) {
           targetW = availableW;
-          targetH = targetW * 9 / 16;
+          targetH = targetW * BASE_HEIGHT / BASE_WIDTH;
         }
       }
       
@@ -298,7 +303,7 @@ function resizeCanvas() {
       const logicH = canvas.height / window.devicePixelRatio / scale;
       // 更新投擲距離限制
       MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.sqrt(logicW * logicW + logicH * logicH);
+      MAX_THROW_DISTANCE = Math.sqrt(logicW * logicW + logicH * logicH) * 0.6;
     } else {
       // 電腦版：充分利用螢幕空間
       let targetW, targetH;
@@ -339,8 +344,8 @@ function resizeCanvas() {
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
       MIN_THROW_DISTANCE = 40 * scale;
-      // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+      // 統一：最大投擲距離都設為畫布對角線的0.6倍
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.6;
     }
     
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
