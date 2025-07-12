@@ -419,7 +419,7 @@ body {
     flex-direction: column !important;
   }
   
-  /* 橫屏時確保canvasWrap完全填滿 */
+  /* 橫屏時確保canvasWrap完全填滿並居中 */
   #canvasWrap {
     width: 100vw !important;
     height: 100vh !important;
@@ -435,13 +435,14 @@ body {
     justify-content: center !important;
     align-items: center !important;
     flex: 1 !important;
+    box-sizing: border-box !important;
   }
   
-  /* 橫屏時維持16:9比例，居中顯示 */
+  /* 橫屏時確保完全顯示，優先填滿高度 */
   #gameCanvas {
     width: auto !important;
     height: 100vh !important;
-    max-width: calc(100vh * 16 / 9) !important;
+    max-width: 100vw !important;
     max-height: 100vh !important;
     aspect-ratio: 16/9 !important;
     object-fit: contain !important;
@@ -451,6 +452,9 @@ body {
     background: #eaf6ff !important;
     border: none !important;
     border-radius: 0 !important;
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
   }
   
   /* 隱藏result避免佔用空間 */
@@ -578,7 +582,7 @@ body {
 }
 
 /* 通用手機橫版處理 - 確保任何寬度都不會出現空白區域 */
-@media (orientation: landscape) and (max-height: 600px) {
+@media (orientation: landscape) and (max-height: 600px), (orientation: landscape) and (max-width: 900px) {
   body {
     overflow: hidden !important;
     position: fixed !important;
@@ -630,12 +634,13 @@ body {
     justify-content: center !important;
     align-items: center !important;
     flex: 1 !important;
+    box-sizing: border-box !important;
   }
   
   #gameCanvas {
     width: auto !important;
     height: 100vh !important;
-    max-width: calc(100vh * 16 / 9) !important;
+    max-width: 100vw !important;
     max-height: 100vh !important;
     aspect-ratio: 16/9 !important;
     object-fit: contain !important;
@@ -645,6 +650,7 @@ body {
     background: #eaf6ff !important;
     border: none !important;
     border-radius: 0 !important;
+    box-sizing: border-box !important;
   }
   
   #result {
