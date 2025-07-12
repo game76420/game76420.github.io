@@ -2592,47 +2592,18 @@ function getTouchCoordinates(touch, rect) {
 
 // 新增：真實手機觸控座標修正函數
 function getRealMobileTouchCoordinates(touch, rect) {
-  // 基礎座標計算
-  let mx = (touch.clientX - rect.left) / scale;
-  let my = (touch.clientY - rect.top) / scale;
-  
-  // 真實手機特殊處理
-  if (isMobile() && !isMobileLandscape()) {
-    // 手機直版：不需要額外調整
-    return { x: mx, y: my };
-  } else if (isMobileLandscape()) {
-    // 手機橫版：根據真實設備進行調整
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isAndroid = userAgent.includes('android');
-    const isChrome = userAgent.includes('chrome');
-    
-    if (isAndroid && isChrome) {
-      // 安卓Chrome橫版特殊處理
-      // 移除之前的微調，使用更精確的計算
-      const screenRatio = window.innerWidth / window.innerHeight;
-      
-      // 根據螢幕比例進行精確調整
-      if (screenRatio > 2.0) {
-        // 超寬螢幕：輕微調整
-        mx += 0.5;
-        my += 0.5;
-      } else if (screenRatio > 1.5) {
-        // 標準橫版：不需要調整
-        // mx += 0;
-        // my += 0;
-      } else {
-        // 接近正方形：輕微調整
-        mx -= 0.5;
-        my -= 0.5;
-      }
-    } else {
-      // 其他手機瀏覽器：使用原有邏輯
-      const adjustment = 1; // 減少微調值
-      mx += adjustment;
-      my += adjustment;
-    }
-  }
-  
+  // 取得canvas實際顯示寬高
+  const displayWidth = rect.right - rect.left;
+  const displayHeight = rect.bottom - rect.top;
+  // 取得canvas邏輯寬高（即 .width/.height 屬性，已經考慮devicePixelRatio 和 scale）
+  const logicalWidth = canvas.width / window.devicePixelRatio / scale;
+  const logicalHeight = canvas.height / window.devicePixelRatio / scale;
+  // 計算觸控點在canvas顯示區的比例
+  const xRatio = (touch.clientX - rect.left) / displayWidth;
+  const yRatio = (touch.clientY - rect.top) / displayHeight;
+  // 換算成canvas內的遊戲座標
+  const mx = xRatio * logicalWidth;
+  const my = yRatio * logicalHeight;
   return { x: mx, y: my };
 }
 
