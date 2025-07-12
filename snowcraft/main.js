@@ -292,7 +292,7 @@ function resizeCanvas() {
       
       // 更新投擲距離限制
       MIN_THROW_DISTANCE = 40 * scale;
-      // 修正：手機板最大投擲距離設為畫布對角線
+      // 統一：最大投擲距離都設為畫布對角線
       MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
     } else {
       // 電腦版：充分利用螢幕空間
@@ -334,7 +334,8 @@ function resizeCanvas() {
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
       MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
+      // 統一：最大投擲距離都設為畫布對角線
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
     }
     
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
@@ -841,12 +842,14 @@ function drawSnowballs() {
     ctx.beginPath();
     ctx.arc(s.x, s.y, SNOWBALL_RADIUS, 0, Math.PI * 2);
     // 中心白、外圈淺藍的漸層
-    let grad = ctx.createRadialGradient(s.x, s.y, SNOWBALL_RADIUS * 0.2, s.x, s.y, SNOWBALL_RADIUS);
-    grad.addColorStop(0, '#fff');
-    grad.addColorStop(1, '#e6f3ff');
+    let grad = ctx.createRadialGradient(s.x, s.y, SNOWBALL_RADIUS * 0.1, s.x, s.y, SNOWBALL_RADIUS);
+    grad.addColorStop(0, '#e6f3ff'); // 中心淺藍
+    grad.addColorStop(0.4, '#e6f3ff');
+    grad.addColorStop(0.7, '#b3d9ff');
+    grad.addColorStop(1, '#b3d9ff'); // 外圈更藍
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = '#b3d9ff'; // 外圈描邊淺藍
+    ctx.strokeStyle = '#7bb6e9'; // 外圈描邊更深藍
     ctx.stroke();
   });
 }
