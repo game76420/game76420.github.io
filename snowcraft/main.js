@@ -2,7 +2,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const resultDiv = document.getElementById('result');
-const restartBtn = document.getElementById('restartBtn');
+
 const scoreDisplay = document.getElementById('scoreDisplay');
 const levelDisplay = document.getElementById('levelDisplay');
 
@@ -20,6 +20,8 @@ const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
 const closeLeaderboardBtn2 = document.getElementById('closeLeaderboardBtn2');
 const clearLeaderboardBtn = document.getElementById('clearLeaderboardBtn');
 const showLeaderboardBtn = document.getElementById('showLeaderboardBtn');
+const restartCurrentLevelBtn = document.getElementById('restartCurrentLevelBtn');
+const restartFromFirstLevelBtn = document.getElementById('restartFromFirstLevelBtn');
 
 // 跳關相關元素
 const skipLevelModal = document.getElementById('skipLevelModal');
@@ -39,6 +41,11 @@ function saveLeaderboard(leaderboard) {
 }
 
 function addScoreToLeaderboard(score) {
+  // 0分或負分不列入排行榜
+  if (score <= 0) {
+    return { leaderboard: getLeaderboard(), isInTop10: false, rank: 0 };
+  }
+  
   const leaderboard = getLeaderboard();
   const newScore = {
     score: score,
@@ -72,22 +79,47 @@ function showLeaderboard(currentScore = null) {
   if (leaderboard.length === 0) {
     html = '<p style="text-align:center;color:#666;">尚無記錄</p>';
   } else {
-    html = '<div style="margin-bottom:10px;"><strong>排名</strong> | <strong>分數</strong> | <strong>日期</strong> | <strong>時間</strong></div>';
+    // 使用表格結構來確保對齊
+    html = `
+      <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-family:Arial,sans-serif;">
+        <thead>
+          <tr style="border-bottom:2px solid #2a5;">
+            <th style="text-align:center;padding:8px;color:#2a5;font-weight:bold;width:20%;">排名</th>
+            <th style="text-align:center;padding:8px;color:#2a5;font-weight:bold;width:25%;">分數</th>
+            <th style="text-align:center;padding:8px;color:#2a5;font-weight:bold;width:30%;">日期</th>
+            <th style="text-align:center;padding:8px;color:#2a5;font-weight:bold;width:25%;">時間</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
     
     leaderboard.forEach((entry, index) => {
       // 檢查是否為當前分數
       const isCurrentScore = currentScore !== null && entry.score === currentScore;
       const color = isCurrentScore ? '#d22' : '#333';
       const fontWeight = isCurrentScore ? 'bold' : 'normal';
+      const bgColor = isCurrentScore ? 'rgba(210,34,34,0.1)' : 'transparent';
       
-      html += `<div style="margin:5px 0;color:${color};font-weight:${fontWeight};">`;
-      html += `${index + 1}. ${entry.score}分 | ${entry.date} | ${entry.time}`;
-      if (isCurrentScore) {
-        const rankText = index === 0 ? '(新紀錄！)' : `(第${index + 1}名)`;
-        html += ` <span style="color:#d22;font-size:12px;">${rankText}</span>`;
-      }
-      html += '</div>';
+      html += `
+        <tr style="background-color:${bgColor};border-bottom:1px solid #eee;">
+          <td style="text-align:center;padding:8px;color:${color};font-weight:${fontWeight};">
+            ${index + 1}
+            ${isCurrentScore ? `<br><span style="color:#d22;font-size:11px;">${index === 0 ? '(新紀錄！)' : ''}</span>` : ''}
+          </td>
+          <td style="text-align:center;padding:8px;color:${color};font-weight:${fontWeight};">
+            ${entry.score}分
+          </td>
+          <td style="text-align:center;padding:8px;color:${color};font-weight:${fontWeight};">
+            ${entry.date}
+          </td>
+          <td style="text-align:center;padding:8px;color:${color};font-weight:${fontWeight};">
+            ${entry.time}
+          </td>
+        </tr>
+      `;
     });
+    
+    html += '</tbody></table>';
   }
   
   leaderboardList.innerHTML = html;
@@ -99,8 +131,11 @@ function showSkipLevelModal() {
   if (skipLevelModal) {
     skipLevelModal.style.display = 'block';
     if (skipLevelInput) {
-      skipLevelInput.value = '';
+      // 填入上次挑戰的關卡號碼
+      skipLevelInput.value = lastChallengedLevel;
       skipLevelInput.focus();
+      // 選中輸入框內容，方便用戶直接輸入新號碼
+      skipLevelInput.select();
     }
   }
 }
@@ -118,15 +153,16 @@ function skipToLevel(targetLevel) {
     return false;
   }
   
-  // 如果目標關卡比當前關卡低，給予警告
-  if (targetLevel < level) {
-    if (!confirm(`確定要跳回到第 ${targetLevel} 關嗎？這會重置當前進度。`)) {
-      return false;
-    }
-  }
+  // 移除跳關確認詢問，直接允許跳關
   
   // 設置新關卡
   level = targetLevel;
+  
+  // 記住這次挑戰的關卡
+  lastChallengedLevel = targetLevel;
+  
+  // 清除當前分數
+  score = 0;
   
   // 重置玩家狀態
   players.forEach(player => {
@@ -313,6 +349,8 @@ let showLevelText = false;
 let showLevelTextValue = 1;
 let showLevelTextUntil = 0;
 let showGreetingUntil = 0;
+// 新增：記住上次挑戰的關卡
+let lastChallengedLevel = 1;
 
 // 圖片載入狀態追蹤
 let imagesLoaded = 0;
@@ -459,7 +497,7 @@ function resizeCanvas() {
       MIN_THROW_DISTANCE = 40 * scale;
       MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
     } else if (isMobileDevice) {
-      // 電腦版：充分利用螢幕空間
+      // 手機版：充分利用螢幕空間
       let targetW, targetH;
       
       // 計算最大可用空間
@@ -487,7 +525,7 @@ function resizeCanvas() {
         targetH = targetHByHeight;
       }
       
-      console.log('電腦版目標尺寸:', targetW, 'x', targetH);
+      console.log('手機版目標尺寸:', targetW, 'x', targetH);
       
       canvas.width = Math.round(targetW * window.devicePixelRatio);
       canvas.height = Math.round(targetH * window.devicePixelRatio);
@@ -589,7 +627,6 @@ function resetGame() {
   showGreetingUntil = performance.now() + 1000;
   gameState = 'showGreeting';
   resultDiv.textContent = '';
-  restartBtn.style.display = 'none';
   // 更新分數和關卡顯示
   updateInfo();
   // 確保畫布尺寸正確
@@ -627,37 +664,15 @@ function startLevel() {
   // 敵人
   enemies = [];
   let enemyCount = ENEMY_START_COUNT + (level - 1) * ENEMY_ADD_PER_LEVEL;
-  
-  // 計算敵人分布網格
-  const maxEnemiesPerRow = 4; // 每行最多4個敵人
-  const rows = Math.ceil(enemyCount / maxEnemiesPerRow);
-  const enemiesInLastRow = enemyCount % maxEnemiesPerRow || maxEnemiesPerRow;
-  
+  // 使用矩形網格分布
+  const enemyPositions = generateRectGridEnemyPositions(enemyCount, canvasWidth, canvasHeight);
   for (let i = 0; i < enemyCount; i++) {
-    const row = Math.floor(i / maxEnemiesPerRow);
-    const col = i % maxEnemiesPerRow;
-    
-    // 計算這行的敵人數量
-    const enemiesInThisRow = (row === rows - 1) ? enemiesInLastRow : maxEnemiesPerRow;
-    
-    // 計算間距，讓敵人均勻分布
-    const spacingX = (canvasWidth * 0.35) / (enemiesInThisRow + 1);
-    const spacingY = (canvasHeight * 0.35) / (rows + 1);
-    
-    // 計算位置，加上隨機偏移避免完全整齊
-    let baseX = canvasWidth * 0.05 + spacingX * (col + 1) + (Math.random() - 0.5) * 20;
-    let baseY = canvasHeight * 0.05 + spacingY * (row + 1) + (Math.random() - 0.5) * 20;
-    
-    // 確保不會超出左上角區域
-    baseX = Math.max(canvasWidth * 0.05, Math.min(canvasWidth * 0.4, baseX));
-    baseY = Math.max(canvasHeight * 0.05, Math.min(canvasHeight * 0.4, baseY));
-    
+    const position = enemyPositions[i];
     // 生成初始目標位置
     const initialTarget = generateBoundaryTarget(canvasWidth, canvasHeight);
-    
     enemies.push({
-      x: baseX,
-      y: baseY,
+      x: position.x,
+      y: position.y,
       hp: ENEMY_MAX_HP,
       alive: true,
       stunUntil: 0,
@@ -704,37 +719,15 @@ function startLevelWithoutSound() {
   // 敵人
   enemies = [];
   let enemyCount = ENEMY_START_COUNT + (level - 1) * ENEMY_ADD_PER_LEVEL;
-  
-  // 計算敵人分布網格
-  const maxEnemiesPerRow = 4; // 每行最多4個敵人
-  const rows = Math.ceil(enemyCount / maxEnemiesPerRow);
-  const enemiesInLastRow = enemyCount % maxEnemiesPerRow || maxEnemiesPerRow;
-  
+  // 使用矩形網格分布
+  const enemyPositions = generateRectGridEnemyPositions(enemyCount, canvasWidth, canvasHeight);
   for (let i = 0; i < enemyCount; i++) {
-    const row = Math.floor(i / maxEnemiesPerRow);
-    const col = i % maxEnemiesPerRow;
-    
-    // 計算這行的敵人數量
-    const enemiesInThisRow = (row === rows - 1) ? enemiesInLastRow : maxEnemiesPerRow;
-    
-    // 計算間距，讓敵人均勻分布
-    const spacingX = (canvasWidth * 0.35) / (enemiesInThisRow + 1);
-    const spacingY = (canvasHeight * 0.35) / (rows + 1);
-    
-    // 計算位置，加上隨機偏移避免完全整齊
-    let baseX = canvasWidth * 0.05 + spacingX * (col + 1) + (Math.random() - 0.5) * 20;
-    let baseY = canvasHeight * 0.05 + spacingY * (row + 1) + (Math.random() - 0.5) * 20;
-    
-    // 確保不會超出左上角區域
-    baseX = Math.max(canvasWidth * 0.05, Math.min(canvasWidth * 0.4, baseX));
-    baseY = Math.max(canvasHeight * 0.05, Math.min(canvasHeight * 0.4, baseY));
-    
+    const position = enemyPositions[i];
     // 生成初始目標位置
     const initialTarget = generateBoundaryTarget(canvasWidth, canvasHeight);
-    
     enemies.push({
-      x: baseX,
-      y: baseY,
+      x: position.x,
+      y: position.y,
       hp: ENEMY_MAX_HP,
       alive: true,
       stunUntil: 0,
@@ -760,6 +753,42 @@ function startLevelWithoutSound() {
   snowballs = [];
   gameState = 'playing';
   updateInfo();
+}
+
+// 生成左上三角形均勻分布的敵人位置
+function generateRectGridEnemyPositions(enemyCount, canvasWidth, canvasHeight) {
+  const margin = 50; // 距離邊界的距離
+  const positions = [];
+  
+  // 在左上三角形區域內生成均勻分布的位置
+  for (let i = 0; i < enemyCount; i++) {
+    let x, y;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    // 使用拒絕採樣法在三角形內生成均勻分布的位置
+    do {
+      // 在整個畫布範圍內隨機生成位置
+      x = margin + Math.random() * (canvasWidth - margin * 2);
+      y = margin + Math.random() * (canvasHeight - margin * 2);
+      attempts++;
+    } while (!isInEnemyArea(x, y, canvasWidth, canvasHeight) && attempts < maxAttempts);
+    
+    // 如果多次嘗試都失敗，強制投影到三角形內
+    if (!isInEnemyArea(x, y, canvasWidth, canvasHeight)) {
+      // 投影到對角線
+      let t = (canvasWidth - x) / (canvasWidth / canvasHeight);
+      if (y > t) y = t;
+      x = canvasWidth - y * (canvasWidth / canvasHeight);
+      // 確保在邊界內
+      x = Math.max(margin, Math.min(canvasWidth - margin, x));
+      y = Math.max(margin, Math.min(canvasHeight - margin, y));
+    }
+    
+    positions.push({ x, y });
+  }
+  
+  return positions;
 }
 
 function updateInfo() {
@@ -1262,20 +1291,25 @@ function updateSnowballs() {
   // 勝負判斷
   if (players.every(p=>!p.alive) && gameState==='playing') {
     gameState = 'lose';
-    restartBtn.style.display = 'block';
     
     // 遊戲結束時顯示排行榜
     setTimeout(() => {
       const finalScore = score;
-      const result = addScoreToLeaderboard(finalScore);
-      showLeaderboard(finalScore);
+      
+      // 只有當分數大於0時才記錄到排行榜
+      if (finalScore > 0) {
+        const result = addScoreToLeaderboard(finalScore);
+        showLeaderboard(finalScore);
+      } else {
+        // 0分或負分時只顯示排行榜，不記錄分數
+        showLeaderboard();
+      }
     }, 1000);
   }
   if (enemies.every(e=>!e.alive) && gameState==='playing') {
     gameState = 'win';
     // 播放過關音效
     playLevelStartSound();
-    restartBtn.style.display = 'none';
     // score += 100; // 已移除過關加分
     updateInfo();
     setTimeout(() => {
@@ -1293,7 +1327,6 @@ function updateSnowballs() {
         startLevelWithoutSound();
       }
       resultDiv.textContent = '';
-      restartBtn.style.display = 'none';
     }, 1000);
   }
 }
@@ -1310,25 +1343,23 @@ function generateBoundaryTarget(canvasWidth, canvasHeight) {
   switch(side) {
     case 0: // 上邊界
       return {
-        x: margin + Math.random() * (canvasWidth * 0.4 - margin * 2),
+        x: margin + Math.random() * (canvasWidth - margin * 2),
         y: margin
       };
     case 1: // 右邊界（限制在左上三角形內）
-      const maxX = canvasWidth * 0.4;
       return {
-        x: maxX - margin,
-        y: margin + Math.random() * (canvasHeight * 0.4 - margin * 2)
+        x: canvasWidth - margin,
+        y: margin + Math.random() * (canvasHeight - margin * 2)
       };
     case 2: // 下邊界（限制在左上三角形內）
-      const maxY = canvasHeight * 0.4;
       return {
-        x: margin + Math.random() * (canvasWidth * 0.4 - margin * 2),
-        y: maxY - margin
+        x: margin + Math.random() * (canvasWidth - margin * 2),
+        y: canvasHeight - margin
       };
     case 3: // 左邊界
       return {
         x: margin,
-        y: margin + Math.random() * (canvasHeight * 0.4 - margin * 2)
+        y: margin + Math.random() * (canvasHeight - margin * 2)
       };
   }
 }
@@ -1361,8 +1392,8 @@ function isInPlayerArea(x, y, canvasWidth, canvasHeight) {
 }
 // 工具函數：判斷是否在左上三角形（敵人區域）
 function isInEnemyArea(x, y, canvasWidth, canvasHeight) {
-  // 左上三角形：x < (canvasWidth - y * (canvasWidth/canvasHeight))
-  return x < canvasWidth - (y * (canvasWidth / canvasHeight));
+  // 左上三角形：x <= (canvasWidth - y * (canvasWidth/canvasHeight))，包含對角線
+  return x <= canvasWidth - (y * (canvasWidth / canvasHeight));
 }
 
 // 修改玩家拖曳移動限制
@@ -1376,6 +1407,7 @@ canvas.addEventListener('mousemove', e => {
     return;
   }
   let rect = canvas.getBoundingClientRect();
+  // 考慮設備像素比和縮放比例
   let mx = (e.clientX - rect.left) / scale;
   let my = (e.clientY - rect.top) / scale;
   
@@ -1404,6 +1436,9 @@ canvas.addEventListener('mousemove', e => {
 
 // 觸控移動同理
 canvas.addEventListener('touchmove', e => {
+  // 防止觸控事件的預設行為（滾動等）
+  e.preventDefault();
+  
   if (!draggingPlayer) return;
   if (draggingPlayer.stunUntil > performance.now()) {
     draggingPlayer.charging = false;
@@ -1413,9 +1448,16 @@ canvas.addEventListener('touchmove', e => {
     return;
   }
   if (e.touches.length !== 1) return;
+  
   let rect = canvas.getBoundingClientRect();
+  // 考慮設備像素比和縮放比例
   let mx = (e.touches[0].clientX - rect.left) / scale;
   let my = (e.touches[0].clientY - rect.top) / scale;
+  
+  // 調試信息（手機版）
+  if (isMobile()) {
+    console.log('Touch move:', {x: mx, y: my, scale: scale, draggingPlayer: draggingPlayer.id, devicePixelRatio: window.devicePixelRatio});
+  }
   
   // 檢查觸控是否移出畫布範圍
   if (e.touches[0].clientX < rect.left || e.touches[0].clientX > rect.right || 
@@ -1436,7 +1478,6 @@ canvas.addEventListener('touchmove', e => {
   }
   draggingPlayer.x = newX;
   draggingPlayer.y = newY;
-  e.preventDefault();
 }, {passive:false});
 
 // 敵人移動限制
@@ -1557,6 +1598,7 @@ function distance(a, b) {
 canvas.addEventListener('mousedown', e => {
   if (gameState !== 'playing') return;
   let rect = canvas.getBoundingClientRect();
+  // 考慮設備像素比和縮放比例
   let mx = (e.clientX - rect.left) / scale;
   let my = (e.clientY - rect.top) / scale;
   // 選擇最近紅衣角色
@@ -1654,19 +1696,20 @@ document.addEventListener('mouseup', handleMouseUp);
 
 // 觸控操作
 canvas.addEventListener('touchstart', e => {
+  // 防止觸控事件的預設行為（滾動等）
+  e.preventDefault();
+  
   if (gameState !== 'playing') return;
   if (e.touches.length !== 1) return;
   
-  // 防止觸控事件的預設行為
-  e.preventDefault();
-  
   let rect = canvas.getBoundingClientRect();
+  // 考慮設備像素比和縮放比例
   let mx = (e.touches[0].clientX - rect.left) / scale;
   let my = (e.touches[0].clientY - rect.top) / scale;
   
   // 調試信息（手機版）
   if (isMobile()) {
-    console.log('Touch start:', {x: mx, y: my, scale: scale, rect: rect});
+    console.log('Touch start:', {x: mx, y: my, scale: scale, rect: rect, devicePixelRatio: window.devicePixelRatio});
   }
   
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
@@ -1690,11 +1733,24 @@ canvas.addEventListener('touchstart', e => {
     chargeStart = performance.now();
     selectedPlayer = p;
     p.charging = true;
+    
+    // 調試信息（手機版）
+    if (isMobile()) {
+      console.log('Player selected:', {id: p.id, x: p.x, y: p.y, dragOffset: {x: dragOffsetX, y: dragOffsetY}});
+    }
   }
 }, {passive: false});
 
 // 觸控釋放事件處理函數
 function handleTouchEnd(e) {
+  // 防止觸控事件的預設行為
+  e.preventDefault();
+  
+  // 調試信息（手機版）
+  if (isMobile()) {
+    console.log('Touch end:', {draggingPlayer: draggingPlayer ? draggingPlayer.id : null, charging: charging});
+  }
+  
   if (draggingPlayer) {
     let now = performance.now();
     let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
@@ -1725,7 +1781,6 @@ function handleTouchEnd(e) {
     if (selectedPlayer) selectedPlayer.charging = false;
     selectedPlayer = null;
     draggingPlayer = null;
-    e.preventDefault();
     return;
   }
   if (!charging || !selectedPlayer || !selectedPlayer.alive) return;
@@ -1755,30 +1810,13 @@ function handleTouchEnd(e) {
   charging = false;
   if (selectedPlayer) selectedPlayer.charging = false;
   selectedPlayer = null;
-  e.preventDefault();
 }
 
 canvas.addEventListener('touchend', handleTouchEnd, {passive:false});
 // 添加全域觸控釋放事件，防止觸控移出畫布後無法釋放
 document.addEventListener('touchend', handleTouchEnd, {passive:false});
 
-restartBtn.onclick = () => {
-  // 關閉排行榜
-  if (leaderboardModal) {
-    leaderboardModal.style.display = 'none';
-  }
-  
-  if (gameState === 'win') {
-    // level++;
-    // startLevel();
-    // resultDiv.textContent = '';
-    // restartBtn.style.display = 'none';
-  } else {
-    resetGame();
-    resultDiv.textContent = '';
-    restartBtn.style.display = 'none';
-  }
-};
+
 
 if (showDescBtn && descDiv) {
   showDescBtn.onclick = () => {
@@ -1817,54 +1855,219 @@ if (clearLeaderboardBtn) {
   };
 }
 
+// 彈窗統一關閉
+function hideAllModals() {
+  leaderboardModal.style.display = 'none';
+  skipLevelModal.style.display = 'none';
+  descDiv.style.display = 'none';
+  document.getElementById('canvasWrap').classList.remove('modal-open');
+}
+
+// 顯示排行榜
 if (showLeaderboardBtn) {
   showLeaderboardBtn.onclick = () => {
     showLeaderboard();
+    document.getElementById('canvasWrap').classList.add('modal-open');
   };
+  showLeaderboardBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    showLeaderboard();
+    document.getElementById('canvasWrap').classList.add('modal-open');
+  }, {passive: false});
+  // 手機版額外觸控支援
+  showLeaderboardBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
-
-// 跳關按鈕事件監聽器
+if (closeLeaderboardBtn) {
+  closeLeaderboardBtn.onclick = hideAllModals;
+  closeLeaderboardBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+  }, {passive: false});
+  closeLeaderboardBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+if (closeLeaderboardBtn2) {
+  closeLeaderboardBtn2.onclick = hideAllModals;
+  closeLeaderboardBtn2.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+  }, {passive: false});
+  closeLeaderboardBtn2.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+// 跳關彈窗
 if (skipToLevelBtn) {
   skipToLevelBtn.onclick = () => {
     showSkipLevelModal();
+    document.getElementById('canvasWrap').classList.add('modal-open');
   };
+  skipToLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    showSkipLevelModal();
+    document.getElementById('canvasWrap').classList.add('modal-open');
+  }, {passive: false});
+  skipToLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
-
 if (closeSkipLevelBtn) {
-  closeSkipLevelBtn.onclick = () => {
-    hideSkipLevelModal();
-  };
+  closeSkipLevelBtn.onclick = hideAllModals;
+  closeSkipLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+  }, {passive: false});
+  closeSkipLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
-
 if (cancelSkipLevelBtn) {
-  cancelSkipLevelBtn.onclick = () => {
-    hideSkipLevelModal();
-  };
+  cancelSkipLevelBtn.onclick = hideAllModals;
+  cancelSkipLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+  }, {passive: false});
+  cancelSkipLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
 
+// 確認跳關按鈕
 if (confirmSkipLevelBtn) {
   confirmSkipLevelBtn.onclick = () => {
     const targetLevel = parseInt(skipLevelInput.value);
-    if (isNaN(targetLevel)) {
-      alert('請輸入有效的關卡號碼！');
-      return;
+    if (targetLevel && skipToLevel(targetLevel)) {
+      hideAllModals();
     }
-    skipToLevel(targetLevel);
   };
+  confirmSkipLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const targetLevel = parseInt(skipLevelInput.value);
+    if (targetLevel && skipToLevel(targetLevel)) {
+      hideAllModals();
+    }
+  }, {passive: false});
+  confirmSkipLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
 
-// 跳關輸入框回車鍵事件
-if (skipLevelInput) {
-  skipLevelInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      const targetLevel = parseInt(skipLevelInput.value);
-      if (isNaN(targetLevel)) {
-        alert('請輸入有效的關卡號碼！');
-        return;
-      }
-      skipToLevel(targetLevel);
+// 清除排行榜按鈕
+if (clearLeaderboardBtn) {
+  clearLeaderboardBtn.onclick = () => {
+    if (confirm('確定要清除所有排行榜記錄嗎？')) {
+      clearLeaderboard();
     }
-  });
+  };
+  clearLeaderboardBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (confirm('確定要清除所有排行榜記錄嗎？')) {
+      clearLeaderboard();
+    }
+  }, {passive: false});
+  clearLeaderboardBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+
+// 重新挑戰當前關卡按鈕
+if (restartCurrentLevelBtn) {
+  restartCurrentLevelBtn.onclick = () => {
+    hideAllModals();
+    // 保持當前關卡，只重置玩家狀態和分數
+    score = 0;
+    players.forEach(player => {
+      player.hp = PLAYER_MAX_HP;
+      player.alive = true;
+      player.stunUntil = 0;
+      player.charging = false;
+      player.charge = 0;
+      player.deadState = false;
+      player.deadTime = 0;
+    });
+    startLevelWithoutSound();
+    resultDiv.textContent = '';
+    updateInfo();
+  };
+  restartCurrentLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+    // 保持當前關卡，只重置玩家狀態和分數
+    score = 0;
+    players.forEach(player => {
+      player.hp = PLAYER_MAX_HP;
+      player.alive = true;
+      player.stunUntil = 0;
+      player.charging = false;
+      player.charge = 0;
+      player.deadState = false;
+      player.deadTime = 0;
+    });
+    startLevelWithoutSound();
+    resultDiv.textContent = '';
+    updateInfo();
+  }, {passive: false});
+  restartCurrentLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+
+// 回到第一關按鈕
+if (restartFromFirstLevelBtn) {
+  restartFromFirstLevelBtn.onclick = () => {
+    hideAllModals();
+    resetGame();
+    resultDiv.textContent = '';
+  };
+  restartFromFirstLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+    resetGame();
+    resultDiv.textContent = '';
+  }, {passive: false});
+  restartFromFirstLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+// 說明彈窗
+if (showDescBtn && descDiv) {
+  showDescBtn.onclick = () => {
+    descDiv.style.display = 'block';
+    document.getElementById('canvasWrap').classList.add('modal-open');
+  };
+  showDescBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    descDiv.style.display = 'block';
+    document.getElementById('canvasWrap').classList.add('modal-open');
+  }, {passive: false});
+  showDescBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+if (closeDescBtn && descDiv) {
+  closeDescBtn.onclick = hideAllModals;
+  closeDescBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    hideAllModals();
+  }, {passive: false});
+  closeDescBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
 
 // 初始化遊戲
@@ -1958,21 +2161,57 @@ function startGame() {
 
 // 手機版特殊處理
 if (isMobile()) {
-  // 防止手機版縮放
+  // 防止手機版縮放（只在非遊戲區域）
   document.addEventListener('touchstart', function(e) {
-    if (e.touches.length > 1) {
+    // 檢查是否在遊戲畫布上
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const isOnCanvas = touch.clientX >= canvasRect.left && 
+                      touch.clientX <= canvasRect.right && 
+                      touch.clientY >= canvasRect.top && 
+                      touch.clientY <= canvasRect.bottom;
+    
+    // 檢查是否在按鈕或模態框上
+    const target = e.target;
+    const isOnButton = target.tagName === 'BUTTON' || 
+                      target.closest('button') || 
+                      target.closest('#leaderboardModal') || 
+                      target.closest('#skipLevelModal') || 
+                      target.closest('#desc');
+    
+    // 只有在非遊戲區域且非按鈕區域且多點觸控時才阻止預設行為
+    if (!isOnCanvas && !isOnButton && e.touches.length > 1) {
       e.preventDefault();
     }
   }, { passive: false });
   
-  // 防止雙擊縮放
+  // 防止雙擊縮放（只在非遊戲區域）
   let lastTouchEnd = 0;
   document.addEventListener('touchend', function(e) {
-    const now = (new Date()).getTime();
-    if (now - lastTouchEnd <= 300) {
-      e.preventDefault();
+    // 檢查是否在遊戲畫布上
+    const canvasRect = canvas.getBoundingClientRect();
+    const touch = e.changedTouches[0];
+    const isOnCanvas = touch.clientX >= canvasRect.left && 
+                      touch.clientX <= canvasRect.right && 
+                      touch.clientY >= canvasRect.top && 
+                      touch.clientY <= canvasRect.bottom;
+    
+    // 檢查是否在按鈕或模態框上
+    const target = e.target;
+    const isOnButton = target.tagName === 'BUTTON' || 
+                      target.closest('button') || 
+                      target.closest('#leaderboardModal') || 
+                      target.closest('#skipLevelModal') || 
+                      target.closest('#desc');
+    
+    // 只有在非遊戲區域且非按鈕區域且是雙擊時才阻止預設行為
+    if (!isOnCanvas && !isOnButton) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+      }
+      lastTouchEnd = now;
     }
-    lastTouchEnd = now;
   }, false);
 }
 
@@ -1989,6 +2228,22 @@ if (skipLoadingBtn) {
     
     startGame();
   });
+  skipLoadingBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('用戶手動跳過載入');
+    imagesReady = true;
+    
+    // 隱藏載入指示器
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
+    }
+    
+    startGame();
+  }, {passive: false});
+  skipLoadingBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
 }
 
 // 確保 DOM 完全載入後再初始化

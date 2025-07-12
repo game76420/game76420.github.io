@@ -12,11 +12,12 @@
     <div id="gameInfo" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:1000;font-family:Arial,sans-serif;">
       <div style="font-size:18px;font-weight:bold;color:#2a5;">分數: <span id="scoreDisplay">0</span></div>
       <div style="font-size:16px;color:#666;margin-top:4px;">關卡: <span id="levelDisplay">1</span></div>
-      <button id="showLeaderboardBtn" style="margin-top:8px;padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🏆 排行榜</button>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+        <button id="showLeaderboardBtn" style="padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🏆 排行榜</button>
+        <button id="skipToLevelBtn" style="padding:4px 8px;background:#f90;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🎯 跳關挑戰</button>
+        <button id="showDescBtn" style="padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;" title="玩法說明">❓ 說明</button>
+      </div>
     </div>
-    
-    <!-- 問號按鈕獨立放右上角 -->
-    <button id="showDescBtn" title="玩法說明"><span style="font-size:1.5em;">❓</span></button>
 
     <!-- 載入指示器 -->
     <div id="loadingIndicator" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:9999;display:none;">
@@ -27,7 +28,7 @@
 
     <div id="canvasWrap">
       <canvas id="gameCanvas"></canvas>
-      <button id="restartBtn" style="display:none">重新開始</button>
+
     </div>
     <div id="result"></div>
     
@@ -40,8 +41,9 @@
       </div>
       <div style="margin-top:20px;">
         <button id="clearLeaderboardBtn" style="padding:8px 16px;background:#d22;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">清除排行榜</button>
-        <button id="skipToLevelBtn" style="padding:8px 16px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">跳關挑戰</button>
-        <button id="closeLeaderboardBtn2" style="padding:8px 16px;background:#2a5;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">關閉</button>
+        <button id="closeLeaderboardBtn2" style="padding:8px 16px;background:#2a5;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">關閉</button>
+        <button id="restartCurrentLevelBtn" style="padding:8px 16px;background:#36c;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">重新挑戰</button>
+        <button id="restartFromFirstLevelBtn" style="padding:8px 16px;background:#d22;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">回到第一關</button>
       </div>
     </div>
     

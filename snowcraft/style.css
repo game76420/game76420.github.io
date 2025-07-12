@@ -113,36 +113,7 @@ body {
   min-height: 48px;
   flex-shrink: 0;
 }
-#restartBtn {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 24px;
-  padding: 12px 40px;
-  border-radius: 12px;
-  border: none;
-  background: linear-gradient(135deg, #2a5, #38b);
-  color: #fff;
-  cursor: pointer;
-  display: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  z-index: 1000;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  transition: all 0.2s ease;
-  font-weight: bold;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-}
-#restartBtn:hover {
-  background: linear-gradient(135deg, #38b, #4a9);
-  transform: translate(-50%, -50%) scale(1.05);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-}
+
 #desc {
   margin: 12px auto;
   max-width: 500px;
@@ -155,27 +126,10 @@ body {
   z-index: 1000;
 }
 #showDescBtn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  z-index: 1001;
-  font-size: 1.5em;
-  padding: 4px 8px;
-  border-radius: 50%;
-  transition: background 0.2s;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
+  /* 現在在遊戲信息區域內，使用內聯樣式 */
 }
-#showDescBtn:hover {
-  background: #eaf6ff;
-}
+
+/* 手機版按鈕觸控優化 */
 @media (max-width: 900px) {
   #ui {
     font-size: 16px;
@@ -185,16 +139,64 @@ body {
     font-size: 24px;
     min-height: 32px;
   }
-  #restartBtn {
-    font-size: 20px;
-    padding: 10px 32px;
-  }
+
   #desc {
     font-size: 14px;
     padding: 8px 8px;
   }
   h1 {
     font-size: 22px;
+  }
+  
+
+  
+  /* 確保按鈕在手機版有足夠的觸控區域 */
+  #showLeaderboardBtn,
+  #skipToLevelBtn,
+  #showDescBtn {
+    min-width: 80px;
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 14px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* 模態框按鈕觸控優化 */
+  #leaderboardModal button,
+  #skipLevelModal button,
+  #desc button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 16px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 8px;
+  }
+  
+  /* 關閉按鈕特殊處理 */
+  #closeLeaderboardBtn,
+  #closeSkipLevelBtn,
+  #closeDescBtn {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 20px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* 載入指示器按鈕觸控優化 */
+  #skipLoadingBtn {
+    min-width: 120px;
+    min-height: 44px;
+    padding: 12px 20px;
+    font-size: 16px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 8px;
   }
 }
 @media (max-width: 600px) {
@@ -217,10 +219,7 @@ body {
     font-size: 18px;
     min-height: 24px;
   }
-  #restartBtn {
-    font-size: 16px;
-    padding: 8px 8px;
-  }
+
   #desc {
     font-size: 12px;
     padding: 6px 2px;
@@ -324,14 +323,7 @@ body {
     border-radius: 0 !important;
   }
   
-  /* 橫屏時隱藏不必要的UI元素 */
-  #showDescBtn {
-    top: 8px !important;
-    right: 8px !important;
-    font-size: 1.2em !important;
-    padding: 2px 6px !important;
-    z-index: 1001 !important;
-  }
+
   
   #result {
     font-size: 16px !important;
@@ -358,13 +350,89 @@ body {
     margin-top: 2px !important;
   }
   
-  /* 橫屏時確保restartBtn的z-index正確 */
-  #restartBtn {
-    z-index: 1000 !important;
-  }
+
   
   /* 橫屏時確保desc的z-index正確 */
   #desc {
     z-index: 1000 !important;
+  }
+} 
+
+#leaderboardModal,
+#desc,
+#skipLevelModal {
+  pointer-events: auto !important;
+}
+
+#canvasWrap.modal-open {
+  pointer-events: none !important;
+}
+
+/* 排行榜表格優化 */
+#leaderboardList table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-family: Arial, sans-serif;
+}
+
+#leaderboardList th {
+  text-align: center;
+  padding: 8px;
+  color: #2a5;
+  font-weight: bold;
+  border-bottom: 2px solid #2a5;
+}
+
+#leaderboardList td {
+  text-align: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+#leaderboardList tr:hover {
+  background-color: rgba(42, 170, 85, 0.05);
+}
+
+/* 手機版排行榜優化 */
+@media (max-width: 900px) {
+  #leaderboardList table {
+    font-size: 14px;
+  }
+  
+  #leaderboardList th,
+  #leaderboardList td {
+    padding: 6px 4px;
+    font-size: 13px;
+  }
+  
+  #leaderboardList th {
+    font-size: 14px;
+  }
+}
+
+/* 手機版小螢幕進一步優化 */
+@media (max-width: 480px) {
+  #leaderboardList table {
+    font-size: 12px;
+  }
+  
+  #leaderboardList th,
+  #leaderboardList td {
+    padding: 4px 2px;
+    font-size: 11px;
+  }
+  
+  #leaderboardList th {
+    font-size: 12px;
+  }
+  
+  /* 調整排行榜模態框寬度 */
+  #leaderboardModal {
+    min-width: 280px !important;
+    padding: 20px 24px !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
   }
 } 
