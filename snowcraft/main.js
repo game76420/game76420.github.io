@@ -1661,8 +1661,8 @@ canvas.addEventListener('touchmove', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 使用改進的觸控座標計算
-  const coords = getTouchCoordinates(e.touches[0], rect);
+  // 使用真實手機觸控座標計算
+  const coords = getRealMobileTouchCoordinates(e.touches[0], rect);
   let mx = coords.x;
   let my = coords.y;
   
@@ -1930,8 +1930,8 @@ canvas.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 使用改進的觸控座標計算
-  const coords = getTouchCoordinates(e.touches[0], rect);
+  // 使用真實手機觸控座標計算
+  const coords = getRealMobileTouchCoordinates(e.touches[0], rect);
   let mx = coords.x;
   let my = coords.y;
   
@@ -2589,6 +2589,52 @@ function getTouchCoordinates(touch, rect) {
   
   return { x: mx, y: my };
 } 
+
+// 新增：真實手機觸控座標修正函數
+function getRealMobileTouchCoordinates(touch, rect) {
+  // 基礎座標計算
+  let mx = (touch.clientX - rect.left) / scale;
+  let my = (touch.clientY - rect.top) / scale;
+  
+  // 真實手機特殊處理
+  if (isMobile() && !isMobileLandscape()) {
+    // 手機直版：不需要額外調整
+    return { x: mx, y: my };
+  } else if (isMobileLandscape()) {
+    // 手機橫版：根據真實設備進行調整
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isAndroid = userAgent.includes('android');
+    const isChrome = userAgent.includes('chrome');
+    
+    if (isAndroid && isChrome) {
+      // 安卓Chrome橫版特殊處理
+      // 移除之前的微調，使用更精確的計算
+      const screenRatio = window.innerWidth / window.innerHeight;
+      
+      // 根據螢幕比例進行精確調整
+      if (screenRatio > 2.0) {
+        // 超寬螢幕：輕微調整
+        mx += 0.5;
+        my += 0.5;
+      } else if (screenRatio > 1.5) {
+        // 標準橫版：不需要調整
+        // mx += 0;
+        // my += 0;
+      } else {
+        // 接近正方形：輕微調整
+        mx -= 0.5;
+        my -= 0.5;
+      }
+    } else {
+      // 其他手機瀏覽器：使用原有邏輯
+      const adjustment = 1; // 減少微調值
+      mx += adjustment;
+      my += adjustment;
+    }
+  }
+  
+  return { x: mx, y: my };
+}
 
 // 手機橫版觸控優化：處理觸控響應延遲
 function handleMobileTouchOptimization() {
