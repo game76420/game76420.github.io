@@ -259,14 +259,13 @@ function resizeCanvas() {
       let targetW, targetH;
       
       if (isLandscape) {
-        // 橫屏模式：充分利用寬度
-        targetW = availableW;
-        targetH = targetW * 9 / 16;
-        
-        // 如果高度超出螢幕，則以高度為準
-        if (targetH > availableH) {
-          targetH = availableH;
-          targetW = targetH * 16 / 9;
+        // 橫屏模式：優先以高度為主，確保畫布最大化
+        targetH = availableH;
+        targetW = targetH * 16 / 9;
+        // 如果寬度超出螢幕，則以寬度為主
+        if (targetW > availableW) {
+          targetW = availableW;
+          targetH = targetW * 9 / 16;
         }
       } else {
         // 直屏模式：充分利用高度
@@ -701,8 +700,10 @@ function drawBackground() {
     }
     
     let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-    grad.addColorStop(0, "#f8fbff");
-    grad.addColorStop(1, "#eaf6ff");
+    grad.addColorStop(0, "#ffffff"); // 最上方純白
+    grad.addColorStop(0.4, "#f0f8ff"); // 上中段淡藍
+    grad.addColorStop(0.7, "#e6f3ff"); // 下中段更明顯藍
+    grad.addColorStop(1, "#d0e6f7"); // 最下方偏藍
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     // 雪堆 - 調整位置適應畫布大小
@@ -839,9 +840,13 @@ function drawSnowballs() {
   snowballs.forEach(s => {
     ctx.beginPath();
     ctx.arc(s.x, s.y, SNOWBALL_RADIUS, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
+    // 中心白、外圈淺藍的漸層
+    let grad = ctx.createRadialGradient(s.x, s.y, SNOWBALL_RADIUS * 0.2, s.x, s.y, SNOWBALL_RADIUS);
+    grad.addColorStop(0, '#fff');
+    grad.addColorStop(1, '#e6f3ff');
+    ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = '#99f';
+    ctx.strokeStyle = '#b3d9ff'; // 外圈描邊淺藍
     ctx.stroke();
   });
 }
