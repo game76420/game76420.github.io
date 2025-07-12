@@ -90,9 +90,21 @@ function playLevelStartSound() {
   }
 }
 
-const PLAYER_RADIUS = 26;
-const ENEMY_RADIUS = 26;
+// 基礎人物半徑
+const BASE_PLAYER_RADIUS = 26;
+const BASE_ENEMY_RADIUS = 26;
 const SNOWBALL_RADIUS = 10;
+
+// 動態計算人物半徑（電腦版相對更小）
+function getPlayerRadius() {
+  const isMobileDevice = isMobile();
+  return isMobileDevice ? BASE_PLAYER_RADIUS : BASE_PLAYER_RADIUS * 0.8; // 電腦版縮小20%
+}
+
+function getEnemyRadius() {
+  const isMobileDevice = isMobile();
+  return isMobileDevice ? BASE_ENEMY_RADIUS : BASE_ENEMY_RADIUS * 0.8; // 電腦版縮小20%
+}
 const PLAYER_COUNT = 3;
 const ENEMY_START_COUNT = 3;
 const ENEMY_ADD_PER_LEVEL = 2;
@@ -226,6 +238,10 @@ let BASE_WIDTH = 960;
 let BASE_HEIGHT = 540;
 let scale = 1;
 
+// 電腦版專用參數 - 更大的場地和更小的人物
+let COMPUTER_BASE_WIDTH = 1440;  // 增加50%的寬度
+let COMPUTER_BASE_HEIGHT = 810;  // 增加50%的高度
+
 // 檢測是否為手機版
 function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
@@ -269,7 +285,7 @@ function resizeCanvas() {
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
     } else if (isMobileDevice) {
       // 電腦版：充分利用螢幕空間
       let targetW, targetH;
@@ -311,24 +327,28 @@ function resizeCanvas() {
       
       MIN_THROW_DISTANCE = 40 * scale;
       // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
     } else {
-      // 電腦版：充分利用螢幕空間
+      // 電腦版：使用更大的基礎尺寸，讓場地更大
       let targetW, targetH;
       
       // 計算最大可用空間
       let maxW = w;
       let maxH = availableH;
       
+      // 使用電腦版專用的基礎尺寸
+      let computerBaseWidth = COMPUTER_BASE_WIDTH;
+      let computerBaseHeight = COMPUTER_BASE_HEIGHT;
+      
       // 計算基於寬度的尺寸
-      let scaleByWidth = maxW / BASE_WIDTH;
-      let targetWByWidth = BASE_WIDTH * scaleByWidth;
-      let targetHByWidth = BASE_HEIGHT * scaleByWidth;
+      let scaleByWidth = maxW / computerBaseWidth;
+      let targetWByWidth = computerBaseWidth * scaleByWidth;
+      let targetHByWidth = computerBaseHeight * scaleByWidth;
       
       // 計算基於高度的尺寸
-      let scaleByHeight = maxH / BASE_HEIGHT;
-      let targetWByHeight = BASE_WIDTH * scaleByHeight;
-      let targetHByHeight = BASE_HEIGHT * scaleByHeight;
+      let scaleByHeight = maxH / computerBaseHeight;
+      let targetWByHeight = computerBaseWidth * scaleByHeight;
+      let targetHByHeight = computerBaseHeight * scaleByHeight;
       
       // 選擇能充分利用空間的尺寸
       if (targetHByWidth <= maxH) {
@@ -348,12 +368,13 @@ function resizeCanvas() {
       canvas.style.width = targetW + 'px';
       canvas.style.height = targetH + 'px';
       
-      scale = targetW / BASE_WIDTH;
+      // 使用電腦版基礎尺寸計算縮放比例
+      scale = targetW / computerBaseWidth;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
       MIN_THROW_DISTANCE = 40 * scale;
       // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
     }
     
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
@@ -410,8 +431,13 @@ function startLevel() {
   }
   
   // 玩家 - 調整位置適應16:9大畫面
-  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
-  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  // 電腦版使用更大的基礎尺寸
+  const isMobileDevice = isMobile();
+  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
+  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
+  
+  const canvasWidth = baseWidth;
+  const canvasHeight = baseHeight;
   
   // 確保尺寸有效
   if (canvasWidth <= 0 || canvasHeight <= 0) {
@@ -470,8 +496,13 @@ function startLevel() {
 // 不播放音效的關卡開始函數
 function startLevelWithoutSound() {
   // 玩家 - 調整位置適應16:9大畫面
-  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
-  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  // 電腦版使用更大的基礎尺寸
+  const isMobileDevice = isMobile();
+  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
+  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
+  
+  const canvasWidth = baseWidth;
+  const canvasHeight = baseHeight;
   
   players = [
     { x: canvasWidth * 0.75, y: canvasHeight * 0.7, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 0, deadState: false, deadTime: 0 },
@@ -756,7 +787,7 @@ function drawPlayers() {
       const offsetX = -45;
       const offsetY = -12;
       ctx.beginPath();
-      ctx.arc(p.x + offsetX, p.y + offsetY, PLAYER_RADIUS+10, 0, Math.PI*2);
+      ctx.arc(p.x + offsetX, p.y + offsetY, getPlayerRadius()+10, 0, Math.PI*2);
       ctx.strokeStyle = '#f9c';
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 3;
@@ -770,7 +801,7 @@ function drawPlayers() {
       const offsetY = -12;
       let charge = Math.min(1, (performance.now() - chargeStart) / CHARGE_TIME);
       ctx.beginPath();
-      ctx.arc(p.x + offsetX, p.y + offsetY, PLAYER_RADIUS+8, 0, Math.PI*2*charge);
+      ctx.arc(p.x + offsetX, p.y + offsetY, getPlayerRadius()+8, 0, Math.PI*2*charge);
       ctx.strokeStyle = '#f90';
       ctx.lineWidth = 4;
       ctx.stroke();
@@ -783,7 +814,7 @@ function drawPlayers() {
       const controlY = p.y + 50;  // 向下偏移50像素
       // 顯示觸控範圍（半透明圓圈）
       ctx.beginPath();
-      ctx.arc(controlX, controlY, PLAYER_RADIUS + 30, 0, Math.PI*2);
+      ctx.arc(controlX, controlY, getPlayerRadius() + 30, 0, Math.PI*2);
       ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
       ctx.lineWidth = 2;
       ctx.globalAlpha = 0.2;
@@ -825,7 +856,7 @@ function drawEnemies() {
     // 暈圈
     if (e.stunUntil > performance.now()) {
       ctx.beginPath();
-      ctx.arc(e.x, e.y, ENEMY_RADIUS+10, 0, Math.PI*2);
+      ctx.arc(e.x, e.y, getEnemyRadius()+10, 0, Math.PI*2);
       ctx.strokeStyle = '#f9c';
       ctx.setLineDash([6, 6]);
       ctx.lineWidth = 3;
@@ -842,7 +873,7 @@ function drawEnemies() {
       }
       ctx.save();
       ctx.beginPath();
-      ctx.arc(e.x, e.y, ENEMY_RADIUS+8, 0, Math.PI*2*charge);
+      ctx.arc(e.x, e.y, getEnemyRadius()+8, 0, Math.PI*2*charge);
       ctx.strokeStyle = '#ff0';
       ctx.lineWidth = 4;
       ctx.globalAlpha = 0.9;
@@ -962,7 +993,7 @@ function updateSnowballs() {
     if (s.from === 'player') {
       enemies.forEach(e => {
         if (!e.alive || e.stunUntil > performance.now()) return;
-        if (distance(s, e) < ENEMY_RADIUS + SNOWBALL_RADIUS) {
+        if (distance(s, e) < getEnemyRadius() + SNOWBALL_RADIUS) {
           e.hp--;
           // 播放被擊中音效
           playHitSound();
@@ -988,7 +1019,7 @@ function updateSnowballs() {
     } else if (s.from === 'enemy') {
       players.forEach(p => {
         if (!p.alive || p.stunUntil > performance.now()) return;
-        if (distance(s, p) < PLAYER_RADIUS + SNOWBALL_RADIUS) {
+        if (distance(s, p) < getPlayerRadius() + SNOWBALL_RADIUS) {
           p.hp--;
           // 播放被擊中音效
           playHitSound();
@@ -1139,8 +1170,8 @@ canvas.addEventListener('mousemove', e => {
   
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
-  let newX = Math.max(PLAYER_RADIUS, Math.min(canvasWidth - PLAYER_RADIUS, mx - dragOffsetX));
-  let newY = Math.max(PLAYER_RADIUS, Math.min(canvasHeight - PLAYER_RADIUS, my - dragOffsetY));
+  let newX = Math.max(getPlayerRadius(), Math.min(canvasWidth - getPlayerRadius(), mx - dragOffsetX));
+  let newY = Math.max(getPlayerRadius(), Math.min(canvasHeight - getPlayerRadius(), my - dragOffsetY));
   // 限制只能在右下三角形
   if (!isInPlayerArea(newX, newY, canvasWidth, canvasHeight)) {
     // 若超出，將座標投影到對角線上
@@ -1232,8 +1263,8 @@ function updateEnemies(ts) {
       
       // 限制敵人不會移出左上三角形
       // 先限制在畫布內
-      e.x = Math.max(ENEMY_RADIUS, Math.min(canvasWidth - ENEMY_RADIUS, e.x));
-      e.y = Math.max(ENEMY_RADIUS, Math.min(canvasHeight - ENEMY_RADIUS, e.y));
+      e.x = Math.max(getEnemyRadius(), Math.min(canvasWidth - getEnemyRadius(), e.x));
+      e.y = Math.max(getEnemyRadius(), Math.min(canvasHeight - getEnemyRadius(), e.y));
       // 再限制在左上三角形
       if (!isInEnemyArea(e.x, e.y, canvasWidth, canvasHeight)) {
         // 投影到對角線
@@ -1268,13 +1299,13 @@ function updateEnemies(ts) {
         }
         let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
         snowballs.push({
-          x: e.x + Math.cos(angle)*ENEMY_RADIUS,
-          y: e.y + Math.sin(angle)*ENEMY_RADIUS,
+          x: e.x + Math.cos(angle)*getEnemyRadius(),
+          y: e.y + Math.sin(angle)*getEnemyRadius(),
           vx: Math.cos(angle)*speed,
           vy: Math.sin(angle)*speed,
           from: 'enemy',
-          startX: e.x + Math.cos(angle)*ENEMY_RADIUS,
-          startY: e.y + Math.sin(angle)*ENEMY_RADIUS,
+          startX: e.x + Math.cos(angle)*getEnemyRadius(),
+          startY: e.y + Math.sin(angle)*getEnemyRadius(),
           maxDistance: maxDistance
         });
         // 播放投擲音效 - 根據力道決定音效
@@ -1322,7 +1353,7 @@ canvas.addEventListener('mousedown', e => {
   });
   const controlX = p.x + 0;
   const controlY = p.y + 50;
-  const controlRadius = PLAYER_RADIUS + 30;
+  const controlRadius = getPlayerRadius() + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
     draggingPlayer = p;
@@ -1351,13 +1382,13 @@ function handleMouseUp(e) {
       }
       let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
       snowballs.push({
-        x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-        y: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+        x: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+        y: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
         vx: Math.cos(angle)*speed,
         vy: Math.sin(angle)*speed,
         from: 'player',
-        startX: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-        startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+        startX: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+        startY: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
         maxDistance: maxDistance
       });
       // 播放投擲音效 - 根據力道決定音效
@@ -1382,13 +1413,13 @@ function handleMouseUp(e) {
   }
   let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
   snowballs.push({
-    x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-    y: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+    x: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+    y: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
     vx: Math.cos(angle)*speed,
     vy: Math.sin(angle)*speed,
     from: 'player',
-    startX: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-    startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+    startX: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+    startY: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
     maxDistance: maxDistance
   });
   // 播放投擲音效 - 根據力道決定音效
@@ -1430,7 +1461,7 @@ canvas.addEventListener('touchstart', e => {
   });
   const controlX = p.x + 0;
   const controlY = p.y + 50;
-  const controlRadius = PLAYER_RADIUS + 30;
+  const controlRadius = getPlayerRadius() + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
     draggingPlayer = p;
@@ -1459,13 +1490,13 @@ function handleTouchEnd(e) {
       }
       let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
       snowballs.push({
-        x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-        y: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+        x: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+        y: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
         vx: Math.cos(angle)*speed,
         vy: Math.sin(angle)*speed,
         from: 'player',
-        startX: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-        startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+        startX: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+        startY: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
         maxDistance: maxDistance
       });
       // 播放投擲音效 - 根據力道決定音效
@@ -1491,13 +1522,13 @@ function handleTouchEnd(e) {
   }
   let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
   snowballs.push({
-    x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-    y: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+    x: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+    y: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
     vx: Math.cos(angle)*speed,
     vy: Math.sin(angle)*speed,
     from: 'player',
-    startX: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
-    startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
+    startX: selectedPlayer.x + Math.cos(angle)*getPlayerRadius(),
+    startY: selectedPlayer.y + Math.sin(angle)*getPlayerRadius(),
     maxDistance: maxDistance
   });
   // 播放投擲音效 - 根據力道決定音效
