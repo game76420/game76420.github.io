@@ -9,6 +9,7 @@ const descDiv = document.getElementById('desc');
 const closeDescBtn = document.getElementById('closeDescBtn');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const loadingProgress = document.getElementById('loadingProgress');
+const skipLoadingBtn = document.getElementById('skipLoadingBtn');
 
 // 音效
 const throwSound = new Audio('sound/01.wav');
@@ -182,9 +183,20 @@ function handleImageLoad() {
 function handleImageError(img, name) {
   console.error(`圖片載入失敗: ${name}`);
   imagesLoaded++;
+  
+  // 更新載入進度顯示
+  if (loadingProgress) {
+    loadingProgress.textContent = `圖片載入中... ${imagesLoaded}/${totalImages} (部分失敗)`;
+  }
+  
   if (imagesLoaded >= totalImages) {
     imagesReady = true;
     console.log('圖片載入完成（部分失敗）');
+    
+    // 隱藏載入指示器
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
+    }
   }
 }
 
@@ -197,6 +209,14 @@ function handleImageError(img, name) {
                  'playerIdle', 'playerDead'];
   img.onload = handleImageLoad;
   img.onerror = () => handleImageError(img, names[index]);
+  
+  // 為每個圖片設置超時處理
+  setTimeout(() => {
+    if (!img.complete && !imagesReady) {
+      console.log(`圖片載入超時: ${names[index]}`);
+      handleImageError(img, names[index]);
+    }
+  }, 2000); // 每個圖片2秒超時
 });
 
 // 響應式縮放參數
@@ -1442,6 +1462,12 @@ function initGame() {
     startGame();
   } else {
     console.log('等待圖片載入完成...');
+    
+    // 更新載入進度顯示
+    if (loadingProgress) {
+      loadingProgress.textContent = '等待圖片載入...';
+    }
+    
     // 檢查圖片載入狀態
     const checkImages = setInterval(() => {
       if (imagesReady) {
@@ -1456,14 +1482,40 @@ function initGame() {
         clearInterval(checkImages);
         console.log('圖片載入超時，使用備用方案');
         imagesReady = true;
+        
+        // 隱藏載入指示器
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
         startGame();
       }
-    }, 5000);
+    }, 3000); // 縮短超時時間到3秒
+    
+    // 添加緊急跳過機制（10秒後強制開始）
+    setTimeout(() => {
+      if (!imagesReady) {
+        console.log('緊急跳過載入，強制開始遊戲');
+        imagesReady = true;
+        
+        // 隱藏載入指示器
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
+        }
+        
+        startGame();
+      }
+    }, 10000);
   }
 }
 
 function startGame() {
   console.log('開始遊戲');
+  
+  // 確保載入指示器已隱藏
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'none';
+  }
   
   // 確保Canvas已經正確設置
   if (canvas.width === 0 || canvas.height === 0) {
@@ -1497,6 +1549,21 @@ if (isMobile()) {
     }
     lastTouchEnd = now;
   }, false);
+}
+
+// 跳過載入按鈕事件
+if (skipLoadingBtn) {
+  skipLoadingBtn.addEventListener('click', () => {
+    console.log('用戶手動跳過載入');
+    imagesReady = true;
+    
+    // 隱藏載入指示器
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
+    }
+    
+    startGame();
+  });
 }
 
 // 確保 DOM 完全載入後再初始化
