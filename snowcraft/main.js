@@ -1,97 +1,3 @@
-// --- 視口高度調整函數 ---
-function adjustViewportHeight() {
-  // 獲取實際的視口高度
-  const vh = window.innerHeight * 0.01;
-  const dvh = window.innerHeight * 0.01; // 動態視口高度
-  
-  // 設置CSS自定義屬性
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
-  document.documentElement.style.setProperty('--dvh', `${dvh}px`);
-  
-  // 特別處理iOS Safari的橫版模式
-  if (window.navigator.userAgent.includes('iPhone') || window.navigator.userAgent.includes('iPad')) {
-    if (window.orientation === 90 || window.orientation === -90) {
-      // 橫版模式
-      const actualHeight = window.innerHeight;
-      document.documentElement.style.setProperty('--vh', `${actualHeight}px`);
-      document.documentElement.style.setProperty('--dvh', `${actualHeight}px`);
-      
-      // 強制重新計算容器高度
-      const container = document.getElementById('container');
-      const canvasWrap = document.getElementById('canvasWrap');
-      const gameCanvas = document.getElementById('gameCanvas');
-      
-      if (container) {
-        container.style.height = `${actualHeight}px`;
-        container.style.minHeight = `${actualHeight}px`;
-        container.style.maxHeight = `${actualHeight}px`;
-      }
-      
-      if (canvasWrap) {
-        canvasWrap.style.height = `${actualHeight}px`;
-        canvasWrap.style.minHeight = `${actualHeight}px`;
-        canvasWrap.style.maxHeight = `${actualHeight}px`;
-      }
-      
-      if (gameCanvas) {
-        gameCanvas.style.height = `${actualHeight}px`;
-        gameCanvas.style.maxHeight = `${actualHeight}px`;
-      }
-    }
-  }
-}
-
-// 監聽視口變化
-window.addEventListener('resize', adjustViewportHeight);
-window.addEventListener('orientationchange', () => {
-  // 延遲執行以確保方向變化完成
-  setTimeout(adjustViewportHeight, 100);
-  // 額外延遲執行以確保完全載入
-  setTimeout(adjustViewportHeight, 500);
-});
-
-// 初始化時執行一次
-document.addEventListener('DOMContentLoaded', adjustViewportHeight);
-
-// 額外的視口調整函數，特別針對手機橫版
-function forceMobileLandscapeAdjustment() {
-  if (window.innerWidth > window.innerHeight) {
-    // 橫版模式
-    const actualHeight = window.innerHeight;
-    const actualWidth = window.innerWidth;
-    
-    // 強制設置所有相關元素的高度
-    const elements = ['html', 'body', '#container', '#canvasWrap', '#gameCanvas'];
-    elements.forEach(selector => {
-      const element = document.querySelector(selector);
-      if (element) {
-        element.style.height = `${actualHeight}px`;
-        element.style.minHeight = `${actualHeight}px`;
-        element.style.maxHeight = `${actualHeight}px`;
-      }
-    });
-    
-    // 特別處理遊戲畫布
-    const gameCanvas = document.getElementById('gameCanvas');
-    if (gameCanvas) {
-      const maxWidth = actualHeight * 16 / 9;
-      if (maxWidth <= actualWidth) {
-        gameCanvas.style.width = `${maxWidth}px`;
-        gameCanvas.style.height = `${actualHeight}px`;
-      } else {
-        gameCanvas.style.width = `${actualWidth}px`;
-        gameCanvas.style.height = `${actualWidth * 9 / 16}px`;
-      }
-    }
-  }
-}
-
-// 在方向變化時也執行強制調整
-window.addEventListener('orientationchange', () => {
-  setTimeout(forceMobileLandscapeAdjustment, 200);
-  setTimeout(forceMobileLandscapeAdjustment, 1000);
-});
-
 // --- 遊戲參數 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -677,64 +583,11 @@ function isMobile() {
          window.innerWidth <= 768 || 'ontouchstart' in window;
 }
 
-// 檢測是否為手機橫版
-function isMobileLandscape() {
-  return isMobile() && window.innerWidth > window.innerHeight;
-}
-
-// 手機橫版觸控優化：調整操控圈大小和觸控靈敏度
-function getMobileControlRadius() {
-  if (isMobileLandscape()) {
-    // 手機橫版時使用更大的操控圈，提高觸控靈敏度
-    return getPlayerRadius() + 70;
-  } else if (isMobile()) {
-    // 手機直版時適中
-    return getPlayerRadius() + 50;
-  } else {
-    // 電腦版保持原有大小
-    return getPlayerRadius() + 30;
-  }
-}
-
-// 動態調整操控圈大小，根據觸控精度
-function getDynamicControlRadius() {
-  const baseRadius = getPlayerRadius();
-  
-  if (isMobileLandscape()) {
-    // 手機橫版：根據螢幕尺寸動態調整
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-    const screenRatio = screenWidth / screenHeight;
-    
-    // 根據螢幕比例調整操控圈大小
-    if (screenRatio > 2.0) {
-      // 超寬螢幕，使用更大的操控圈
-      return baseRadius + 80;
-    } else if (screenRatio > 1.5) {
-      // 標準橫版，使用中等操控圈
-      return baseRadius + 70;
-    } else {
-      // 接近正方形，使用較小操控圈
-      return baseRadius + 60;
-    }
-  } else if (isMobile()) {
-    // 手機直版
-    return baseRadius + 50;
-  } else {
-    // 電腦版
-    return baseRadius + 30;
-  }
-}
-
 function resizeCanvas() {
   try {
     console.log('開始調整Canvas尺寸');
     console.log('視窗尺寸:', window.innerWidth, 'x', window.innerHeight);
     console.log('設備像素比:', window.devicePixelRatio);
-    
-    // 強制調整視口高度，特別針對手機橫版
-    adjustViewportHeight();
-    forceMobileLandscapeAdjustment();
     
     // 大畫面16:9模式，確保不超出視窗
     let w = window.innerWidth;
@@ -752,8 +605,24 @@ function resizeCanvas() {
     let availableH = isMobileDevice ? h : h; // 手機版不預留空間，完全利用螢幕
     let availableW = w;
     
-    if (isMobileDevice) {
-      // 手機版（直版和橫版統一處理）：充分利用螢幕空間
+    if (isMobileDevice && isLandscape) {
+      // 以高度為基準，維持16:9
+      let targetH = availableH;
+      let targetW = targetH * 16 / 9;
+      if (targetW > availableW) {
+        targetW = availableW;
+        targetH = targetW * 9 / 16;
+      }
+      canvas.width = Math.round(targetW * window.devicePixelRatio);
+      canvas.height = Math.round(targetH * window.devicePixelRatio);
+      canvas.style.width = targetW + 'px';
+      canvas.style.height = targetH + 'px';
+      scale = targetW / BASE_WIDTH;
+      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      MIN_THROW_DISTANCE = 40 * scale;
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
+    } else if (isMobileDevice) {
+      // 手機版：充分利用螢幕空間
       let targetW, targetH;
       
       // 計算最大可用空間
@@ -847,12 +716,6 @@ function resizeCanvas() {
     console.log('Canvas顯示尺寸:', canvas.style.width, 'x', canvas.style.height);
     console.log('縮放比例:', scale);
     
-    // 應用手機橫版觸控優化
-    handleMobileTouchOptimization();
-    
-    // 優化觸控事件
-    optimizeTouchEvents();
-    
   } catch (error) {
     console.error('調整Canvas尺寸時發生錯誤:', error);
     // 使用預設尺寸作為備用
@@ -867,8 +730,6 @@ function resizeCanvas() {
 // 確保在視窗調整時重新計算尺寸
 window.addEventListener('resize', () => {
   console.log('視窗大小改變，重新調整Canvas');
-  adjustViewportHeight();
-  forceMobileLandscapeAdjustment();
   resizeCanvas();
 });
 
@@ -877,21 +738,11 @@ window.addEventListener('orientationchange', () => {
   console.log('方向改變，重新調整Canvas');
   // 延遲一下確保方向變化完成
   setTimeout(() => {
-    adjustViewportHeight();
-    forceMobileLandscapeAdjustment();
     resizeCanvas();
   }, 100);
-  // 額外延遲執行以確保完全載入
-  setTimeout(() => {
-    adjustViewportHeight();
-    forceMobileLandscapeAdjustment();
-    resizeCanvas();
-  }, 500);
 });
 
 // 初始化時調整Canvas
-adjustViewportHeight();
-forceMobileLandscapeAdjustment();
 resizeCanvas();
 
 function resetGame() {
@@ -913,9 +764,14 @@ function startLevel() {
     playLevelStartSound();
   }
   
-  // 使用實際的畫布尺寸而不是固定的基礎尺寸
-  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
-  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  // 玩家 - 調整位置適應16:9大畫面
+  // 電腦版使用更大的基礎尺寸
+  const isMobileDevice = isMobile();
+  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
+  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
+  
+  const canvasWidth = baseWidth;
+  const canvasHeight = baseHeight;
   
   // 確保尺寸有效
   if (canvasWidth <= 0 || canvasHeight <= 0) {
@@ -971,9 +827,14 @@ function startLevel() {
 
 // 不播放音效的關卡開始函數
 function startLevelWithoutSound() {
-  // 使用實際的畫布尺寸而不是固定的基礎尺寸
-  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
-  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  // 玩家 - 調整位置適應16:9大畫面
+  // 電腦版使用更大的基礎尺寸
+  const isMobileDevice = isMobile();
+  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
+  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
+  
+  const canvasWidth = baseWidth;
+  const canvasHeight = baseHeight;
   
   players = [
     { x: canvasWidth * 0.75, y: canvasHeight * 0.7, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 0, deadState: false, deadTime: 0 },
@@ -1287,7 +1148,6 @@ function drawPlayers() {
     
     ctx.globalAlpha = (p.stunUntil > performance.now()) ? 0.5 : 1;
     drawPlayerSprite(p, "#d22");
-    
     // 暈圈
     if (p.stunUntil > performance.now()) {
       const offsetX = -45;
@@ -1315,48 +1175,19 @@ function drawPlayers() {
     }
     // 顯示觸控範圍指示（無論是否在集氣）
     if (p.alive && p.stunUntil < performance.now()) {
-      // 手機版時隱藏原本的操控圈
-      if (!isMobile()) {
-        // 電腦版：控制圈位置與集氣圈中心相同
-        const controlX = p.x + (-45);  // 與集氣圈一致
-        const controlY = p.y + (-12);  // 與集氣圈一致
-        // 顯示觸控範圍（半透明圓圈）
-        ctx.beginPath();
-        ctx.arc(controlX, controlY, getPlayerRadius() + 30, 0, Math.PI*2);
-        ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.2;
-        ctx.stroke();
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = 1;
-      }
-    }
-    
-    // 手機版：顯示新的操控圈，根據血量改變顏色
-    if (isMobile()) {
+      // 控制圈位置往下調整
       const controlX = p.x + 0;
-      const controlY = p.y + 50;
-      const controlRadius = getDynamicControlRadius();
-      
-      // 根據血量決定顏色：滿血綠色，受傷橘色
-      let controlColor;
-      if (p.hp === PLAYER_MAX_HP) {
-        controlColor = '#0f0'; // 滿血綠色
-      } else {
-        controlColor = '#fa0'; // 受傷橘色
-      }
-      
-      // 繪製操控圈（半透明）
-      ctx.save();
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = controlColor;
-      ctx.lineWidth = 2;
+      const controlY = p.y + 50;  // 向下偏移50像素
+      // 顯示觸控範圍（半透明圓圈）
       ctx.beginPath();
-      ctx.arc(controlX, controlY, controlRadius, 0, Math.PI * 2);
+      ctx.arc(controlX, controlY, getPlayerRadius() + 30, 0, Math.PI*2);
+      ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.2;
       ctx.stroke();
-      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1;
     }
-    
     ctx.restore();
   });
 }
@@ -1379,7 +1210,6 @@ function drawEnemies() {
     
     ctx.globalAlpha = (e.stunUntil > performance.now()) ? 0.5 : 1;
     drawEnemySprite(e, "#2a5", e.throwState);
-    
     // HP
     for (let i = 0; i < e.hp; i++) {
       ctx.beginPath();
@@ -1745,33 +1575,18 @@ canvas.addEventListener('touchmove', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 使用真實手機觸控座標計算
-  const coords = getRealMobileTouchCoordinates(e.touches[0], rect);
-  let mx = coords.x;
-  let my = coords.y;
+  // 考慮設備像素比和縮放比例
+  let mx = (e.touches[0].clientX - rect.left) / scale;
+  let my = (e.touches[0].clientY - rect.top) / scale;
   
   // 調試信息（手機版）
   if (isMobile()) {
-    console.log('Touch move:', {
-      x: mx, 
-      y: my, 
-      scale: scale, 
-      draggingPlayer: draggingPlayer.id, 
-      devicePixelRatio: window.devicePixelRatio,
-      clientX: e.touches[0].clientX,
-      clientY: e.touches[0].clientY,
-      rectLeft: rect.left,
-      rectTop: rect.top,
-      isLandscape: isMobileLandscape()
-    });
+    console.log('Touch move:', {x: mx, y: my, scale: scale, draggingPlayer: draggingPlayer.id, devicePixelRatio: window.devicePixelRatio});
   }
   
-  // 改進邊界檢測：使用更寬鬆的邊界檢查，避免手機橫版時意外停止拖曳
-  const boundaryMargin = isMobileLandscape() ? 30 : 20; // 手機橫版時使用更大的邊界容許範圍
-  if (e.touches[0].clientX < rect.left - boundaryMargin || 
-      e.touches[0].clientX > rect.right + boundaryMargin || 
-      e.touches[0].clientY < rect.top - boundaryMargin || 
-      e.touches[0].clientY > rect.bottom + boundaryMargin) {
+  // 檢查觸控是否移出畫布範圍
+  if (e.touches[0].clientX < rect.left || e.touches[0].clientX > rect.right || 
+      e.touches[0].clientY < rect.top || e.touches[0].clientY > rect.bottom) {
     // 觸控移出畫布，停止拖曳
     handleTouchEnd(e);
     return;
@@ -1916,15 +1731,14 @@ canvas.addEventListener('mousedown', e => {
   if (candidates.length === 0) return;
   // 拖曳啟動判斷與控制圈一致
   let p = candidates.reduce((a,b)=>{
-    const controlX_a = a.x + (-45);  // 與集氣圈一致
-    const controlY_a = a.y + (-12);  // 與集氣圈一致
-    const controlX_b = b.x + (-45);  // 與集氣圈一致
-    const controlY_b = b.y + (-12);  // 與集氣圈一致
+    const controlX_a = a.x + 0;
+    const controlY_a = a.y + 50;
+    const controlX_b = b.x + 0;
+    const controlY_b = b.y + 50;
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
-  const controlX = p.x + (-45);  // 與集氣圈一致
-  const controlY = p.y + (-12);  // 與集氣圈一致
-  // 電腦版保持原有的操控圈大小
+  const controlX = p.x + 0;
+  const controlY = p.y + 50;
   const controlRadius = getPlayerRadius() + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
@@ -2014,44 +1828,27 @@ canvas.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 使用真實手機觸控座標計算
-  const coords = getRealMobileTouchCoordinates(e.touches[0], rect);
-  let mx = coords.x;
-  let my = coords.y;
+  // 考慮設備像素比和縮放比例
+  let mx = (e.touches[0].clientX - rect.left) / scale;
+  let my = (e.touches[0].clientY - rect.top) / scale;
   
   // 調試信息（手機版）
   if (isMobile()) {
-    console.log('Touch start:', {
-      x: mx, 
-      y: my, 
-      scale: scale, 
-      rect: rect, 
-      devicePixelRatio: window.devicePixelRatio,
-      clientX: e.touches[0].clientX,
-      clientY: e.touches[0].clientY,
-      rectLeft: rect.left,
-      rectTop: rect.top,
-      isLandscape: isMobileLandscape()
-    });
+    console.log('Touch start:', {x: mx, y: my, scale: scale, rect: rect, devicePixelRatio: window.devicePixelRatio});
   }
   
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
   if (candidates.length === 0) return;
-  
-  // 改進操控圈檢測：使用更準確的距離計算
   let p = candidates.reduce((a,b)=>{
     const controlX_a = a.x + 0;
-    const controlY_a = a.y + 50;  // 手機版保持偏移
+    const controlY_a = a.y + 50;
     const controlX_b = b.x + 0;
-    const controlY_b = b.y + 50;  // 手機版保持偏移
+    const controlY_b = b.y + 50;
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
-  
   const controlX = p.x + 0;
-  const controlY = p.y + 50;  // 手機版保持偏移
-  // 使用動態操控圈大小
-  const controlRadius = getDynamicControlRadius();
-  
+  const controlY = p.y + 50;
+  const controlRadius = getPlayerRadius() + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
     draggingPlayer = p;
@@ -2064,15 +1861,7 @@ canvas.addEventListener('touchstart', e => {
     
     // 調試信息（手機版）
     if (isMobile()) {
-      console.log('Player selected:', {
-        id: p.id, 
-        x: p.x, 
-        y: p.y, 
-        dragOffset: {x: dragOffsetX, y: dragOffsetY},
-        controlRadius: controlRadius,
-        touchDistance: distance({x:mx,y:my},{x:controlX,y:controlY}),
-        isLandscape: isMobileLandscape()
-      });
+      console.log('Player selected:', {id: p.id, x: p.x, y: p.y, dragOffset: {x: dragOffsetX, y: dragOffsetY}});
     }
   }
 }, {passive: false});
@@ -2527,10 +2316,6 @@ function startGame() {
     loadingIndicator.style.display = 'none';
   }
   
-  // 強制調整視口高度，特別針對手機橫版
-  adjustViewportHeight();
-  forceMobileLandscapeAdjustment();
-  
   // 確保Canvas已經正確設置
   if (canvas.width === 0 || canvas.height === 0) {
     console.log('Canvas尺寸異常，重新調整');
@@ -2652,79 +2437,3 @@ if (document.readyState !== 'loading') {
     initMenuStateImmediate();
   }, 50);
 } 
-
-// 改進的觸控座標計算，特別針對手機橫版
-function getTouchCoordinates(touch, rect) {
-  // 基礎座標計算
-  let mx = (touch.clientX - rect.left) / scale;
-  let my = (touch.clientY - rect.top) / scale;
-  
-  // 手機橫版特殊處理：調整座標精度
-  if (isMobileLandscape()) {
-    // 手機橫版時可能需要微調座標
-    const adjustment = 2; // 微調值
-    mx += adjustment;
-    my += adjustment;
-    
-    // 根據螢幕比例進一步調整
-    const screenRatio = window.innerWidth / window.innerHeight;
-    if (screenRatio > 2.0) {
-      // 超寬螢幕，額外調整
-      mx += 1;
-      my += 1;
-    }
-  }
-  
-  return { x: mx, y: my };
-} 
-
-// 新增：真實手機觸控座標修正函數
-function getRealMobileTouchCoordinates(touch, rect) {
-  // 取得canvas實際顯示寬高
-  const displayWidth = rect.right - rect.left;
-  const displayHeight = rect.bottom - rect.top;
-  // 取得canvas邏輯寬高（即 .width/.height 屬性，已經考慮devicePixelRatio 和 scale）
-  const logicalWidth = canvas.width / window.devicePixelRatio / scale;
-  const logicalHeight = canvas.height / window.devicePixelRatio / scale;
-  // 計算觸控點在canvas顯示區的比例
-  const xRatio = (touch.clientX - rect.left) / displayWidth;
-  const yRatio = (touch.clientY - rect.top) / displayHeight;
-  // 換算成canvas內的遊戲座標
-  const mx = xRatio * logicalWidth;
-  const my = yRatio * logicalHeight;
-  return { x: mx, y: my };
-}
-
-// 手機橫版觸控優化：處理觸控響應延遲
-function handleMobileTouchOptimization() {
-  if (isMobileLandscape()) {
-    // 手機橫版時增加觸控響應性
-    document.body.style.touchAction = 'none';
-    canvas.style.touchAction = 'none';
-  } else {
-    // 其他情況恢復正常
-    document.body.style.touchAction = 'auto';
-    canvas.style.touchAction = 'auto';
-  }
-}
-
-// 手機橫版觸控事件優化：防止意外觸發
-function optimizeTouchEvents() {
-  if (isMobileLandscape()) {
-    // 手機橫版時禁用一些可能干擾的觸控行為
-    canvas.style.webkitUserSelect = 'none';
-    canvas.style.userSelect = 'none';
-    canvas.style.webkitTouchCallout = 'none';
-    canvas.style.webkitTapHighlightColor = 'transparent';
-    
-    // 防止雙擊縮放
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-      const now = (new Date()).getTime();
-      if (now - lastTouchEnd <= 300) {
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, false);
-  }
-}
