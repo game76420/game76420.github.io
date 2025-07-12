@@ -290,10 +290,15 @@ function resizeCanvas() {
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
+      // 計算顯示寬高（以 style 為準，確保和實際顯示一致）
+      const displayW = parseFloat(canvas.style.width);
+      const displayH = parseFloat(canvas.style.height);
+      // 計算繪圖座標的寬高（確保和遊戲邏輯一致）
+      const logicW = canvas.width / window.devicePixelRatio / scale;
+      const logicH = canvas.height / window.devicePixelRatio / scale;
       // 更新投擲距離限制
       MIN_THROW_DISTANCE = 40 * scale;
-      // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+      MAX_THROW_DISTANCE = Math.sqrt(logicW * logicW + logicH * logicH);
     } else {
       // 電腦版：充分利用螢幕空間
       let targetW, targetH;
