@@ -1,44 +1,1225 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>SnowCraft 打雪仗小遊戲</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>張書維工作室 - 作品集</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&family=Baloo+2:wght@600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #e60012; /* 任天堂紅 */
+            --secondary-color: #fff;
+            --accent-color: #ffe600; /* 可愛黃色 */
+            --blue: #0099e5;
+            --text-color: #222;
+            --light-text: #666;
+            --background: #fff;
+            --card-bg: #fff5f7;
+            --shadow: 0 4px 16px rgba(230,0,18,0.08);
+            --shadow-hover: 0 8px 32px rgba(230,0,18,0.15);
+            --border-pixel: 3px solid #e60012;
+            --gradient: linear-gradient(135deg, #e60012 0%, #fff 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Baloo 2', 'Noto Sans TC', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--background);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 動畫效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Header 樣式 */
+        header {
+            background: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            padding: 3.5rem 2rem 2.5rem 2rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border-bottom: var(--border-pixel);
+            border-radius: 0 0 3rem 3rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 2.5rem;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            animation: float 6s ease-in-out infinite;
+        }
+
+        header h1 {
+            font-size: 3.2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 0 #fff, 0 4px 8px #e60012aa;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.7rem;
+        }
+
+        header h1::before {
+            content: '⭐';
+            font-size: 2.2rem;
+            margin-right: 0.2em;
+        }
+
+        header h1::after {
+            content: '🍄';
+            font-size: 2.2rem;
+            margin-left: 0.2em;
+        }
+
+        header p {
+            font-size: 1.3rem;
+            opacity: 0.98;
+            position: relative;
+            z-index: 1;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* Navigation 樣式 */
+        nav {
+            background: #fff;
+            padding: 1rem 0;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border-bottom: var(--border-pixel);
+            border-radius: 0 0 1.5rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            gap: 0.5rem;
+            background: #fff;
+            border-radius: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        nav ul li {
+            margin: 0;
+        }
+
+        nav ul li a {
+            color: var(--primary-color);
+            text-decoration: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 1.2rem;
+            transition: background 0.2s, color 0.2s;
+            font-weight: bold;
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        nav ul li a::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        nav ul li a:hover::before {
+            left: 0;
+        }
+
+        nav ul li a:hover {
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        /* Main 內容樣式 */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: calc(100vh - 400px);
+            background: var(--background);
+        }
+
+        section {
+            background: var(--card-bg);
+            margin-bottom: 2.5rem;
+            padding: 2.5rem 1.5rem;
+            border-radius: 2rem;
+            box-shadow: var(--shadow);
+            border: var(--border-pixel);
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out;
+            position: relative;
+        }
+
+        section:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        section:not(:first-child)::before {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 8px;
+            background: var(--primary-color);
+            border-radius: 8px;
+            margin: 0 auto 2rem auto;
+            opacity: 0.18;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            position: relative;
+            letter-spacing: 0.05em;
+            text-shadow: 0 2px 0 #fff, 0 2px 8px #e6001211;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '⭐';
+            font-size: 1.3em;
+        }
+
+        h2::after {
+            content: '🍄';
+            font-size: 1.3em;
+        }
+
+        /* 服務區塊樣式 */
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .service {
+            background: #fff;
+            padding: 2rem 1.2rem;
+            border-radius: 1.5rem;
+            text-align: center;
+            transition: box-shadow 0.2s, transform 0.2s;
+            border: 2px solid #ffe6ea;
+            height: 100%;
+        }
+
+        .service:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .service i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 0.7rem;
+            filter: drop-shadow(0 2px 0 #fff);
+        }
+
+        .service h3 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .service p {
+            color: var(--light-text);
+            line-height: 1.6;
+        }
+
+        /* 作品集樣式 */
+        .portfolio {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .portfolio-item {
+            background: #fff;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.2s, transform 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #ffe6ea;
+            padding: 2rem 1.2rem;
+        }
+
+        .portfolio-item:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .portfolio-item h3 {
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            padding: 0 1.5rem;
+            padding-top: 1.5rem;
+        }
+
+        .portfolio-item p {
+            color: var(--light-text);
+            padding: 0 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        .portfolio-item button {
+            margin: 0 1.5rem 1.5rem 1.5rem;
+            width: calc(100% - 3rem);
+        }
+
+        /* 遊戲區塊樣式 */
+        .games-section {
+            background: #fff0f0;
+            color: var(--primary-color);
+            text-align: center;
+            border: 3px dashed #e60012;
+        }
+
+        .games-section h2 {
+            color: var(--primary-color);
+        }
+
+        .games-section h2::after {
+            background: var(--primary-color);
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .game-card {
+            background: #fff8f8;
+            border-radius: 1.5rem;
+            padding: 2rem 1.2rem;
+            border: 2.5px solid #e60012;
+            transition: box-shadow 0.2s, transform 0.2s;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .game-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .game-card i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        .game-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .game-card p {
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        /* 按鈕樣式 */
+        button {
+            background: var(--accent-color);
+            color: #e60012;
+            border: none;
+            border-radius: 2rem;
+            font-size: 1.1rem;
+            font-family: 'Baloo 2', 'Noto Sans TC', sans-serif;
+            font-weight: bold;
+            padding: 0.7rem 2.2rem;
+            margin-top: 1rem;
+            box-shadow: 0 2px 8px #e6001233;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s, filter 0.15s;
+            letter-spacing: 0.1em;
+        }
+
+        button:hover {
+            background: #fff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            filter: brightness(1.1);
+        }
+
+        /* 客戶推薦樣式 */
+        .testimonials {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .testimonial {
+            background: #fffbe6;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+            position: relative;
+            height: 100%;
+            border: 2.5px solid #ffe600;
+        }
+
+        .testimonial::before {
+            content: '"';
+            font-size: 4rem;
+            color: var(--primary-color);
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            opacity: 0.3;
+        }
+
+        .testimonial p {
+            margin-bottom: 1rem;
+            font-style: italic;
+        }
+
+        .testimonial strong {
+            color: var(--primary-color);
+        }
+
+        /* 部落格樣式 */
+        .blog {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .blog-post {
+            background: #fff8f8;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border: 2.5px solid #e60012;
+        }
+
+        .blog-post:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .blog-post h3 {
+            color: var(--primary-color);
+            padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+        }
+
+        .blog-post p {
+            padding: 0 1.5rem 1.5rem 1.5rem;
+            color: var(--light-text);
+            flex-grow: 1;
+        }
+
+        /* 聯繫資訊樣式 */
+        .contact-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .contact-item {
+            background: #fff8f8;
+            padding: 2rem;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            height: 100%;
+            border: 2.5px solid #e60012;
+        }
+
+        .contact-item:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+        }
+
+        .contact-item i {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .contact-item h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+
+        .contact-item p {
+            color: var(--light-text);
+        }
+
+        /* Footer 樣式 */
+        footer {
+            background: var(--primary-color);
+            color: #fff;
+            text-align: center;
+            padding: 3rem 2rem;
+            margin-top: 3rem;
+        }
+
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .social-icons a {
+            color: var(--primary-color);
+            background: #fff;
+            border-radius: 50%;
+            border: 2px solid #e60012;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin: 0 0.3rem;
+            box-shadow: 0 2px 8px #e6001233;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .social-icons a:hover {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 4px 16px #e6001266;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 1024px) {
+            main {
+                padding: 1.5rem;
+            }
+            
+            section {
+                padding: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 2rem 1rem;
+                min-height: 150px;
+                padding-left: 72px;
+            }
+
+            nav {
+                position: relative;
+                padding: 0;
+            }
+            nav ul {
+                display: flex;
+                flex-direction: column;
+                gap: 0;
+                background: var(--white);
+                position: fixed;
+                top: 0;
+                left: -240px;
+                width: 220px;
+                height: auto;
+                min-height: 100vh;
+                box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+                z-index: 3002;
+                padding: 2.5rem 0 1rem 0;
+                border-radius: 0 1.5rem 1.5rem 0;
+                transition: left 0.3s cubic-bezier(.4,1.3,.5,1);
+            }
+            nav ul.show {
+                left: 0;
+            }
+            .nav-overlay.show {
+                display: block;
+            }
+            nav ul li a {
+                padding: 1.1rem 1.5rem;
+                font-size: 1.15rem;
+                border-radius: 0.8rem;
+                border-bottom: 1px solid #eee;
+                color: var(--primary-color);
+                text-align: left;
+                display: block;
+                margin: 0.2rem 1rem;
+                font-weight: 500;
+                transition: background 0.2s, color 0.2s;
+            }
+            nav ul li a:hover {
+                background: var(--primary-color);
+                color: #fff;
+            }
+            nav ul li:last-child a {
+                border-bottom: none;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            section {
+                padding: 1.2rem 0.5rem;
+                margin-bottom: 2rem;
+            }
+
+            .services, .portfolio, .testimonials, .blog, .games-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .contact-info {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .service, .portfolio-item, .testimonial, .blog-post, .game-card {
+                padding: 1.2rem 0.5rem;
+            }
+
+            .social-icons {
+                gap: 1rem;
+            }
+
+            .nav-toggle {
+                display: block;
+            }
+
+            header h1 { font-size: 2.1rem; }
+            h2 { font-size: 1.3rem; }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            header p {
+                font-size: 1rem;
+            }
+
+            .nav-toggle {
+                font-size: 1.5rem;
+                padding: 0.12rem 0.7rem 0.12rem 0.7rem;
+                top: 0.3rem;
+                left: 0.3rem;
+            }
+            nav ul {
+                width: 80vw;
+                min-width: 140px;
+                max-width: 240px;
+            }
+
+            section {
+                padding: 1rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            .service, .portfolio-item, .testimonial, .blog-post, .game-card {
+                padding: 1rem;
+            }
+
+            button {
+                padding: 0.8rem 1.5rem;
+                font-size: 0.9rem;
+            }
+
+            header {
+                padding-left: 54px;
+            }
+        }
+
+        /* 滾動動畫 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s ease;
+        }
+
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 載入動畫 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid var(--white);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 修復特定問題 */
+        .portfolio-item button,
+        .game-card button {
+            margin-top: auto;
+        }
+
+        /* 確保內容不會溢出 */
+        .service p,
+        .portfolio-item p,
+        .testimonial p,
+        .blog-post p,
+        .game-card p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .nav-toggle {
+            display: none;
+            position: fixed;
+            top: 0.7rem;
+            left: 0.7rem;
+            z-index: 2147483647;
+            background: var(--white);
+            border: 2px solid var(--primary-color);
+            font-size: 2.1rem;
+            color: var(--primary-color);
+            cursor: pointer;
+            border-radius: 1.5rem;
+            box-shadow: 0 4px 16px rgba(60,60,120,0.18), 0 1.5px 0 #bbb;
+            padding: 0.15rem 1.1rem 0.15rem 1.1rem;
+            margin: 0;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            font-weight: bold;
+            letter-spacing: 0.2em;
+        }
+        .nav-toggle:hover {
+            background: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 6px 24px rgba(60,60,120,0.25);
+        }
+        .nav-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.25);
+            z-index: 3000;
+        }
+
+        /* 可愛圓點背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            left: 0; top: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+            background: repeating-radial-gradient(circle at 40px 40px, #ffe6ea 0, #ffe6ea 6px, transparent 7px, transparent 60px),
+                        url('https://www.svgrepo.com/show/494000/cloud.svg') repeat-x top 80px left 0/120px 60px;
+            opacity: 0.18;
+        }
+
+        .service:hover, .portfolio-item:hover, .testimonial:hover, .blog-post:hover, .game-card:hover {
+            box-shadow: var(--shadow-hover);
+        }
+        button:hover {
+            background: #fff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+        }
+    </style>
 </head>
 <body>
-  <div id="container">
-    <!-- 分數和關卡顯示 -->
-    <div id="gameInfo" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:1000;font-family:Arial,sans-serif;">
-      <div style="font-size:18px;font-weight:bold;color:#2a5;">分數: <span id="scoreDisplay">0</span></div>
-      <div style="font-size:16px;color:#666;margin-top:4px;">關卡: <span id="levelDisplay">1</span></div>
-    </div>
-    
-    <!-- 問號按鈕獨立放右上角 -->
-    <button id="showDescBtn" title="玩法說明"><span style="font-size:1.5em;">❓</span></button>
-
-    <!-- 載入指示器 -->
-    <div id="loadingIndicator" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:9999;display:none;">
-      <div>載入中...</div>
-      <div id="loadingProgress" style="margin-top:10px;font-size:12px;"></div>
-      <button id="skipLoadingBtn" style="margin-top:15px;padding:8px 16px;background:#2a5;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">跳過載入</button>
+    <!-- 載入動畫 -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
     </div>
 
-    <div id="canvasWrap">
-      <canvas id="gameCanvas"></canvas>
-      <button id="restartBtn" style="display:none">重新開始</button>
-    </div>
-    <div id="result"></div>
-    <div id="desc" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;padding:32px 36px;z-index:1000;min-width:320px;max-width:90vw;max-height:80vh;overflow:auto;text-align:left;">
-      <button id="closeDescBtn" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✖</button>
-      <p style="margin-top:0;font-weight:bold;">玩法：</p>
-      <ul style="margin-bottom:0;">
-        <li>滑鼠左鍵按住集氣，放開丟雪球</li>
-        <li>打倒所有敵人過關，每關敵人增加</li>
-        <li>紅色角色全倒下遊戲結束</li>
-      </ul>
-    </div>
-  </div>
-  <script src="main.js"></script>
+    <header>
+        <h1>張書維工作室</h1>
+        <p>專業程式開發與網站設計服務</p>
+    </header>
+
+    <nav>
+        <button class="nav-toggle" id="navToggle" aria-label="展開選單">≡</button>
+        <div class="nav-overlay" id="navOverlay"></div>
+        <ul id="navMenu">
+            <li><a href="#about">關於我</a></li>
+            <li><a href="#services">我的服務</a></li>
+            <li><a href="#portfolio">作品集</a></li>
+            <li><a href="#games">自製遊戲</a></li>
+            <li><a href="#testimonials">客戶推薦</a></li>
+            <li><a href="#blog">部落格</a></li>
+            <li><a href="#contact">聯繫我</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="about" class="fade-in">
+            <h2><i class="fas fa-user-circle"></i> 關於我</h2>
+            <p style="font-size: 1.1rem; line-height: 1.8; text-align: center; max-width: 800px; margin: 0 auto;">
+                我是張書維，擁有多年經驗的程式開發與網站設計專家，專注於數位解決方案。我擅長 VB、VB.NET、Python 爬蟲、電腦維修、數據分析、AI 程式生成、AI 圖片生成和 AI 繪圖，並精通按鍵精靈等工具，可提供量身定制的軟體、網站及爬蟲開發服務，幫助客戶在數位世界中脫穎而出。
+            </p>
+        </section>
+
+        <section id="services" class="fade-in">
+            <h2><i class="fas fa-cogs"></i> 我的服務</h2>
+            <div class="services">
+                <div class="service">
+                    <i class="fas fa-laptop-code"></i>
+                    <h3>網站設計</h3>
+                    <p>設計專屬於您的品牌網站，確保網站在所有裝置上都能完美呈現。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-code"></i>
+                    <h3>程式開發</h3>
+                    <p>擅長 VB、VB.NET 語言，提供量身定制軟體開發，幫助企業提升運營效率。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-spider"></i>
+                    <h3>Python 爬蟲</h3>
+                    <p>自動化爬取與分析數據，讓您掌握最新市場資訊。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-tools"></i>
+                    <h3>電腦維修</h3>
+                    <p>專業硬體與軟體維修，確保設備穩定運行。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-chart-bar"></i>
+                    <h3>數據分析</h3>
+                    <p>利用數據分析提供商業洞見，幫助企業做出更明智的決策。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-desktop"></i>
+                    <h3>二手電腦買賣</h3>
+                    <p>提供優質的二手電腦，價格合理，服務周到。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-robot"></i>
+                    <h3>AI 程式生成</h3>
+                    <p>利用 AI 技術協助您快速生成程式碼，提高開發效率。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-image"></i>
+                    <h3>AI 生成圖片</h3>
+                    <p>使用 AI 技術快速生成高品質圖片，節省您在設計上的時間和精力。</p>
+                </div>
+                <div class="service">
+                    <i class="fas fa-palette"></i>
+                    <h3>AI 繪圖</h3>
+                    <p>利用 AI 繪圖工具提升平面設計效率，快速生成創意圖像，節省您的時間和精力。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="portfolio" class="fade-in">
+            <h2><i class="fas fa-briefcase"></i> 作品集</h2>
+            <div class="portfolio">
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-calculator"></i> 八字重量計算器</h3>
+                    <p>用 Html + JavaScript 開發的八字重量計算器，可以根據使用者的八字資訊計算重量。</p>
+                    <button onclick="openCalculator()"><i class="fas fa-external-link-alt"></i> 開啟八字重量計算器</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-industry"></i> 程式開發案例</h3>
+                    <p>為某製造業開發的自動化工具，提高內部流程效率。</p>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-search"></i> Python 爬蟲案例-抓政府標案</h3>
+                    <p>抓政府標案分析爬蟲，幫助客戶快速找到適合的案子。</p>
+                    <button onclick="window.open('抓標案_python.rar')" download><i class="fas fa-download"></i> Python範例檔下載</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-chart-line"></i> 數據分析案例</h3>
+                    <p>為零售客戶提供銷售數據分析，優化商品庫存管理。</p>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-id-card"></i> 台灣身分證字號產生器</h3>
+                    <p>用 JavaScript 開發的台灣身分證字號產生器，可以快速生成台灣身分證字號。</p>
+                    <button onclick="openTwMap()"><i class="fas fa-external-link-alt"></i> 開啟台灣身分證字號產生器</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fab fa-youtube"></i> Python 程式 Youtube MP3 下載器</h3>
+                    <p>用 Python 開發的 Youtube MP3 下載器，可以快速將 Youtube 影片下載為 MP3 音樂檔。</p>
+                    <button onclick="window.open('https://drive.google.com/file/d/1bxkTsRdjAua9j9rMlh4-grk6qPwlw9Q3/view?usp=sharing')"><i class="fas fa-download"></i> 下載連結</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-calendar-alt"></i> 行事曆產生器</h3>
+                    <p>用 JavaScript 開發的行事曆產生器，可以產生每個月的月曆，並可以在上面新增備註事項。</p>
+                    <button onclick="openCalendar()"><i class="fas fa-external-link-alt"></i> 開啟行事曆產生器</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-gift"></i> Python 簡易FB留言抽獎系統</h3>
+                    <p>可制定關鍵字，獎項、名額，自動化抽獎過程，方便快捷。</p>
+                    <button onclick="window.open('https://game76420.github.io/FB%E6%8A%BD%E7%8D%8E_python.rar')" download><i class="fas fa-download"></i> 下載程式碼</button>
+                </div>
+                <div class="portfolio-item">
+                    <h3><i class="fas fa-th"></i> Bingo 遊戲</h3>
+                    <p>用 JavaScript 和 HTML 開發的 Bingo 遊戲，您可以與電腦對戰，體驗趣味十足的遊戲體驗。</p>
+                    <button onclick="openBingo()"><i class="fas fa-external-link-alt"></i> 開啟 Bingo 遊戲</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 新增自製遊戲區 -->
+        <section id="games" class="games-section fade-in">
+            <h2><i class="fas fa-gamepad"></i> 自製遊戲區</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.9;">
+                歡迎來到我的遊戲世界！這裡有各種有趣的遊戲，讓您在忙碌之餘放鬆心情。
+            </p>
+            <div class="games-grid">
+                <div class="game-card" onclick="openDownGame()">
+                    <i class="fas fa-arrow-down"></i>
+                    <h3>小朋友下樓梯</h3>
+                    <p>經典的下樓梯遊戲，控制角色躲避障礙物，挑戰您的反應速度！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openUpGame()">
+                    <i class="fas fa-arrow-up"></i>
+                    <h3>小朋友上樓梯</h3>
+                    <p>全新挑戰！控制角色往上爬樓梯，考驗您的反應與技巧。</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openFlappyBird()">
+                    <i class="fas fa-bird"></i>
+                    <h3>Flappy Bird</h3>
+                    <p>經典的 Flappy Bird 遊戲，控制小鳥穿越管道，挑戰最高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openBingo()">
+                    <i class="fas fa-th"></i>
+                    <h3>Bingo 遊戲</h3>
+                    <p>與電腦對戰的 Bingo 遊戲，連成一線即可獲勝！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openSameGame()">
+                    <i class="fas fa-th-large"></i>
+                    <h3>Same Game</h3>
+                    <p>經典消除遊戲，點擊相同顏色方塊消除，挑戰高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openFishing()">
+                    <i class="fas fa-fish"></i>
+                    <h3>釣魚遊戲</h3>
+                    <p>經典釣魚遊戲，控制魚鉤釣魚，挑戰高分排行榜！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openSnowcraft()">
+                    <i class="fas fa-snowflake"></i>
+                    <h3>雪球大戰</h3>
+                    <p>刺激的雪球大戰遊戲，控制角色投擲雪球，與敵人展開激烈對戰！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="testimonials" class="fade-in">
+            <h2><i class="fas fa-star"></i> 客戶推薦</h2>
+            <div class="testimonials">
+                <div class="testimonial">
+                    <p>"張書維的服務非常專業，幫我們打造了一個美觀且高效的網站。"</p>
+                    <strong>- 張先生, XYZ科技公司</strong>
+                </div>
+                <div class="testimonial">
+                    <p>"通過他開發的自動化爬蟲，我們能更快地做出競爭決策。"</p>
+                    <strong>- 李小姐, ABC電商公司</strong>
+                </div>
+            </div>
+        </section>
+
+        <section id="blog" class="fade-in">
+            <h2><i class="fas fa-blog"></i> 部落格</h2>
+            <div class="blog">
+                <div class="blog-post">
+                    <h3><i class="fas fa-rocket"></i> 最新技術趨勢：Python 爬蟲的未來</h3>
+                    <p>隨著數據需求不斷增加，Python 爬蟲正迅速成為商業領域不可或缺的工具。</p>
+                </div>
+                <div class="blog-post">
+                    <h3><i class="fas fa-cloud"></i> 雲端解決方案：如何選擇適合您的企業</h3>
+                    <p>瞭解不同雲端平臺的優缺點，選擇最適合您的業務需求。</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact" class="fade-in">
+            <h2><i class="fas fa-envelope"></i> 聯繫我</h2>
+            <div class="contact-info">
+                <div class="contact-item">
+                    <i class="fab fa-line"></i>
+                    <h3>Line</h3>
+                    <p>game76420</p>
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-phone"></i>
+                    <h3>手機</h3>
+                    <p>0981616409</p>
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <h3>地址</h3>
+                    <p>台中市北區篤行路420號</p>
+                </div>
+                <div class="contact-item">
+                    <i class="fas fa-envelope"></i>
+                    <h3>Email</h3>
+                    <p>game76420@gmail.com</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 張書維工作室. 版權所有.</p>
+        <div class="social-icons">
+            <a href="https://www.facebook.com/changshuwei/" target="_blank"><i class="fab fa-facebook"></i></a>
+            <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+            <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+            <a href="https://github.com" target="_blank"><i class="fab fa-github"></i></a>
+        </div>
+    </footer>
+
+    <script>
+        // 載入動畫
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.getElementById('loading').classList.add('hidden');
+            }, 1000);
+        });
+
+        // 滾動動畫
+        function checkScroll() {
+            const elements = document.querySelectorAll('.fade-in');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('visible');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', checkScroll);
+        checkScroll();
+
+        // 平滑滾動
+        document.querySelectorAll('nav a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 開啟八字重量計算器
+        function openCalculator() {
+            window.open("bazi_weight_calculator.html", "_blank"); 
+        }
+
+        // 開啟台灣身分證字號產生器
+        function openTwMap() {
+            window.open("tw_id.html", "_blank"); 
+        }
+
+        // 開啟行事曆產生器
+        function openCalendar() {
+            window.open("class.html", "_blank");
+        }
+
+        // 開啟 Bingo 遊戲
+        function openBingo() {
+            window.open("bingo", "_blank");
+        }
+
+        // 開啟小朋友下樓梯遊戲
+        function openDownGame() {
+            window.open("down.html", "_blank");
+        }
+
+        // 開啟 Flappy Bird 遊戲
+        function openFlappyBird() {
+            window.open("Flappy_Bird.html", "_blank");
+        }
+
+        // 開啟小朋友上樓梯遊戲
+        function openUpGame() {
+            window.open("ns-tower.html", "_blank");
+        }
+
+        // Same Game
+        function openSameGame() {
+            window.open("samegame/index.html", "_blank");
+        }
+
+        // 釣魚遊戲
+        function openFishing() {
+            window.open("fishing/index.html", "_blank");
+        }
+
+        // 雪球大戰遊戲
+        function openSnowcraft() {
+            window.open("snowcraft/index.html", "_blank");
+        }
+
+        // 導航列高亮
+        function highlightNav() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('nav a[href^="#"]');
+            
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 200) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        window.addEventListener('scroll', highlightNav);
+
+        // 手機漢堡選單
+        const navToggle = document.getElementById('navToggle');
+        const navMenu = document.getElementById('navMenu');
+        const navOverlay = document.getElementById('navOverlay');
+        navToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('show');
+            navOverlay.classList.toggle('show');
+        });
+        navOverlay.addEventListener('click', function() {
+            navMenu.classList.remove('show');
+            navOverlay.classList.remove('show');
+        });
+        // 點選選單自動收合
+        document.querySelectorAll('#navMenu a').forEach(link => {
+            link.addEventListener('click', function() {
+                navMenu.classList.remove('show');
+                navOverlay.classList.remove('show');
+            });
+        });
+    </script>
 </body>
-</html> 
+</html>
