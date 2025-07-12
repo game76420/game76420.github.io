@@ -175,6 +175,23 @@ body {
     border-radius: 8px;
   }
   
+  /* 排行榜按鈕容器確保單行顯示 */
+  #leaderboardModal > div:last-child {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  #leaderboardModal > div:last-child button {
+    white-space: nowrap !important;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+  }
+  
   /* 關閉按鈕特殊處理 */
   #closeLeaderboardBtn,
   #closeSkipLevelBtn,
