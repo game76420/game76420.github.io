@@ -254,56 +254,64 @@ function resizeCanvas() {
     let availableH = isMobileDevice ? h : h; // 手機版不預留空間，完全利用螢幕
     let availableW = w;
     
-    // 手機版：充分利用空間並保持長寬比
-    if (isMobileDevice) {
+    if (isMobileDevice && isLandscape) {
+      // 以高度為基準，維持16:9
+      let targetH = availableH;
+      let targetW = targetH * 16 / 9;
+      if (targetW > availableW) {
+        targetW = availableW;
+        targetH = targetW * 9 / 16;
+      }
+      canvas.width = Math.round(targetW * window.devicePixelRatio);
+      canvas.height = Math.round(targetH * window.devicePixelRatio);
+      canvas.style.width = targetW + 'px';
+      canvas.style.height = targetH + 'px';
+      scale = targetW / BASE_WIDTH;
+      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      MIN_THROW_DISTANCE = 40 * scale;
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
+    } else if (isMobileDevice) {
+      // 電腦版：充分利用螢幕空間
       let targetW, targetH;
       
-      if (isLandscape) {
-        // 橫屏模式：最大化利用螢幕空間
-        // 直接使用螢幕尺寸，讓CSS處理縮放
-        targetW = availableW;
-        targetH = availableH;
-        
-        // 計算縮放比例，確保遊戲邏輯正確
-        let scaleX = targetW / BASE_WIDTH;
-        let scaleY = targetH / BASE_HEIGHT;
-        let scale = Math.min(scaleX, scaleY); // 使用較小的縮放比例保持比例
-        
-        // 重新計算實際使用的尺寸
-        targetW = BASE_WIDTH * scale;
-        targetH = BASE_HEIGHT * scale;
+      // 計算最大可用空間
+      let maxW = w;
+      let maxH = availableH;
+      
+      // 計算基於寬度的尺寸
+      let scaleByWidth = maxW / BASE_WIDTH;
+      let targetWByWidth = BASE_WIDTH * scaleByWidth;
+      let targetHByWidth = BASE_HEIGHT * scaleByWidth;
+      
+      // 計算基於高度的尺寸
+      let scaleByHeight = maxH / BASE_HEIGHT;
+      let targetWByHeight = BASE_WIDTH * scaleByHeight;
+      let targetHByHeight = BASE_HEIGHT * scaleByHeight;
+      
+      // 選擇能充分利用空間的尺寸
+      if (targetHByWidth <= maxH) {
+        // 基於寬度計算的尺寸適合
+        targetW = targetWByWidth;
+        targetH = targetHByWidth;
       } else {
-        // 直屏模式：充分利用高度
-        targetH = availableH;
-        targetW = targetH * BASE_WIDTH / BASE_HEIGHT;
-        
-        // 如果寬度超出螢幕，則以寬度為準
-        if (targetW > availableW) {
-          targetW = availableW;
-          targetH = targetW * BASE_HEIGHT / BASE_WIDTH;
-        }
+        // 基於高度計算的尺寸適合
+        targetW = targetWByHeight;
+        targetH = targetHByHeight;
       }
       
-      console.log('手機版目標尺寸:', targetW, 'x', targetH);
+      console.log('電腦版目標尺寸:', targetW, 'x', targetH);
       
       canvas.width = Math.round(targetW * window.devicePixelRatio);
       canvas.height = Math.round(targetH * window.devicePixelRatio);
       canvas.style.width = targetW + 'px';
       canvas.style.height = targetH + 'px';
       
-      // 計算縮放比例
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
-      // 計算顯示寬高（以 style 為準，確保和實際顯示一致）
-      const displayW = parseFloat(canvas.style.width);
-      const displayH = parseFloat(canvas.style.height);
-      // 計算繪圖座標的寬高（確保和遊戲邏輯一致）
-      const logicW = canvas.width / window.devicePixelRatio / scale;
-      const logicH = canvas.height / window.devicePixelRatio / scale;
-      // 更新投擲距離限制
       MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.sqrt(logicW * logicW + logicH * logicH) * 0.6;
+      // 統一：最大投擲距離都設為畫布對角線
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
     } else {
       // 電腦版：充分利用螢幕空間
       let targetW, targetH;
@@ -344,8 +352,8 @@ function resizeCanvas() {
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
       MIN_THROW_DISTANCE = 40 * scale;
-      // 統一：最大投擲距離都設為畫布對角線的0.6倍
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.6;
+      // 統一：最大投擲距離都設為畫布對角線
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
     }
     
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
