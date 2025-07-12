@@ -11,6 +11,65 @@ const showDescBtn = document.getElementById('showDescBtn');
 const descDiv = document.getElementById('desc');
 const closeDescBtn = document.getElementById('closeDescBtn');
 
+// 音效
+const throwSound = new Audio('sound/01.wav');
+throwSound.volume = 0.3; // 設置音量為30%
+const normalThrowSound = new Audio('sound/02.wav');
+normalThrowSound.volume = 0.3; // 設置音量為30%
+const hitSound = new Audio('sound/03.wav');
+hitSound.volume = 0.4; // 設置音量為40%
+const deathSound = new Audio('sound/04.wav');
+deathSound.volume = 0.5; // 設置音量為50%
+
+// 播放投擲音效函數
+function playThrowSound(isFullPower = false) {
+  try {
+    const soundToPlay = isFullPower ? throwSound : normalThrowSound;
+    // 重置音效到開始位置
+    soundToPlay.currentTime = 0;
+    // 播放音效
+    soundToPlay.play().catch(e => {
+      // 如果播放失敗，靜默處理（避免控制台錯誤）
+      console.log('音效播放失敗:', e);
+    });
+  } catch (e) {
+    // 如果音效播放出現錯誤，靜默處理
+    console.log('音效播放錯誤:', e);
+  }
+}
+
+// 播放被擊中音效函數
+function playHitSound() {
+  try {
+    // 重置音效到開始位置
+    hitSound.currentTime = 0;
+    // 播放音效
+    hitSound.play().catch(e => {
+      // 如果播放失敗，靜默處理（避免控制台錯誤）
+      console.log('被擊中音效播放失敗:', e);
+    });
+  } catch (e) {
+    // 如果音效播放出現錯誤，靜默處理
+    console.log('被擊中音效播放錯誤:', e);
+  }
+}
+
+// 播放死亡音效函數
+function playDeathSound() {
+  try {
+    // 重置音效到開始位置
+    deathSound.currentTime = 0;
+    // 播放音效
+    deathSound.play().catch(e => {
+      // 如果播放失敗，靜默處理（避免控制台錯誤）
+      console.log('死亡音效播放失敗:', e);
+    });
+  } catch (e) {
+    // 如果音效播放出現錯誤，靜默處理
+    console.log('死亡音效播放錯誤:', e);
+  }
+}
+
 const PLAYER_RADIUS = 26;
 const ENEMY_RADIUS = 26;
 const SNOWBALL_RADIUS = 10;
@@ -619,6 +678,8 @@ function updateSnowballs() {
         if (!e.alive || e.stunUntil > performance.now()) return;
         if (distance(s, e) < ENEMY_RADIUS + SNOWBALL_RADIUS) {
           e.hp--;
+          // 播放被擊中音效
+          playHitSound();
           if (e.hp === 2) {
             e.throwState = 'pain';
             e.stunUntil = performance.now() + STUN_DURATION;
@@ -629,6 +690,8 @@ function updateSnowballs() {
             e.alive = false;
             e.deadTime = performance.now();
             e.deadState = true;
+            // 播放死亡音效
+            playDeathSound();
           }
           s.dead = true;
         }
@@ -638,11 +701,15 @@ function updateSnowballs() {
         if (!p.alive || p.stunUntil > performance.now()) return;
         if (distance(s, p) < PLAYER_RADIUS + SNOWBALL_RADIUS) {
           p.hp--;
+          // 播放被擊中音效
+          playHitSound();
           p.stunUntil = performance.now() + STUN_DURATION;
           if (p.hp <= 0) {
             p.alive = false;
             p.deadTime = performance.now();
             p.deadState = true;
+            // 播放死亡音效
+            playDeathSound();
           }
           s.dead = true;
         }
@@ -663,8 +730,7 @@ function updateSnowballs() {
   // 勝負判斷
   if (players.every(p=>!p.alive) && gameState==='playing') {
     gameState = 'lose';
-    resultDiv.textContent = '遊戲結束！全部紅衣小朋友被淘汰';
-    restartBtn.style.display = 'inline-block';
+    restartBtn.style.display = 'block';
   }
   if (enemies.every(e=>!e.alive) && gameState==='playing') {
     gameState = 'win';
@@ -876,6 +942,8 @@ function updateEnemies(ts) {
           startY: e.y + Math.sin(angle)*ENEMY_RADIUS,
           maxDistance: maxDistance
         });
+        // 播放投擲音效 - 根據力道決定音效
+        playThrowSound(charge > 0.8);
         e.lastThrow = ts;
         e.nextThrow = randomThrowInterval();
       }
@@ -950,6 +1018,8 @@ canvas.addEventListener('mouseup', e => {
         startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
         maxDistance: maxDistance
       });
+      // 播放投擲音效 - 根據力道決定音效
+      playThrowSound(charge > 0.8);
     }
     charging = false;
     if (selectedPlayer) selectedPlayer.charging = false;
@@ -973,6 +1043,8 @@ canvas.addEventListener('mouseup', e => {
     startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
     maxDistance: maxDistance
   });
+  // 播放投擲音效 - 根據力道決定音效
+  playThrowSound(charge > 0.8);
   charging = false;
   if (selectedPlayer) selectedPlayer.charging = false;
   selectedPlayer = null;
@@ -1028,6 +1100,8 @@ canvas.addEventListener('touchend', e => {
         startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
         maxDistance: maxDistance
       });
+      // 播放投擲音效 - 根據力道決定音效
+      playThrowSound(charge > 0.8);
     }
     charging = false;
     if (selectedPlayer) selectedPlayer.charging = false;
@@ -1052,6 +1126,8 @@ canvas.addEventListener('touchend', e => {
     startY: selectedPlayer.y + Math.sin(angle)*PLAYER_RADIUS,
     maxDistance: maxDistance
   });
+  // 播放投擲音效 - 根據力道決定音效
+  playThrowSound(charge > 0.8);
   charging = false;
   if (selectedPlayer) selectedPlayer.charging = false;
   selectedPlayer = null;
