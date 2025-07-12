@@ -654,24 +654,8 @@ function resizeCanvas() {
     let availableH = isMobileDevice ? h : h; // 手機版不預留空間，完全利用螢幕
     let availableW = w;
     
-    if (isMobileDevice && isLandscape) {
-      // 以高度為基準，維持16:9
-      let targetH = availableH;
-      let targetW = targetH * 16 / 9;
-      if (targetW > availableW) {
-        targetW = availableW;
-        targetH = targetW * 9 / 16;
-      }
-      canvas.width = Math.round(targetW * window.devicePixelRatio);
-      canvas.height = Math.round(targetH * window.devicePixelRatio);
-      canvas.style.width = targetW + 'px';
-      canvas.style.height = targetH + 'px';
-      scale = targetW / BASE_WIDTH;
-      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
-      MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
-    } else if (isMobileDevice) {
-      // 手機版：充分利用螢幕空間
+    if (isMobileDevice) {
+      // 手機版（直版和橫版統一處理）：充分利用螢幕空間
       let targetW, targetH;
       
       // 計算最大可用空間
@@ -819,14 +803,9 @@ function startLevel() {
     playLevelStartSound();
   }
   
-  // 玩家 - 調整位置適應16:9大畫面
-  // 電腦版使用更大的基礎尺寸
-  const isMobileDevice = isMobile();
-  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
-  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
-  
-  const canvasWidth = baseWidth;
-  const canvasHeight = baseHeight;
+  // 使用實際的畫布尺寸而不是固定的基礎尺寸
+  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
   
   // 確保尺寸有效
   if (canvasWidth <= 0 || canvasHeight <= 0) {
@@ -882,14 +861,9 @@ function startLevel() {
 
 // 不播放音效的關卡開始函數
 function startLevelWithoutSound() {
-  // 玩家 - 調整位置適應16:9大畫面
-  // 電腦版使用更大的基礎尺寸
-  const isMobileDevice = isMobile();
-  const baseWidth = isMobileDevice ? BASE_WIDTH : COMPUTER_BASE_WIDTH;
-  const baseHeight = isMobileDevice ? BASE_HEIGHT : COMPUTER_BASE_HEIGHT;
-  
-  const canvasWidth = baseWidth;
-  const canvasHeight = baseHeight;
+  // 使用實際的畫布尺寸而不是固定的基礎尺寸
+  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
   
   players = [
     { x: canvasWidth * 0.75, y: canvasHeight * 0.7, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 0, deadState: false, deadTime: 0 },
