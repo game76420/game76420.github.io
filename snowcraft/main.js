@@ -13,6 +13,178 @@ const loadingIndicator = document.getElementById('loadingIndicator');
 const loadingProgress = document.getElementById('loadingProgress');
 const skipLoadingBtn = document.getElementById('skipLoadingBtn');
 
+// 排行榜相關元素
+const leaderboardModal = document.getElementById('leaderboardModal');
+const leaderboardList = document.getElementById('leaderboardList');
+const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+const closeLeaderboardBtn2 = document.getElementById('closeLeaderboardBtn2');
+const clearLeaderboardBtn = document.getElementById('clearLeaderboardBtn');
+const showLeaderboardBtn = document.getElementById('showLeaderboardBtn');
+
+// 跳關相關元素
+const skipLevelModal = document.getElementById('skipLevelModal');
+const skipLevelInput = document.getElementById('skipLevelInput');
+const closeSkipLevelBtn = document.getElementById('closeSkipLevelBtn');
+const confirmSkipLevelBtn = document.getElementById('confirmSkipLevelBtn');
+const cancelSkipLevelBtn = document.getElementById('cancelSkipLevelBtn');
+
+// 排行榜相關函數
+function getLeaderboard() {
+  const leaderboard = localStorage.getItem('snowcraft_leaderboard');
+  return leaderboard ? JSON.parse(leaderboard) : [];
+}
+
+function saveLeaderboard(leaderboard) {
+  localStorage.setItem('snowcraft_leaderboard', JSON.stringify(leaderboard));
+}
+
+function addScoreToLeaderboard(score) {
+  const leaderboard = getLeaderboard();
+  const newScore = {
+    score: score,
+    date: new Date().toLocaleDateString('zh-TW'),
+    time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })
+  };
+  
+  leaderboard.push(newScore);
+  leaderboard.sort((a, b) => b.score - a.score); // 按分數降序排列
+  
+  // 只保留前10名
+  const top10 = leaderboard.slice(0, 10);
+  saveLeaderboard(top10);
+  
+  // 檢查當前分數是否進入排行榜
+  const isInTop10 = top10.some(entry => entry.score === score);
+  const rank = top10.findIndex(entry => entry.score === score) + 1;
+  
+  return { leaderboard: top10, isInTop10, rank };
+}
+
+function clearLeaderboard() {
+  localStorage.removeItem('snowcraft_leaderboard');
+  showLeaderboard();
+}
+
+function showLeaderboard(currentScore = null) {
+  const leaderboard = getLeaderboard();
+  let html = '';
+  
+  if (leaderboard.length === 0) {
+    html = '<p style="text-align:center;color:#666;">尚無記錄</p>';
+  } else {
+    html = '<div style="margin-bottom:10px;"><strong>排名</strong> | <strong>分數</strong> | <strong>日期</strong> | <strong>時間</strong></div>';
+    
+    leaderboard.forEach((entry, index) => {
+      // 檢查是否為當前分數
+      const isCurrentScore = currentScore !== null && entry.score === currentScore;
+      const color = isCurrentScore ? '#d22' : '#333';
+      const fontWeight = isCurrentScore ? 'bold' : 'normal';
+      
+      html += `<div style="margin:5px 0;color:${color};font-weight:${fontWeight};">`;
+      html += `${index + 1}. ${entry.score}分 | ${entry.date} | ${entry.time}`;
+      if (isCurrentScore) {
+        const rankText = index === 0 ? '(新紀錄！)' : `(第${index + 1}名)`;
+        html += ` <span style="color:#d22;font-size:12px;">${rankText}</span>`;
+      }
+      html += '</div>';
+    });
+  }
+  
+  leaderboardList.innerHTML = html;
+  leaderboardModal.style.display = 'block';
+}
+
+// 跳關相關函數
+function showSkipLevelModal() {
+  if (skipLevelModal) {
+    skipLevelModal.style.display = 'block';
+    if (skipLevelInput) {
+      skipLevelInput.value = '';
+      skipLevelInput.focus();
+    }
+  }
+}
+
+function hideSkipLevelModal() {
+  if (skipLevelModal) {
+    skipLevelModal.style.display = 'none';
+  }
+}
+
+function skipToLevel(targetLevel) {
+  // 驗證關卡號碼
+  if (targetLevel < 1 || targetLevel > 50) {
+    alert('關卡號碼必須在 1-50 之間！');
+    return false;
+  }
+  
+  // 如果目標關卡比當前關卡低，給予警告
+  if (targetLevel < level) {
+    if (!confirm(`確定要跳回到第 ${targetLevel} 關嗎？這會重置當前進度。`)) {
+      return false;
+    }
+  }
+  
+  // 設置新關卡
+  level = targetLevel;
+  
+  // 重置玩家狀態
+  players.forEach(player => {
+    player.hp = PLAYER_MAX_HP;
+    player.alive = true;
+    player.stunUntil = 0;
+    player.charging = false;
+    player.charge = 0;
+    player.deadState = false;
+    player.deadTime = 0;
+  });
+  
+  // 開始新關卡（不播放音效）
+  startLevelWithoutSound();
+  
+  // 隱藏跳關彈窗
+  hideSkipLevelModal();
+  
+  // 隱藏排行榜彈窗
+  if (leaderboardModal) {
+    leaderboardModal.style.display = 'none';
+  }
+  
+  // 顯示跳關提示
+  showSkipLevelMessage(targetLevel);
+  
+  return true;
+}
+
+function showSkipLevelMessage(targetLevel) {
+  // 創建跳關提示訊息
+  const messageDiv = document.createElement('div');
+  messageDiv.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 20px 30px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1002;
+    text-align: center;
+  `;
+  messageDiv.textContent = `🎯 跳關成功！現在是第 ${targetLevel} 關`;
+  
+  document.body.appendChild(messageDiv);
+  
+  // 2秒後自動移除
+  setTimeout(() => {
+    if (messageDiv.parentNode) {
+      messageDiv.parentNode.removeChild(messageDiv);
+    }
+  }, 2000);
+}
+
 // 音效
 const throwSound = new Audio('sound/01.wav');
 throwSound.volume = 0.3; // 設置音量為30%
@@ -455,10 +627,30 @@ function startLevel() {
   // 敵人
   enemies = [];
   let enemyCount = ENEMY_START_COUNT + (level - 1) * ENEMY_ADD_PER_LEVEL;
+  
+  // 計算敵人分布網格
+  const maxEnemiesPerRow = 4; // 每行最多4個敵人
+  const rows = Math.ceil(enemyCount / maxEnemiesPerRow);
+  const enemiesInLastRow = enemyCount % maxEnemiesPerRow || maxEnemiesPerRow;
+  
   for (let i = 0; i < enemyCount; i++) {
-    // 讓敵人分布在左上角區域，避免重疊
-    let baseX = canvasWidth * 0.1 + (i % 3) * (canvasWidth * 0.15);
-    let baseY = canvasHeight * 0.15 + Math.floor(i / 3) * (canvasHeight * 0.15);
+    const row = Math.floor(i / maxEnemiesPerRow);
+    const col = i % maxEnemiesPerRow;
+    
+    // 計算這行的敵人數量
+    const enemiesInThisRow = (row === rows - 1) ? enemiesInLastRow : maxEnemiesPerRow;
+    
+    // 計算間距，讓敵人均勻分布
+    const spacingX = (canvasWidth * 0.35) / (enemiesInThisRow + 1);
+    const spacingY = (canvasHeight * 0.35) / (rows + 1);
+    
+    // 計算位置，加上隨機偏移避免完全整齊
+    let baseX = canvasWidth * 0.05 + spacingX * (col + 1) + (Math.random() - 0.5) * 20;
+    let baseY = canvasHeight * 0.05 + spacingY * (row + 1) + (Math.random() - 0.5) * 20;
+    
+    // 確保不會超出左上角區域
+    baseX = Math.max(canvasWidth * 0.05, Math.min(canvasWidth * 0.4, baseX));
+    baseY = Math.max(canvasHeight * 0.05, Math.min(canvasHeight * 0.4, baseY));
     
     // 生成初始目標位置
     const initialTarget = generateBoundaryTarget(canvasWidth, canvasHeight);
@@ -512,10 +704,30 @@ function startLevelWithoutSound() {
   // 敵人
   enemies = [];
   let enemyCount = ENEMY_START_COUNT + (level - 1) * ENEMY_ADD_PER_LEVEL;
+  
+  // 計算敵人分布網格
+  const maxEnemiesPerRow = 4; // 每行最多4個敵人
+  const rows = Math.ceil(enemyCount / maxEnemiesPerRow);
+  const enemiesInLastRow = enemyCount % maxEnemiesPerRow || maxEnemiesPerRow;
+  
   for (let i = 0; i < enemyCount; i++) {
-    // 讓敵人分布在左上角區域，避免重疊
-    let baseX = canvasWidth * 0.1 + (i % 3) * (canvasWidth * 0.15);
-    let baseY = canvasHeight * 0.15 + Math.floor(i / 3) * (canvasHeight * 0.15);
+    const row = Math.floor(i / maxEnemiesPerRow);
+    const col = i % maxEnemiesPerRow;
+    
+    // 計算這行的敵人數量
+    const enemiesInThisRow = (row === rows - 1) ? enemiesInLastRow : maxEnemiesPerRow;
+    
+    // 計算間距，讓敵人均勻分布
+    const spacingX = (canvasWidth * 0.35) / (enemiesInThisRow + 1);
+    const spacingY = (canvasHeight * 0.35) / (rows + 1);
+    
+    // 計算位置，加上隨機偏移避免完全整齊
+    let baseX = canvasWidth * 0.05 + spacingX * (col + 1) + (Math.random() - 0.5) * 20;
+    let baseY = canvasHeight * 0.05 + spacingY * (row + 1) + (Math.random() - 0.5) * 20;
+    
+    // 確保不會超出左上角區域
+    baseX = Math.max(canvasWidth * 0.05, Math.min(canvasWidth * 0.4, baseX));
+    baseY = Math.max(canvasHeight * 0.05, Math.min(canvasHeight * 0.4, baseY));
     
     // 生成初始目標位置
     const initialTarget = generateBoundaryTarget(canvasWidth, canvasHeight);
@@ -1051,6 +1263,13 @@ function updateSnowballs() {
   if (players.every(p=>!p.alive) && gameState==='playing') {
     gameState = 'lose';
     restartBtn.style.display = 'block';
+    
+    // 遊戲結束時顯示排行榜
+    setTimeout(() => {
+      const finalScore = score;
+      const result = addScoreToLeaderboard(finalScore);
+      showLeaderboard(finalScore);
+    }, 1000);
   }
   if (enemies.every(e=>!e.alive) && gameState==='playing') {
     gameState = 'win';
@@ -1208,8 +1427,8 @@ canvas.addEventListener('touchmove', e => {
   
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
-  let newX = Math.max(PLAYER_RADIUS, Math.min(canvasWidth - PLAYER_RADIUS, mx - dragOffsetX));
-  let newY = Math.max(PLAYER_RADIUS, Math.min(canvasHeight - PLAYER_RADIUS, my - dragOffsetY));
+  let newX = Math.max(getPlayerRadius(), Math.min(canvasWidth - getPlayerRadius(), mx - dragOffsetX));
+  let newY = Math.max(getPlayerRadius(), Math.min(canvasHeight - getPlayerRadius(), my - dragOffsetY));
   if (!isInPlayerArea(newX, newY, canvasWidth, canvasHeight)) {
     let t = (canvasWidth - newX) / (canvasWidth / canvasHeight);
     if (newY < t) newY = t;
@@ -1544,6 +1763,11 @@ canvas.addEventListener('touchend', handleTouchEnd, {passive:false});
 document.addEventListener('touchend', handleTouchEnd, {passive:false});
 
 restartBtn.onclick = () => {
+  // 關閉排行榜
+  if (leaderboardModal) {
+    leaderboardModal.style.display = 'none';
+  }
+  
   if (gameState === 'win') {
     // level++;
     // startLevel();
@@ -1570,6 +1794,77 @@ if (closeDescBtn && descDiv) {
   closeDescBtn.onclick = () => {
     descDiv.style.display = 'none';
   };
+}
+
+// 排行榜按鈕事件監聽器
+if (closeLeaderboardBtn) {
+  closeLeaderboardBtn.onclick = () => {
+    leaderboardModal.style.display = 'none';
+  };
+}
+
+if (closeLeaderboardBtn2) {
+  closeLeaderboardBtn2.onclick = () => {
+    leaderboardModal.style.display = 'none';
+  };
+}
+
+if (clearLeaderboardBtn) {
+  clearLeaderboardBtn.onclick = () => {
+    if (confirm('確定要清除所有排行榜記錄嗎？')) {
+      clearLeaderboard();
+    }
+  };
+}
+
+if (showLeaderboardBtn) {
+  showLeaderboardBtn.onclick = () => {
+    showLeaderboard();
+  };
+}
+
+// 跳關按鈕事件監聽器
+if (skipToLevelBtn) {
+  skipToLevelBtn.onclick = () => {
+    showSkipLevelModal();
+  };
+}
+
+if (closeSkipLevelBtn) {
+  closeSkipLevelBtn.onclick = () => {
+    hideSkipLevelModal();
+  };
+}
+
+if (cancelSkipLevelBtn) {
+  cancelSkipLevelBtn.onclick = () => {
+    hideSkipLevelModal();
+  };
+}
+
+if (confirmSkipLevelBtn) {
+  confirmSkipLevelBtn.onclick = () => {
+    const targetLevel = parseInt(skipLevelInput.value);
+    if (isNaN(targetLevel)) {
+      alert('請輸入有效的關卡號碼！');
+      return;
+    }
+    skipToLevel(targetLevel);
+  };
+}
+
+// 跳關輸入框回車鍵事件
+if (skipLevelInput) {
+  skipLevelInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      const targetLevel = parseInt(skipLevelInput.value);
+      if (isNaN(targetLevel)) {
+        alert('請輸入有效的關卡號碼！');
+        return;
+      }
+      skipToLevel(targetLevel);
+    }
+  });
 }
 
 // 初始化遊戲

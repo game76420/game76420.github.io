@@ -12,6 +12,7 @@
     <div id="gameInfo" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:1000;font-family:Arial,sans-serif;">
       <div style="font-size:18px;font-weight:bold;color:#2a5;">分數: <span id="scoreDisplay">0</span></div>
       <div style="font-size:16px;color:#666;margin-top:4px;">關卡: <span id="levelDisplay">1</span></div>
+      <button id="showLeaderboardBtn" style="margin-top:8px;padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🏆 排行榜</button>
     </div>
     
     <!-- 問號按鈕獨立放右上角 -->
@@ -29,6 +30,35 @@
       <button id="restartBtn" style="display:none">重新開始</button>
     </div>
     <div id="result"></div>
+    
+    <!-- 排行榜彈窗 -->
+    <div id="leaderboardModal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;padding:32px 36px;z-index:1000;min-width:320px;max-width:90vw;max-height:80vh;overflow:auto;text-align:center;">
+      <button id="closeLeaderboardBtn" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✖</button>
+      <h2 style="margin-top:0;color:#2a5;">🏆 排行榜</h2>
+      <div id="leaderboardList" style="text-align:left;margin:20px 0;">
+        <!-- 排行榜內容將由JavaScript動態生成 -->
+      </div>
+      <div style="margin-top:20px;">
+        <button id="clearLeaderboardBtn" style="padding:8px 16px;background:#d22;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">清除排行榜</button>
+        <button id="skipToLevelBtn" style="padding:8px 16px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin-right:10px;">跳關挑戰</button>
+        <button id="closeLeaderboardBtn2" style="padding:8px 16px;background:#2a5;color:white;border:none;border-radius:5px;cursor:pointer;font-size:14px;">關閉</button>
+      </div>
+    </div>
+    
+    <!-- 跳關輸入彈窗 -->
+    <div id="skipLevelModal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;padding:32px 36px;z-index:1001;min-width:300px;max-width:90vw;text-align:center;">
+      <button id="closeSkipLevelBtn" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✖</button>
+      <h3 style="margin-top:0;color:#f90;">🎯 跳關挑戰</h3>
+      <p style="margin:15px 0;color:#666;font-size:14px;">輸入想要挑戰的關卡號碼（1-50）</p>
+      <div style="margin:20px 0;">
+        <input type="number" id="skipLevelInput" min="1" max="50" placeholder="關卡號碼" style="padding:10px;border:2px solid #ddd;border-radius:5px;font-size:16px;width:120px;text-align:center;">
+      </div>
+      <div style="margin-top:20px;">
+        <button id="confirmSkipLevelBtn" style="padding:10px 20px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:16px;margin-right:10px;">開始挑戰</button>
+        <button id="cancelSkipLevelBtn" style="padding:10px 20px;background:#666;color:white;border:none;border-radius:5px;cursor:pointer;font-size:16px;">取消</button>
+      </div>
+    </div>
+    
     <div id="desc" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;padding:32px 36px;z-index:1000;min-width:320px;max-width:90vw;max-height:80vh;overflow:auto;text-align:left;">
       <button id="closeDescBtn" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✖</button>
       <p style="margin-top:0;font-weight:bold;">玩法：</p>
