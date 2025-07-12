@@ -173,40 +173,62 @@ function resizeCanvas() {
   // 手機版預留UI空間，電腦版充分利用螢幕
   let availableH = isMobileDevice ? h - 100 : h;
   
-  // 計算16:9比例下的最大可用尺寸
-  let targetW = Math.min(w, BASE_WIDTH);
-  let targetH = targetW * 9 / 16;
-  
-  // 如果高度超出可用空間，則以高度為準
-  if (targetH > availableH) {
-    targetH = availableH;
-    targetW = targetH * 16 / 9;
-  }
-  
-  // 電腦版：如果寬度還有空間，可以進一步放大
-  if (!isMobileDevice && targetW < w) {
-    let maxW = w;
-    let maxH = availableH;
-    let scaleByWidth = maxW / BASE_WIDTH;
-    let scaleByHeight = maxH / BASE_HEIGHT;
-    let maxScale = Math.min(scaleByWidth, scaleByHeight);
+  // 手機版：優先考慮高度，確保遊戲可見
+  if (isMobileDevice) {
+    // 手機版以高度為準，確保遊戲內容可見
+    let targetH = availableH;
+    let targetW = targetH * 16 / 9;
     
-    targetW = BASE_WIDTH * maxScale;
-    targetH = BASE_HEIGHT * maxScale;
+    // 如果寬度超出螢幕，則以寬度為準
+    if (targetW > w) {
+      targetW = w;
+      targetH = targetW * 9 / 16;
+    }
+    
+    canvas.width = Math.round(targetW * window.devicePixelRatio);
+    canvas.height = Math.round(targetH * window.devicePixelRatio);
+    canvas.style.width = targetW + 'px';
+    canvas.style.height = targetH + 'px';
+    
+    // 計算縮放比例
+    scale = targetW / BASE_WIDTH;
+    ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+    
+    // 更新投擲距離限制
+    MIN_THROW_DISTANCE = 40 * scale;
+    MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
+  } else {
+    // 電腦版邏輯保持不變
+    let targetW = Math.min(w, BASE_WIDTH);
+    let targetH = targetW * 9 / 16;
+    
+    if (targetH > availableH) {
+      targetH = availableH;
+      targetW = targetH * 16 / 9;
+    }
+    
+    if (targetW < w) {
+      let maxW = w;
+      let maxH = availableH;
+      let scaleByWidth = maxW / BASE_WIDTH;
+      let scaleByHeight = maxH / BASE_HEIGHT;
+      let maxScale = Math.min(scaleByWidth, scaleByHeight);
+      
+      targetW = BASE_WIDTH * maxScale;
+      targetH = BASE_HEIGHT * maxScale;
+    }
+    
+    canvas.width = Math.round(targetW * window.devicePixelRatio);
+    canvas.height = Math.round(targetH * window.devicePixelRatio);
+    canvas.style.width = targetW + 'px';
+    canvas.style.height = targetH + 'px';
+    
+    scale = targetW / BASE_WIDTH;
+    ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+    
+    MIN_THROW_DISTANCE = 40 * scale;
+    MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
   }
-  
-  canvas.width = Math.round(targetW * window.devicePixelRatio);
-  canvas.height = Math.round(targetH * window.devicePixelRatio);
-  canvas.style.width = targetW + 'px';
-  canvas.style.height = targetH + 'px';
-  
-  // 計算縮放比例，保持遊戲邏輯的基準尺寸
-  scale = targetW / BASE_WIDTH;
-  ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
-  
-  // 更新投擲距離限制
-  MIN_THROW_DISTANCE = 40 * scale;
-  MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -1131,9 +1153,19 @@ document.addEventListener('mouseup', handleMouseUp);
 canvas.addEventListener('touchstart', e => {
   if (gameState !== 'playing') return;
   if (e.touches.length !== 1) return;
+  
+  // 防止觸控事件的預設行為
+  e.preventDefault();
+  
   let rect = canvas.getBoundingClientRect();
   let mx = (e.touches[0].clientX - rect.left) / scale;
   let my = (e.touches[0].clientY - rect.top) / scale;
+  
+  // 調試信息（手機版）
+  if (isMobile()) {
+    console.log('Touch start:', {x: mx, y: my, scale: scale, rect: rect});
+  }
+  
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
   if (candidates.length === 0) return;
   let p = candidates.reduce((a,b)=>{
@@ -1155,9 +1187,8 @@ canvas.addEventListener('touchstart', e => {
     chargeStart = performance.now();
     selectedPlayer = p;
     p.charging = true;
-    e.preventDefault();
   }
-});
+}, {passive: false});
 
 // 觸控釋放事件處理函數
 function handleTouchEnd(e) {
@@ -1245,5 +1276,20 @@ if (closeDescBtn && descDiv) {
   };
 }
 
-resetGame();
-requestAnimationFrame(gameLoop); 
+// 初始化遊戲
+function initGame() {
+  console.log('Game initializing...');
+  console.log('Is mobile:', isMobile());
+  console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
+  console.log('Device pixel ratio:', window.devicePixelRatio);
+  
+  resetGame();
+  requestAnimationFrame(gameLoop);
+}
+
+// 確保 DOM 完全載入後再初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initGame);
+} else {
+  initGame();
+} 
