@@ -34,6 +34,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -50,11 +51,12 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
+  min-height: 0;
 }
 #gameCanvas {
   width: 100%;
   max-width: 1600px;
-  max-height: calc(100vh - 120px);
+  max-height: 100vh;
   height: auto;
   aspect-ratio: 16/9;
   display: block;
@@ -176,8 +178,8 @@ body {
     min-height: 24px;
   }
   #restartBtn {
-    font-size: 18px;
-    padding: 8px 24px;
+    font-size: 16px;
+    padding: 8px 8px;
   }
   #desc {
     font-size: 12px;

@@ -3,10 +3,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const resultDiv = document.getElementById('result');
 const restartBtn = document.getElementById('restartBtn');
-const levelSpan = document.getElementById('level');
-const playerCountSpan = document.getElementById('playerCount');
-const enemyCountSpan = document.getElementById('enemyCount');
-const scoreSpan = document.getElementById('score');
+
 const showDescBtn = document.getElementById('showDescBtn');
 const descDiv = document.getElementById('desc');
 const closeDescBtn = document.getElementById('closeDescBtn');
@@ -20,6 +17,8 @@ const hitSound = new Audio('sound/03.wav');
 hitSound.volume = 0.4; // 設置音量為40%
 const deathSound = new Audio('sound/04.wav');
 deathSound.volume = 0.5; // 設置音量為50%
+const levelStartSound = new Audio('sound/05.wav');
+levelStartSound.volume = 0.6; // 設置音量為60%
 
 // 播放投擲音效函數
 function playThrowSound(isFullPower = false) {
@@ -67,6 +66,22 @@ function playDeathSound() {
   } catch (e) {
     // 如果音效播放出現錯誤，靜默處理
     console.log('死亡音效播放錯誤:', e);
+  }
+}
+
+// 播放新關卡開始音效函數
+function playLevelStartSound() {
+  try {
+    // 重置音效到開始位置
+    levelStartSound.currentTime = 0;
+    // 播放音效
+    levelStartSound.play().catch(e => {
+      // 如果播放失敗，靜默處理（避免控制台錯誤）
+      console.log('新關卡音效播放失敗:', e);
+    });
+  } catch (e) {
+    // 如果音效播放出現錯誤，靜默處理
+    console.log('新關卡音效播放錯誤:', e);
   }
 }
 
@@ -152,8 +167,11 @@ function resizeCanvas() {
   let w = window.innerWidth;
   let h = window.innerHeight;
   
-  // 預留UI空間
-  let availableH = h - 100;
+  // 檢測是否為手機版
+  const isMobileDevice = isMobile();
+  
+  // 手機版預留UI空間，電腦版充分利用螢幕
+  let availableH = isMobileDevice ? h - 100 : h;
   
   // 計算16:9比例下的最大可用尺寸
   let targetW = Math.min(w, BASE_WIDTH);
@@ -163,6 +181,18 @@ function resizeCanvas() {
   if (targetH > availableH) {
     targetH = availableH;
     targetW = targetH * 16 / 9;
+  }
+  
+  // 電腦版：如果寬度還有空間，可以進一步放大
+  if (!isMobileDevice && targetW < w) {
+    let maxW = w;
+    let maxH = availableH;
+    let scaleByWidth = maxW / BASE_WIDTH;
+    let scaleByHeight = maxH / BASE_HEIGHT;
+    let maxScale = Math.min(scaleByWidth, scaleByHeight);
+    
+    targetW = BASE_WIDTH * maxScale;
+    targetH = BASE_HEIGHT * maxScale;
   }
   
   canvas.width = Math.round(targetW * window.devicePixelRatio);
@@ -194,6 +224,63 @@ function resetGame() {
 }
 
 function startLevel() {
+  // 播放新關卡開始音效（跳過第一關，因為第一關開始時不需要音效）
+  if (level > 1) {
+    playLevelStartSound();
+  }
+  
+  // 玩家 - 調整位置適應16:9大畫面
+  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  
+  players = [
+    { x: canvasWidth * 0.75, y: canvasHeight * 0.7, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 0, deadState: false, deadTime: 0 },
+    { x: canvasWidth * 0.85, y: canvasHeight * 0.75, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 1, deadState: false, deadTime: 0 },
+    { x: canvasWidth * 0.8, y: canvasHeight * 0.85, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 2, deadState: false, deadTime: 0 }
+  ];
+  // 敵人
+  enemies = [];
+  let enemyCount = ENEMY_START_COUNT + (level - 1) * ENEMY_ADD_PER_LEVEL;
+  for (let i = 0; i < enemyCount; i++) {
+    // 讓敵人分布在左上角區域，避免重疊
+    let baseX = canvasWidth * 0.1 + (i % 3) * (canvasWidth * 0.15);
+    let baseY = canvasHeight * 0.15 + Math.floor(i / 3) * (canvasHeight * 0.15);
+    
+    // 生成初始目標位置
+    const initialTarget = generateBoundaryTarget(canvasWidth, canvasHeight);
+    
+    enemies.push({
+      x: baseX,
+      y: baseY,
+      hp: ENEMY_MAX_HP,
+      alive: true,
+      stunUntil: 0,
+      lastThrow: 0,
+      nextThrow: randomThrowInterval(),
+      id: i,
+      moveOffset: Math.random() * 1000,
+      moveDir: Math.random() < 0.5 ? -1 : 1,
+      throwState: 'idle',
+      throwStateUntil: 0,
+      walkFrame: 0,
+      deadTime: 0, // 新增
+      deadState: false, // 新增
+      chargeStart: 0, // 新增
+      // 新增：移動到邊界的相關屬性
+      targetX: initialTarget.x,
+      targetY: initialTarget.y,
+      moveSpeed: 0.5 + Math.random() * 0.5, // 移動速度 0.5-1.0
+      lastTargetChange: 0,
+      targetChangeInterval: 3000 + Math.random() * 2000 // 3-5秒改變一次目標
+    });
+  }
+  snowballs = [];
+  gameState = 'playing';
+  updateInfo();
+}
+
+// 不播放音效的關卡開始函數
+function startLevelWithoutSound() {
   // 玩家 - 調整位置適應16:9大畫面
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
@@ -245,10 +332,7 @@ function startLevel() {
 }
 
 function updateInfo() {
-  levelSpan.textContent = `關卡：${level}`;
-  playerCountSpan.textContent = `我方剩餘：${players.filter(p=>p.alive).length}`;
-  enemyCountSpan.textContent = `敵方剩餘：${enemies.filter(e=>e.alive).length}`;
-  scoreSpan.textContent = `分數：${score}`;
+  // UI元素已移除，此函數不再需要更新UI
 }
 
 // --- 新增：美化角色繪製 ---
@@ -460,15 +544,6 @@ function drawPlayers() {
     
     ctx.globalAlpha = (p.stunUntil > performance.now()) ? 0.5 : 1;
     drawPlayerSprite(p, "#d22");
-    // HP
-    for (let i = 0; i < p.hp; i++) {
-      ctx.beginPath();
-      ctx.arc(p.x - 16 + i*16, p.y - 32, 6, 0, Math.PI*2);
-      ctx.fillStyle = '#fff';
-      ctx.fill();
-      ctx.strokeStyle = '#d22';
-      ctx.stroke();
-    }
     // 暈圈
     if (p.stunUntil > performance.now()) {
       const offsetX = -45;
@@ -494,31 +569,19 @@ function drawPlayers() {
       ctx.stroke();
       ctx.lineWidth = 1;
     }
-    
     // 顯示觸控範圍指示（無論是否在集氣）
     if (p.alive && p.stunUntil < performance.now()) {
-      // 控制圈位置往右下調整
-      const controlX = p.x + 0;  // 向右偏移40像素
-      const controlY = p.y + 0;  // 向下偏移30像素
-      
+      // 控制圈位置往下調整
+      const controlX = p.x + 0;
+      const controlY = p.y + 50;  // 向下偏移50像素
       // 顯示觸控範圍（半透明圓圈）
       ctx.beginPath();
       ctx.arc(controlX, controlY, PLAYER_RADIUS + 30, 0, Math.PI*2);
-      ctx.strokeStyle = '#0f0';
+      ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
       ctx.lineWidth = 2;
       ctx.globalAlpha = 0.2;
       ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.lineWidth = 1;
-      
-      // 顯示中心綠點
-      ctx.beginPath();
-      ctx.arc(controlX, controlY, 6, 0, Math.PI*2);
-      ctx.fillStyle = '#0f0';
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
       ctx.lineWidth = 1;
     }
     ctx.restore();
@@ -635,17 +698,7 @@ function drawUI() {
     ctx.restore();
   }
   
-  // 手機版觸控提示
-  if (isMobile() && gameState === 'playing' && !charging) {
-    ctx.save();
-    ctx.font = '16px Arial';
-    ctx.fillStyle = '#357';
-    ctx.textAlign = 'center';
-    ctx.globalAlpha = 0.7;
-    ctx.fillText('點擊並拖拽紅色精靈來移動和攻擊', canvasWidth/2, canvasHeight - 20);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
+
 }
 
 function gameLoop(ts) {
@@ -734,7 +787,8 @@ function updateSnowballs() {
   }
   if (enemies.every(e=>!e.alive) && gameState==='playing') {
     gameState = 'win';
-    resultDiv.textContent = '過關！1秒後自動進入下一關';
+    // 播放過關音效
+    playLevelStartSound();
     restartBtn.style.display = 'none';
     score += 100;
     updateInfo();
@@ -747,10 +801,10 @@ function updateSnowballs() {
         gameState = 'pause';
         setTimeout(() => {
           showLevelText = false;
-          startLevel();
+          startLevelWithoutSound();
         }, 1000);
       } else {
-        startLevel();
+        startLevelWithoutSound();
       }
       resultDiv.textContent = '';
       restartBtn.style.display = 'none';
@@ -817,6 +871,15 @@ canvas.addEventListener('mousemove', e => {
   let rect = canvas.getBoundingClientRect();
   let mx = (e.clientX - rect.left) / scale;
   let my = (e.clientY - rect.top) / scale;
+  
+  // 檢查滑鼠是否移出畫布範圍
+  if (e.clientX < rect.left || e.clientX > rect.right || 
+      e.clientY < rect.top || e.clientY > rect.bottom) {
+    // 滑鼠移出畫布，停止拖曳
+    handleMouseUp(e);
+    return;
+  }
+  
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
   let newX = Math.max(PLAYER_RADIUS, Math.min(canvasWidth - PLAYER_RADIUS, mx - dragOffsetX));
@@ -846,6 +909,15 @@ canvas.addEventListener('touchmove', e => {
   let rect = canvas.getBoundingClientRect();
   let mx = (e.touches[0].clientX - rect.left) / scale;
   let my = (e.touches[0].clientY - rect.top) / scale;
+  
+  // 檢查觸控是否移出畫布範圍
+  if (e.touches[0].clientX < rect.left || e.touches[0].clientX > rect.right || 
+      e.touches[0].clientY < rect.top || e.touches[0].clientY > rect.bottom) {
+    // 觸控移出畫布，停止拖曳
+    handleTouchEnd(e);
+    return;
+  }
+  
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
   let newX = Math.max(PLAYER_RADIUS, Math.min(canvasWidth - PLAYER_RADIUS, mx - dragOffsetX));
@@ -980,13 +1052,13 @@ canvas.addEventListener('mousedown', e => {
   // 拖曳啟動判斷與控制圈一致
   let p = candidates.reduce((a,b)=>{
     const controlX_a = a.x + 0;
-    const controlY_a = a.y + 0;
+    const controlY_a = a.y + 50;
     const controlX_b = b.x + 0;
-    const controlY_b = b.y + 0;
+    const controlY_b = b.y + 50;
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
   const controlX = p.x + 0;
-  const controlY = p.y + 0;
+  const controlY = p.y + 50;
   const controlRadius = PLAYER_RADIUS + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
@@ -1000,7 +1072,8 @@ canvas.addEventListener('mousedown', e => {
   }
 });
 
-canvas.addEventListener('mouseup', e => {
+// 滑鼠釋放事件處理函數
+function handleMouseUp(e) {
   if (draggingPlayer) {
     let now = performance.now();
     let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
@@ -1048,7 +1121,11 @@ canvas.addEventListener('mouseup', e => {
   charging = false;
   if (selectedPlayer) selectedPlayer.charging = false;
   selectedPlayer = null;
-});
+}
+
+canvas.addEventListener('mouseup', handleMouseUp);
+// 添加全域滑鼠釋放事件，防止滑鼠移出畫布後無法釋放
+document.addEventListener('mouseup', handleMouseUp);
 
 // 觸控操作
 canvas.addEventListener('touchstart', e => {
@@ -1061,13 +1138,13 @@ canvas.addEventListener('touchstart', e => {
   if (candidates.length === 0) return;
   let p = candidates.reduce((a,b)=>{
     const controlX_a = a.x + 0;
-    const controlY_a = a.y + 0;
+    const controlY_a = a.y + 50;
     const controlX_b = b.x + 0;
-    const controlY_b = b.y + 0;
+    const controlY_b = b.y + 50;
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
   const controlX = p.x + 0;
-  const controlY = p.y + 0;
+  const controlY = p.y + 50;
   const controlRadius = PLAYER_RADIUS + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
@@ -1082,7 +1159,8 @@ canvas.addEventListener('touchstart', e => {
   }
 });
 
-canvas.addEventListener('touchend', e => {
+// 觸控釋放事件處理函數
+function handleTouchEnd(e) {
   if (draggingPlayer) {
     let now = performance.now();
     let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
@@ -1132,7 +1210,11 @@ canvas.addEventListener('touchend', e => {
   if (selectedPlayer) selectedPlayer.charging = false;
   selectedPlayer = null;
   e.preventDefault();
-}, {passive:false});
+}
+
+canvas.addEventListener('touchend', handleTouchEnd, {passive:false});
+// 添加全域觸控釋放事件，防止觸控移出畫布後無法釋放
+document.addEventListener('touchend', handleTouchEnd, {passive:false});
 
 restartBtn.onclick = () => {
   if (gameState === 'win') {
