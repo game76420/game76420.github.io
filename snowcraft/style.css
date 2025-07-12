@@ -441,7 +441,7 @@ body {
   /* 橫屏時確保完全顯示，優先填滿高度 */
   #gameCanvas {
     width: auto !important;
-    height: 100vh !important;
+    height: auto !important;
     max-width: 100vw !important;
     max-height: 100vh !important;
     aspect-ratio: 16/9 !important;
@@ -639,7 +639,7 @@ body {
   
   #gameCanvas {
     width: auto !important;
-    height: 100vh !important;
+    height: auto !important;
     max-width: 100vw !important;
     max-height: 100vh !important;
     aspect-ratio: 16/9 !important;
