@@ -583,6 +583,55 @@ function isMobile() {
          window.innerWidth <= 768 || 'ontouchstart' in window;
 }
 
+// 檢測是否為手機橫版
+function isMobileLandscape() {
+  return isMobile() && window.innerWidth > window.innerHeight;
+}
+
+// 手機橫版觸控優化：調整操控圈大小和觸控靈敏度
+function getMobileControlRadius() {
+  if (isMobileLandscape()) {
+    // 手機橫版時使用更大的操控圈，提高觸控靈敏度
+    return getPlayerRadius() + 70;
+  } else if (isMobile()) {
+    // 手機直版時適中
+    return getPlayerRadius() + 50;
+  } else {
+    // 電腦版保持原有大小
+    return getPlayerRadius() + 30;
+  }
+}
+
+// 動態調整操控圈大小，根據觸控精度
+function getDynamicControlRadius() {
+  const baseRadius = getPlayerRadius();
+  
+  if (isMobileLandscape()) {
+    // 手機橫版：根據螢幕尺寸動態調整
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+    const screenRatio = screenWidth / screenHeight;
+    
+    // 根據螢幕比例調整操控圈大小
+    if (screenRatio > 2.0) {
+      // 超寬螢幕，使用更大的操控圈
+      return baseRadius + 80;
+    } else if (screenRatio > 1.5) {
+      // 標準橫版，使用中等操控圈
+      return baseRadius + 70;
+    } else {
+      // 接近正方形，使用較小操控圈
+      return baseRadius + 60;
+    }
+  } else if (isMobile()) {
+    // 手機直版
+    return baseRadius + 50;
+  } else {
+    // 電腦版
+    return baseRadius + 30;
+  }
+}
+
 function resizeCanvas() {
   try {
     console.log('開始調整Canvas尺寸');
@@ -715,6 +764,12 @@ function resizeCanvas() {
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
     console.log('Canvas顯示尺寸:', canvas.style.width, 'x', canvas.style.height);
     console.log('縮放比例:', scale);
+    
+    // 應用手機橫版觸控優化
+    handleMobileTouchOptimization();
+    
+    // 優化觸控事件
+    optimizeTouchEvents();
     
   } catch (error) {
     console.error('調整Canvas尺寸時發生錯誤:', error);
@@ -1148,6 +1203,7 @@ function drawPlayers() {
     
     ctx.globalAlpha = (p.stunUntil > performance.now()) ? 0.5 : 1;
     drawPlayerSprite(p, "#d22");
+    
     // 暈圈
     if (p.stunUntil > performance.now()) {
       const offsetX = -45;
@@ -1175,19 +1231,48 @@ function drawPlayers() {
     }
     // 顯示觸控範圍指示（無論是否在集氣）
     if (p.alive && p.stunUntil < performance.now()) {
-      // 控制圈位置往下調整
-      const controlX = p.x + 0;
-      const controlY = p.y + 50;  // 向下偏移50像素
-      // 顯示觸控範圍（半透明圓圈）
-      ctx.beginPath();
-      ctx.arc(controlX, controlY, getPlayerRadius() + 30, 0, Math.PI*2);
-      ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
-      ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.2;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 1;
+      // 手機版時隱藏原本的操控圈
+      if (!isMobile()) {
+        // 電腦版：控制圈位置與集氣圈中心相同
+        const controlX = p.x + (-45);  // 與集氣圈一致
+        const controlY = p.y + (-12);  // 與集氣圈一致
+        // 顯示觸控範圍（半透明圓圈）
+        ctx.beginPath();
+        ctx.arc(controlX, controlY, getPlayerRadius() + 30, 0, Math.PI*2);
+        ctx.strokeStyle = (p.hp === 2) ? '#0f0' : '#fa0';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 1;
+      }
     }
+    
+    // 手機版：顯示新的操控圈，根據血量改變顏色
+    if (isMobile()) {
+      const controlX = p.x + 0;
+      const controlY = p.y + 50;
+      const controlRadius = getDynamicControlRadius();
+      
+      // 根據血量決定顏色：滿血綠色，受傷橘色
+      let controlColor;
+      if (p.hp === PLAYER_MAX_HP) {
+        controlColor = '#0f0'; // 滿血綠色
+      } else {
+        controlColor = '#fa0'; // 受傷橘色
+      }
+      
+      // 繪製操控圈（半透明）
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = controlColor;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(controlX, controlY, controlRadius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    
     ctx.restore();
   });
 }
@@ -1210,6 +1295,7 @@ function drawEnemies() {
     
     ctx.globalAlpha = (e.stunUntil > performance.now()) ? 0.5 : 1;
     drawEnemySprite(e, "#2a5", e.throwState);
+    
     // HP
     for (let i = 0; i < e.hp; i++) {
       ctx.beginPath();
@@ -1575,18 +1661,33 @@ canvas.addEventListener('touchmove', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 考慮設備像素比和縮放比例
-  let mx = (e.touches[0].clientX - rect.left) / scale;
-  let my = (e.touches[0].clientY - rect.top) / scale;
+  // 使用改進的觸控座標計算
+  const coords = getTouchCoordinates(e.touches[0], rect);
+  let mx = coords.x;
+  let my = coords.y;
   
   // 調試信息（手機版）
   if (isMobile()) {
-    console.log('Touch move:', {x: mx, y: my, scale: scale, draggingPlayer: draggingPlayer.id, devicePixelRatio: window.devicePixelRatio});
+    console.log('Touch move:', {
+      x: mx, 
+      y: my, 
+      scale: scale, 
+      draggingPlayer: draggingPlayer.id, 
+      devicePixelRatio: window.devicePixelRatio,
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      isLandscape: isMobileLandscape()
+    });
   }
   
-  // 檢查觸控是否移出畫布範圍
-  if (e.touches[0].clientX < rect.left || e.touches[0].clientX > rect.right || 
-      e.touches[0].clientY < rect.top || e.touches[0].clientY > rect.bottom) {
+  // 改進邊界檢測：使用更寬鬆的邊界檢查，避免手機橫版時意外停止拖曳
+  const boundaryMargin = isMobileLandscape() ? 30 : 20; // 手機橫版時使用更大的邊界容許範圍
+  if (e.touches[0].clientX < rect.left - boundaryMargin || 
+      e.touches[0].clientX > rect.right + boundaryMargin || 
+      e.touches[0].clientY < rect.top - boundaryMargin || 
+      e.touches[0].clientY > rect.bottom + boundaryMargin) {
     // 觸控移出畫布，停止拖曳
     handleTouchEnd(e);
     return;
@@ -1731,14 +1832,15 @@ canvas.addEventListener('mousedown', e => {
   if (candidates.length === 0) return;
   // 拖曳啟動判斷與控制圈一致
   let p = candidates.reduce((a,b)=>{
-    const controlX_a = a.x + 0;
-    const controlY_a = a.y + 50;
-    const controlX_b = b.x + 0;
-    const controlY_b = b.y + 50;
+    const controlX_a = a.x + (-45);  // 與集氣圈一致
+    const controlY_a = a.y + (-12);  // 與集氣圈一致
+    const controlX_b = b.x + (-45);  // 與集氣圈一致
+    const controlY_b = b.y + (-12);  // 與集氣圈一致
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
-  const controlX = p.x + 0;
-  const controlY = p.y + 50;
+  const controlX = p.x + (-45);  // 與集氣圈一致
+  const controlY = p.y + (-12);  // 與集氣圈一致
+  // 電腦版保持原有的操控圈大小
   const controlRadius = getPlayerRadius() + 30;
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
@@ -1828,27 +1930,44 @@ canvas.addEventListener('touchstart', e => {
   if (e.touches.length !== 1) return;
   
   let rect = canvas.getBoundingClientRect();
-  // 考慮設備像素比和縮放比例
-  let mx = (e.touches[0].clientX - rect.left) / scale;
-  let my = (e.touches[0].clientY - rect.top) / scale;
+  // 使用改進的觸控座標計算
+  const coords = getTouchCoordinates(e.touches[0], rect);
+  let mx = coords.x;
+  let my = coords.y;
   
   // 調試信息（手機版）
   if (isMobile()) {
-    console.log('Touch start:', {x: mx, y: my, scale: scale, rect: rect, devicePixelRatio: window.devicePixelRatio});
+    console.log('Touch start:', {
+      x: mx, 
+      y: my, 
+      scale: scale, 
+      rect: rect, 
+      devicePixelRatio: window.devicePixelRatio,
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      isLandscape: isMobileLandscape()
+    });
   }
   
   let candidates = players.filter(p=>p.alive && p.stunUntil < performance.now());
   if (candidates.length === 0) return;
+  
+  // 改進操控圈檢測：使用更準確的距離計算
   let p = candidates.reduce((a,b)=>{
     const controlX_a = a.x + 0;
-    const controlY_a = a.y + 50;
+    const controlY_a = a.y + 50;  // 手機版保持偏移
     const controlX_b = b.x + 0;
-    const controlY_b = b.y + 50;
+    const controlY_b = b.y + 50;  // 手機版保持偏移
     return distance({x:mx,y:my},{x:controlX_a,y:controlY_a}) < distance({x:mx,y:my},{x:controlX_b,y:controlY_b}) ? a : b;
   });
+  
   const controlX = p.x + 0;
-  const controlY = p.y + 50;
-  const controlRadius = getPlayerRadius() + 30;
+  const controlY = p.y + 50;  // 手機版保持偏移
+  // 使用動態操控圈大小
+  const controlRadius = getDynamicControlRadius();
+  
   if (distance({x:mx,y:my},{x:controlX,y:controlY}) < controlRadius) {
     if (p.stunUntil > performance.now()) return;
     draggingPlayer = p;
@@ -1861,7 +1980,15 @@ canvas.addEventListener('touchstart', e => {
     
     // 調試信息（手機版）
     if (isMobile()) {
-      console.log('Player selected:', {id: p.id, x: p.x, y: p.y, dragOffset: {x: dragOffsetX, y: dragOffsetY}});
+      console.log('Player selected:', {
+        id: p.id, 
+        x: p.x, 
+        y: p.y, 
+        dragOffset: {x: dragOffsetX, y: dragOffsetY},
+        controlRadius: controlRadius,
+        touchDistance: distance({x:mx,y:my},{x:controlX,y:controlY}),
+        isLandscape: isMobileLandscape()
+      });
     }
   }
 }, {passive: false});
@@ -2437,3 +2564,62 @@ if (document.readyState !== 'loading') {
     initMenuStateImmediate();
   }, 50);
 } 
+
+// 改進的觸控座標計算，特別針對手機橫版
+function getTouchCoordinates(touch, rect) {
+  // 基礎座標計算
+  let mx = (touch.clientX - rect.left) / scale;
+  let my = (touch.clientY - rect.top) / scale;
+  
+  // 手機橫版特殊處理：調整座標精度
+  if (isMobileLandscape()) {
+    // 手機橫版時可能需要微調座標
+    const adjustment = 2; // 微調值
+    mx += adjustment;
+    my += adjustment;
+    
+    // 根據螢幕比例進一步調整
+    const screenRatio = window.innerWidth / window.innerHeight;
+    if (screenRatio > 2.0) {
+      // 超寬螢幕，額外調整
+      mx += 1;
+      my += 1;
+    }
+  }
+  
+  return { x: mx, y: my };
+} 
+
+// 手機橫版觸控優化：處理觸控響應延遲
+function handleMobileTouchOptimization() {
+  if (isMobileLandscape()) {
+    // 手機橫版時增加觸控響應性
+    document.body.style.touchAction = 'none';
+    canvas.style.touchAction = 'none';
+  } else {
+    // 其他情況恢復正常
+    document.body.style.touchAction = 'auto';
+    canvas.style.touchAction = 'auto';
+  }
+}
+
+// 手機橫版觸控事件優化：防止意外觸發
+function optimizeTouchEvents() {
+  if (isMobileLandscape()) {
+    // 手機橫版時禁用一些可能干擾的觸控行為
+    canvas.style.webkitUserSelect = 'none';
+    canvas.style.userSelect = 'none';
+    canvas.style.webkitTouchCallout = 'none';
+    canvas.style.webkitTapHighlightColor = 'transparent';
+    
+    // 防止雙擊縮放
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  }
+}
