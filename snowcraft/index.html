@@ -11,6 +11,12 @@
     <!-- 移除標題，問號按鈕獨立放右上角 -->
     <button id="showDescBtn" title="玩法說明"><span style="font-size:1.5em;">❓</span></button>
 
+    <!-- 載入指示器 -->
+    <div id="loadingIndicator" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.8);color:white;padding:20px;border-radius:10px;z-index:9999;display:none;">
+      <div>載入中...</div>
+      <div id="loadingProgress" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+
     <div id="canvasWrap">
       <canvas id="gameCanvas"></canvas>
       <button id="restartBtn" style="display:none">重新開始</button>

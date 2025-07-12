@@ -7,6 +7,8 @@ const restartBtn = document.getElementById('restartBtn');
 const showDescBtn = document.getElementById('showDescBtn');
 const descDiv = document.getElementById('desc');
 const closeDescBtn = document.getElementById('closeDescBtn');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const loadingProgress = document.getElementById('loadingProgress');
 
 // 音效
 const throwSound = new Audio('sound/01.wav');
@@ -125,6 +127,11 @@ let showLevelTextValue = 1;
 let showLevelTextUntil = 0;
 let showGreetingUntil = 0;
 
+// 圖片載入狀態追蹤
+let imagesLoaded = 0;
+let totalImages = 12;
+let imagesReady = false;
+
 // 在檔案開頭加載圖片
 const enemyCrouchImg = new Image();
 enemyCrouchImg.src = 'img/crouch.png';
@@ -151,6 +158,47 @@ playerIdleImg.src = 'img/player.png';
 const playerDeadImg = new Image();
 playerDeadImg.src = 'img/player_idle.png';
 
+// 圖片載入處理函數
+function handleImageLoad() {
+  imagesLoaded++;
+  console.log(`圖片載入進度: ${imagesLoaded}/${totalImages}`);
+  
+  // 更新載入進度顯示
+  if (loadingProgress) {
+    loadingProgress.textContent = `圖片載入中... ${imagesLoaded}/${totalImages}`;
+  }
+  
+  if (imagesLoaded >= totalImages) {
+    imagesReady = true;
+    console.log('所有圖片載入完成');
+    
+    // 隱藏載入指示器
+    if (loadingIndicator) {
+      loadingIndicator.style.display = 'none';
+    }
+  }
+}
+
+function handleImageError(img, name) {
+  console.error(`圖片載入失敗: ${name}`);
+  imagesLoaded++;
+  if (imagesLoaded >= totalImages) {
+    imagesReady = true;
+    console.log('圖片載入完成（部分失敗）');
+  }
+}
+
+// 為所有圖片添加載入事件
+[enemyCrouchImg, enemyPrepareImg, enemyStandupImg, enemyThrowImg, enemyWalk1Img, 
+ enemyWalk2Img, enemyDeadImg, enemyPainImg, enemyFallImg, playerPrepareImg, 
+ playerIdleImg, playerDeadImg].forEach((img, index) => {
+  const names = ['enemyCrouch', 'enemyPrepare', 'enemyStandup', 'enemyThrow', 'enemyWalk1',
+                 'enemyWalk2', 'enemyDead', 'enemyPain', 'enemyFall', 'playerPrepare',
+                 'playerIdle', 'playerDead'];
+  img.onload = handleImageLoad;
+  img.onerror = () => handleImageError(img, names[index]);
+});
+
 // 響應式縮放參數
 let BASE_WIDTH = 960;
 let BASE_HEIGHT = 540;
@@ -163,74 +211,105 @@ function isMobile() {
 }
 
 function resizeCanvas() {
-  // 大畫面16:9模式，確保不超出視窗
-  let w = window.innerWidth;
-  let h = window.innerHeight;
-  
-  // 檢測是否為手機版
-  const isMobileDevice = isMobile();
-  
-  // 手機版預留UI空間，電腦版充分利用螢幕
-  let availableH = isMobileDevice ? h - 100 : h;
-  
-  // 手機版：優先考慮高度，確保遊戲可見
-  if (isMobileDevice) {
-    // 手機版以高度為準，確保遊戲內容可見
-    let targetH = availableH;
-    let targetW = targetH * 16 / 9;
+  try {
+    console.log('開始調整Canvas尺寸');
+    console.log('視窗尺寸:', window.innerWidth, 'x', window.innerHeight);
+    console.log('設備像素比:', window.devicePixelRatio);
     
-    // 如果寬度超出螢幕，則以寬度為準
-    if (targetW > w) {
-      targetW = w;
-      targetH = targetW * 9 / 16;
-    }
+    // 大畫面16:9模式，確保不超出視窗
+    let w = window.innerWidth;
+    let h = window.innerHeight;
     
-    canvas.width = Math.round(targetW * window.devicePixelRatio);
-    canvas.height = Math.round(targetH * window.devicePixelRatio);
-    canvas.style.width = targetW + 'px';
-    canvas.style.height = targetH + 'px';
+    // 檢測是否為手機版
+    const isMobileDevice = isMobile();
+    console.log('是否為手機設備:', isMobileDevice);
     
-    // 計算縮放比例
-    scale = targetW / BASE_WIDTH;
-    ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+    // 手機版預留UI空間，電腦版充分利用螢幕
+    let availableH = isMobileDevice ? h - 100 : h;
     
-    // 更新投擲距離限制
-    MIN_THROW_DISTANCE = 40 * scale;
-    MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
-  } else {
-    // 電腦版邏輯保持不變
-    let targetW = Math.min(w, BASE_WIDTH);
-    let targetH = targetW * 9 / 16;
-    
-    if (targetH > availableH) {
-      targetH = availableH;
-      targetW = targetH * 16 / 9;
-    }
-    
-    if (targetW < w) {
-      let maxW = w;
-      let maxH = availableH;
-      let scaleByWidth = maxW / BASE_WIDTH;
-      let scaleByHeight = maxH / BASE_HEIGHT;
-      let maxScale = Math.min(scaleByWidth, scaleByHeight);
+    // 手機版：優先考慮高度，確保遊戲可見
+    if (isMobileDevice) {
+      // 手機版以高度為準，確保遊戲內容可見
+      let targetH = availableH;
+      let targetW = targetH * 16 / 9;
       
-      targetW = BASE_WIDTH * maxScale;
-      targetH = BASE_HEIGHT * maxScale;
+      // 如果寬度超出螢幕，則以寬度為準
+      if (targetW > w) {
+        targetW = w;
+        targetH = targetW * 9 / 16;
+      }
+      
+      console.log('手機版目標尺寸:', targetW, 'x', targetH);
+      
+      canvas.width = Math.round(targetW * window.devicePixelRatio);
+      canvas.height = Math.round(targetH * window.devicePixelRatio);
+      canvas.style.width = targetW + 'px';
+      canvas.style.height = targetH + 'px';
+      
+      // 計算縮放比例
+      scale = targetW / BASE_WIDTH;
+      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      
+      // 更新投擲距離限制
+      MIN_THROW_DISTANCE = 40 * scale;
+      MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
+    } else {
+      // 電腦版邏輯保持不變
+      let targetW = Math.min(w, BASE_WIDTH);
+      let targetH = targetW * 9 / 16;
+      
+      if (targetH > availableH) {
+        targetH = availableH;
+        targetW = targetH * 16 / 9;
+      }
+      
+      if (targetW < w) {
+        let maxW = w;
+        let maxH = availableH;
+        let scaleByWidth = maxW / BASE_WIDTH;
+        let scaleByHeight = maxH / BASE_HEIGHT;
+        let maxScale = Math.min(scaleByWidth, scaleByHeight);
+        
+        targetW = BASE_WIDTH * maxScale;
+        targetH = BASE_HEIGHT * maxScale;
+      }
+      
+      console.log('電腦版目標尺寸:', targetW, 'x', targetH);
+      
+      canvas.width = Math.round(targetW * window.devicePixelRatio);
+      canvas.height = Math.round(targetH * window.devicePixelRatio);
+      canvas.style.width = targetW + 'px';
+      canvas.style.height = targetH + 'px';
+      
+      scale = targetW / BASE_WIDTH;
+      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      
+      MIN_THROW_DISTANCE = 40 * scale;
+      MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
     }
     
-    canvas.width = Math.round(targetW * window.devicePixelRatio);
-    canvas.height = Math.round(targetH * window.devicePixelRatio);
-    canvas.style.width = targetW + 'px';
-    canvas.style.height = targetH + 'px';
+    console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
+    console.log('Canvas顯示尺寸:', canvas.style.width, 'x', canvas.style.height);
+    console.log('縮放比例:', scale);
     
-    scale = targetW / BASE_WIDTH;
-    ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
-    
-    MIN_THROW_DISTANCE = 40 * scale;
-    MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
+  } catch (error) {
+    console.error('調整Canvas尺寸時發生錯誤:', error);
+    // 使用預設尺寸作為備用
+    canvas.width = 960;
+    canvas.height = 540;
+    canvas.style.width = '960px';
+    canvas.style.height = '540px';
+    scale = 1;
   }
 }
-window.addEventListener('resize', resizeCanvas);
+
+// 確保在視窗調整時重新計算尺寸
+window.addEventListener('resize', () => {
+  console.log('視窗大小改變，重新調整Canvas');
+  resizeCanvas();
+});
+
+// 初始化時調整Canvas
 resizeCanvas();
 
 function resetGame() {
@@ -535,17 +614,28 @@ function drawSnowPile(x, y, r) {
 
 // --- 修改背景 ---
 function drawBackground() {
-  // 雪地漸層
-  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
-  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
-  let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-  grad.addColorStop(0, "#f8fbff");
-  grad.addColorStop(1, "#eaf6ff");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-  // 雪堆 - 調整位置適應畫布大小
-  drawSnowPile(canvasWidth * 0.15, canvasHeight * 0.1, 40);
-  drawSnowPile(canvasWidth * 0.45, canvasHeight * 0.5, 50);
+  try {
+    // 雪地漸層
+    const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+    const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+    
+    // 確保尺寸有效
+    if (canvasWidth <= 0 || canvasHeight <= 0) {
+      console.log('Canvas尺寸無效，使用預設值');
+      return;
+    }
+    
+    let grad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
+    grad.addColorStop(0, "#f8fbff");
+    grad.addColorStop(1, "#eaf6ff");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    // 雪堆 - 調整位置適應畫布大小
+    drawSnowPile(canvasWidth * 0.15, canvasHeight * 0.1, 40);
+    drawSnowPile(canvasWidth * 0.45, canvasHeight * 0.5, 50);
+  } catch (error) {
+    console.error('繪製背景時發生錯誤:', error);
+  }
 }
 
 // --- 修改玩家繪製 ---
@@ -724,23 +814,43 @@ function drawUI() {
 }
 
 function gameLoop(ts) {
-  drawBackground();
-  drawPlayers();
-  drawEnemies();
-  drawSnowballs();
-  drawUI();
-  if (gameState === 'showGreeting') {
-    if (performance.now() >= showGreetingUntil) {
-      gameState = 'playing';
-      startLevel();
+  try {
+    // 確保Canvas和Context存在
+    if (!canvas || !ctx) {
+      console.error('Canvas或Context不存在');
+      return;
     }
-  } else if (gameState === 'playing') {
-    updateSnowballs();
-    updateEnemies(ts);
-    updateInfo();
+    
+    // 確保Canvas尺寸正確
+    if (canvas.width === 0 || canvas.height === 0) {
+      console.log('Canvas尺寸為0，重新調整');
+      resizeCanvas();
+    }
+    
+    drawBackground();
+    drawPlayers();
+    drawEnemies();
+    drawSnowballs();
+    drawUI();
+    
+    if (gameState === 'showGreeting') {
+      if (performance.now() >= showGreetingUntil) {
+        gameState = 'playing';
+        startLevel();
+      }
+    } else if (gameState === 'playing') {
+      updateSnowballs();
+      updateEnemies(ts);
+      updateInfo();
+    }
+    
+    lastFrameTime = ts;
+    requestAnimationFrame(gameLoop);
+  } catch (error) {
+    console.error('遊戲循環錯誤:', error);
+    // 嘗試繼續遊戲循環
+    requestAnimationFrame(gameLoop);
   }
-  lastFrameTime = ts;
-  requestAnimationFrame(gameLoop);
 }
 
 function updateSnowballs() {
@@ -1283,8 +1393,74 @@ function initGame() {
   console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
   console.log('Device pixel ratio:', window.devicePixelRatio);
   
+  // 顯示載入指示器
+  if (loadingIndicator) {
+    loadingIndicator.style.display = 'block';
+    if (loadingProgress) {
+      loadingProgress.textContent = '初始化中...';
+    }
+  }
+  
+  // 等待圖片載入完成
+  if (imagesReady) {
+    startGame();
+  } else {
+    console.log('等待圖片載入完成...');
+    // 檢查圖片載入狀態
+    const checkImages = setInterval(() => {
+      if (imagesReady) {
+        clearInterval(checkImages);
+        startGame();
+      }
+    }, 100);
+    
+    // 設置超時，避免無限等待
+    setTimeout(() => {
+      if (!imagesReady) {
+        clearInterval(checkImages);
+        console.log('圖片載入超時，使用備用方案');
+        imagesReady = true;
+        startGame();
+      }
+    }, 5000);
+  }
+}
+
+function startGame() {
+  console.log('開始遊戲');
+  
+  // 確保Canvas已經正確設置
+  if (canvas.width === 0 || canvas.height === 0) {
+    console.log('Canvas尺寸異常，重新調整');
+    resizeCanvas();
+  }
+  
+  // 檢查Canvas是否可見
+  const rect = canvas.getBoundingClientRect();
+  console.log('Canvas位置和尺寸:', rect);
+  
   resetGame();
   requestAnimationFrame(gameLoop);
+}
+
+// 手機版特殊處理
+if (isMobile()) {
+  // 防止手機版縮放
+  document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // 防止雙擊縮放
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', function(e) {
+    const now = (new Date()).getTime();
+    if (now - lastTouchEnd <= 300) {
+      e.preventDefault();
+    }
+    lastTouchEnd = now;
+  }, false);
 }
 
 // 確保 DOM 完全載入後再初始化

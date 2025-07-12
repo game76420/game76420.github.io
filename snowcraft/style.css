@@ -170,6 +170,9 @@ body {
     height: auto;
     border: none;
     border-radius: 0;
+    display: block;
+    margin: 0;
+    position: relative;
   }
   #ui {
     font-size: 13px;
@@ -193,9 +196,24 @@ body {
   #container {
     height: 100vh;
     padding: 0;
+    margin: 0;
+    overflow: hidden;
   }
   #canvasWrap {
     flex: 1;
     min-height: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  /* 確保手機版不會有滾動條 */
+  body {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
   }
 } 
