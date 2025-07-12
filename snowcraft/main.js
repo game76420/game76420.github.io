@@ -1,3 +1,97 @@
+// --- 視口高度調整函數 ---
+function adjustViewportHeight() {
+  // 獲取實際的視口高度
+  const vh = window.innerHeight * 0.01;
+  const dvh = window.innerHeight * 0.01; // 動態視口高度
+  
+  // 設置CSS自定義屬性
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+  document.documentElement.style.setProperty('--dvh', `${dvh}px`);
+  
+  // 特別處理iOS Safari的橫版模式
+  if (window.navigator.userAgent.includes('iPhone') || window.navigator.userAgent.includes('iPad')) {
+    if (window.orientation === 90 || window.orientation === -90) {
+      // 橫版模式
+      const actualHeight = window.innerHeight;
+      document.documentElement.style.setProperty('--vh', `${actualHeight}px`);
+      document.documentElement.style.setProperty('--dvh', `${actualHeight}px`);
+      
+      // 強制重新計算容器高度
+      const container = document.getElementById('container');
+      const canvasWrap = document.getElementById('canvasWrap');
+      const gameCanvas = document.getElementById('gameCanvas');
+      
+      if (container) {
+        container.style.height = `${actualHeight}px`;
+        container.style.minHeight = `${actualHeight}px`;
+        container.style.maxHeight = `${actualHeight}px`;
+      }
+      
+      if (canvasWrap) {
+        canvasWrap.style.height = `${actualHeight}px`;
+        canvasWrap.style.minHeight = `${actualHeight}px`;
+        canvasWrap.style.maxHeight = `${actualHeight}px`;
+      }
+      
+      if (gameCanvas) {
+        gameCanvas.style.height = `${actualHeight}px`;
+        gameCanvas.style.maxHeight = `${actualHeight}px`;
+      }
+    }
+  }
+}
+
+// 監聽視口變化
+window.addEventListener('resize', adjustViewportHeight);
+window.addEventListener('orientationchange', () => {
+  // 延遲執行以確保方向變化完成
+  setTimeout(adjustViewportHeight, 100);
+  // 額外延遲執行以確保完全載入
+  setTimeout(adjustViewportHeight, 500);
+});
+
+// 初始化時執行一次
+document.addEventListener('DOMContentLoaded', adjustViewportHeight);
+
+// 額外的視口調整函數，特別針對手機橫版
+function forceMobileLandscapeAdjustment() {
+  if (window.innerWidth > window.innerHeight) {
+    // 橫版模式
+    const actualHeight = window.innerHeight;
+    const actualWidth = window.innerWidth;
+    
+    // 強制設置所有相關元素的高度
+    const elements = ['html', 'body', '#container', '#canvasWrap', '#gameCanvas'];
+    elements.forEach(selector => {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.style.height = `${actualHeight}px`;
+        element.style.minHeight = `${actualHeight}px`;
+        element.style.maxHeight = `${actualHeight}px`;
+      }
+    });
+    
+    // 特別處理遊戲畫布
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (gameCanvas) {
+      const maxWidth = actualHeight * 16 / 9;
+      if (maxWidth <= actualWidth) {
+        gameCanvas.style.width = `${maxWidth}px`;
+        gameCanvas.style.height = `${actualHeight}px`;
+      } else {
+        gameCanvas.style.width = `${actualWidth}px`;
+        gameCanvas.style.height = `${actualWidth * 9 / 16}px`;
+      }
+    }
+  }
+}
+
+// 在方向變化時也執行強制調整
+window.addEventListener('orientationchange', () => {
+  setTimeout(forceMobileLandscapeAdjustment, 200);
+  setTimeout(forceMobileLandscapeAdjustment, 1000);
+});
+
 // --- 遊戲參數 ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -638,6 +732,10 @@ function resizeCanvas() {
     console.log('視窗尺寸:', window.innerWidth, 'x', window.innerHeight);
     console.log('設備像素比:', window.devicePixelRatio);
     
+    // 強制調整視口高度，特別針對手機橫版
+    adjustViewportHeight();
+    forceMobileLandscapeAdjustment();
+    
     // 大畫面16:9模式，確保不超出視窗
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -769,6 +867,8 @@ function resizeCanvas() {
 // 確保在視窗調整時重新計算尺寸
 window.addEventListener('resize', () => {
   console.log('視窗大小改變，重新調整Canvas');
+  adjustViewportHeight();
+  forceMobileLandscapeAdjustment();
   resizeCanvas();
 });
 
@@ -777,11 +877,21 @@ window.addEventListener('orientationchange', () => {
   console.log('方向改變，重新調整Canvas');
   // 延遲一下確保方向變化完成
   setTimeout(() => {
+    adjustViewportHeight();
+    forceMobileLandscapeAdjustment();
     resizeCanvas();
   }, 100);
+  // 額外延遲執行以確保完全載入
+  setTimeout(() => {
+    adjustViewportHeight();
+    forceMobileLandscapeAdjustment();
+    resizeCanvas();
+  }, 500);
 });
 
 // 初始化時調整Canvas
+adjustViewportHeight();
+forceMobileLandscapeAdjustment();
 resizeCanvas();
 
 function resetGame() {
@@ -2416,6 +2526,10 @@ function startGame() {
   if (loadingIndicator) {
     loadingIndicator.style.display = 'none';
   }
+  
+  // 強制調整視口高度，特別針對手機橫版
+  adjustViewportHeight();
+  forceMobileLandscapeAdjustment();
   
   // 確保Canvas已經正確設置
   if (canvas.width === 0 || canvas.height === 0) {
