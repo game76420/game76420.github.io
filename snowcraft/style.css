@@ -216,4 +216,46 @@ body {
     width: 100%;
     height: 100%;
   }
+}
+
+/* 手機橫屏特殊處理 */
+@media (max-width: 600px) and (orientation: landscape) {
+  #gameCanvas {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: auto;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  
+  #container {
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+  }
+  
+  #canvasWrap {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+  }
+  
+  /* 橫屏時隱藏不必要的UI元素 */
+  #showDescBtn {
+    top: 8px;
+    right: 8px;
+    font-size: 1.2em;
+    padding: 2px 6px;
+  }
+  
+  #result {
+    font-size: 16px;
+    min-height: 20px;
+    margin: 4px;
+  }
 } 

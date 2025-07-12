@@ -224,19 +224,38 @@ function resizeCanvas() {
     const isMobileDevice = isMobile();
     console.log('是否為手機設備:', isMobileDevice);
     
+    // 檢測是否為橫屏
+    const isLandscape = w > h;
+    console.log('是否為橫屏:', isLandscape);
+    
     // 手機版預留UI空間，電腦版充分利用螢幕
     let availableH = isMobileDevice ? h - 100 : h;
+    let availableW = w;
     
-    // 手機版：優先考慮高度，確保遊戲可見
+    // 手機版：充分利用空間並保持長寬比
     if (isMobileDevice) {
-      // 手機版以高度為準，確保遊戲內容可見
-      let targetH = availableH;
-      let targetW = targetH * 16 / 9;
+      let targetW, targetH;
       
-      // 如果寬度超出螢幕，則以寬度為準
-      if (targetW > w) {
-        targetW = w;
+      if (isLandscape) {
+        // 橫屏模式：充分利用寬度
+        targetW = availableW;
         targetH = targetW * 9 / 16;
+        
+        // 如果高度超出螢幕，則以高度為準
+        if (targetH > availableH) {
+          targetH = availableH;
+          targetW = targetH * 16 / 9;
+        }
+      } else {
+        // 直屏模式：充分利用高度
+        targetH = availableH;
+        targetW = targetH * 16 / 9;
+        
+        // 如果寬度超出螢幕，則以寬度為準
+        if (targetW > availableW) {
+          targetW = availableW;
+          targetH = targetW * 9 / 16;
+        }
       }
       
       console.log('手機版目標尺寸:', targetW, 'x', targetH);
@@ -309,6 +328,15 @@ window.addEventListener('resize', () => {
   resizeCanvas();
 });
 
+// 監聽方向變化（手機旋轉）
+window.addEventListener('orientationchange', () => {
+  console.log('方向改變，重新調整Canvas');
+  // 延遲一下確保方向變化完成
+  setTimeout(() => {
+    resizeCanvas();
+  }, 100);
+});
+
 // 初始化時調整Canvas
 resizeCanvas();
 
@@ -333,6 +361,14 @@ function startLevel() {
   // 玩家 - 調整位置適應16:9大畫面
   const canvasWidth = canvas.width / window.devicePixelRatio / scale;
   const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  
+  // 確保尺寸有效
+  if (canvasWidth <= 0 || canvasHeight <= 0) {
+    console.log('Canvas尺寸無效，使用預設值');
+    return;
+  }
+  
+  console.log('遊戲區域尺寸:', canvasWidth, 'x', canvasHeight);
   
   players = [
     { x: canvasWidth * 0.75, y: canvasHeight * 0.7, hp: PLAYER_MAX_HP, alive: true, stunUntil: 0, charging: false, charge: 0, id: 0, deadState: false, deadTime: 0 },
