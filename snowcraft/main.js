@@ -293,7 +293,8 @@ function resizeCanvas() {
       
       // 更新投擲距離限制
       MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
+      // 修正：手機板最大投擲距離設為畫布對角線
+      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH);
     } else {
       // 電腦版：充分利用螢幕空間
       let targetW, targetH;
@@ -999,7 +1000,7 @@ function updateSnowballs() {
     // 播放過關音效
     playLevelStartSound();
     restartBtn.style.display = 'none';
-    score += 100;
+    // score += 100; // 已移除過關加分
     updateInfo();
     setTimeout(() => {
       level++;
