@@ -2,17 +2,20 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, height=device-height">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, height=device-height, minimum-scale=1.0, maximum-scale=1.0">
   <title>SnowCraft 打雪仗小遊戲</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="container">
     <!-- 分數和關卡顯示 -->
-    <div id="gameInfo" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:1000;font-family:Arial,sans-serif;">
-      <div style="font-size:18px;font-weight:bold;color:#2a5;">分數: <span id="scoreDisplay">0</span></div>
-      <div style="font-size:16px;color:#666;margin-top:4px;">關卡: <span id="levelDisplay">1</span></div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+    <div id="gameInfo" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.9);padding:8px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:1000;font-family:Arial,sans-serif;transition:all 0.3s ease;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="score-info" style="font-size:18px;font-weight:bold;color:#2a5;">分數: <span id="scoreDisplay">0</span></div>
+        <button id="toggleMenuBtn" style="background:transparent;border:none;outline:none;box-shadow:none;font-size:16px;cursor:pointer;padding:4px;border-radius:4px;color:#666;" title="縮小/展開功能表">📋</button>
+      </div>
+      <div class="level-info" style="font-size:16px;color:#666;margin-bottom:8px;">關卡: <span id="levelDisplay">1</span></div>
+      <div id="menuButtons" style="display:flex;flex-direction:column;gap:8px;transition:all 0.3s ease;">
         <button id="showLeaderboardBtn" style="padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🏆 排行榜</button>
         <button id="skipToLevelBtn" style="padding:4px 8px;background:#f90;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;">🎯 跳關挑戰</button>
         <button id="showDescBtn" style="padding:4px 8px;background:#2a5;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;" title="玩法說明">❓ 說明</button>
@@ -52,8 +55,10 @@
       <button id="closeSkipLevelBtn" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✖</button>
       <h3 style="margin-top:0;color:#f90;">🎯 跳關挑戰</h3>
       <p style="margin:15px 0;color:#666;font-size:14px;">輸入想要挑戰的關卡號碼（1-50）</p>
-      <div style="margin:20px 0;">
+      <div style="margin:20px 0;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <button id="decreaseLevelBtn" style="padding:8px 12px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:18px;font-weight:bold;min-width:44px;min-height:44px;">-</button>
         <input type="number" id="skipLevelInput" min="1" max="50" placeholder="關卡號碼" style="padding:10px;border:2px solid #ddd;border-radius:5px;font-size:16px;width:120px;text-align:center;">
+        <button id="increaseLevelBtn" style="padding:8px 12px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:18px;font-weight:bold;min-width:44px;min-height:44px;">+</button>
       </div>
       <div style="margin-top:20px;">
         <button id="confirmSkipLevelBtn" style="padding:10px 20px;background:#f90;color:white;border:none;border-radius:5px;cursor:pointer;font-size:16px;margin-right:10px;">開始挑戰</button>

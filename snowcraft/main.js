@@ -29,6 +29,9 @@ const skipLevelInput = document.getElementById('skipLevelInput');
 const closeSkipLevelBtn = document.getElementById('closeSkipLevelBtn');
 const confirmSkipLevelBtn = document.getElementById('confirmSkipLevelBtn');
 const cancelSkipLevelBtn = document.getElementById('cancelSkipLevelBtn');
+const decreaseLevelBtn = document.getElementById('decreaseLevelBtn');
+const increaseLevelBtn = document.getElementById('increaseLevelBtn');
+const toggleMenuBtn = document.getElementById('toggleMenuBtn');
 
 // 排行榜相關函數
 function getLeaderboard() {
@@ -219,6 +222,128 @@ function showSkipLevelMessage(targetLevel) {
       messageDiv.parentNode.removeChild(messageDiv);
     }
   }, 2000);
+}
+
+// 上下按鈕功能
+function decreaseLevel() {
+  if (skipLevelInput) {
+    let currentValue = parseInt(skipLevelInput.value) || 1;
+    currentValue = Math.max(1, currentValue - 1);
+    skipLevelInput.value = currentValue;
+  }
+}
+
+function increaseLevel() {
+  if (skipLevelInput) {
+    let currentValue = parseInt(skipLevelInput.value) || 1;
+    currentValue = Math.min(50, currentValue + 1);
+    skipLevelInput.value = currentValue;
+  }
+}
+
+// 功能表切換功能
+function toggleMenu() {
+  const gameInfo = document.getElementById('gameInfo');
+  const menuButtons = document.getElementById('menuButtons');
+  const scoreInfo = document.querySelector('.score-info');
+  const levelInfo = document.querySelector('.level-info');
+  
+  if (gameInfo && menuButtons) {
+    const isCollapsed = gameInfo.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+      // 展開功能表
+      gameInfo.classList.remove('collapsed');
+      menuButtons.style.display = 'flex';
+      if (scoreInfo) scoreInfo.style.display = 'block';
+      if (levelInfo) levelInfo.style.display = 'block';
+      // 保存狀態到localStorage
+      localStorage.setItem('snowcraft_menu_collapsed', 'false');
+    } else {
+      // 縮小功能表
+      gameInfo.classList.add('collapsed');
+      menuButtons.style.display = 'none';
+      if (scoreInfo) scoreInfo.style.display = 'none';
+      if (levelInfo) levelInfo.style.display = 'none';
+      // 保存狀態到localStorage
+      localStorage.setItem('snowcraft_menu_collapsed', 'true');
+    }
+  }
+}
+
+// 初始化功能表狀態
+function initMenuState() {
+  const gameInfo = document.getElementById('gameInfo');
+  const menuButtons = document.getElementById('menuButtons');
+  const scoreInfo = document.querySelector('.score-info');
+  const levelInfo = document.querySelector('.level-info');
+  
+  if (gameInfo && menuButtons) {
+    // 強制預設為展開狀態（除非用戶明確設置為縮小）
+    const isCollapsed = localStorage.getItem('snowcraft_menu_collapsed') === 'true';
+    
+    if (isCollapsed) {
+      // 用戶明確設置為縮小
+      gameInfo.classList.add('collapsed');
+      menuButtons.style.display = 'none';
+      if (scoreInfo) scoreInfo.style.display = 'none';
+      if (levelInfo) levelInfo.style.display = 'none';
+    } else {
+      // 預設展開狀態（包括新用戶和未設置的用戶）
+      gameInfo.classList.remove('collapsed');
+      menuButtons.style.display = 'flex';
+      if (scoreInfo) scoreInfo.style.display = 'block';
+      if (levelInfo) levelInfo.style.display = 'block';
+      // 確保設置為展開狀態
+      localStorage.setItem('snowcraft_menu_collapsed', 'false');
+    }
+  }
+  
+  // 開發時：將重置函數暴露到全局，方便調試
+  if (typeof window !== 'undefined') {
+    window.resetMenuToDefault = resetMenuToDefault;
+    window.forceExpandMenu = forceExpandMenu;
+    window.initMenuStateImmediate = initMenuStateImmediate;
+  }
+}
+
+// 重置功能表到預設狀態（開發用）
+function resetMenuToDefault() {
+  localStorage.removeItem('snowcraft_menu_collapsed');
+  initMenuState();
+}
+
+// 強制重置為展開狀態（立即生效）
+function forceExpandMenu() {
+  const gameInfo = document.getElementById('gameInfo');
+  const menuButtons = document.getElementById('menuButtons');
+  const scoreInfo = document.querySelector('.score-info');
+  const levelInfo = document.querySelector('.level-info');
+  
+  if (gameInfo && menuButtons) {
+    gameInfo.classList.remove('collapsed');
+    menuButtons.style.display = 'flex';
+    if (scoreInfo) scoreInfo.style.display = 'block';
+    if (levelInfo) levelInfo.style.display = 'block';
+    localStorage.setItem('snowcraft_menu_collapsed', 'false');
+  }
+}
+
+// 立即初始化功能表狀態（不依賴localStorage）
+function initMenuStateImmediate() {
+  const gameInfo = document.getElementById('gameInfo');
+  const menuButtons = document.getElementById('menuButtons');
+  const scoreInfo = document.querySelector('.score-info');
+  const levelInfo = document.querySelector('.level-info');
+  
+  if (gameInfo && menuButtons) {
+    // 強制設置為展開狀態
+    gameInfo.classList.remove('collapsed');
+    menuButtons.style.display = 'flex';
+    if (scoreInfo) scoreInfo.style.display = 'block';
+    if (levelInfo) levelInfo.style.display = 'block';
+    console.log('功能表已強制設置為展開狀態');
+  }
 }
 
 // 音效
@@ -1880,6 +2005,19 @@ if (showLeaderboardBtn) {
     e.preventDefault();
   }, {passive: false});
 }
+
+// 功能表切換按鈕
+if (toggleMenuBtn) {
+  toggleMenuBtn.onclick = toggleMenu;
+  toggleMenuBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleMenu();
+  }, {passive: false});
+  toggleMenuBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
 if (closeLeaderboardBtn) {
   closeLeaderboardBtn.onclick = hideAllModals;
   closeLeaderboardBtn.addEventListener('touchend', function(e) {
@@ -1958,6 +2096,31 @@ if (confirmSkipLevelBtn) {
     }
   }, {passive: false});
   confirmSkipLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+
+// 上下按鈕事件處理
+if (decreaseLevelBtn) {
+  decreaseLevelBtn.onclick = decreaseLevel;
+  decreaseLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    decreaseLevel();
+  }, {passive: false});
+  decreaseLevelBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+  }, {passive: false});
+}
+
+if (increaseLevelBtn) {
+  increaseLevelBtn.onclick = increaseLevel;
+  increaseLevelBtn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    increaseLevel();
+  }, {passive: false});
+  increaseLevelBtn.addEventListener('touchstart', function(e) {
     e.preventDefault();
   }, {passive: false});
 }
@@ -2076,6 +2239,14 @@ function initGame() {
   console.log('Is mobile:', isMobile());
   console.log('Window size:', window.innerWidth, 'x', window.innerHeight);
   console.log('Device pixel ratio:', window.devicePixelRatio);
+  
+  // 初始化功能表狀態
+  initMenuState();
+  
+  // 強制確保功能表展開（備用方案）
+  setTimeout(() => {
+    initMenuStateImmediate();
+  }, 100);
   
   // 顯示載入指示器
   if (loadingIndicator) {
@@ -2251,4 +2422,18 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initGame);
 } else {
   initGame();
+}
+
+// 立即初始化功能表狀態（確保預設展開）
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(() => {
+    initMenuStateImmediate();
+  }, 50);
+});
+
+// 如果DOM已經加載完成，立即執行
+if (document.readyState !== 'loading') {
+  setTimeout(() => {
+    initMenuStateImmediate();
+  }, 50);
 } 
