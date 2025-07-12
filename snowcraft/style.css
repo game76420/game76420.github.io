@@ -34,7 +34,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -71,6 +71,38 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 電腦版全螢幕處理 */
+@media (min-width: 901px) {
+  #container {
+    justify-content: flex-start;
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+  }
+  
+  #gameCanvas {
+    max-height: 100vh;
+    height: 100vh;
+    width: auto;
+    aspect-ratio: 16/9;
+    margin: 0;
+  }
+  
+  #canvasWrap {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 0;
+  }
+  
+  #result {
+    display: none;
+  }
 }
 #result {
   font-size: 36px;

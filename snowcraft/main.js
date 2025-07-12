@@ -3,6 +3,8 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const resultDiv = document.getElementById('result');
 const restartBtn = document.getElementById('restartBtn');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const levelDisplay = document.getElementById('levelDisplay');
 
 const showDescBtn = document.getElementById('showDescBtn');
 const descDiv = document.getElementById('desc');
@@ -101,12 +103,12 @@ const ENEMY_THROW_INTERVAL_MIN = 2000; // ms
 const ENEMY_THROW_INTERVAL_MAX = 5000; // ms
 const ENEMY_THROW_RANGE = 500;
 const PLAYER_THROW_RANGE = 600;
-const SNOWBALL_BASE_SPEED = 5;
-const SNOWBALL_MAX_SPEED = 12;
+const SNOWBALL_BASE_SPEED = 8;  // 從5增加到8
+const SNOWBALL_MAX_SPEED = 18;  // 從12增加到18
 const CHARGE_TIME = 1000; // ms
 // 雪球最大/最小飛行距離 - 動態計算
 let MIN_THROW_DISTANCE = 40;
-let MAX_THROW_DISTANCE = 600;
+let MAX_THROW_DISTANCE = 800; // 增加最大投擲距離
 
 // --- 狀態 ---
 let level = 1;
@@ -293,24 +295,32 @@ function resizeCanvas() {
       MIN_THROW_DISTANCE = 40 * scale;
       MAX_THROW_DISTANCE = Math.min(targetW, targetH) * 1.5;
     } else {
-      // 電腦版邏輯保持不變
-      let targetW = Math.min(w, BASE_WIDTH);
-      let targetH = targetW * 9 / 16;
+      // 電腦版：充分利用螢幕空間
+      let targetW, targetH;
       
-      if (targetH > availableH) {
-        targetH = availableH;
-        targetW = targetH * 16 / 9;
-      }
+      // 計算最大可用空間
+      let maxW = w;
+      let maxH = availableH;
       
-      if (targetW < w) {
-        let maxW = w;
-        let maxH = availableH;
-        let scaleByWidth = maxW / BASE_WIDTH;
-        let scaleByHeight = maxH / BASE_HEIGHT;
-        let maxScale = Math.min(scaleByWidth, scaleByHeight);
-        
-        targetW = BASE_WIDTH * maxScale;
-        targetH = BASE_HEIGHT * maxScale;
+      // 計算基於寬度的尺寸
+      let scaleByWidth = maxW / BASE_WIDTH;
+      let targetWByWidth = BASE_WIDTH * scaleByWidth;
+      let targetHByWidth = BASE_HEIGHT * scaleByWidth;
+      
+      // 計算基於高度的尺寸
+      let scaleByHeight = maxH / BASE_HEIGHT;
+      let targetWByHeight = BASE_WIDTH * scaleByHeight;
+      let targetHByHeight = BASE_HEIGHT * scaleByHeight;
+      
+      // 選擇能充分利用空間的尺寸
+      if (targetHByWidth <= maxH) {
+        // 基於寬度計算的尺寸適合
+        targetW = targetWByWidth;
+        targetH = targetHByWidth;
+      } else {
+        // 基於高度計算的尺寸適合
+        targetW = targetWByHeight;
+        targetH = targetHByHeight;
       }
       
       console.log('電腦版目標尺寸:', targetW, 'x', targetH);
@@ -368,6 +378,8 @@ function resetGame() {
   gameState = 'showGreeting';
   resultDiv.textContent = '';
   restartBtn.style.display = 'none';
+  // 更新分數和關卡顯示
+  updateInfo();
   // 確保畫布尺寸正確
   resizeCanvas();
 }
@@ -489,7 +501,13 @@ function startLevelWithoutSound() {
 }
 
 function updateInfo() {
-  // UI元素已移除，此函數不再需要更新UI
+  // 更新分數和關卡顯示
+  if (scoreDisplay) {
+    scoreDisplay.textContent = score;
+  }
+  if (levelDisplay) {
+    levelDisplay.textContent = level;
+  }
 }
 
 // --- 新增：美化角色繪製 ---
@@ -921,6 +939,9 @@ function updateSnowballs() {
           e.hp--;
           // 播放被擊中音效
           playHitSound();
+          // 增加分數
+          score += 50;
+          updateInfo();
           if (e.hp === 2) {
             e.throwState = 'pain';
             e.stunUntil = performance.now() + STUN_DURATION;
@@ -1032,6 +1053,27 @@ function generateBoundaryTarget(canvasWidth, canvasHeight) {
         x: margin,
         y: margin + Math.random() * (canvasHeight * 0.4 - margin * 2)
       };
+  }
+}
+
+// --- 新增：計算對角線角度函數 ---
+function calculateDiagonalAngle(fromX, fromY, canvasWidth, canvasHeight, isPlayerToEnemy = true) {
+  if (isPlayerToEnemy) {
+    // 玩家投擲到敵人區域：從右下到左上
+    // 計算從右下到左上的角度
+    const dx = 0 - canvasWidth; // 從右下到左上的X方向距離（負值）
+    const dy = 0 - canvasHeight; // 從右下到左上的Y方向距離（負值）
+    
+    // 計算對角線角度：從右下到左上
+    return Math.atan2(dy, dx);
+  } else {
+    // 敵人投擲到玩家區域：從左上到右下
+    // 計算從左上到右下的角度
+    const dx = canvasWidth - 0; // 從左上到右下的X方向距離
+    const dy = canvasHeight - 0; // 從左上到右下的Y方向距離
+    
+    // 計算對角線角度：從左上到右下
+    return Math.atan2(dy, dx);
   }
 }
 
@@ -1189,8 +1231,14 @@ function updateEnemies(ts) {
         e.throwState = 'throw';
         e.throwStateUntil = ts + 200; // 0.2秒顯示丟出
         let charge = Math.min(1, (performance.now() - e.chargeStart) / CHARGE_TIME);
-        let angle = Math.PI / 4;
+        const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+        const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+        let angle = calculateDiagonalAngle(e.x, e.y, canvasWidth, canvasHeight, false); // 敵人投擲到玩家區域
         let speed = SNOWBALL_BASE_SPEED + (SNOWBALL_MAX_SPEED - SNOWBALL_BASE_SPEED) * charge;
+        // 手機版速度調整
+        if (isMobile()) {
+          speed *= 0.7; // 手機版速度降低30%
+        }
         let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
         snowballs.push({
           x: e.x + Math.cos(angle)*ENEMY_RADIUS,
@@ -1266,8 +1314,14 @@ function handleMouseUp(e) {
     let now = performance.now();
     let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
     if (selectedPlayer && selectedPlayer.alive) {
-      let angle = -3 * Math.PI / 4; // 正確左上45度
+      const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+      const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+      let angle = calculateDiagonalAngle(selectedPlayer.x, selectedPlayer.y, canvasWidth, canvasHeight, true); // 玩家投擲到敵人區域
       let speed = SNOWBALL_BASE_SPEED + (SNOWBALL_MAX_SPEED-SNOWBALL_BASE_SPEED)*charge;
+      // 手機版速度調整
+      if (isMobile()) {
+        speed *= 0.7; // 手機版速度降低30%
+      }
       let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
       snowballs.push({
         x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
@@ -1291,8 +1345,14 @@ function handleMouseUp(e) {
   if (!charging || !selectedPlayer || !selectedPlayer.alive) return;
   let now = performance.now();
   let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
-  let angle = -3 * Math.PI / 4; // 正確左上45度
+  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  let angle = calculateDiagonalAngle(selectedPlayer.x, selectedPlayer.y, canvasWidth, canvasHeight, true); // 玩家投擲到敵人區域
   let speed = SNOWBALL_BASE_SPEED + (SNOWBALL_MAX_SPEED-SNOWBALL_BASE_SPEED)*charge;
+  // 手機版速度調整
+  if (isMobile()) {
+    speed *= 0.7; // 手機版速度降低30%
+  }
   let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
   snowballs.push({
     x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
@@ -1362,8 +1422,14 @@ function handleTouchEnd(e) {
     let now = performance.now();
     let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
     if (selectedPlayer && selectedPlayer.alive) {
-      let angle = -3 * Math.PI / 4;
+      const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+      const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+      let angle = calculateDiagonalAngle(selectedPlayer.x, selectedPlayer.y, canvasWidth, canvasHeight, true); // 玩家投擲到敵人區域
       let speed = SNOWBALL_BASE_SPEED + (SNOWBALL_MAX_SPEED-SNOWBALL_BASE_SPEED)*charge;
+      // 手機版速度調整
+      if (isMobile()) {
+        speed *= 0.7; // 手機版速度降低30%
+      }
       let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
       snowballs.push({
         x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
@@ -1388,8 +1454,14 @@ function handleTouchEnd(e) {
   if (!charging || !selectedPlayer || !selectedPlayer.alive) return;
   let now = performance.now();
   let charge = Math.min(1, (now - chargeStart) / CHARGE_TIME);
-  let angle = -3 * Math.PI / 4;
+  const canvasWidth = canvas.width / window.devicePixelRatio / scale;
+  const canvasHeight = canvas.height / window.devicePixelRatio / scale;
+  let angle = calculateDiagonalAngle(selectedPlayer.x, selectedPlayer.y, canvasWidth, canvasHeight, true); // 玩家投擲到敵人區域
   let speed = SNOWBALL_BASE_SPEED + (SNOWBALL_MAX_SPEED-SNOWBALL_BASE_SPEED)*charge;
+  // 手機版速度調整
+  if (isMobile()) {
+    speed *= 0.7; // 手機版速度降低30%
+  }
   let maxDistance = MIN_THROW_DISTANCE + (MAX_THROW_DISTANCE - MIN_THROW_DISTANCE) * charge;
   snowballs.push({
     x: selectedPlayer.x + Math.cos(angle)*PLAYER_RADIUS,
