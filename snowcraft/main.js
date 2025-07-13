@@ -783,6 +783,21 @@ function forceViewportAdjustment() {
       gameCanvas.style.maxHeight = `${targetH}px`;
       gameCanvas.style.width = `${targetW}px`;
       gameCanvas.style.maxWidth = `${targetW}px`;
+      
+      // 確保置中
+      gameCanvas.style.margin = '0 auto';
+      gameCanvas.style.display = 'block';
+      gameCanvas.style.position = 'relative';
+      
+      // 確保canvasWrap正確置中
+      const canvasWrap = document.getElementById('canvasWrap');
+      if (canvasWrap) {
+        canvasWrap.style.display = 'flex';
+        canvasWrap.style.justifyContent = 'center';
+        canvasWrap.style.alignItems = 'center';
+        canvasWrap.style.width = '100vw';
+        canvasWrap.style.height = `${window.innerHeight}px`;
+      }
     }
   }
 }
@@ -793,10 +808,39 @@ resizeCanvas();
 // 強制視口調整
 forceViewportAdjustment();
 
+// 確保手機橫版置中的函數
+function ensureMobileLandscapeCentering() {
+  if (isMobile() && window.innerWidth > window.innerHeight) {
+    console.log('確保手機橫版置中');
+    
+    // 確保canvasWrap正確置中
+    const canvasWrap = document.getElementById('canvasWrap');
+    if (canvasWrap) {
+      canvasWrap.style.display = 'flex';
+      canvasWrap.style.justifyContent = 'center';
+      canvasWrap.style.alignItems = 'center';
+      canvasWrap.style.width = '100vw';
+      canvasWrap.style.height = `${window.innerHeight}px`;
+      canvasWrap.style.boxSizing = 'border-box';
+    }
+    
+    // 確保遊戲畫布置中
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (gameCanvas) {
+      gameCanvas.style.margin = '0 auto';
+      gameCanvas.style.display = 'block';
+      gameCanvas.style.position = 'relative';
+      gameCanvas.style.alignSelf = 'center';
+      gameCanvas.style.justifySelf = 'center';
+    }
+  }
+}
+
 // 初始化後檢查手機橫版裁切問題
 setTimeout(() => {
   forceViewportAdjustment();
   checkAndFixMobileLandscapeClipping();
+  ensureMobileLandscapeCentering();
 }, 500);
 
 // 手機橫版防裁切檢測和修復
@@ -848,6 +892,11 @@ function checkAndFixMobileLandscapeClipping() {
       canvas.style.width = targetW + 'px';
       canvas.style.height = targetH + 'px';
       
+      // 確保置中
+      canvas.style.margin = '0 auto';
+      canvas.style.display = 'block';
+      canvas.style.position = 'relative';
+      
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
@@ -880,6 +929,7 @@ window.addEventListener('orientationchange', () => {
     setTimeout(() => {
       forceViewportAdjustment();
       checkAndFixMobileLandscapeClipping();
+      ensureMobileLandscapeCentering();
     }, 200);
   }, 100);
   
@@ -888,6 +938,7 @@ window.addEventListener('orientationchange', () => {
     forceViewportAdjustment();
     resizeCanvas();
     checkAndFixMobileLandscapeClipping();
+    ensureMobileLandscapeCentering();
   }, 1000);
 });
 
@@ -900,6 +951,7 @@ window.addEventListener('resize', () => {
   setTimeout(() => {
     forceViewportAdjustment();
     checkAndFixMobileLandscapeClipping();
+    ensureMobileLandscapeCentering();
   }, 100);
 });
 
@@ -2491,6 +2543,7 @@ function startGame() {
   setTimeout(() => {
     forceViewportAdjustment();
     checkAndFixMobileLandscapeClipping();
+    ensureMobileLandscapeCentering();
   }, 200);
   
   resetGame();

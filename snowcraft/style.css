@@ -429,7 +429,7 @@ body {
     flex-direction: column !important;
   }
   
-  /* 橫屏時確保canvasWrap完全填滿 */
+  /* 橫屏時確保canvasWrap完全填滿並置中 */
   #canvasWrap {
     width: 100vw !important;
     height: 100vh !important;
@@ -448,6 +448,7 @@ body {
     justify-content: center !important;
     align-items: center !important;
     flex: 1 !important;
+    box-sizing: border-box !important;
   }
   
   /* 橫屏時維持16:9比例，確保完全適應螢幕高度且不被裁切 */
@@ -475,6 +476,9 @@ body {
     /* 確保在視口內，預留更多邊距防止裁切 */
     max-height: calc(100vh - 10px) !important;
     max-height: calc(100dvh - 10px) !important;
+    /* 確保置中 */
+    align-self: center !important;
+    justify-self: center !important;
   }
   
   /* 隱藏result避免佔用空間 */
@@ -666,6 +670,7 @@ body {
     justify-content: center !important;
     align-items: center !important;
     flex: 1 !important;
+    box-sizing: border-box !important;
   }
   
   /* 確保16:9比例且完全適應螢幕，避免裁切 */
@@ -689,6 +694,9 @@ body {
     /* 確保不會超出螢幕邊界 */
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
+    /* 確保置中 */
+    align-self: center !important;
+    justify-self: center !important;
   }
   
   #result {
@@ -738,16 +746,22 @@ body {
     /* 防止裁切 */
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
+    /* 確保置中 */
+    align-self: center !important;
+    justify-self: center !important;
+    margin: 0 auto !important;
   }
   
   #canvasWrap {
     /* 確保容器完全填滿螢幕 */
     width: 100vw !important;
     height: 100vh !important;
+    height: 100dvh !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     overflow: hidden !important;
+    box-sizing: border-box !important;
   }
   
   /* 隱藏可能造成裁切的元素 */
@@ -824,6 +838,10 @@ body {
     left: 50% !important;
     transform: translate(-50%, -50%) translateZ(0) !important;
     -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+    /* 確保置中 */
+    align-self: center !important;
+    justify-self: center !important;
+    margin: 0 auto !important;
   }
   
   #canvasWrap {
@@ -831,10 +849,12 @@ body {
     position: relative !important;
     width: 100vw !important;
     height: 100vh !important;
+    height: 100dvh !important;
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -880,6 +900,7 @@ body {
     align-items: center !important;
     overflow: hidden !important;
     position: relative !important;
+    box-sizing: border-box !important;
   }
   
   /* 確保遊戲畫布保持16:9比例且不裁切 */
@@ -906,6 +927,9 @@ body {
     -webkit-transform: translateZ(0) !important;
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
+    /* 確保置中 */
+    align-self: center !important;
+    justify-self: center !important;
   }
   
   /* 隱藏可能造成裁切的元素 */
