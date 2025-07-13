@@ -609,19 +609,19 @@ function resizeCanvas() {
     let availableW = w;
     
     if (isMobileDevice && isLandscape) {
-      // 手機橫版：確保不裁切，使用更保守的尺寸計算
-      let targetH = availableH - 10; // 預留10px邊距防止裁切
+      // 手機橫版：完全沒有上下間距，填滿整個視口
+      let targetH = availableH; // 完全利用視口高度，沒有邊距
       let targetW = targetH * 16 / 9;
       
       // 如果寬度超出，則以寬度為基準重新計算
-      if (targetW > availableW - 10) {
-        targetW = availableW - 10;
+      if (targetW > availableW) {
+        targetW = availableW;
         targetH = targetW * 9 / 16;
       }
       
       // 確保高度不超出可用高度
-      if (targetH > availableH - 10) {
-        targetH = availableH - 10;
+      if (targetH > availableH) {
+        targetH = availableH;
         targetW = targetH * 16 / 9;
       }
       
@@ -767,9 +767,9 @@ function forceViewportAdjustment() {
     // 特別處理遊戲畫布
     const gameCanvas = document.getElementById('gameCanvas');
     if (gameCanvas) {
-      const margin = 20;
-      const maxHeight = window.innerHeight - margin;
-      const maxWidth = window.innerWidth - margin;
+      // 完全沒有邊距，填滿整個視口
+      const maxHeight = window.innerHeight;
+      const maxWidth = window.innerWidth;
       
       let targetH = maxHeight;
       let targetW = targetH * 16 / 9;
@@ -777,6 +777,12 @@ function forceViewportAdjustment() {
       if (targetW > maxWidth) {
         targetW = maxWidth;
         targetH = targetW * 9 / 16;
+      }
+      
+      // 再次檢查高度是否超出
+      if (targetH > maxHeight) {
+        targetH = maxHeight;
+        targetW = targetH * 16 / 9;
       }
       
       gameCanvas.style.height = `${targetH}px`;
@@ -824,15 +830,103 @@ function ensureMobileLandscapeCentering() {
       canvasWrap.style.boxSizing = 'border-box';
     }
     
-    // 確保遊戲畫布置中
+    // 確保遊戲畫布置中且不裁切
     const gameCanvas = document.getElementById('gameCanvas');
     if (gameCanvas) {
+      // 完全沒有邊距，填滿整個視口
+      const maxHeight = window.innerHeight;
+      const maxWidth = window.innerWidth;
+      
+      let targetH = maxHeight;
+      let targetW = targetH * 16 / 9;
+      
+      if (targetW > maxWidth) {
+        targetW = maxWidth;
+        targetH = targetW * 9 / 16;
+      }
+      
+      gameCanvas.style.height = `${targetH}px`;
+      gameCanvas.style.maxHeight = `${targetH}px`;
+      gameCanvas.style.width = `${targetW}px`;
+      gameCanvas.style.maxWidth = `${targetW}px`;
       gameCanvas.style.margin = '0 auto';
       gameCanvas.style.display = 'block';
       gameCanvas.style.position = 'relative';
       gameCanvas.style.alignSelf = 'center';
       gameCanvas.style.justifySelf = 'center';
+      
+      console.log('手機橫版置中完成，尺寸:', targetW, 'x', targetH);
     }
+  }
+}
+
+// 強制修復手機橫版裁切問題
+function forceFixMobileLandscapeClipping() {
+  if (isMobile() && window.innerWidth > window.innerHeight) {
+    console.log('強制修復手機橫版裁切問題');
+    
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    console.log('當前Canvas位置:', {
+      left: canvasRect.left,
+      top: canvasRect.top,
+      right: canvasRect.right,
+      bottom: canvasRect.bottom,
+      width: canvasRect.width,
+      height: canvasRect.height
+    });
+    
+    // 完全沒有邊距，填滿整個視口
+    const maxHeight = viewportHeight;
+    const maxWidth = viewportWidth;
+    
+    let targetH = maxHeight;
+    let targetW = targetH * 16 / 9;
+    
+    if (targetW > maxWidth) {
+      targetW = maxWidth;
+      targetH = targetW * 9 / 16;
+    }
+    
+    // 再次檢查高度
+    if (targetH > maxHeight) {
+      targetH = maxHeight;
+      targetW = targetH * 16 / 9;
+    }
+    
+    console.log('計算的目標尺寸:', targetW, 'x', targetH);
+    
+    // 應用新的尺寸
+    canvas.width = Math.round(targetW * window.devicePixelRatio);
+    canvas.height = Math.round(targetH * window.devicePixelRatio);
+    canvas.style.width = targetW + 'px';
+    canvas.style.height = targetH + 'px';
+    
+    // 確保置中
+    canvas.style.margin = '0 auto';
+    canvas.style.display = 'block';
+    canvas.style.position = 'relative';
+    
+    scale = targetW / BASE_WIDTH;
+    ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+    
+    // 強制重新計算Canvas位置
+    setTimeout(() => {
+      const newRect = canvas.getBoundingClientRect();
+      console.log('修復後的Canvas位置:', {
+        left: newRect.left,
+        top: newRect.top,
+        right: newRect.right,
+        bottom: newRect.bottom,
+        width: newRect.width,
+        height: newRect.height,
+        isClipped: newRect.bottom > viewportHeight || newRect.right > viewportWidth
+      });
+    }, 100);
+    
+    console.log('強制修復完成，新尺寸:', targetW, 'x', targetH);
   }
 }
 
@@ -841,6 +935,7 @@ setTimeout(() => {
   forceViewportAdjustment();
   checkAndFixMobileLandscapeClipping();
   ensureMobileLandscapeCentering();
+  forceFixMobileLandscapeClipping();
 }, 500);
 
 // 手機橫版防裁切檢測和修復
@@ -863,10 +958,9 @@ function checkAndFixMobileLandscapeClipping() {
     if (canvasRect.bottom > viewportHeight || canvasRect.right > viewportWidth) {
       console.log('檢測到手機橫版裁切問題，正在修復...');
       
-      // 使用更保守的邊距，確保16:9比例完整顯示
-      const margin = 25; // 增加邊距
-      const maxHeight = viewportHeight - margin;
-      const maxWidth = viewportWidth - margin;
+      // 完全沒有邊距，填滿整個視口
+      const maxHeight = viewportHeight;
+      const maxWidth = viewportWidth;
       
       // 優先以高度為基準計算16:9比例
       let targetH = maxHeight;

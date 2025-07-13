@@ -473,9 +473,6 @@ body {
     /* 強制防止裁切 */
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
-    /* 確保在視口內，預留更多邊距防止裁切 */
-    max-height: calc(100vh - 10px) !important;
-    max-height: calc(100dvh - 10px) !important;
     /* 確保置中 */
     align-self: center !important;
     justify-self: center !important;
@@ -676,12 +673,12 @@ body {
   /* 確保16:9比例且完全適應螢幕，避免裁切 */
   #gameCanvas {
     width: auto !important;
-    height: calc(100vh - 10px) !important;
-    height: calc(100dvh - 10px) !important;
-    max-width: calc((100vh - 10px) * 16 / 9) !important;
-    max-width: calc((100dvh - 10px) * 16 / 9) !important;
-    max-height: calc(100vh - 10px) !important;
-    max-height: calc(100dvh - 10px) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: calc(100vh * 16 / 9) !important;
+    max-width: calc(100dvh * 16 / 9) !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     aspect-ratio: 16/9 !important;
     object-fit: contain !important;
     display: block !important;
@@ -732,14 +729,14 @@ body {
 /* 額外的手機橫版優化 - 確保所有手機橫版都能正確顯示16:9比例 */
 @media (orientation: landscape) and (max-width: 900px) {
   #gameCanvas {
-    /* 確保16:9比例且完全適應螢幕 */
+    /* 確保16:9比例且完全適應螢幕，沒有上下間距 */
     width: auto !important;
-    height: calc(100vh - 12px) !important;
-    height: calc(100dvh - 12px) !important;
-    max-width: calc((100vh - 12px) * 16 / 9) !important;
-    max-width: calc((100dvh - 12px) * 16 / 9) !important;
-    max-height: calc(100vh - 12px) !important;
-    max-height: calc(100dvh - 12px) !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: calc(100vh * 16 / 9) !important;
+    max-width: calc(100dvh * 16 / 9) !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     aspect-ratio: 16/9 !important;
     object-fit: contain !important;
     box-sizing: border-box !important;
@@ -810,14 +807,14 @@ body {
       transform: translateZ(0) !important;
       -webkit-backface-visibility: hidden !important;
       backface-visibility: hidden !important;
-      /* 確保不會超出安全區域，使用更保守的邊距 */
-      max-height: calc(100vh - 20px) !important;
-      max-height: calc(100dvh - 20px) !important;
-      height: calc(100vh - 20px) !important;
-      height: calc(100dvh - 20px) !important;
+      /* 完全沒有上下間距，填滿整個視口 */
+      max-height: 100vh !important;
+      max-height: 100dvh !important;
+      height: 100vh !important;
+      height: 100dvh !important;
       /* 確保16:9比例 */
-      max-width: calc((100vh - 20px) * 16 / 9) !important;
-      max-width: calc((100dvh - 20px) * 16 / 9) !important;
+      max-width: calc(100vh * 16 / 9) !important;
+      max-width: calc(100dvh * 16 / 9) !important;
     }
   }
 }
@@ -825,13 +822,13 @@ body {
 /* 強力手機橫版防裁切處理 */
 @media (orientation: landscape) and (max-width: 900px) and (max-height: 600px) {
   #gameCanvas {
-    /* 使用更保守的高度設置，確保不會裁切 */
-    height: calc(100vh - 15px) !important;
-    height: calc(100dvh - 15px) !important;
-    max-width: calc((100vh - 15px) * 16 / 9) !important;
-    max-width: calc((100dvh - 15px) * 16 / 9) !important;
-    max-height: calc(100vh - 15px) !important;
-    max-height: calc(100dvh - 15px) !important;
+    /* 完全沒有上下間距，填滿整個視口 */
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: calc(100vh * 16 / 9) !important;
+    max-width: calc(100dvh * 16 / 9) !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     /* 強制居中且不超出邊界 */
     position: absolute !important;
     top: 50% !important;
@@ -903,15 +900,15 @@ body {
     box-sizing: border-box !important;
   }
   
-  /* 確保遊戲畫布保持16:9比例且不裁切 */
+  /* 確保遊戲畫布保持16:9比例且完全填滿視口 */
   #gameCanvas {
-    /* 使用最保守的邊距確保不裁切 */
-    height: calc(100vh - 30px) !important;
-    height: calc(100dvh - 30px) !important;
-    max-height: calc(100vh - 30px) !important;
-    max-height: calc(100dvh - 30px) !important;
-    max-width: calc((100vh - 30px) * 16 / 9) !important;
-    max-width: calc((100dvh - 30px) * 16 / 9) !important;
+    /* 完全沒有上下間距，填滿整個視口 */
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    max-width: calc(100vh * 16 / 9) !important;
+    max-width: calc(100dvh * 16 / 9) !important;
     width: auto !important;
     aspect-ratio: 16/9 !important;
     object-fit: contain !important;
