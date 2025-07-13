@@ -606,13 +606,24 @@ function resizeCanvas() {
     let availableW = w;
     
     if (isMobileDevice && isLandscape) {
-      // 以高度為基準，維持16:9
-      let targetH = availableH;
+      // 手機橫版：確保不裁切，使用更保守的尺寸計算
+      let targetH = availableH - 10; // 預留10px邊距防止裁切
       let targetW = targetH * 16 / 9;
-      if (targetW > availableW) {
-        targetW = availableW;
+      
+      // 如果寬度超出，則以寬度為基準重新計算
+      if (targetW > availableW - 10) {
+        targetW = availableW - 10;
         targetH = targetW * 9 / 16;
       }
+      
+      // 確保高度不超出可用高度
+      if (targetH > availableH - 10) {
+        targetH = availableH - 10;
+        targetW = targetH * 16 / 9;
+      }
+      
+      console.log('手機橫版目標尺寸:', targetW, 'x', targetH);
+      
       canvas.width = Math.round(targetW * window.devicePixelRatio);
       canvas.height = Math.round(targetH * window.devicePixelRatio);
       canvas.style.width = targetW + 'px';
@@ -727,23 +738,69 @@ function resizeCanvas() {
   }
 }
 
-// 確保在視窗調整時重新計算尺寸
-window.addEventListener('resize', () => {
-  console.log('視窗大小改變，重新調整Canvas');
-  resizeCanvas();
-});
 
-// 監聽方向變化（手機旋轉）
+
+// 初始化時調整Canvas
+resizeCanvas();
+
+// 初始化後檢查手機橫版裁切問題
+setTimeout(checkAndFixMobileLandscapeClipping, 500);
+
+// 手機橫版防裁切檢測和修復
+function checkAndFixMobileLandscapeClipping() {
+  if (isMobile() && window.innerWidth > window.innerHeight) {
+    // 檢測是否為手機橫版
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    // 檢查canvas是否超出視口底部
+    if (canvasRect.bottom > viewportHeight) {
+      console.log('檢測到手機橫版裁切問題，正在修復...');
+      
+      // 重新計算canvas尺寸，確保不超出視口
+      const maxHeight = viewportHeight - 20; // 預留20px邊距
+      const maxWidth = window.innerWidth - 20;
+      
+      let targetH = maxHeight;
+      let targetW = targetH * 16 / 9;
+      
+      if (targetW > maxWidth) {
+        targetW = maxWidth;
+        targetH = targetW * 9 / 16;
+      }
+      
+      // 應用新的尺寸
+      canvas.width = Math.round(targetW * window.devicePixelRatio);
+      canvas.height = Math.round(targetH * window.devicePixelRatio);
+      canvas.style.width = targetW + 'px';
+      canvas.style.height = targetH + 'px';
+      
+      scale = targetW / BASE_WIDTH;
+      ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      
+      console.log('手機橫版裁切修復完成，新尺寸:', targetW, 'x', targetH);
+    }
+  }
+}
+
+// 在方向變化後檢查裁切問題
 window.addEventListener('orientationchange', () => {
   console.log('方向改變，重新調整Canvas');
   // 延遲一下確保方向變化完成
   setTimeout(() => {
     resizeCanvas();
+    // 額外檢查裁切問題
+    setTimeout(checkAndFixMobileLandscapeClipping, 200);
   }, 100);
 });
 
-// 初始化時調整Canvas
-resizeCanvas();
+// 在視窗調整後也檢查裁切問題
+window.addEventListener('resize', () => {
+  console.log('視窗大小改變，重新調整Canvas');
+  resizeCanvas();
+  // 延遲檢查裁切問題
+  setTimeout(checkAndFixMobileLandscapeClipping, 100);
+});
 
 function resetGame() {
   level = 1;
