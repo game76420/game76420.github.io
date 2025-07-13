@@ -589,6 +589,9 @@ function resizeCanvas() {
     console.log('視窗尺寸:', window.innerWidth, 'x', window.innerHeight);
     console.log('設備像素比:', window.devicePixelRatio);
     
+    // 強制視口調整，特別針對手機橫版
+    forceViewportAdjustment();
+    
     // 大畫面16:9模式，確保不超出視窗
     let w = window.innerWidth;
     let h = window.innerHeight;
@@ -740,26 +743,33 @@ function resizeCanvas() {
 
 
 
-// 初始化時調整Canvas
-resizeCanvas();
-
-// 初始化後檢查手機橫版裁切問題
-setTimeout(checkAndFixMobileLandscapeClipping, 500);
-
-// 手機橫版防裁切檢測和修復
-function checkAndFixMobileLandscapeClipping() {
+// 強制視口高度調整函數
+function forceViewportAdjustment() {
+  // 設置CSS自定義屬性
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+  
+  // 特別處理手機橫版
   if (isMobile() && window.innerWidth > window.innerHeight) {
-    // 檢測是否為手機橫版
-    const canvasRect = canvas.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
+    console.log('強制調整手機橫版視口');
     
-    // 檢查canvas是否超出視口底部
-    if (canvasRect.bottom > viewportHeight) {
-      console.log('檢測到手機橫版裁切問題，正在修復...');
-      
-      // 重新計算canvas尺寸，確保不超出視口
-      const maxHeight = viewportHeight - 20; // 預留20px邊距
-      const maxWidth = window.innerWidth - 20;
+    // 強制設置所有相關元素的高度
+    const elements = ['html', 'body', '#container', '#canvasWrap'];
+    elements.forEach(selector => {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.style.height = `${window.innerHeight}px`;
+        element.style.minHeight = `${window.innerHeight}px`;
+        element.style.maxHeight = `${window.innerHeight}px`;
+      }
+    });
+    
+    // 特別處理遊戲畫布
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (gameCanvas) {
+      const margin = 20;
+      const maxHeight = window.innerHeight - margin;
+      const maxWidth = window.innerWidth - margin;
       
       let targetH = maxHeight;
       let targetW = targetH * 16 / 9;
@@ -769,6 +779,69 @@ function checkAndFixMobileLandscapeClipping() {
         targetH = targetW * 9 / 16;
       }
       
+      gameCanvas.style.height = `${targetH}px`;
+      gameCanvas.style.maxHeight = `${targetH}px`;
+      gameCanvas.style.width = `${targetW}px`;
+      gameCanvas.style.maxWidth = `${targetW}px`;
+    }
+  }
+}
+
+// 初始化時調整Canvas
+resizeCanvas();
+
+// 強制視口調整
+forceViewportAdjustment();
+
+// 初始化後檢查手機橫版裁切問題
+setTimeout(() => {
+  forceViewportAdjustment();
+  checkAndFixMobileLandscapeClipping();
+}, 500);
+
+// 手機橫版防裁切檢測和修復
+function checkAndFixMobileLandscapeClipping() {
+  if (isMobile() && window.innerWidth > window.innerHeight) {
+    // 檢測是否為手機橫版
+    const canvasRect = canvas.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    
+    console.log('手機橫版檢測:', {
+      canvasBottom: canvasRect.bottom,
+      viewportHeight: viewportHeight,
+      canvasRight: canvasRect.right,
+      viewportWidth: viewportWidth,
+      isClipped: canvasRect.bottom > viewportHeight || canvasRect.right > viewportWidth
+    });
+    
+    // 檢查canvas是否超出視口
+    if (canvasRect.bottom > viewportHeight || canvasRect.right > viewportWidth) {
+      console.log('檢測到手機橫版裁切問題，正在修復...');
+      
+      // 使用更保守的邊距，確保16:9比例完整顯示
+      const margin = 25; // 增加邊距
+      const maxHeight = viewportHeight - margin;
+      const maxWidth = viewportWidth - margin;
+      
+      // 優先以高度為基準計算16:9比例
+      let targetH = maxHeight;
+      let targetW = targetH * 16 / 9;
+      
+      // 如果寬度超出，則以寬度為基準重新計算
+      if (targetW > maxWidth) {
+        targetW = maxWidth;
+        targetH = targetW * 9 / 16;
+        
+        // 再次檢查高度是否超出
+        if (targetH > maxHeight) {
+          targetH = maxHeight;
+          targetW = targetH * 16 / 9;
+        }
+      }
+      
+      console.log('計算的目標尺寸:', targetW, 'x', targetH);
+      
       // 應用新的尺寸
       canvas.width = Math.round(targetW * window.devicePixelRatio);
       canvas.height = Math.round(targetH * window.devicePixelRatio);
@@ -777,6 +850,19 @@ function checkAndFixMobileLandscapeClipping() {
       
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
+      
+      // 強制重新計算Canvas位置
+      setTimeout(() => {
+        const newRect = canvas.getBoundingClientRect();
+        console.log('修復後的Canvas位置:', {
+          left: newRect.left,
+          top: newRect.top,
+          right: newRect.right,
+          bottom: newRect.bottom,
+          width: newRect.width,
+          height: newRect.height
+        });
+      }, 100);
       
       console.log('手機橫版裁切修復完成，新尺寸:', targetW, 'x', targetH);
     }
@@ -788,18 +874,33 @@ window.addEventListener('orientationchange', () => {
   console.log('方向改變，重新調整Canvas');
   // 延遲一下確保方向變化完成
   setTimeout(() => {
+    forceViewportAdjustment();
     resizeCanvas();
     // 額外檢查裁切問題
-    setTimeout(checkAndFixMobileLandscapeClipping, 200);
+    setTimeout(() => {
+      forceViewportAdjustment();
+      checkAndFixMobileLandscapeClipping();
+    }, 200);
   }, 100);
+  
+  // 額外延遲執行以確保完全載入
+  setTimeout(() => {
+    forceViewportAdjustment();
+    resizeCanvas();
+    checkAndFixMobileLandscapeClipping();
+  }, 1000);
 });
 
 // 在視窗調整後也檢查裁切問題
 window.addEventListener('resize', () => {
   console.log('視窗大小改變，重新調整Canvas');
+  forceViewportAdjustment();
   resizeCanvas();
   // 延遲檢查裁切問題
-  setTimeout(checkAndFixMobileLandscapeClipping, 100);
+  setTimeout(() => {
+    forceViewportAdjustment();
+    checkAndFixMobileLandscapeClipping();
+  }, 100);
 });
 
 function resetGame() {
@@ -2373,6 +2474,9 @@ function startGame() {
     loadingIndicator.style.display = 'none';
   }
   
+  // 強制視口調整，特別針對手機橫版
+  forceViewportAdjustment();
+  
   // 確保Canvas已經正確設置
   if (canvas.width === 0 || canvas.height === 0) {
     console.log('Canvas尺寸異常，重新調整');
@@ -2382,6 +2486,12 @@ function startGame() {
   // 檢查Canvas是否可見
   const rect = canvas.getBoundingClientRect();
   console.log('Canvas位置和尺寸:', rect);
+  
+  // 額外檢查手機橫版裁切問題
+  setTimeout(() => {
+    forceViewportAdjustment();
+    checkAndFixMobileLandscapeClipping();
+  }, 200);
   
   resetGame();
   requestAnimationFrame(gameLoop);
