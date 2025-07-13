@@ -450,7 +450,7 @@ const ENEMY_THROW_RANGE = 500;
 const PLAYER_THROW_RANGE = 600;
 const SNOWBALL_BASE_SPEED = 8;  // 從5增加到8
 const SNOWBALL_MAX_SPEED = 18;  // 從12增加到18
-const CHARGE_TIME = 1000; // ms
+const CHARGE_TIME = 700; // ms
 // 雪球最大/最小飛行距離 - 動態計算
 let MIN_THROW_DISTANCE = 40;
 let MAX_THROW_DISTANCE = 800; // 增加最大投擲距離
