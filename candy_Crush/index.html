@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>糖果傳奇 - Candy Crush</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header-bar">
+      <div class="header-left">
+        <!-- score-bar 已移除 -->
+      </div>
+      <div class="header-center">
+        <div class="score-progress-wrapper">
+          <div class="score-progress-bg">
+            <div class="score-progress-bar" id="score-progress-bar"></div>
+            <span class="score-progress-text" id="score-progress-text">0 / 2000</span>
+          </div>
+        </div>
+        <div class="header-info-row">
+          <span class="level-info level-bold">關卡 <span id="level">1</span></span>
+          <span class="moves-info moves-container">
+            <span id="moves">0</span><span id="max-moves"></span>
+          </span>
+          <span class="timer-info timer-container" style="display:none;">
+            ⏰ <span id="timer">60</span>
+          </span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button id="hint-btn" class="tool-btn" title="提示">💡</button>
+      </div>
+    </div>
+    <main>
+        <div class="game-board-wrapper">
+            <div id="combo-indicator" class="combo-indicator" style="display:none;"></div>
+            <div id="game-board"></div>
+        </div>
+    </main>
+    <div id="game-over-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2 id="game-result-title">遊戲結束</h2>
+            <p id="game-result-message"></p>
+            <div class="final-score">
+                <span>最終分數: </span>
+                <span id="final-score">0</span>
+            </div>
+            <button id="restart-btn" class="btn">Nest</button>
+        </div>
+    </div>
+    <div id="start-overlay" class="modal" style="display: flex;">
+      <div class="modal-content start-modal-content">
+        <div class="start-level-title">Level <span id="start-level">1</span></div>
+        <button id="start-btn" class="btn start-btn">Play!</button>
+      </div>
+    </div>
+    <div class="game-controls">
+        <button id="new-game-btn" class="btn">新遊戲</button>
+        <button id="mode-toggle-btn" class="btn">切換模式</button>
+        <div class="mode-info">
+            <span id="current-mode">目標分數模式</span>
+            <span id="target-score">目標: 2000分</span>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 
