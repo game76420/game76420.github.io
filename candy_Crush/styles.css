@@ -1017,6 +1017,18 @@ body, .header-bar, .score-bar, .btn, .tool-btn, .modal-content, .score-progress-
 
 .game-controls .btn {
   color: #e75480;
+  transition: transform 0.18s cubic-bezier(.4,1.6,.6,1);
+}
+.game-controls .btn:active {
+  background: linear-gradient(45deg, #ffd6e0, #fcb0ff) !important;
+  color: #e75480;
+  transform: scale(1.13) scale(0.97);
+  animation: btn-bounce 0.22s cubic-bezier(.4,1.6,.6,1);
+}
+@keyframes btn-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.13,0.97); }
+  100% { transform: scale(1); }
 } 
 
 .vibrate-hint {
@@ -1048,4 +1060,26 @@ body, .header-bar, .score-bar, .btn, .tool-btn, .modal-content, .score-progress-
   margin: 0 auto;
   min-width: 180px;
   max-width: 90vw;
+} 
+
+@media (max-width: 600px) {
+    #game-board {
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        gap: 2vw;
+        border-radius: 20px;
+        box-shadow: 0 6px 24px #b3e0ff;
+        padding: 2vw;
+        width: 96vw;
+        max-width: 480px;
+        aspect-ratio: 1/1;
+        min-width: 0;
+    }
+    .candy {
+        width: 100%;
+        height: 100%;
+        font-size: 6vw;
+        min-width: 0;
+        min-height: 0;
+    }
 } 
