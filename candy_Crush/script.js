@@ -453,6 +453,15 @@ class CandyCrushGame {
         // combo 結束時隱藏
         this.hideCombo();
         this.scoreManager.resetChain(); // 連鎖結束，重設
+        // === 新增：自動洗盤 ===
+        let shuffleCount = 0;
+        while (!this.hasAvailableMove() && shuffleCount < 10) {
+            this.shuffleBoard();
+            this.renderBoard();
+            this.updateUI();
+            shuffleCount++;
+        }
+        // =====================
         this.isAnimating = false;
         this.checkGameEnd();
     }
@@ -858,8 +867,33 @@ class CandyCrushGame {
                 }
             }
         }
-        // 若無步可走，自動洗盤直到有步可走
-        if (!bestMove) {
+        // 若沒找到最佳步驟，但還有合法步驟，提示第一個合法步驟
+        if (!bestMove && this.hasAvailableMove()) {
+            for (let row = 0; row < this.boardSize; row++) {
+                for (let col = 0; col < this.boardSize; col++) {
+                    // 檢查右邊
+                    if (col < this.boardSize - 1) {
+                        this.swap(row, col, row, col + 1);
+                        if (this.findMatches().length > 0) {
+                            this.swap(row, col, row, col + 1);
+                            return [{ row, col }, { row, col: col + 1 }];
+                        }
+                        this.swap(row, col, row, col + 1);
+                    }
+                    // 檢查下方
+                    if (row < this.boardSize - 1) {
+                        this.swap(row, col, row + 1, col);
+                        if (this.findMatches().length > 0) {
+                            this.swap(row, col, row + 1, col);
+                            return [{ row, col }, { row: row + 1, col }];
+                        }
+                        this.swap(row, col, row + 1, col);
+                    }
+                }
+            }
+        }
+        // 若無步可走，才自動洗盤直到有步可走
+        if (!bestMove && !this.hasAvailableMove()) {
             let shuffleCount = 0;
             do {
                 this.shuffleBoard();
