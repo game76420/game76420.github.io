@@ -1,0 +1,3044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, minimum-scale=0.5, user-scalable=yes">
+    <title>五子棋AI游戏 - 防守强化版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            color: #fff;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(25, 25, 35, 0.85);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: rgba(15, 15, 25, 0.95);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #fdbb2d;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #fdbb2d, #b21f1f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header p {
+            color: #ddd;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 15px;
+        }
+        
+        .game-board-container {
+            flex: 1;
+            min-width: 300px;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .board-wrapper {
+            width: 100%;
+            max-width: 95vw;
+            margin: 0 auto;
+            position: relative;
+            background: #dcb35c;
+            border-radius: 4px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            border: 2px solid #8B4513;
+            overflow: hidden;
+        }
+        
+        #boardCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            touch-action: pan-x pan-y pinch-zoom;
+        }
+        
+        .controls-sidebar {
+            width: 100%;
+            padding: 15px;
+            background: rgba(35, 35, 45, 0.8);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        
+        .panel {
+            background: rgba(25, 25, 35, 0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #444;
+        }
+        
+        .panel h2 {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+            color: #fdbb2d;
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel h2 i {
+            margin-right: 8px;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .btn {
+            background: linear-gradient(to bottom, #4a6ea9, #2a4a7e);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: linear-gradient(to bottom, #5a7eb9, #3a5a9e);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn.active {
+            background: linear-gradient(to bottom, #fdbb2d, #e0a000);
+            color: #1a1a2e;
+            font-weight: 600;
+        }
+        
+        .btn.warning {
+            background: linear-gradient(to bottom, #e74c3c, #c0392b);
+        }
+        
+        .btn.warning:hover {
+            background: linear-gradient(to bottom, #f39c12, #e67e22);
+        }
+        
+        .slider-container {
+            margin: 12px 0;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 6px;
+            color: #ddd;
+            font-size: 0.95rem;
+        }
+        
+        .difficulty-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fdbb2d;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-indicators {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 70px;
+            margin: 5px;
+        }
+        
+        .indicator-value {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        
+        .history-panel {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 6px 10px;
+            background: rgba(50, 50, 60, 0.6);
+            border-radius: 5px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        
+        .history-item:hover {
+            background: rgba(70, 70, 80, 0.8);
+        }
+        
+        .ai-thinking {
+            display: none;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 260px;
+            max-width: 90vw;
+            background: rgba(0,0,0,0.85);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            padding: 32px 24px 24px 24px;
+            z-index: 30;
+            text-align: center;
+            color: #fff;
+            font-size: 1rem;
+        }
+        .ai-thinking .progress-container {
+            margin: 18px 0 8px 0;
+        }
+        .ai-thinking .progress-bar {
+            height: 10px;
+        }
+        .ai-thinking .progress-text {
+            margin-bottom: 8px;
+        }
+        .ai-thinking p {
+            margin: 6px 0;
+        }
+        
+        .progress-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: linear-gradient(90deg, #2ecc71, #3498db, #9b59b6);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+            position: relative;
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-text {
+            font-size: 0.85rem;
+            color: #ddd;
+            margin-top: 5px;
+        }
+        
+        .thinking-animation {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fdbb2d;
+            margin: 0 2px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .thinking-animation:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .thinking-animation:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+        
+        .win-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            z-index: 10;
+            border: 3px solid #fdbb2d;
+            width: 90%;
+            max-width: 350px;
+        }
+        
+        .win-message.hidden {
+            display: none !important;
+            pointer-events: none !important;
+        }
+        
+        .win-message h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #fdbb2d;
+        }
+        
+        .win-message p {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+        
+        .highlight {
+            position: absolute;
+            background: rgba(253, 187, 45, 0.3);
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+            animation: highlight-pulse 2s infinite;
+        }
+        
+        @keyframes highlight-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 0.9; }
+        }
+        
+        .difficulty-indicator {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: #4a6ea9;
+            font-size: 0.8rem;
+            margin-left: 6px;
+            color: white;
+        }
+        
+        /* 响应式设计 */
+        @media (min-width: 768px) {
+            .main-content {
+                flex-direction: row;
+            }
+            
+            .controls-sidebar {
+                width: 300px;
+                margin-left: 15px;
+                margin-top: 0;
+            }
+            
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .btn {
+                padding: 10px 15px;
+                font-size: 1rem;
+            }
+        }
+        
+        @media (min-width: 992px) {
+            .game-board-container {
+                min-width: 500px;
+            }
+            
+            .board-wrapper {
+                max-width: 600px;
+            }
+        }
+        
+        /* 移动设备优化 */
+        .mobile-optimization {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #fdbb2d;
+        }
+        
+        .ai-features {
+            background: rgba(46, 204, 113, 0.1);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+        
+        .ai-features h3 {
+            color: #2ecc71;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+        
+        .ai-features ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .ai-features li {
+            color: #ddd;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            padding-left: 15px;
+            position: relative;
+        }
+        
+        .ai-features li:before {
+            content: "✓";
+            color: #2ecc71;
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+        
+        .threat-warning {
+            color: #e74c3c !important;
+            font-weight: bold;
+        }
+        
+        .defense-active {
+            color: #f39c12 !important;
+            font-weight: bold;
+        }
+        
+        .last-move-indicator {
+            animation: lastMovePulse 2s infinite;
+        }
+        
+        @keyframes lastMovePulse {
+            0%, 100% { 
+                stroke-width: 3;
+                stroke-opacity: 1;
+            }
+            50% { 
+                stroke-width: 5;
+                stroke-opacity: 0.7;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .main-content {
+                padding: 10px;
+            }
+            
+            .game-board-container {
+                padding: 10px;
+            }
+            
+            .panel {
+                padding: 12px;
+            }
+            
+            .mobile-optimization {
+                display: block;
+            }
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            z-index: 20;
+            display: none;
+            border: 2px solid #fdbb2d;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .zoom-indicator.zooming {
+            animation: zoomPulse 1s infinite;
+        }
+        
+        @keyframes zoomPulse {
+            0%, 100% { 
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+        
+        .corner-warning {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            z-index: 20;
+            display: none;
+        }
+        
+        .threat-defense-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            z-index: 20;
+            display: none;
+            animation: threatPulse 1.5s infinite;
+        }
+        
+        @keyframes threatPulse {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.5);
+            }
+            50% { 
+                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>五子棋AI游戏 - 防守强化版</h1>
+            <p>AI落子优化 + 活三自动防守 + 智能威胁检测</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="game-board-container">
+                <div class="board-wrapper">
+                    <div class="zoom-indicator" id="zoomIndicator">🖐️ 双指缩放中</div>
+                    <div class="corner-warning" id="cornerWarning">⚠️ AI检测到角落落子</div>
+                    <div class="threat-defense-indicator" id="threatIndicator">🛡️ AI正在防守活三威胁</div>
+                    <canvas id="boardCanvas"></canvas>
+                    <div class="ai-thinking" id="aiThinking">
+                        <p>🤖 AI思考中 <span class="thinking-animation"></span><span class="thinking-animation"></span><span class="thinking-animation"></span></p>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="aiProgressBar"></div>
+                        </div>
+                        <div class="progress-text" id="aiProgressText">准备开始思考...</div>
+                        <p>思考深度: <span id="aiDepth">3</span> | 评估点数: <span id="evaluatedPoints">0</span></p>
+                        <p>缓存命中: <span id="cacheHits">0</span> | 时间控制: <span id="timeControl">2000ms</span></p>
+                        <p>威胁检测: <span id="threatLevel">无</span> | 防守模式: <span id="defenseMode">正常</span></p>
+                    </div>
+                    <div class="win-message hidden" id="winMessage">
+                        <h2 id="winTitle">游戏结束</h2>
+                        <p id="winText"></p>
+                        <button class="btn" id="closeWinBtn">确定</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-sidebar">
+                <div class="panel">
+                    <h2>⚙️ 游戏设置</h2>
+                    <div class="btn-group">
+                        <button class="btn active" id="playerFirstBtn">玩家先手</button>
+                        <button class="btn" id="aiFirstBtn">AI先手</button>
+                    </div>
+                    
+                    <div class="slider-container">
+                        <label for="difficultySlider">AI难度: <span id="difficultyValue">中等</span><span class="difficulty-indicator" id="difficultyLevel">2/5</span></label>
+                        <input type="range" min="1" max="5" value="2" class="slider" id="difficultySlider">
+                        <div class="difficulty-labels">
+                            <span>简单</span>
+                            <span>中等</span>
+                            <span>困难</span>
+                            <span>专家</span>
+                            <span>大师</span>
+                        </div>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn" id="hintBtn">提示最佳落子</button>
+                        <button class="btn" id="undoBtn">撤销一步</button>
+                    </div>
+                    
+                    <div class="btn-group">
+                        <button class="btn" id="newGameBtn">重新开始</button>
+                    </div>
+                    
+                    <div class="mobile-optimization">
+                        ✅ 已优化移动设备体验，支持双指缩放查看棋盘<br>
+                        🧪 点击"测试缩放功能"按钮获取帮助
+                    </div>
+                    
+                    <div class="ai-features">
+                        <h3>🤖 AI智能对战特性</h3>
+                        <ul>
+                            <li>活三自动防守</li>
+                            <li>角落落子优化</li>
+                            <li>位置权重强化</li>
+                            <li>紧急防守机制</li>
+                            <li>威胁等级识别</li>
+                            <li>发展潜力评估</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <h2>📊 游戏状态</h2>
+                    <div class="status-indicators">
+                        <div class="indicator">
+                            <span>当前玩家</span>
+                            <div class="indicator-value" id="currentPlayer">黑棋</div>
+                        </div>
+                        <div class="indicator">
+                            <span>回合数</span>
+                            <div class="indicator-value" id="moveCount">0</div>
+                        </div>
+                        <div class="indicator">
+                            <span>AI难度</span>
+                            <div class="indicator-value" id="aiLevelDisplay">中等</div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel history-panel">
+                        <h2 style="display:flex;align-items:center;justify-content:space-between;">
+                            <span>📜 历史记录</span>
+                            <button id="copyAllHistoryBtn" style="margin-left:10px;font-size:0.9em;padding:3px 12px;border-radius:5px;border:none;background:#fdbb2d;color:#222;cursor:pointer;">複製全部</button>
+                        </h2>
+                        <div id="historyList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏常量
+        const BOARD_SIZE = 19;
+        const EMPTY = 0;
+        const PLAYER = 1;
+        const AI_PLAYER = 2;
+        
+        // 棋子颜色常量
+        const BLACK = 1;
+        const WHITE = 2;
+        
+        // 难度级别定义 - 优化版
+        const DIFFICULTY_LEVELS = [
+            { name: "简单", depth: 2, searchRadius: 1, evalPoints: 500, timeLimit: 1000 },
+            { name: "中等", depth: 3, searchRadius: 2, evalPoints: 1500, timeLimit: 2000 },
+            { name: "困难", depth: 4, searchRadius: 2, evalPoints: 3000, timeLimit: 3000 },
+            { name: "专家", depth: 5, searchRadius: 3, evalPoints: 8000, timeLimit: 5000 },
+            { name: "大师", depth: 6, searchRadius: 3, evalPoints: 15000, timeLimit: 8000 }
+        ];
+        
+        // 开局库 - 常见开局模式
+        const OPENING_MOVES = [
+            {row: 9, col: 9}, // 天元
+            {row: 8, col: 8}, {row: 10, col: 10}, // 星位
+            {row: 8, col: 10}, {row: 10, col: 8}, // 星位
+            {row: 7, col: 9}, {row: 11, col: 9}, // 边星
+            {row: 9, col: 7}, {row: 9, col: 11}  // 边星
+        ];
+        
+        // 位置权重表 - 棋盘中心位置更有价值 - 强化角落惩罚
+        const POSITION_WEIGHTS = (() => {
+            const weights = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(1));
+            const center = Math.floor(BOARD_SIZE / 2);
+            for (let row = 0; row < BOARD_SIZE; row++) {
+                for (let col = 0; col < BOARD_SIZE; col++) {
+                    const distanceFromCenter = Math.abs(row - center) + Math.abs(col - center);
+                    // 角落位置惩罚更重
+                    const isCorner = (row === 0 || row === BOARD_SIZE-1) && 
+                                    (col === 0 || col === BOARD_SIZE-1);
+                    const isEdge = (row === 0 || row === BOARD_SIZE-1 || col === 0 || col === BOARD_SIZE-1);
+                    if (isCorner) {
+                        weights[row][col] = 0.05; // 角落极低
+                    } else if (isEdge) {
+                        weights[row][col] = 0.7; // 边缘位置降低权重
+                    } else if (distanceFromCenter <= 2) {
+                        weights[row][col] = 2.0;
+                    } else if (distanceFromCenter <= 4) {
+                        weights[row][col] = 1.5;
+                    } else if (distanceFromCenter <= 6) {
+                        weights[row][col] = 1.1;
+                    } else if (distanceFromCenter <= 8) {
+                        weights[row][col] = 0.8;
+                    } else {
+                        weights[row][col] = 0.5;
+                    }
+                }
+            }
+            return weights;
+        })();
+        
+        // 性能指标
+        let performanceMetrics = {
+            lastAITime: 0,
+            mobileMode: false,
+            touchPoints: 0,
+            isZooming: false,
+            cacheHits: 0,
+            totalEvaluations: 0,
+            aiProgress: 0,
+            aiStatus: "准备中"
+        };
+        
+        // 检测移动设备
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+        
+        // 动态计算单元格大小
+        function calculateCellSize() {
+            const wrapper = document.querySelector('.board-wrapper');
+            const maxWidth = wrapper.clientWidth;
+            return Math.floor(maxWidth / BOARD_SIZE);
+        }
+        
+        // 游戏状态类
+        class Game {
+            constructor() {
+                this.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(EMPTY));
+                this.currentPlayer = PLAYER;
+                this.gameOver = false;
+                this.winner = null;
+                this.moveHistory = [];
+                this.history = [];
+                this.blackPlayer = PLAYER; // 默认玩家执黑
+                this.whitePlayer = AI_PLAYER; // 默认AI执白
+                this.winLine = null; // 新增：记录胜利五子坐标
+            }
+            
+            // 重置游戏
+            reset() {
+                this.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(EMPTY));
+                this.currentPlayer = PLAYER; // 默认玩家先手
+                this.gameOver = false;
+                this.winner = null;
+                this.moveHistory = [];
+                this.history = [];
+            }
+            
+            // 设置当前玩家
+            setCurrentPlayer(player) {
+                this.currentPlayer = player;
+            }
+            
+            // 设置棋子颜色
+            setPieceColors(blackPlayer, whitePlayer) {
+                this.blackPlayer = blackPlayer;
+                this.whitePlayer = whitePlayer;
+            }
+            
+            // 获取玩家的棋子颜色
+            getPlayerColor(player) {
+                return player === this.blackPlayer ? BLACK : WHITE;
+            }
+            
+            // 根据颜色获取玩家
+            getPlayerByColor(color) {
+                return color === BLACK ? this.blackPlayer : this.whitePlayer;
+            }
+            
+            // 落子
+            makeMove(row, col) {
+                if (this.gameOver || this.board[row][col] !== EMPTY) {
+                    return false;
+                }
+                
+                // 保存当前状态到历史
+                this.history.push({
+                    board: JSON.parse(JSON.stringify(this.board)),
+                    currentPlayer: this.currentPlayer
+                });
+                
+                this.board[row][col] = this.currentPlayer;
+                this.moveHistory.push({row, col, player: this.currentPlayer});
+                
+                // 检查胜利
+                if (this.checkWin(row, col)) {
+                    this.gameOver = true;
+                    this.winner = this.currentPlayer;
+
+                } else if (this.isBoardFull()) {
+                    this.gameOver = true;
+                    this.winner = EMPTY; // 平局
+                } else {
+                    // 切换玩家
+                    this.currentPlayer = this.currentPlayer === PLAYER ? AI_PLAYER : PLAYER;
+                }
+                
+                return true;
+            }
+            
+            // 撤销一步
+            undo() {
+                if (this.history.length > 0) {
+                    const prevState = this.history.pop();
+                    this.board = prevState.board;
+                    this.currentPlayer = prevState.currentPlayer;
+                    this.moveHistory.pop();
+                    this.gameOver = false;
+                    this.winner = null;
+                    return true;
+                }
+                return false;
+            }
+            
+            // 检查胜利
+            checkWin(row, col) {
+                const player = this.board[row][col];
+                const directions = [
+                    [0, 1],   // 水平
+                    [1, 0],   // 垂直
+                    [1, 1],   // 对角线
+                    [1, -1]   // 反对角线
+                ];
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+                    let line = [{row, col}];
+                    // 正向检查
+                    let r = row + dx, c = col + dy;
+                    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && this.board[r][c] === player) {
+                        count++;
+                        line.push({row: r, col: c});
+                        r += dx;
+                        c += dy;
+                    }
+                    // 反向检查
+                    r = row - dx;
+                    c = col - dy;
+                    while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && this.board[r][c] === player) {
+                        count++;
+                        line.unshift({row: r, col: c});
+                        r -= dx;
+                        c -= dy;
+                    }
+                    // 只允许严格五连珠胜利，长连不算
+                    if (count === 5) {
+                        // 检查两端是否还有同色棋子（长连不算）
+                        let beforeR = line[0].row - dx, beforeC = line[0].col - dy;
+                        let afterR = line[4].row + dx, afterC = line[4].col + dy;
+                        if (
+                            beforeR >= 0 && beforeR < BOARD_SIZE && beforeC >= 0 && beforeC < BOARD_SIZE && this.board[beforeR][beforeC] === player
+                            ||
+                            afterR >= 0 && afterR < BOARD_SIZE && afterC >= 0 && afterC < BOARD_SIZE && this.board[afterR][afterC] === player
+                        ) {
+                            continue; // 长连，跳过
+                        }
+                        this.winLine = line;
+                        return true;
+                    }
+                }
+                this.winLine = null;
+                return false;
+            }
+            
+            // 检查棋盘是否已满
+            isBoardFull() {
+                return this.board.every(row => row.every(cell => cell !== EMPTY));
+            }
+            
+            // 获取棋盘状态
+            getBoard() {
+                return this.board;
+            }
+            
+            // 获取当前玩家
+            getCurrentPlayer() {
+                return this.currentPlayer;
+            }
+            
+            // 获取移动历史
+            getMoveHistory() {
+                return this.moveHistory;
+            }
+            
+            // 新增：获取胜利五子坐标
+            getWinLine() {
+                return this.winLine;
+            }
+        }
+        
+        // AI类 - 优化版
+        class AI {
+            constructor(game) {
+                this.game = game;
+                this.depth = 2;
+                this.searchRadius = 2;
+                this.maxEvalPoints = 800;
+                this.timeLimit = 2000;
+                this.mobileMode = false;
+                this.transpositionTable = new Map(); // 置换表缓存
+                this.moveOrderingCache = new Map(); // 移动排序缓存
+                this.evaluationCache = new Map(); // 评估缓存
+            }
+            
+            // 设置难度
+            setDifficulty(level) {
+                const difficulty = DIFFICULTY_LEVELS[level - 1];
+                this.depth = difficulty.depth;
+                this.searchRadius = difficulty.searchRadius;
+                this.maxEvalPoints = difficulty.evalPoints;
+                this.timeLimit = difficulty.timeLimit;
+                
+                // 在移动设备上自动调整难度
+                if (this.mobileMode && level > 3) {
+                    this.depth = Math.min(this.depth, 4);
+                    this.maxEvalPoints = Math.min(this.maxEvalPoints, 5000);
+                    this.timeLimit = Math.min(this.timeLimit, 3000);
+                }
+                
+                // 清空缓存
+                this.transpositionTable.clear();
+                this.moveOrderingCache.clear();
+                this.evaluationCache.clear();
+            }
+            
+            // 启用移动设备优化
+            enableMobileMode() {
+                this.mobileMode = true;
+                // 降低默认难度
+                this.depth = Math.min(this.depth, 3);
+                this.maxEvalPoints = Math.min(this.maxEvalPoints, 2000);
+                this.timeLimit = Math.min(this.timeLimit, 2000);
+            }
+            
+            // 清理缓存
+            clearCache() {
+                this.transpositionTable.clear();
+                this.moveOrderingCache.clear();
+                this.evaluationCache.clear();
+                performanceMetrics.cacheHits = 0;
+                performanceMetrics.totalEvaluations = 0;
+            }
+            
+            // 获取最佳落子位置 - 优先级优化版
+            getBestMove() {
+                const startTime = performance.now();
+                let bestScore = -Infinity;
+                let bestMove = null;
+                const board = this.game.getBoard();
+                let evaluatedPoints = 0;
+                this.updateProgress(5, "🧠 开始分析局势...");
+                
+                // 0.5 新增：检查"空黑黑空黑空"模式威胁
+                const specificPatternThreat = this.findSpecificPatternThreat(board);
+                if (specificPatternThreat) {
+                    this.updateProgress(100, "🛑 检测到特定模式威胁！紧急防守");
+                    return specificPatternThreat;
+                }
+                
+                // 0. 检查棋盘上玩家已经形成的冲四（四连珠）的防守点
+                const existingFourBlock = this.findExistingFourThreat(board);
+                if (existingFourBlock && board[existingFourBlock.row][existingFourBlock.col] === EMPTY) {
+                    this.updateProgress(100, "🚨 必须防守玩家已存在的冲四");
+                    return existingFourBlock;
+                }
+                
+                // 1. 检查玩家五连珠/活四威胁（必须立即防守）
+                const mustBlock = this.findMustBlockMove(board);
+                if (mustBlock && board[mustBlock.row][mustBlock.col] === EMPTY) {
+                    this.updateProgress(100, "🚨 必须防守玩家活四/冲四");
+                    return mustBlock;
+                }
+                
+                // 2. 检查玩家活三威胁（高优先级）
+                const blockLiveThree = this.findBlockLiveThreeMove(board);
+                if (blockLiveThree && board[blockLiveThree.row][blockLiveThree.col] === EMPTY) {
+                    this.updateProgress(100, "🛡️ 防守玩家活三");
+                    return blockLiveThree;
+                }
+                
+                // 3. 新增：检查双活三威胁
+                const doubleLiveThreeBlock = this.findDoubleLiveThreeThreat(board);
+                if (doubleLiveThreeBlock && board[doubleLiveThreeBlock.row][doubleLiveThreeBlock.col] === EMPTY) {
+                    this.updateProgress(100, "🛡️ 双活三威胁！需要防守");
+                    return doubleLiveThreeBlock;
+                }
+                
+                // 4. AI有五连珠/活四，直接进攻
+                const winMove = this.findWinMove(board);
+                if (winMove && board[winMove.row][winMove.col] === EMPTY) {
+                    this.updateProgress(100, "⚡ AI直接进攻获胜");
+                    return winMove;
+                }
+                
+                // 5. 玩家有双四威胁（两个冲四/活四组合）
+                const doubleFourBlock = this.findDoubleFourThreat(board);
+                if (doubleFourBlock) {
+                    this.updateProgress(100, "🛑 双四威胁！紧急防守");
+                    return doubleFourBlock;
+                }
+                
+                // 6. 玩家有四三威胁（冲四+活三）
+                const fourThreeBlock = this.findFourThreeThreat(board);
+                if (fourThreeBlock) {
+                    this.updateProgress(100, "⚠️ 四三威胁！优先防守");
+                    return fourThreeBlock;
+                }
+                
+                // 7. 玩家有潜在活三/活二威胁（新增）
+                const potentialThreat = this.findPotentialThreatMove(board);
+                if (potentialThreat && board[potentialThreat.row][potentialThreat.col] === EMPTY) {
+                    this.updateProgress(100, "🔍 防守潜在威胁");
+                    return potentialThreat;
+                }
+                
+                // 8. AI有活三，进攻
+                const attackMove = this.findAttackMove(board);
+                if (attackMove && board[attackMove.row][attackMove.col] === EMPTY) {
+                    this.updateProgress(100, "⚡ 进攻机会优先");
+                    return attackMove;
+                }
+                
+                // 9. 开局库检查
+                if (this.game.getMoveHistory().length < 4) {
+                    this.updateProgress(15, "📚 检查开局库...");
+                    const openingMove = this.getOpeningMove(board);
+                    if (openingMove && board[openingMove.row][openingMove.col] === EMPTY) {
+                        this.updateProgress(100, "✅ 使用开局库移动");
+                        return openingMove;
+                    }
+                }
+                
+                // 10. 检查紧急防守需求
+                this.updateProgress(25, "🛡️ 检查紧急防守需求...");
+                const urgentDefenseMove = this.findUrgentDefenseMove(board);
+                if (urgentDefenseMove && board[urgentDefenseMove.row][urgentDefenseMove.col] === EMPTY) {
+                    this.updateProgress(100, "🚨 执行紧急防守");
+                    return urgentDefenseMove;
+                }
+                
+                // 11. 使用改进的备选移动策略
+                this.updateProgress(50, "🔍 搜索最佳位置...");
+                const fallbackMove = this.getFallbackMove(board);
+                if (fallbackMove) {
+                    return fallbackMove;
+                }
+                
+                // 最后手段：返回第一个非角落空位
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        if (board[r][c] === EMPTY) {
+                            // 跳过角落位置
+                            if ((r === 0 || r === BOARD_SIZE-1) && (c === 0 || c === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            return {row: r, col: c};
+                        }
+                    }
+                }
+                // 如果棋盘满了，返回null
+                return null;
+            }
+            
+            // 增强版活三检测方法
+            isLiveThree(board, row, col, player) {
+                const directions = [[0,1],[1,0],[1,1],[1,-1]];
+                let liveThreeCount = 0;
+                
+                for (const [dx,dy] of directions) {
+                    let count = 1;
+                    let openEnds = 0;
+                    
+                    // 正向检查
+                    let r = row + dx, c = col + dy;
+                    let consecutive = true;
+                    let blocked = false;
+                    
+                    // 正向连续棋子
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else {
+                            if (board[r][c] === EMPTY) {
+                                openEnds++;
+                            } else {
+                                blocked = true;
+                            }
+                            consecutive = false;
+                        }
+                        r += dx; 
+                        c += dy;
+                    }
+                    
+                    // 反向检查
+                    r = row - dx; 
+                    c = col - dy;
+                    consecutive = true;
+                    
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else {
+                            if (board[r][c] === EMPTY) {
+                                openEnds++;
+                            } else {
+                                blocked = true;
+                            }
+                            consecutive = false;
+                        }
+                        r -= dx; 
+                        c -= dy;
+                    }
+                    
+                    // 检查是否是活三：连续3个棋子且两端开放
+                    if (count === 3 && openEnds >= 2 && !blocked) {
+                        return true;
+                    }
+                    
+                    // 检查跳活三模式：例如 _OO_O
+                    if (this.checkJumpLiveThree(board, row, col, dx, dy, player)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            // 检查跳活三模式
+            checkJumpLiveThree(board, row, col, dx, dy, player) {
+                // 模式1: O O _ O
+                let pattern1 = [
+                    [0, 0], [dx, dy], [2*dx, 2*dy], [3*dx, 3*dy]
+                ];
+                
+                // 模式2: O _ O O
+                let pattern2 = [
+                    [0, 0], [dx, dy], [3*dx, 3*dy], [4*dx, 4*dy]
+                ];
+                
+                // 检查模式1
+                let validPattern1 = true;
+                for (let i = 0; i < pattern1.length; i++) {
+                    const [dr, dc] = pattern1[i];
+                    const r = row + dr;
+                    const c = col + dc;
+                    
+                    if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) {
+                        validPattern1 = false;
+                        break;
+                    }
+                    
+                    if (i === 2) { // 中间空位
+                        if (board[r][c] !== EMPTY) {
+                            validPattern1 = false;
+                            break;
+                        }
+                    } else {
+                        if (board[r][c] !== player) {
+                            validPattern1 = false;
+                            break;
+                        }
+                    }
+                }
+                
+                // 检查模式1的开放端
+                if (validPattern1) {
+                    const startR = row - dx;
+                    const startC = col - dy;
+                    const endR = row + 4*dx;
+                    const endC = col + 4*dy;
+                    
+                    let startOpen = (startR < 0 || startR >= BOARD_SIZE || startC < 0 || startC >= BOARD_SIZE) ? 
+                        false : board[startR][startC] === EMPTY;
+                    let endOpen = (endR < 0 || endR >= BOARD_SIZE || endC < 0 || endC >= BOARD_SIZE) ? 
+                        false : board[endR][endC] === EMPTY;
+                        
+                    if (startOpen && endOpen) {
+                        return true;
+                    }
+                }
+                
+                // 检查模式2
+                let validPattern2 = true;
+                for (let i = 0; i < pattern2.length; i++) {
+                    const [dr, dc] = pattern2[i];
+                    const r = row + dr;
+                    const c = col + dc;
+                    
+                    if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) {
+                        validPattern2 = false;
+                        break;
+                    }
+                    
+                    if (i === 1) { // 中间空位
+                        if (board[r][c] !== EMPTY) {
+                            validPattern2 = false;
+                            break;
+                        }
+                    } else {
+                        if (board[r][c] !== player) {
+                            validPattern2 = false;
+                            break;
+                        }
+                    }
+                }
+                
+                // 检查模式2的开放端
+                if (validPattern2) {
+                    const startR = row - dx;
+                    const startC = col - dy;
+                    const endR = row + 5*dx;
+                    const endC = col + 5*dy;
+                    
+                    let startOpen = (startR < 0 || startR >= BOARD_SIZE || startC < 0 || startC >= BOARD_SIZE) ? 
+                        false : board[startR][startC] === EMPTY;
+                    let endOpen = (endR < 0 || endR >= BOARD_SIZE || endC < 0 || endC >= BOARD_SIZE) ? 
+                        false : board[endR][endC] === EMPTY;
+                        
+                    if (startOpen && endOpen) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+            
+            // 增强威胁检测函数
+            getThreatLevel(board, row, col) {
+                const player = board[row][col];
+                const directions = [[0,1],[1,0],[1,1],[1,-1]];
+                let maxThreat = 0;
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+                    let openEnds = 0;
+                    let r = row + dx, c = col + dy;
+                    let consecutive = true;
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else {
+                            if (board[r][c] === EMPTY) {
+                                openEnds++;
+                            }
+                            consecutive = false;
+                        }
+                        r += dx;
+                        c += dy;
+                    }
+                    if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === EMPTY) {
+                        openEnds++;
+                    }
+                    r = row - dx;
+                    c = col - dy;
+                    consecutive = true;
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else {
+                            if (board[r][c] === EMPTY) {
+                                openEnds++;
+                            }
+                            consecutive = false;
+                        }
+                        r -= dx;
+                        c -= dy;
+                    }
+                    if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === EMPTY) {
+                        openEnds++;
+                    }
+                    // 原有威胁等级
+                    if (count >= 5) {
+                        maxThreat = Math.max(maxThreat, 5);
+                    } else if (count === 4) {
+                        if (openEnds >= 2) {
+                            maxThreat = Math.max(maxThreat, 4);
+                        } else if (openEnds >= 1) {
+                            maxThreat = Math.max(maxThreat, 4);
+                        }
+                    } else if (count === 3) {
+                        if (openEnds >= 2) {
+                            maxThreat = Math.max(maxThreat, 3);
+                        }
+                    }
+                    // 增强：检查跳活三模式
+                    if (count < 4 && this.checkJumpLiveThree(board, row, col, dx, dy, player)) {
+                        maxThreat = Math.max(maxThreat, 3);
+                    }
+                }
+                // 新增：检查双活三威胁
+                if (maxThreat >= 3) {
+                    let liveThreeCount = 0;
+                    for (const [dx, dy] of directions) {
+                        if (this.getDirectionalThreat(board, row, col, dx, dy, player) >= 3) {
+                            liveThreeCount++;
+                        }
+                    }
+                    if (liveThreeCount >= 2) {
+                        maxThreat = Math.max(maxThreat, 4); // 双活三视为更高威胁
+                    }
+                }
+                // 新增：检查特定威胁模式
+                const specificPatternThreat = this.findSpecificPatternThreat(board);
+                if (specificPatternThreat && specificPatternThreat.row === row && specificPatternThreat.col === col) {
+                    maxThreat = Math.max(maxThreat, 4); // 视为高级威胁
+                }
+                return maxThreat;
+            }
+            
+            // 增强防守活三函数
+            findBlockLiveThreeMove(board) {
+                const blockPoints = [];
+                const center = Math.floor(BOARD_SIZE / 2);
+                
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            
+                            // 检查这个位置是否能够阻止玩家的活三
+                            board[row][col] = PLAYER;
+                            const isThreat = this.isLiveThree(board, row, col, PLAYER);
+                            board[row][col] = EMPTY;
+                            
+                            if (isThreat) {
+                                // 计算威胁分数：中心位置权重更高
+                                const distanceFromCenter = Math.abs(row - center) + Math.abs(col - center);
+                                const positionWeight = 1.0 - (distanceFromCenter / (BOARD_SIZE * 2));
+                                const threatScore = 50000 * positionWeight;
+                                
+                                blockPoints.push({
+                                    row, 
+                                    col, 
+                                    score: threatScore
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                // 按威胁分数降序排序
+                blockPoints.sort((a, b) => b.score - a.score);
+                return blockPoints.length > 0 ? blockPoints[0] : null;
+            }
+            
+            // 查找玩家下一步能形成活四/冲四的位置
+            findMustBlockMove(board) {
+                const threatPoints = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            if ((row === 0 || row === BOARD_SIZE-1) && (col === 0 || col === BOARD_SIZE-1)) continue;
+                            board[row][col] = PLAYER;
+                            const threatLevel = this.getThreatLevel(board, row, col);
+                            board[row][col] = EMPTY;
+                            // 威胁等级4表示活四或冲四（都是必须立即防守的），5表示五连（已经赢了）
+                            if (threatLevel >= 4) {
+                                threatPoints.push({row, col});
+                            }
+                        }
+                    }
+                }
+                if (threatPoints.length === 0) return null;
+                // 返回第一个威胁位置
+                return threatPoints[0];
+            }
+            
+            // 更新威胁状态显示
+            updateThreatDisplay(board) {
+                const threats = this.checkGlobalThreats(board);
+                let threatLevel = "无";
+                let defenseMode = "正常";
+                
+                // 检查玩家威胁
+                if (threats.player.liveFour > 0) {
+                    threatLevel = "活四威胁";
+                    defenseMode = "紧急防守";
+                } else if (threats.player.liveThree > 0 || threats.player.doubleThree > 0) {
+                    threatLevel = threats.player.doubleThree > 0 ? "双活三威胁" : "活三威胁";
+                    defenseMode = "积极防守";
+                }
+                
+                document.getElementById('threatLevel').textContent = threatLevel;
+                document.getElementById('defenseMode').textContent = defenseMode;
+                
+                // 显示威胁指示器
+                const threatIndicator = document.getElementById('threatIndicator');
+                if (threats.player.liveThree > 0 || threats.player.liveFour > 0 || threats.player.doubleThree > 0) {
+                    threatIndicator.style.display = 'block';
+                    if (threats.player.liveFour > 0) {
+                        threatIndicator.textContent = "🛡️ AI正在防守活四威胁";
+                    } else if (threats.player.doubleThree > 0) {
+                        threatIndicator.textContent = "🛡️ AI正在防守双活三威胁";
+                    } else {
+                        threatIndicator.textContent = "🛡️ AI正在防守活三威胁";
+                    }
+                } else {
+                    threatIndicator.style.display = 'none';
+                }
+            }
+            
+            // 更新AI进度
+            updateProgress(progress, status) {
+                performanceMetrics.aiProgress = progress;
+                performanceMetrics.aiStatus = status;
+                
+                const progressBar = document.getElementById('aiProgressBar');
+                const progressText = document.getElementById('aiProgressText');
+                
+                if (progressBar && progressText) {
+                    progressBar.style.width = `${progress}%`;
+                    progressText.textContent = status;
+                }
+            }
+            
+            // 获取开局移动
+            getOpeningMove(board) {
+                const moveHistory = this.game.getMoveHistory();
+                const center = Math.floor(BOARD_SIZE / 2);
+                // 只要中心点是空的，AI第一手就下中心
+                if (moveHistory.length === 1 && board[center][center] === EMPTY) {
+                    return {row: center, col: center};
+                }
+                // 其它情况再遍历开局库
+                for (const openingMove of OPENING_MOVES) {
+                    if (board[openingMove.row][openingMove.col] === EMPTY) {
+                        return openingMove;
+                    }
+                }
+                return null;
+            }
+            
+            // 移动排序优化
+            sortMoves(moves, board) {
+                moves.sort((a, b) => {
+                    const scoreA = this.getMoveScore(a, board);
+                    const scoreB = this.getMoveScore(b, board);
+                    return scoreB - scoreA; // 降序排列
+                });
+            }
+            
+            // 获取移动评分（用于排序）- 强化防守版
+            getMoveScore(move, board) {
+                const {row, col} = move;
+                let score = 0;
+                
+                // 位置权重
+                score += POSITION_WEIGHTS[row][col] * 10;
+                
+                // 检查是否能形成威胁
+                board[row][col] = AI_PLAYER;
+                const aiScore = this.evaluatePosition(board, row, col);
+                board[row][col] = PLAYER;
+                const playerScore = this.evaluatePosition(board, row, col);
+                board[row][col] = EMPTY;
+                
+                // 优化：进攻权重更高，防守权重适中
+                score += aiScore * 3.0; // AI进攻
+                score += playerScore * 1.5; // 防守对手威胁
+                
+                // 紧急防守检查
+                if (this.isUrgentDefense(move, board)) {
+                    score += 50000; // 紧急防守优先级最高
+                }
+                
+                return score;
+            }
+            
+            // 检查是否需要紧急防守
+            isUrgentDefense(move, board) {
+                const {row, col} = move;
+                
+                // 检查对手是否有活三威胁
+                board[row][col] = PLAYER;
+                const threatLevel = this.getThreatLevel(board, row, col);
+                board[row][col] = EMPTY;
+                
+                return threatLevel >= 3; // 活三或更高威胁
+            }
+            
+            // 获取威胁等级（修正版）
+            getThreatLevelOld(board, row, col) {
+                const player = board[row][col];
+                const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+                let maxThreat = 0;
+                for (const [dx, dy] of directions) {
+                    const threat = this.getDirectionalThreat(board, row, col, dx, dy, player);
+                    maxThreat = Math.max(maxThreat, threat);
+                }
+                return maxThreat;
+            }
+
+            // 获取某个方向的威胁等级（修正版，区分活四/冲四）
+            getDirectionalThreat(board, row, col, dx, dy, player) {
+                let count = 1;
+                let openEnds = 0;
+                // 正向
+                let r = row + dx, c = col + dy;
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+                    count++;
+                    r += dx;
+                    c += dy;
+                }
+                // 检查正向端点
+                if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === EMPTY) {
+                    openEnds++;
+                }
+                // 反向
+                r = row - dx;
+                c = col - dy;
+                while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === player) {
+                    count++;
+                    r -= dx;
+                    c -= dy;
+                }
+                // 检查反向端点
+                if (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && board[r][c] === EMPTY) {
+                    openEnds++;
+                }
+                // 威胁等级：5=五连珠, 4=活四/冲四, 3=活三, 2=活二, 1=眠三
+                if (count >= 5) return 5;
+                if (count === 4 && openEnds === 2) return 4; // 活四
+                if (count === 4 && openEnds === 1) return 4; // 冲四
+                if (count === 3 && openEnds === 2) return 3;
+                if (count === 2 && openEnds === 2) return 2;
+                if (count === 3 && openEnds === 1) return 1;
+                return 0;
+            }
+            
+            // 获取提示位置
+            getHint() {
+                return this.getBestMove();
+            }
+            
+            // 获取所有可能的落子位置（优化性能）
+            getPossibleMoves(board) {
+                const moves = [];
+                const center = Math.floor(BOARD_SIZE / 2);
+                
+                // 如果棋盘为空，返回中心点
+                if (this.game.getMoveHistory().length === 0) {
+                    return [{row: center, col: center}];
+                }
+                
+                // 只在已有棋子的周围搜索
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] !== EMPTY) {
+                            // 检查周围区域（根据难度级别调整半径）
+                            for (let i = Math.max(0, row - this.searchRadius); i <= Math.min(BOARD_SIZE - 1, row + this.searchRadius); i++) {
+                                for (let j = Math.max(0, col - this.searchRadius); j <= Math.min(BOARD_SIZE - 1, col + this.searchRadius); j++) {
+                                    // 跳过四个角落
+                                    if ((i === 0 || i === BOARD_SIZE-1) && (j === 0 || j === BOARD_SIZE-1)) continue;
+                                    if (board[i][j] === EMPTY) {
+                                        // 检查这个位置是否有价值
+                                        if (this.isValuablePosition(i, j, board)) {
+                                            moves.push({row: i, col: j});
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // 去重
+                const uniqueMoves = Array.from(new Set(moves.map(move => `${move.row},${move.col}`)))
+                    .map(str => {
+                        const [row, col] = str.split(',');
+                        return {row: parseInt(row), col: parseInt(col)};
+                    });
+                
+                // 如果棋盘为空，返回中心点
+                if (uniqueMoves.length === 0) {
+                    uniqueMoves.push({row: center, col: center});
+                }
+                
+                return uniqueMoves;
+            }
+            
+            // 判断位置是否有价值 - 强化防守版
+            isValuablePosition(row, col, board) {
+                // 检查是否能形成威胁或阻止威胁
+                board[row][col] = AI_PLAYER;
+                const aiScore = this.evaluatePosition(board, row, col);
+                board[row][col] = PLAYER;
+                const playerScore = this.evaluatePosition(board, row, col);
+                board[row][col] = EMPTY;
+                
+                // 降低阈值，让AI考虑更多防守位置
+                return aiScore > 50 || playerScore > 50;
+            }
+            
+            // 检查全局威胁 - 新增函数
+            checkGlobalThreats(board) {
+                const threats = {
+                    ai: { liveFour: 0, liveThree: 0, doubleThree: 0 },
+                    player: { liveFour: 0, liveThree: 0, doubleThree: 0 }
+                };
+                
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] !== EMPTY) {
+                            const player = board[row][col];
+                            const threatInfo = this.getDetailedThreatInfo(board, row, col);
+                            
+                            if (player === AI_PLAYER) {
+                                threats.ai.liveFour += threatInfo.liveFour;
+                                threats.ai.liveThree += threatInfo.liveThree;
+                                threats.ai.doubleThree += threatInfo.doubleThree;
+                            } else {
+                                threats.player.liveFour += threatInfo.liveFour;
+                                threats.player.liveThree += threatInfo.liveThree;
+                                threats.player.doubleThree += threatInfo.doubleThree;
+                            }
+                        }
+                    }
+                }
+                
+                return threats;
+            }
+            
+            // 获取详细的威胁信息
+            getDetailedThreatInfo(board, row, col) {
+                const player = board[row][col];
+                const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+                let liveFour = 0, liveThree = 0, doubleThree = 0;
+                
+                for (const [dx, dy] of directions) {
+                    const threat = this.getDirectionalThreat(board, row, col, dx, dy, player);
+                    if (threat === 4) liveFour++;
+                    else if (threat === 3) liveThree++;
+                }
+                
+                // 检查双三
+                if (liveThree >= 2) doubleThree = 1;
+                
+                return { liveFour, liveThree, doubleThree };
+            }
+            
+            // 极大极小算法（带Alpha-Beta剪枝和时间控制）
+            minimax(board, depth, isMaximizing, alpha, beta, startTime) {
+                // 时间控制检查
+                if (performance.now() - startTime > this.timeLimit) {
+                    return 0; // 时间不够，返回中性值
+                }
+                
+                // 检查游戏结束条件
+                if (depth === 0) {
+                    return this.evaluateBoard(board);
+                }
+                
+                // 置换表查找
+                const boardHash = this.getBoardHash(board);
+                const ttEntry = this.transpositionTable.get(boardHash);
+                if (ttEntry && ttEntry.depth >= depth) {
+                    return ttEntry.score;
+                }
+                
+                const possibleMoves = this.getPossibleMoves(board);
+                
+                if (isMaximizing) {
+                    let maxEval = -Infinity;
+                    for (const move of possibleMoves) {
+                        const {row, col} = move;
+                        board[row][col] = AI_PLAYER;
+                        
+                        const evaluation = this.minimax(board, depth - 1, false, alpha, beta, startTime);
+                        board[row][col] = EMPTY;
+                        
+                        maxEval = Math.max(maxEval, evaluation);
+                        alpha = Math.max(alpha, evaluation);
+                        if (beta <= alpha) break; // Alpha-Beta剪枝
+                    }
+                    
+                    // 存储到置换表
+                    this.transpositionTable.set(boardHash, {score: maxEval, depth: depth});
+                    return maxEval;
+                } else {
+                    let minEval = Infinity;
+                    for (const move of possibleMoves) {
+                        const {row, col} = move;
+                        board[row][col] = PLAYER;
+                        
+                        const evaluation = this.minimax(board, depth - 1, true, alpha, beta, startTime);
+                        board[row][col] = EMPTY;
+                        
+                        minEval = Math.min(minEval, evaluation);
+                        beta = Math.min(beta, evaluation);
+                        if (beta <= alpha) break; // Alpha-Beta剪枝
+                    }
+                    
+                    // 存储到置换表
+                    this.transpositionTable.set(boardHash, {score: minEval, depth: depth});
+                    return minEval;
+                }
+            }
+            
+            // 获取棋盘哈希值（用于置换表）
+            getBoardHash(board) {
+                let hash = 0;
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        hash = (hash * 3 + board[row][col]) % 1000000007;
+                    }
+                }
+                return hash;
+            }
+            
+            // 评估棋盘状态 - 优化版
+            evaluateBoard(board) {
+                // 检查缓存
+                const boardHash = this.getBoardHash(board);
+                const cachedEval = this.evaluationCache.get(boardHash);
+                if (cachedEval !== undefined) {
+                    performanceMetrics.cacheHits++;
+                    return cachedEval;
+                }
+                
+                performanceMetrics.totalEvaluations++;
+                let score = 0;
+                
+                // 检查所有可能的五连珠方向
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] !== EMPTY) {
+                            // 为每个位置计算分数
+                            score += this.evaluatePosition(board, row, col);
+                        }
+                    }
+                }
+                
+                // 缓存结果
+                this.evaluationCache.set(boardHash, score);
+                
+                return score;
+            }
+            
+            // 增强版评估函数 - 强化防守版
+            evaluatePosition(board, row, col) {
+                const player = board[row][col];
+                const directions = [
+                    [0, 1], [1, 0], [1, 1], [1, -1] // 水平、垂直、对角线、反对角线
+                ];
+                
+                let totalScore = 0;
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1; // 当前位置已经有一个棋子
+                    let openEnds = 0;
+                    let blocked = false;
+                    
+                    // 正向检查
+                    let r = row + dx, c = col + dy;
+                    let consecutive = true;
+                    
+                    // 记录连续棋子
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            blocked = true;
+                            consecutive = false;
+                        }
+                        r += dx;
+                        c += dy;
+                    }
+                    
+                    // 反向检查
+                    r = row - dx;
+                    c = col - dy;
+                    consecutive = true;
+                    
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            blocked = true;
+                            consecutive = false;
+                        }
+                        r -= dx;
+                        c -= dy;
+                    }
+                    
+                    // 根据连续棋子和开放端分配分数 - 强化防守权重
+                    if (count >= 5) {
+                        totalScore += 1000000; // 胜利 - 提高权重
+                    } else if (count === 4) {
+                        if (openEnds === 2) totalScore += 100000; // 活四 - 大幅提高
+                        else if (openEnds === 1) totalScore += 30000; // 冲四
+                    } else if (count === 3) {
+                        if (openEnds === 2) totalScore += 15000; // 活三 - 大幅提高
+                        else if (openEnds === 1) totalScore += 3000; // 眠三
+                    } else if (count === 2) {
+                        if (openEnds === 2) totalScore += 1500; // 活二
+                        else if (openEnds === 1) totalScore += 400; // 眠二
+                    } else if (count === 1) {
+                        if (openEnds === 2) totalScore += 200; // 活一
+                    }
+                    
+                    // 双三和双四检测 - 提高权重
+                    if (count === 3 && openEnds === 2) {
+                        totalScore += this.checkDoubleThreat(board, row, col, player) * 10000;
+                    } else if (count === 4 && openEnds >= 1) {
+                        totalScore += this.checkDoubleThreat(board, row, col, player) * 20000;
+                    }
+                }
+                
+                // 位置权重加成
+                totalScore *= POSITION_WEIGHTS[row][col];
+                
+                // 角落惩罚
+                if ((row === 0 || row === BOARD_SIZE-1) && (col === 0 || col === BOARD_SIZE-1)) {
+                    totalScore *= 0.05; // 极大降低角落分数
+                } else if (row === 0 || row === BOARD_SIZE-1 || col === 0 || col === BOARD_SIZE-1) {
+                    totalScore *= 0.7; // 边缘位置降低权重
+                }
+                
+                // 如果是敌方棋子，分数为负，但权重更高（强化防守）
+                if (player === PLAYER) {
+                    totalScore = -totalScore * 1.8; // 大幅提高防守权重
+                }
+                
+                return totalScore;
+            }
+            
+            // 检查双重威胁（双三、双四）
+            checkDoubleThreat(board, row, col, player) {
+                let threats = 0;
+                const directions = [
+                    [0, 1], [1, 0], [1, 1], [1, -1]
+                ];
+                
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+                    let openEnds = 0;
+                    
+                    // 正向
+                    let r = row + dx, c = col + dy;
+                    let consecutive = true;
+                    
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            consecutive = false;
+                        }
+                        r += dx;
+                        c += dy;
+                    }
+                    
+                    // 反向
+                    r = row - dx;
+                    c = col - dy;
+                    consecutive = true;
+                    
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            consecutive = false;
+                        }
+                        r -= dx;
+                        c -= dy;
+                    }
+                    
+                    // 检查威胁类型
+                    if (count >= 4 && openEnds >= 1) {
+                        threats++;
+                    } else if (count === 3 && openEnds >= 2) {
+                        threats++;
+                    }
+                }
+                
+                return threats >= 2 ? 1 : 0;
+            }
+            
+            // 新增：查找AI自身进攻机会（活三变活四/冲四）
+            findAttackMove(board) {
+                const attackMoves = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            
+                            board[row][col] = AI_PLAYER;
+                            const threatLevel = this.getThreatLevel(board, row, col);
+                            board[row][col] = EMPTY;
+                            if (threatLevel >= 4) { // 活四或更高
+                                attackMoves.push({row, col, priority: 100000});
+                            } else if (threatLevel === 3) { // 活三
+                                attackMoves.push({row, col, priority: 50000});
+                            }
+                        }
+                    }
+                }
+                attackMoves.sort((a, b) => b.priority - a.priority);
+                if (attackMoves.length > 0) {
+                    const move = {row: attackMoves[0].row, col: attackMoves[0].col};
+                    if (board[move.row][move.col] === EMPTY) return move;
+                }
+                return null;
+            }
+            // 新增：查找AI自身五连珠/活四机会
+            findWinMove(board) {
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            
+                            board[row][col] = AI_PLAYER;
+                            const threatLevel = this.getThreatLevel(board, row, col);
+                            board[row][col] = EMPTY;
+                            if (threatLevel >= 4) {
+                                if (board[row][col] === EMPTY) return {row, col};
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+            // 新增：查找双四威胁
+            findDoubleFourThreat(board) {
+                const threats = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            // 模拟玩家落子
+                            board[row][col] = PLAYER;
+                            const threatInfo = this.getDetailedThreatInfo(board, row, col);
+                            board[row][col] = EMPTY;
+                            // 双四威胁：两个或更多四连珠威胁
+                            if (threatInfo.liveFour >= 2) {
+                                threats.push({row, col, priority: 200000});
+                            }
+                        }
+                    }
+                }
+                // 按优先级排序
+                threats.sort((a, b) => b.priority - a.priority);
+                return threats.length > 0 ? threats[0] : null;
+            }
+            // 新增：查找四三威胁
+            findFourThreeThreat(board) {
+                const threats = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            // 模拟玩家落子
+                            board[row][col] = PLAYER;
+                            const threatInfo = this.getDetailedThreatInfo(board, row, col);
+                            board[row][col] = EMPTY;
+                            // 四三威胁：至少一个四连珠和一个活三
+                            if (threatInfo.liveFour >= 1 && threatInfo.liveThree >= 1) {
+                                threats.push({row, col, priority: 180000});
+                            }
+                        }
+                    }
+                }
+                // 按优先级排序
+                threats.sort((a, b) => b.priority - a.priority);
+                return threats.length > 0 ? threats[0] : null;
+            }
+            // 新增：查找双活三威胁
+            findDoubleLiveThreeThreat(board) {
+                const threats = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            // 模拟玩家落子
+                            board[row][col] = PLAYER;
+                            const threatInfo = this.getDetailedThreatInfo(board, row, col);
+                            board[row][col] = EMPTY;
+                            // 双活三威胁：两个或更多活三
+                            if (threatInfo.liveThree >= 2) {
+                                threats.push({row, col, priority: 160000});
+                            }
+                        }
+                    }
+                }
+                // 按优先级排序
+                threats.sort((a, b) => b.priority - a.priority);
+                return threats.length > 0 ? threats[0] : null;
+            }
+            
+            // 新增：查找玩家下一步能形成五连的位置
+            findMustBlockMoveOld(board) {
+                // 收集所有玩家下子能五連的點
+                const winPoints = [];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            if ((row === 0 || row === BOARD_SIZE-1) && (col === 0 || col === BOARD_SIZE-1)) continue;
+                            board[row][col] = PLAYER;
+                            const willWin = this.game.checkWin(row, col);
+                            board[row][col] = EMPTY;
+                            this.game.winLine = null;
+                            if (willWin) {
+                                winPoints.push({row, col});
+                            }
+                        }
+                    }
+                }
+                if (winPoints.length === 0) return null;
+                // 如果只有一個威脅，直接擋
+                if (winPoints.length === 1) return winPoints[0];
+                // 多個威脅，找交叉點（理論上五子棋只有一個交叉點能同時擋多個威脅）
+                // 這裡直接擋第一個，或可進階分析
+                return winPoints[0];
+            }
+            
+            // 新增：查找潜在威胁（活二、跳活三等）
+            findPotentialThreatMove(board) {
+                const potentialMoves = [];
+                const center = Math.floor(BOARD_SIZE / 2);
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] === EMPTY) {
+                            // 跳过角落位置
+                            if ((row === 0 || row === BOARD_SIZE-1) && 
+                                (col === 0 || col === BOARD_SIZE-1)) {
+                                continue;
+                            }
+                            // 模拟玩家落子
+                            board[row][col] = PLAYER;
+                            // 检查活二威胁
+                            const liveTwoThreat = this.checkLiveTwoThreat(board, row, col, PLAYER);
+                            // 检查跳活二威胁
+                            const jumpTwoThreat = this.checkJumpTwoThreat(board, row, col, PLAYER);
+                            board[row][col] = EMPTY;
+                            if (liveTwoThreat || jumpTwoThreat) {
+                                // 计算威胁分数：中心位置权重更高
+                                const distanceFromCenter = Math.abs(row - center) + Math.abs(col - center);
+                                const positionWeight = 1.0 - (distanceFromCenter / (BOARD_SIZE * 2));
+                                let threatScore = 0;
+                                if (liveTwoThreat) threatScore += 8000;
+                                if (jumpTwoThreat) threatScore += 6000;
+                                potentialMoves.push({
+                                    row, 
+                                    col, 
+                                    score: threatScore * positionWeight
+                                });
+                            }
+                        }
+                    }
+                }
+                // 按威胁分数降序排序
+                potentialMoves.sort((a, b) => b.score - a.score);
+                return potentialMoves.length > 0 ? potentialMoves[0] : null;
+            }
+            // 检查活二威胁
+            checkLiveTwoThreat(board, row, col, player) {
+                const directions = [[0,1],[1,0],[1,1],[1,-1]];
+                for (const [dx, dy] of directions) {
+                    // 检查连续棋子
+                    let count = 1; // 当前位置
+                    let openEnds = 0;
+                    // 正向
+                    let r = row + dx;
+                    let c = col + dy;
+                    let consecutive = true;
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            consecutive = false;
+                        }
+                        r += dx;
+                        c += dy;
+                    }
+                    // 反向
+                    r = row - dx;
+                    c = col - dy;
+                    consecutive = true;
+                    while (consecutive && r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE) {
+                        if (board[r][c] === player) {
+                            count++;
+                        } else if (board[r][c] === EMPTY) {
+                            openEnds++;
+                            consecutive = false;
+                        } else {
+                            consecutive = false;
+                        }
+                        r -= dx;
+                        c -= dy;
+                    }
+                    // 检查活二威胁
+                    if (count === 2 && openEnds >= 2) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            // 检查跳活二威胁
+            checkJumpTwoThreat(board, row, col, player) {
+                const directions = [[0,1],[1,0],[1,1],[1,-1]];
+                for (const [dx, dy] of directions) {
+                    // 检查正向跳活二
+                    let nextR = row + dx;
+                    let nextC = col + dy;
+                    let jumpR = row + 2 * dx;
+                    let jumpC = col + 2 * dy;
+                    if (jumpR >= 0 && jumpR < BOARD_SIZE && jumpC >= 0 && jumpC < BOARD_SIZE) {
+                        if (board[jumpR][jumpC] === player && board[nextR][nextC] === EMPTY) {
+                            // 检查两端是否开放
+                            let openEnds = 0;
+                            // 跳棋位置的前方
+                            let beyondJumpR = jumpR + dx;
+                            let beyondJumpC = jumpC + dy;
+                            if (beyondJumpR >= 0 && beyondJumpR < BOARD_SIZE && beyondJumpC >= 0 && beyondJumpC < BOARD_SIZE) {
+                                if (board[beyondJumpR][beyondJumpC] === EMPTY) openEnds++;
+                            }
+                            // 当前位置的后方
+                            let behindR = row - dx;
+                            let behindC = col - dy;
+                            if (behindR >= 0 && behindR < BOARD_SIZE && behindC >= 0 && behindC < BOARD_SIZE) {
+                                if (board[behindR][behindC] === EMPTY) openEnds++;
+                            }
+                            if (openEnds >= 2) {
+                                return true;
+                            }
+                        }
+                    }
+                    // 检查反向跳活二
+                    nextR = row - dx;
+                    nextC = col - dy;
+                    jumpR = row - 2 * dx;
+                    jumpC = col - 2 * dy;
+                    if (jumpR >= 0 && jumpR < BOARD_SIZE && jumpC >= 0 && jumpC < BOARD_SIZE) {
+                        if (board[jumpR][jumpC] === player && board[nextR][nextC] === EMPTY) {
+                            let openEnds = 0;
+                            // 跳棋位置的后方
+                            let beyondJumpR = jumpR - dx;
+                            let beyondJumpC = jumpC - dy;
+                            if (beyondJumpR >= 0 && beyondJumpR < BOARD_SIZE && beyondJumpC >= 0 && beyondJumpC < BOARD_SIZE) {
+                                if (board[beyondJumpR][beyondJumpC] === EMPTY) openEnds++;
+                            }
+                            // 当前位置的前方
+                            let frontR = row + dx;
+                            let frontC = col + dy;
+                            if (frontR >= 0 && frontR < BOARD_SIZE && frontC >= 0 && frontC < BOARD_SIZE) {
+                                if (board[frontR][frontC] === EMPTY) openEnds++;
+                            }
+                            if (openEnds >= 2) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+            // --- 新增：查找棋盘上已存在的冲四威胁 ---
+            findExistingFourThreat(board) {
+                const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] !== PLAYER) continue;
+                        for (const [dx, dy] of directions) {
+                            // 确保是连续棋子的起始点
+                            const prevRow = row - dx;
+                            const prevCol = col - dy;
+                            if (prevRow >= 0 && prevRow < BOARD_SIZE && prevCol >= 0 && prevCol < BOARD_SIZE && 
+                                board[prevRow][prevCol] === PLAYER) {
+                                continue;
+                            }
+                            let count = 1;
+                            let r = row + dx;
+                            let c = col + dy;
+                            // 统计连续棋子数
+                            while (r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE && 
+                                   board[r][c] === PLAYER) {
+                                count++;
+                                r += dx;
+                                c += dy;
+                            }
+                            // 计算端点位置
+                            const forwardEnd = { row: r, col: c };
+                            // 判断端点是否开放
+                            let forwardOpen = false;
+                            if (forwardEnd.row >= 0 && forwardEnd.row < BOARD_SIZE && 
+                                forwardEnd.col >= 0 && forwardEnd.col < BOARD_SIZE) {
+                                if (board[forwardEnd.row][forwardEnd.col] === EMPTY) {
+                                    forwardOpen = true;
+                                }
+                            }
+                            // 判断反方向端点
+                            const backwardEndRow = row - dx;
+                            const backwardEndCol = col - dy;
+                            let backwardOpen = false;
+                            if (backwardEndRow >= 0 && backwardEndRow < BOARD_SIZE && 
+                                backwardEndCol >= 0 && backwardEndCol < BOARD_SIZE) {
+                                if (board[backwardEndRow][backwardEndCol] === EMPTY) {
+                                    backwardOpen = true;
+                                }
+                            }
+                            // 冲四检测：连续四颗棋子且只有一端开放
+                            if (count === 4) {
+                                if (forwardOpen && !backwardOpen) {
+                                    return { row: forwardEnd.row, col: forwardEnd.col };
+                                }
+                                if (!forwardOpen && backwardOpen) {
+                                    return { row: backwardEndRow, col: backwardEndCol };
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+            // --- 新增：检测特定威胁模式（空黑黑空黑空） ---
+            findSpecificPatternThreat(board) {
+                const patterns = [
+                    // 水平
+                    { pattern: [EMPTY, PLAYER, PLAYER, EMPTY, PLAYER, EMPTY], directions: [[0, 1]] },
+                    // 垂直
+                    { pattern: [EMPTY, PLAYER, PLAYER, EMPTY, PLAYER, EMPTY], directions: [[1, 0]] },
+                    // 对角线
+                    { pattern: [EMPTY, PLAYER, PLAYER, EMPTY, PLAYER, EMPTY], directions: [[1, 1]] },
+                    // 反对角线
+                    { pattern: [EMPTY, PLAYER, PLAYER, EMPTY, PLAYER, EMPTY], directions: [[1, -1]] }
+                ];
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        for (const {pattern, directions} of patterns) {
+                            for (const [dx, dy] of directions) {
+                                let match = true;
+                                let threatPoint = null;
+                                for (let i = 0; i < pattern.length; i++) {
+                                    const r = row + dx * i;
+                                    const c = col + dy * i;
+                                    if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) {
+                                        match = false;
+                                        break;
+                                    }
+                                    if (pattern[i] === EMPTY && board[r][c] === EMPTY && !threatPoint) {
+                                        threatPoint = {row: r, col: c};
+                                    }
+                                    if (pattern[i] !== board[r][c]) {
+                                        match = false;
+                                        break;
+                                    }
+                                }
+                                if (match && threatPoint && board[threatPoint.row][threatPoint.col] === EMPTY) {
+                                    return threatPoint;
+                                }
+                            }
+                        }
+                    }
+                }
+                return null;
+            }
+        }
+        
+        // 渲染类
+        class Renderer {
+            constructor(canvas, game) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.game = game;
+                this.highlight = null;
+                this.hintPosition = null;
+                this.lastAIMove = null; // AI最后一步的位置
+                this.resizeCanvas();
+                this.winLine = null;
+            }
+            
+            // 调整画布大小
+            resizeCanvas() {
+                const cellSize = calculateCellSize();
+                const boardSize = BOARD_SIZE * cellSize;
+                const dpr = window.devicePixelRatio || 1;
+
+                // 设置画布实际像素尺寸
+                this.canvas.width = boardSize * dpr;
+                this.canvas.height = boardSize * dpr;
+
+                // 设置画布CSS显示尺寸
+                this.canvas.style.width = boardSize + "px";
+                this.canvas.style.height = boardSize + "px";
+
+                // 缩放绘图上下文
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置
+                this.ctx.scale(dpr, dpr);
+
+                // 重绘棋盘
+                this.drawBoard();
+            }
+            
+            // 绘制棋盘
+            drawBoard() {
+                const ctx = this.ctx;
+                const cellSize = calculateCellSize();
+                const boardSize = BOARD_SIZE * cellSize;
+                const offset = cellSize / 2;
+                
+                // 清空画布
+                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 绘制棋盘背景
+                ctx.fillStyle = '#dcb35c';
+                ctx.fillRect(0, 0, boardSize, boardSize);
+                
+                // 绘制网格线
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < BOARD_SIZE; i++) {
+                    // 横线
+                    ctx.beginPath();
+                    ctx.moveTo(offset, i * cellSize + offset);
+                    ctx.lineTo(boardSize - offset, i * cellSize + offset);
+                    ctx.stroke();
+                    
+                    // 竖线
+                    ctx.beginPath();
+                    ctx.moveTo(i * cellSize + offset, offset);
+                    ctx.lineTo(i * cellSize + offset, boardSize - offset);
+                    ctx.stroke();
+                }
+                
+                // 绘制天元和星位
+                const starPoints = [3, 9, 15];
+                ctx.fillStyle = '#000';
+                
+                for (const x of starPoints) {
+                    for (const y of starPoints) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            x * cellSize + offset,
+                            y * cellSize + offset,
+                            4, 0, Math.PI * 2
+                        );
+                        ctx.fill();
+                    }
+                }
+                
+                // 绘制棋子
+                const board = this.game.getBoard();
+                for (let row = 0; row < BOARD_SIZE; row++) {
+                    for (let col = 0; col < BOARD_SIZE; col++) {
+                        if (board[row][col] !== EMPTY) {
+                            this.drawPiece(row, col, board[row][col]);
+                        }
+                    }
+                }
+                
+                // 绘制提示位置
+                if (this.hintPosition) {
+                    const {row, col} = this.hintPosition;
+                    ctx.fillStyle = 'rgba(46, 204, 113, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(
+                        col * cellSize + offset,
+                        row * cellSize + offset,
+                        cellSize / 3, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                
+                // 绘制高亮位置
+                if (this.highlight) {
+                    const {row, col} = this.highlight;
+                    ctx.fillStyle = 'rgba(253, 187, 45, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(
+                        col * cellSize + offset,
+                        row * cellSize + offset,
+                        cellSize / 2.5, 0, Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                
+                // 绘制AI最后一步的标示
+                if (this.lastAIMove) {
+                    const {row, col} = this.lastAIMove;
+                    ctx.strokeStyle = '#ff6b6b';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(
+                        col * cellSize + offset,
+                        row * cellSize + offset,
+                        cellSize / 2 + 2, 0, Math.PI * 2
+                    );
+                    ctx.stroke();
+                    
+                    // 添加闪烁动画效果
+                    ctx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(
+                        col * cellSize + offset,
+                        row * cellSize + offset,
+                        cellSize / 2 + 4, 0, Math.PI * 2
+                    );
+                    ctx.stroke();
+                }
+                // 新增：绘制胜利红线
+                if (this.winLine && this.winLine.length === 5) {
+                    this.drawWinLine(this.winLine);
+                }
+            }
+            
+            // 绘制棋子
+            drawPiece(row, col, player) {
+                const ctx = this.ctx;
+                const cellSize = calculateCellSize();
+                const offset = cellSize / 2;
+                const x = col * cellSize + offset;
+                const y = row * cellSize + offset;
+                const radius = cellSize / 2 - 2;
+                
+                // 获取玩家的棋子颜色
+                const color = this.game.getPlayerColor(player);
+                
+                // 创建棋子渐变效果
+                const gradient = ctx.createRadialGradient(
+                    x - radius/3, y - radius/3, 1,
+                    x, y, radius
+                );
+                
+                if (color === BLACK) {
+                    gradient.addColorStop(0, "#111");
+                    gradient.addColorStop(1, "#000");
+                } else {
+                    gradient.addColorStop(0, "#FFF");
+                    gradient.addColorStop(1, "#DDD");
+                }
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 添加棋子光泽效果
+                ctx.fillStyle = color === BLACK ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)";
+                ctx.beginPath();
+                ctx.arc(x - radius/3, y - radius/3, radius/3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // 设置高亮位置
+            setHighlight(row, col) {
+                this.highlight = {row, col};
+                this.drawBoard();
+            }
+            
+            // 设置提示位置
+            setHintPosition(row, col) {
+                this.hintPosition = {row, col};
+                this.drawBoard();
+            }
+            
+            // 清除提示
+            clearHint() {
+                this.hintPosition = null;
+                this.drawBoard();
+            }
+            
+            // 设置AI最后一步
+            setLastAIMove(row, col) {
+                this.lastAIMove = {row, col};
+                this.drawBoard();
+            }
+            
+            // 清除AI最后一步标示
+            clearLastAIMove() {
+                this.lastAIMove = null;
+                this.drawBoard();
+            }
+            
+            // 新增：绘制胜利红线
+            drawWinLine(line) {
+                const ctx = this.ctx;
+                const cellSize = calculateCellSize();
+                const offset = cellSize / 2;
+                ctx.save();
+                ctx.strokeStyle = '#ff2222';
+                ctx.lineWidth = 6;
+                ctx.shadowColor = '#ff2222';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                const start = line[0];
+                const end = line[4];
+                ctx.moveTo(start.col * cellSize + offset, start.row * cellSize + offset);
+                ctx.lineTo(end.col * cellSize + offset, end.row * cellSize + offset);
+                ctx.stroke();
+                ctx.restore();
+            }
+            
+            // 新增：设置胜利线
+            setWinLine(line) {
+                this.winLine = line;
+                this.drawBoard();
+            }
+        }
+        
+        // UI控制器类
+        class UIController {
+            constructor(game, ai, renderer) {
+                this.game = game;
+                this.ai = ai;
+                this.renderer = renderer;
+                this.canvas = renderer.canvas;
+                this.isPlayerTurn = true;
+                this.currentDifficulty = 2;
+                this.isMultiTouch = false;
+                this.lastTouchTime = 0;
+                this.playerFirstChoice = true; // 新增：记录用户选择的先手
+                this.setupEventListeners();
+                
+                // 添加窗口大小调整监听
+                window.addEventListener('resize', () => {
+                    this.renderer.resizeCanvas();
+                });
+                
+                // 检测移动设备
+                if (isMobileDevice()) {
+                    this.ai.enableMobileMode();
+                    performanceMetrics.mobileMode = true;
+                    console.log("移动设备模式已启用");
+                }
+            }
+            
+            // 初始化事件监听
+            setupEventListeners() {
+                // 棋盘点击事件
+                this.canvas.addEventListener('click', (e) => {
+                    if (!this.isPlayerTurn || this.game.gameOver || performanceMetrics.isZooming) return;
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const cellSize = calculateCellSize();
+                    const col = Math.floor(x / cellSize);
+                    const row = Math.floor(y / cellSize);
+                    
+                    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+                        this.handlePlayerMove(row, col);
+                    }
+                });
+                
+                // 触摸事件处理 - 简化版，确保缩放功能正常
+                let touchStartTime = 0;
+                let touchStartX = 0;
+                let touchStartY = 0;
+                
+                this.canvas.addEventListener('touchstart', (e) => {
+                    if (e.touches.length > 1) {
+                        // 多点触控 - 显示缩放提示，不阻止默认行为
+                        const zoomIndicator = document.getElementById('zoomIndicator');
+                        zoomIndicator.style.display = 'block';
+                        zoomIndicator.classList.add('zooming');
+                        zoomIndicator.textContent = '🖐️ 双指缩放中';
+                        return;
+                    }
+                    
+                    // 单指触摸 - 记录起始位置和时间
+                    if (e.touches.length === 1) {
+                        touchStartTime = Date.now();
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                    }
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    if (e.touches.length > 1) {
+                        // 多点触控 - 显示缩放提示
+                        const zoomIndicator = document.getElementById('zoomIndicator');
+                        zoomIndicator.style.display = 'block';
+                        zoomIndicator.classList.add('zooming');
+                        zoomIndicator.textContent = '🖐️ 双指缩放中';
+                        return;
+                    }
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    // 隐藏缩放提示
+                    const zoomIndicator = document.getElementById('zoomIndicator');
+                    zoomIndicator.style.display = 'none';
+                    zoomIndicator.classList.remove('zooming');
+                    
+                    // 如果是多点触控结束，不处理点击
+                    if (e.touches.length > 0) {
+                        return;
+                    }
+                    
+                    // 检查是否为有效的单指点击
+                    const touchEndTime = Date.now();
+                    const touchDuration = touchEndTime - touchStartTime;
+                    
+                    // 只处理短时间的点击（避免与滚动冲突）
+                    if (touchDuration > 50 && touchDuration < 500) {
+                        if (!this.isPlayerTurn || this.game.gameOver) return;
+                        
+                        const rect = this.canvas.getBoundingClientRect();
+                        const touch = e.changedTouches[0];
+                        const x = touch.clientX - rect.left;
+                        const y = touch.clientY - rect.top;
+                        
+                        const cellSize = calculateCellSize();
+                        const col = Math.floor(x / cellSize);
+                        const row = Math.floor(y / cellSize);
+                        
+                        if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+                            this.handlePlayerMove(row, col);
+                        }
+                    }
+                });
+                
+                // 按钮事件
+                document.getElementById('playerFirstBtn').addEventListener('click', () => {
+                    this.setFirstPlayer(true);
+                });
+                
+                document.getElementById('aiFirstBtn').addEventListener('click', () => {
+                    this.setFirstPlayer(false);
+                });
+                
+                document.getElementById('hintBtn').addEventListener('click', () => {
+                    this.showHint();
+                });
+                
+                document.getElementById('undoBtn').addEventListener('click', () => {
+                    this.undoMove();
+                });
+                
+                // 难度滑块
+                document.getElementById('difficultySlider').addEventListener('input', (e) => {
+                    const difficulty = parseInt(e.target.value);
+                    this.setDifficulty(difficulty);
+                    this.currentDifficulty = difficulty;
+                });
+                
+                // 鼠标悬停高亮（仅在非移动设备上）
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.game.gameOver || performanceMetrics.mobileMode) return;
+                    
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const cellSize = calculateCellSize();
+                    const col = Math.floor(x / cellSize);
+                    const row = Math.floor(y / cellSize);
+                    
+                    if (row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE) {
+                        if (this.game.board[row][col] === EMPTY) {
+                            this.renderer.setHighlight(row, col);
+                        } else {
+                            this.renderer.setHighlight(null);
+                        }
+                    } else {
+                        this.renderer.setHighlight(null);
+                    }
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.renderer.setHighlight(null);
+                });
+                
+                // 修复游戏结束窗口关闭问题
+                document.getElementById('closeWinBtn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const winMsg = document.getElementById('winMessage');
+                    if (winMsg) {
+                        winMsg.classList.add('hidden');
+                        console.log('游戏结束窗口已关闭');
+                    }
+                });
+                
+                document.getElementById('newGameBtn').addEventListener('click', () => {
+                    this.startNewGame(this.playerFirstChoice); // 修正：始终用用户选择的先手
+                });
+            }
+            
+            // 设置先手玩家
+            setFirstPlayer(playerFirst) {
+                this.playerFirstChoice = playerFirst; // 修正：记录用户选择
+                document.getElementById('playerFirstBtn').classList.toggle('active', playerFirst);
+                document.getElementById('aiFirstBtn').classList.toggle('active', !playerFirst);
+                this.startNewGame(playerFirst);
+            }
+            
+            // 开始新游戏
+            startNewGame(playerFirst = true) {
+                this.game.reset();
+                
+                // 设置棋子颜色
+                if (playerFirst) {
+                    // 玩家先手：玩家执黑，AI执白
+                    this.game.setPieceColors(PLAYER, AI_PLAYER);
+                } else {
+                    // AI先手：AI执黑，玩家执白
+                    this.game.setPieceColors(AI_PLAYER, PLAYER);
+                    this.game.setCurrentPlayer(AI_PLAYER);
+                }
+                
+                this.ai.clearCache(); // 清理AI缓存
+                this.renderer.clearHint();
+                this.renderer.clearLastAIMove(); // 清除AI最后一步标示
+                this.isPlayerTurn = playerFirst;
+                this.renderer.resizeCanvas();
+                this.updateUI();
+                
+                // 隐藏游戏结束弹窗
+                const winMsg = document.getElementById('winMessage');
+                if (winMsg) {
+                    winMsg.classList.add('hidden');
+                }
+                document.getElementById('evaluatedPoints').textContent = '0';
+                document.getElementById('cacheHits').textContent = '0';
+                document.getElementById('threatLevel').textContent = '无';
+                document.getElementById('defenseMode').textContent = '正常';
+                document.getElementById('aiProgressBar').style.width = '0%';
+                document.getElementById('aiProgressText').textContent = '准备开始思考...';
+                document.getElementById('zoomIndicator').style.display = 'none';
+                document.getElementById('cornerWarning').style.display = 'none';
+                document.getElementById('threatIndicator').style.display = 'none';
+                
+                if (!playerFirst) {
+                    this.makeAIMove();
+                }
+                this.renderer.winLine = null;
+                this.renderer.drawBoard();
+            }
+            
+            // 处理玩家移动
+            handlePlayerMove(row, col) {
+                if (this.game.makeMove(row, col)) {
+                    // 清除AI最后一步的标示
+                    this.renderer.clearLastAIMove();
+                    this.updateUI();
+                    
+                    if (this.game.gameOver) {
+                        this.showGameResult();
+                    } else {
+                        this.isPlayerTurn = false;
+                        // 移动设备上增加延迟，确保UI更新
+                        setTimeout(() => this.makeAIMove(), performanceMetrics.mobileMode ? 300 : 100);
+                    }
+                }
+            }
+            
+            // AI移动
+            makeAIMove() {
+                if (this.game.gameOver) return;
+                
+                // 显示AI思考中
+                const aiThinking = document.getElementById('aiThinking');
+                const aiDepth = document.getElementById('aiDepth');
+                aiDepth.textContent = this.ai.depth;
+                aiThinking.style.display = 'block';
+                
+                // 重置进度条
+                document.getElementById('aiProgressBar').style.width = '0%';
+                document.getElementById('aiProgressText').textContent = '准备开始思考...';
+                
+                // 移动设备上增加延迟，确保UI更新
+                const delay = performanceMetrics.mobileMode ? 100 : 0;
+                
+                setTimeout(() => {
+                    const startTime = performance.now();
+                    const move = this.ai.getBestMove();
+                    const timeTaken = performance.now() - startTime;
+                    
+                    // 确保至少显示500ms，让用户看到进度
+                    const minDisplayTime = Math.max(0, 500 - timeTaken);
+                    
+                    setTimeout(() => {
+                        aiThinking.style.display = 'none';
+                        
+                        if (move && this.game.makeMove(move.row, move.col)) {
+                            // 设置AI最后一步的标示
+                            this.renderer.setLastAIMove(move.row, move.col);
+                            
+                            // 检查是否是角落落子
+                            if ((move.row === 0 || move.row === BOARD_SIZE-1) && 
+                                (move.col === 0 || move.col === BOARD_SIZE-1)) {
+                                document.getElementById('cornerWarning').style.display = 'block';
+                            } else {
+                                document.getElementById('cornerWarning').style.display = 'none';
+                            }
+                            
+                            this.updateUI();
+                            
+                            if (this.game.gameOver) {
+                                this.showGameResult();
+                            } else {
+                                this.isPlayerTurn = true;
+                            }
+                        }
+                    }, minDisplayTime);
+                }, delay);
+            }
+            
+            // 显示提示
+            showHint() {
+                if (this.game.gameOver || !this.isPlayerTurn) return;
+                
+                const hint = this.ai.getHint();
+                if (hint) {
+                    this.renderer.setHintPosition(hint.row, hint.col);
+                    
+                    // 3秒后清除提示
+                    setTimeout(() => {
+                        this.renderer.clearHint();
+                    }, 3000);
+                }
+            }
+            
+            // 撤销一步
+            undoMove() {
+                if (this.game.undo()) {
+                    this.renderer.drawBoard();
+                    this.updateUI();
+                    this.isPlayerTurn = true;
+                }
+            }
+            
+            // 设置难度
+            setDifficulty(level) {
+                this.ai.setDifficulty(level);
+                const difficulty = DIFFICULTY_LEVELS[level - 1];
+                document.getElementById('difficultyValue').textContent = difficulty.name;
+                document.getElementById('aiLevelDisplay').textContent = difficulty.name;
+                document.getElementById('difficultyLevel').textContent = `${level}/5`;
+            }
+            
+            // 更新UI状态
+            updateUI() {
+                // 更新当前玩家显示
+                const currentPlayer = this.game.getCurrentPlayer();
+                const playerColor = this.game.getPlayerColor(currentPlayer);
+                const colorText = playerColor === BLACK ? '黑棋' : '白棋';
+                const playerText = currentPlayer === PLAYER ? `玩家 (${colorText})` : `AI (${colorText})`;
+                document.getElementById('currentPlayer').textContent = playerText;
+                
+                // 更新移动计数
+                document.getElementById('moveCount').textContent = this.game.getMoveHistory().length;
+                
+                // 更新历史记录
+                this.updateHistoryList();
+                
+                // 更新回合状态显示
+                const turnStatus = this.isPlayerTurn ? '等待玩家落子' : 'AI思考中';
+                document.getElementById('currentPlayer').textContent = `${playerText} - ${turnStatus}`;
+                
+                // 更新威胁显示
+                this.ai.updateThreatDisplay(this.game.getBoard());
+            }
+            
+            // 更新历史记录列表
+            updateHistoryList() {
+                const historyList = document.getElementById('historyList');
+                historyList.innerHTML = '';
+                const moves = this.game.getMoveHistory();
+                const moveTexts = [];
+                moves.forEach((move, index) => {
+                    const moveElement = document.createElement('div');
+                    moveElement.className = 'history-item';
+                    const playerColor = this.game.getPlayerColor(move.player);
+                    const colorText = playerColor === BLACK ? '黑棋' : '白棋';
+                    const moveText = `#${index+1}: ${move.player === PLAYER ? '玩家' : 'AI'} (${colorText}) 落子于 (${move.row+1}, ${move.col+1})`;
+                    moveElement.textContent = moveText;
+                    moveTexts.push(moveText);
+                    // 單步複製按鈕（如需保留）
+                    // ...
+                    historyList.appendChild(moveElement);
+                });
+                // 複製全部按鈕事件
+                const copyAllBtn = document.getElementById('copyAllHistoryBtn');
+                if (copyAllBtn) {
+                    copyAllBtn.onclick = () => {
+                        const allText = moveTexts.join('\n');
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(allText);
+                        } else {
+                            // 兼容舊瀏覽器
+                            const textarea = document.createElement('textarea');
+                            textarea.value = allText;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                        }
+                        copyAllBtn.textContent = '已複製!';
+                        setTimeout(() => { copyAllBtn.textContent = '複製全部'; }, 1000);
+                    };
+                }
+                // 滚动到底部
+                historyList.scrollTop = historyList.scrollHeight;
+            }
+            
+            // 显示游戏结果
+            showGameResult() {
+                const winMessage = document.getElementById('winMessage');
+                const winTitle = document.getElementById('winTitle');
+                const winText = document.getElementById('winText');
+                if (winMessage) {
+                    winMessage.classList.remove('hidden');
+                }
+                // 新增：显示胜利红线
+                const winLine = this.game.getWinLine();
+                if (winLine && winLine.length === 5) {
+                    this.renderer.setWinLine(winLine);
+                }
+                if (this.game.winner === PLAYER) {
+                    winTitle.textContent = '恭喜！';
+                    winText.textContent = '您赢得了比赛！';
+                } else if (this.game.winner === AI_PLAYER) {
+                    winTitle.textContent = '游戏结束';
+                    winText.textContent = 'AI赢得了比赛';
+                } else {
+                    winTitle.textContent = '平局！';
+                    winText.textContent = '棋盘已满，没有赢家';
+                }
+            }
+        }
+        
+        // 初始化游戏
+        window.onload = function() {
+            const canvas = document.getElementById('boardCanvas');
+            const game = new Game();
+            const ai = new AI(game);
+            const renderer = new Renderer(canvas, game);
+            
+            // 初始化UI控制器
+            const uiController = new UIController(game, ai, renderer);
+            
+            // 默认玩家先手
+            uiController.startNewGame(true);
+            
+            // 设置默认难度
+            uiController.setDifficulty(2);
+        };
+    </script>
+</body>
+</html>
