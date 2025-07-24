@@ -3,7 +3,7 @@
 <html lang="zh-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>五子棋 AI 對戰 (可視化版)</title>
+    <title>五子棋 AI 對戰</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -1087,16 +1087,28 @@
             return false;
         }
         function getBoardCoordinates(e) {
-            const rect = canvas.getBoundingClientRect();
+            // 取得 canvas 元素相對於可視區域的位置和大小
+            const rect = canvas.getBoundingClientRect(); 
+
+            // 判斷是滑鼠事件還是觸控事件，並取得對應的座標
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            // 計算 canvas 實際像素與 CSS 像素的縮放比例
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            // 轉換為 canvas 內部座標
-            const x = (clientX - rect.left) * scaleX;
-            const y = (clientY - rect.top) * scaleY;
-            return { boardX: Math.round(x / cellSize) - 1, boardY: Math.round(y / cellSize) - 1 };
+
+            // 計算點擊位置相對於 canvas 左上角的內部座標 (單位為 CSS 像素)
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // 動態計算當前的單元格大小。
+            // 棋盤網格有邊距，總寬度為 (GRID_SIZE + 1) 個單元格。
+            // 我們使用 canvas 的即時渲染寬度 (rect.width) 來計算，確保精確。
+            const dynamicCellSize = rect.width / (GRID_SIZE + 1);
+
+            // 將點擊的像素座標轉換為棋盤的格線座標 (例如 0,0 到 18,18)
+            // 減 1 是因為棋盤座標是從 0 開始，而我們的計算基準是從第 1 個 cellSize 開始的。
+            const boardX = Math.round(x / dynamicCellSize) - 1;
+            const boardY = Math.round(y / dynamicCellSize) - 1;
+
+            return { boardX, boardY };
         }
         canvas.addEventListener('click', (e) => {
             if (!isPlayerTurn) return; // 移除 gameOver 限制
