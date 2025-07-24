@@ -28,22 +28,34 @@
             justify-content: center;
             align-items: flex-start;
             gap: 20px;
+            width: 100vw; /* 新增：讓容器寬度等於螢幕 */
+            max-width: 100vw; /* 新增：防止超出 */
+            box-sizing: border-box;
         }
         #board-container {
             position: relative;
             width: 90vw;
             max-width: 600px;
+            aspect-ratio: 1 / 1; /* 新增：確保正方形 */
             background-color: #dcb35c;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             border-radius: 8px;
-            /* padding: 2.5%; */
             box-sizing: border-box;
-            /* 移除高度設定，讓高度自動 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto; /* 新增：置中 */
+            overflow: hidden; /* 新增：防止 canvas 溢出 */
         }
         #chess-board {
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100vw;
+            max-height: 90vw;
+            display: block;
+            margin: 0 auto;
+            box-sizing: border-box;
+            background: transparent;
         }
         #chess-board.thinking {
             cursor: wait;
@@ -155,6 +167,34 @@
             padding: 5px;
             resize: vertical;
             background-color: #f8f9fa;
+        }
+        /* 響應式：手機板棋盤置中且不裁切 */
+        @media (max-width: 600px) {
+            #game-container {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center; /* 新增：置中 */
+            }
+            #board-container {
+                width: 100vw !important;
+                height: 100vw !important;
+                max-width: 100vw !important;
+                max-height: 100vw !important;
+                aspect-ratio: 1 / 1;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #chess-board {
+                width: 100vw !important;
+                height: 100vw !important;
+                max-width: 100vw !important;
+                max-height: 100vw !important;
+                display: block;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
         }
     </style>
 </head>
@@ -1124,11 +1164,12 @@
 
         // --- 新增: 只調整棋盤尺寸的函式 ---
         function resizeBoardCanvas() {
-            const vw = Math.min(window.innerWidth, 600);
-            const size = vw * 0.9; // 只根據寬度
+            const vw = window.innerWidth;
+            const size = vw; // 直接用螢幕寬度
             const dpr = window.devicePixelRatio || 1;
             const boardContainer = document.getElementById('board-container');
             boardContainer.style.width = size + 'px';
+            boardContainer.style.height = size + 'px';
             canvas.width = size * dpr;
             canvas.height = size * dpr;
             canvas.style.width = size + 'px';
@@ -1147,10 +1188,20 @@
         function drawBoard() {
             ctx.fillStyle = '#dcb35c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            // 讓棋盤網格線置中
             for (let i = 0; i < GRID_SIZE; i++) {
-                ctx.beginPath(); ctx.moveTo(cellSize * (i + 1), cellSize); ctx.lineTo(cellSize * (i + 1), canvas.height - cellSize); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(cellSize, cellSize * (i + 1)); ctx.lineTo(canvas.width - cellSize, cellSize * (i + 1)); ctx.stroke();
+                // 垂直線
+                ctx.beginPath();
+                ctx.moveTo(cellSize * (i + 1), cellSize);
+                ctx.lineTo(cellSize * (i + 1), cellSize * GRID_SIZE);
+                ctx.stroke();
+                // 水平線
+                ctx.beginPath();
+                ctx.moveTo(cellSize, cellSize * (i + 1));
+                ctx.lineTo(cellSize * GRID_SIZE, cellSize * (i + 1));
+                ctx.stroke();
             }
+            // 星位點
             const starPoints = [ {x: 3, y: 3}, {x: 9, y: 3}, {x: 15, y: 3}, {x: 3, y: 9}, {x: 9, y: 9}, {x: 15, y: 9}, {x: 3, y: 15}, {x: 9, y: 15}, {x: 15, y: 15} ];
             ctx.fillStyle = '#333';
             starPoints.forEach(p => { ctx.beginPath(); ctx.arc(cellSize * (p.x + 1), cellSize * (p.y + 1), cellSize / 5, 0, 2 * Math.PI); ctx.fill(); });
