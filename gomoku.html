@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<!-- saved from url=(0043)file:///E:/user/Desktop/code%20(12)%20.html -->
+<html lang="zh-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>五子棋 AI 對戰 (可視化版)</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 15px;
+            touch-action: manipulation;
+            /* min-height: 100vh; */ /* 移除，避免手機滑動時棋盤消失 */
+            /* overflow-x: hidden; */ /* 移除，避免內容被裁切 */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        #game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            width: 100vw; /* 新增：讓容器寬度等於螢幕 */
+            max-width: 100vw; /* 新增：防止超出 */
+            box-sizing: border-box;
+        }
+        #board-container {
+            position: relative;
+            /* 修正：移除固定寬度，讓 JavaScript 動態控制 */
+            aspect-ratio: 1 / 1; /* 確保正方形 */
+            background-color: #dcb35c;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto; /* 新增：置中 */
+            overflow: hidden; /* 新增：防止 canvas 溢出 */
+        }
+        #chess-board {
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100vw;
+            max-height: 90vw;
+            display: block;
+            margin: 0 auto;
+            box-sizing: border-box;
+            background: transparent;
+        }
+        #chess-board.thinking {
+            cursor: wait;
+        }
+        #controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            min-width: 250px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #ai-status {
+            background-color: #eef2f7;
+            border-left: 4px solid #4a90e2;
+            padding: 10px;
+            border-radius: 4px;
+            color: #333;
+            font-size: 14px;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        label {
+            font-weight: bold;
+            color: #555;
+        }
+        button, select {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        button:disabled, select:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #e9e9e9;
+        }
+        button:active:not(:disabled) {
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #new-game-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        #new-game-btn:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        #undo-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+        }
+        #undo-btn:hover:not(:disabled) {
+            background-color: #da190b;
+        }
+        /* --- 新增: 提示按鈕樣式 --- */
+        #hint-btn {
+            background-color: #008CBA;
+            color: white;
+            border: none;
+        }
+        #hint-btn:hover:not(:disabled) {
+            background-color: #007B9A;
+        }
+        /* --- 新增: 棋局紀錄樣式 --- */
+        #move-log-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #move-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #copy-log-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+        }
+        #copy-log-btn:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+        #move-log {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px;
+            resize: vertical;
+            background-color: #f8f9fa;
+        }
+        /* 響應式：手機板棋盤置中且不裁切 */
+        @media (max-width: 600px) {
+            #game-container {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center; /* 新增：置中 */
+            }
+            #board-container {
+                width: 100vw !important;
+                height: 100vw !important;
+                max-width: 100vw !important;
+                max-height: 100vw !important;
+                aspect-ratio: 1 / 1;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #chess-board {
+                width: 100vw !important;
+                height: 100vw !important;
+                max-width: 100vw !important;
+                max-height: 100vw !important;
+                display: block;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="board-container">
+            <canvas id="chess-board" width="554" height="554" class=""></canvas>
+        </div>
+
+        <div id="controls">
+            <div class="control-group">
+                <label>AI 狀態:</label>
+                <div id="ai-status">黑棋 勝利!</div>
+            </div>
+
+            <div class="control-group">
+                <button id="new-game-btn">開啟新局</button>
+                <button id="undo-btn">悔棋</button>
+                <button id="hint-btn">AI 提示</button> <!-- 新增: 提示按鈕 -->
+                <!-- <button id="auto-play-btn">AI接管</button> --> <!-- 已移除: AI接管按鈕 -->
+            </div>
+
+            <div class="control-group">
+                <label for="difficulty">選擇難度：</label>
+                <select id="difficulty">
+                    <option value="2" selected="">簡單 (深度 2)</option>
+                    <option value="3">普通 (深度 3)</option>
+                    <option value="4">困難 (深度 4)</option>
+                    <option value="5">專家 (深度 5)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="player-first">誰先手？</label>
+                <select id="player-first">
+                    <option value="true">玩家先手 (黑棋)</option>
+                    <option value="false">AI 先手 (白棋)</option>
+                </select>
+            </div>
+            
+            <!-- 新增: AI評分表顯示開關 -->
+            <div class="control-group">
+                <label for="toggle-score-visual" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="toggle-score-visual" style="margin: 0;" /> 
+                    <span>顯示AI評分表</span>
+                </label>
+            </div>
+            <!-- --- 新增: 棋局紀錄區塊 --- -->
+            <div id="move-log-container" class="control-group">
+                <div id="move-log-header">
+                    <label for="move-log">棋局紀錄:</label>
+                    <button id="copy-log-btn">複製紀錄</button>
+                </div>
+                <ul id="move-log" style="height: 150px; overflow-y: auto; font-family: monospace; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; padding: 5px; background-color: #f8f9fa; margin: 0;"><li data-index="1" style="cursor: pointer;">#1: 玩家 (黑棋) 落子于 (9, 9)</li><li data-index="2" style="cursor: pointer;">#2: AI (白棋) 落子于 (8, 8)</li><li data-index="3" style="cursor: pointer;">#3: 玩家 (黑棋) 落子于 (9, 7)</li><li data-index="4" style="cursor: pointer;">#4: AI (白棋) 落子于 (9, 8)</li><li data-index="5" style="cursor: pointer;">#5: 玩家 (黑棋) 落子于 (10, 8)</li><li data-index="6" style="cursor: pointer;">#6: AI (白棋) 落子于 (8, 6)</li><li data-index="7" style="cursor: pointer;">#7: 玩家 (黑棋) 落子于 (11, 7)</li><li data-index="8" style="cursor: pointer;">#8: AI (白棋) 落子于 (8, 10)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手活三威脅，封鎖於 (8, 10)</li><li data-index="9" style="cursor: pointer;">#9: 玩家 (黑棋) 落子于 (12, 6)</li><li data-index="10" style="cursor: pointer;">#10: AI (白棋) 落子于 (13, 5)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手死四威脅，封鎖於 (13, 5)</li><li data-index="11" style="cursor: pointer;">#11: 玩家 (黑棋) 落子于 (12, 7)</li><li data-index="12" style="cursor: pointer;">#12: AI (白棋) 落子于 (10, 7)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手活三威脅，封鎖於 (10, 7)</li><li data-index="13" style="cursor: pointer;">#13: 玩家 (黑棋) 落子于 (8, 9)</li><li data-index="14" style="cursor: pointer;">#14: AI (白棋) 落子于 (8, 5)</li><li data-index="15" style="cursor: pointer;">#15: 玩家 (黑棋) 落子于 (10, 9)</li><li data-index="16" style="cursor: pointer;">#16: AI (白棋) 落子于 (7, 9)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手活三威脅，封鎖於 (7, 9)</li><li data-index="17" style="cursor: pointer;">#17: 玩家 (黑棋) 落子于 (11, 9)</li><li data-index="18" style="cursor: pointer;">#18: AI (白棋) 落子于 (12, 9)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手死四威脅，封鎖於 (12, 9)</li><li data-index="19" style="cursor: pointer;">#19: 玩家 (黑棋) 落子于 (11, 8)</li><li data-index="20" style="cursor: pointer;">#20: AI (白棋) 落子于 (9, 10)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手活三威脅，封鎖於 (9, 10)</li><li data-index="21" style="cursor: pointer;">#21: 玩家 (黑棋) 落子于 (11, 10)</li><li data-index="22" style="cursor: pointer;">#22: AI (白棋) 落子于 (11, 6)</li><li style="font-size: 11px; color: rgb(183, 28, 28); background: rgb(255, 253, 231); margin-left: 1em;">  └ 偵測到對手活四威脅，封鎖於 (11, 6)</li></ul>
+                <div id="replay-controls" style="display: flex; gap: 10px; margin-top: 8px;">
+                  <button id="replay-play-btn">播放</button>
+                  <button id="replay-pause-btn" disabled="">暫停</button>
+                  <button id="replay-stop-btn" disabled="">停止</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script id="ai-worker" type="javascript/worker">
+        // Worker 內部代碼與上一個版本幾乎相同
+        // 唯一的關鍵改動是在 onmessage 中處理新的命令 getHint
+        const GRID_SIZE = 19;
+        let board = [];
+        let playerIsBlack = true;
+        let moveHistory = [];
+        let zobristTable = [];
+        let transpositionTable = new Map();
+        
+        function initZobrist() {
+            zobristTable = Array(GRID_SIZE).fill(0).map(() => 
+                Array(GRID_SIZE).fill(0).map(() => [
+                    Math.floor(Math.random() * 2**32),
+                    Math.floor(Math.random() * 2**32)
+                ])
+            );
+        }
+        
+        function computeHash(currentBoard) {
+            let h = 0;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (currentBoard[y][x] !== 0) {
+                        h ^= zobristTable[y][x][currentBoard[y][x] - 1];
+                    }
+                }
+            }
+            return h;
+        }
+        
+        function detectType({ count, openEnds, special }) {
+            if (special) return special;
+            if (count >= 5) return '五連';
+            if (count === 4 && openEnds === 2) return '活四';
+            if (count === 4 && openEnds === 1) return '死四';
+            if (count === 3 && openEnds === 2) return '活三';
+            if (count === 3 && openEnds === 1) return '死三';
+            if (count === 2 && openEnds === 2) return '活二';
+            if (count === 2 && openEnds === 1) return '死二';
+            if (count === 1 && openEnds === 2) return '單子';
+            return '';
+        }
+        
+        // 新增：檢測高級威脅組合
+        function detectAdvancedThreats(x, y, player, board) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            let threatCount = 0;
+            let maxThreat = '';
+            let threatTypes = [];
+            
+            directions.forEach(([dx, dy]) => {
+                const { count, openEnds } = getLineInfo(x, y, dx, dy, player, board);
+                if (count >= 3 && openEnds >= 1) {
+                    threatCount++;
+                    let threatType = '';
+                    if (count >= 5) threatType = '五連';
+                    else if (count === 4 && openEnds === 2) threatType = '活四';
+                    else if (count === 4 && openEnds === 1) threatType = '死四';
+                    else if (count === 3 && openEnds === 2) threatType = '活三';
+                    else if (count === 3 && openEnds === 1) threatType = '死三';
+                    
+                    if (threatType) {
+                        threatTypes.push(threatType);
+                        if (threatType === '活四') maxThreat = '活四';
+                        else if (threatType === '活三' && maxThreat !== '活四') maxThreat = '活三';
+                    }
+                }
+            });
+            
+            // 檢查雙活三或雙活四
+            const liveThreeCount = threatTypes.filter(t => t === '活三').length;
+            const liveFourCount = threatTypes.filter(t => t === '活四').length;
+            
+            if (liveFourCount >= 2) return '雙活四';
+            if (liveThreeCount >= 2) return '雙活三';
+            
+            return maxThreat;
+        }
+        
+        function findBestMove(depth, player, difficulty) {
+            let bestScore = -Infinity;
+            let move = null;
+            let reason = null;
+            const moves = getPossibleMoves();
+            let searchLog = [];
+            if (moves.length === 0) return null;
+            
+            // 修正：首手邏輯，確保AI能正確下第一手
+            if (moveHistory.length === 0) {
+                const centerX = Math.floor(GRID_SIZE / 2);
+                const centerY = Math.floor(GRID_SIZE / 2);
+                
+                // 為首手生成評分數據
+                const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+                let details = {
+                    self: [],
+                    opponent: [],
+                    selfTotal: 0,
+                    opponentTotal: 0,
+                    opponentDetails: {
+                        self: [],
+                        opponent: [],
+                        selfTotal: 0,
+                        opponentTotal: 0
+                    }
+                };
+                
+                // 計算首手位置的評分
+                directions.forEach(([dx, dy], dirIdx) => {
+                    const infoSelf = getLineInfo(centerX, centerY, dx, dy, player, board);
+                    const infoOpp = getLineInfo(centerX, centerY, dx, dy, player === 1 ? 2 : 1, board);
+                    const sScore = getScoreFromLine(infoSelf, true);
+                    const oScore = getScoreFromLine(infoOpp, false);
+                    
+                    details.self.push({ direction: dirIdx, type: detectType(infoSelf), score: sScore });
+                    details.opponent.push({ direction: dirIdx, type: detectType(infoOpp), score: oScore });
+                    details.selfTotal += sScore;
+                    details.selfTotal += oScore;
+                });
+                
+                // 計算對手在該位置的分數
+                const opponentScore = calculateOpponentScoreForMove({ x: centerX, y: centerY }, player === 1 ? 2 : 1, board);
+                details.opponentTotal = opponentScore;
+                
+                // 計算對手在該位置的詳細分數
+                directions.forEach(([dx, dy], dirIdx) => {
+                    const infoOppSelf = getLineInfo(centerX, centerY, dx, dy, player === 1 ? 2 : 1, board);
+                    const infoOppOpp = getLineInfo(centerX, centerY, dx, dy, player, board);
+                    const oppSelfScore = getScoreFromLine(infoOppSelf, true);
+                    const oppOppScore = getScoreFromLine(infoOppOpp, false);
+                    details.opponentDetails.self.push({ direction: dirIdx, type: detectType(infoOppSelf), score: oppSelfScore });
+                    details.opponentDetails.opponent.push({ direction: dirIdx, type: detectType(infoOppOpp), score: oppOppScore });
+                    details.opponentDetails.selfTotal += oppSelfScore;
+                    details.opponentDetails.opponentTotal += oppOppScore;
+                });
+                
+                details.opponentTotal = details.opponentDetails.selfTotal + details.opponentDetails.opponentTotal;
+                
+                searchLog.push({
+                    x: centerX,
+                    y: centerY,
+                    score: Math.max(details.selfTotal, details.opponentTotal),
+                    localScore: Math.max(details.selfTotal, details.opponentTotal),
+                    isBest: true,
+                    type: '首手',
+                    directionsType: ['首手'],
+                    opponentDirectionsType: ['首手'],
+                    opponentMaxType: '首手',
+                    details
+                });
+                
+                return { x: centerX, y: centerY, reason: "首手佔中", searchLog };
+            }
+            
+            // 修正：確保opponent變數在所有情況下都正確定義
+            const opponent = player === 1 ? 2 : 1;
+            const hash = computeHash(board);
+            transpositionTable.clear();
+
+            // --- 修正：對所有可落子點都記錄 searchLog ---
+            const scoredMoves = moves.map(([y, x]) => {
+                board[y][x] = player;
+                const score = evaluateBoard(board, { x, y });
+                let details = {
+                    self: [],
+                    opponent: [],
+                    selfTotal: 0,
+                    opponentTotal: 0,
+                    opponentDetails: {
+                        self: [],
+                        opponent: [],
+                        selfTotal: 0,
+                        opponentTotal: 0
+                    }
+                };
+                const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+                directions.forEach(([dx, dy], dirIdx) => {
+                    const infoSelf = getLineInfo(x, y, dx, dy, player, board);
+                    const infoOpp = getLineInfo(x, y, dx, dy, opponent, board);
+                    const sScore = getScoreFromLine(infoSelf, true);
+                    const oScore = getScoreFromLine(infoOpp, false);
+                    details.self.push({ direction: dirIdx, type: detectType(infoSelf), score: sScore });
+                    details.opponent.push({ direction: dirIdx, type: detectType(infoOpp), score: oScore });
+                    details.selfTotal += sScore;
+                    details.selfTotal += oScore;
+                });
+                board[y][x] = 0;
+                const opponentScore = calculateOpponentScoreForMove({ x, y }, opponent, board);
+                details.opponentTotal = opponentScore;
+                directions.forEach(([dx, dy], dirIdx) => {
+                    const infoOppSelf = getLineInfo(x, y, dx, dy, opponent, board);
+                    const infoOppOpp = getLineInfo(x, y, dx, dy, player, board);
+                    const oppSelfScore = getScoreFromLine(infoOppSelf, true);
+                    const oppOppScore = getScoreFromLine(infoOppOpp, false);
+                    details.opponentDetails.self.push({ direction: dirIdx, type: detectType(infoOppSelf), score: oppSelfScore });
+                    details.opponentDetails.opponent.push({ direction: dirIdx, type: detectType(infoOppOpp), score: oppOppScore });
+                    details.opponentDetails.selfTotal += oppSelfScore;
+                    details.opponentDetails.opponentTotal += oppOppScore;
+                });
+                details.opponentTotal = details.opponentDetails.selfTotal + details.opponentDetails.opponentTotal;
+                const combinedScore = Math.max(details.selfTotal, details.opponentTotal);
+                return { x, y, score: combinedScore, details, combinedScore };
+            });
+            // 按綜合評分排序，選擇綜合評分最高的位置
+            const topMoves = scoredMoves.sort((a, b) => b.score - a.score);
+
+            // --- 新增：對所有 scoredMoves 都記錄 searchLog ---
+            scoredMoves.forEach(({ x, y, score, details }) => {
+                // 判斷最大型態
+                let maxType = '';
+                const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+                let maxTypeOrder = -1;
+                const typeOrder = ['五連', '活四', '死四', '活三', '死三', '活二', '死二', '單子'];
+                let dirTypes = [];
+                const advancedThreat = detectAdvancedThreats(x, y, player, board);
+                if (advancedThreat && advancedThreat !== '') {
+                    maxType = advancedThreat;
+                } else {
+                    directions.forEach(([dx, dy]) => {
+                        const { count, openEnds } = getLineInfo(x, y, dx, dy, player, board);
+                        let type = '';
+                        if (count >= 5) type = '五連';
+                        else if (count === 4 && openEnds === 2) type = '活四';
+                        else if (count === 4 && openEnds === 1) type = '死四';
+                        else if (count === 3 && openEnds === 2) type = '活三';
+                        else if (count === 3 && openEnds === 1) type = '死三';
+                        else if (count === 2 && openEnds === 2) type = '活二';
+                        else if (count === 2 && openEnds === 1) type = '死二';
+                        else if (count === 1 && openEnds === 2) type = '單子';
+                        else type = '';
+                        const idx = typeOrder.indexOf(type);
+                        if (idx !== -1 && (maxTypeOrder === -1 || idx < maxTypeOrder)) {
+                            maxType = type;
+                            maxTypeOrder = idx;
+                        }
+                        dirTypes.push(type);
+                    });
+                }
+                // 先計算對手型態
+                let oppDirTypes = [];
+                let oppMaxType = '';
+                let oppMaxTypeOrder = -1;
+                const oppAdvancedThreat = detectAdvancedThreats(x, y, opponent, board);
+                if (oppAdvancedThreat && oppAdvancedThreat !== '') {
+                    oppMaxType = oppAdvancedThreat;
+                } else {
+                    directions.forEach(([dx, dy]) => {
+                        const { count, openEnds } = getLineInfo(x, y, dx, dy, opponent, board);
+                        let type = '';
+                        if (count >= 5) type = '五連';
+                        else if (count === 4 && openEnds === 2) type = '活四';
+                        else if (count === 4 && openEnds === 1) type = '死四';
+                        else if (count === 3 && openEnds === 2) type = '活三';
+                        else if (count === 3 && openEnds === 1) type = '死三';
+                        else if (count === 2 && openEnds === 2) type = '活二';
+                        else if (count === 2 && openEnds === 1) type = '死二';
+                        else if (count === 1 && openEnds === 2) type = '單子';
+                        else type = '';
+                        oppDirTypes.push(type);
+                        const idx = typeOrder.indexOf(type);
+                        if (idx !== -1 && (oppMaxTypeOrder === -1 || idx < oppMaxTypeOrder)) {
+                            oppMaxType = type;
+                            oppMaxTypeOrder = idx;
+                        }
+                    });
+                }
+                searchLog.push({ 
+                    x, y, 
+                    score: score, 
+                    localScore: Math.max(details.selfTotal, details.opponentTotal), 
+                    isBest: (topMoves[0] && topMoves[0].x === x && topMoves[0].y === y), 
+                    type: maxType, 
+                    directionsType: dirTypes, 
+                    opponentDirectionsType: oppDirTypes, 
+                    opponentMaxType: oppMaxType, 
+                    details 
+                });
+            });
+
+            // 選擇分數最高的點作為落子
+            move = { x: topMoves[0].x, y: topMoves[0].y };
+            bestScore = topMoves[0].score;
+            reason = null;
+            return { ...move, reason: null, searchLog };
+        }
+
+        // --- 其他 AI 函式 (minimax, evaluateBoard, checkWin 等) 保持不變 ---
+        function checkWin(x, y, player, currentBoard) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            for (const [dx, dy] of directions) {
+                let count = 1;
+                // 正方向
+                for (let i = 1; i < 5; i++) {
+                    const nx = x + i * dx, ny = y + i * dy;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && currentBoard[ny][nx] === player) count++;
+                    else break;
+                }
+                // 反方向
+                for (let i = 1; i < 5; i++) {
+                    const nx = x - i * dx, ny = y - i * dy;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && currentBoard[ny][nx] === player) count++;
+                    else break;
+                }
+                // 只判斷剛好五連珠才算勝利（不包含六連或以上）
+                if (count === 5) {
+                    // 檢查兩端是否還有同色棋子，若有則不算勝利
+                    const nx1 = x + 5 * dx, ny1 = y + 5 * dy;
+                    const nx2 = x - 5 * dx, ny2 = y - 5 * dy;
+                    if ((nx1 < 0 || nx1 >= GRID_SIZE || ny1 < 0 || ny1 >= GRID_SIZE || currentBoard[ny1][nx1] !== player) &&
+                        (nx2 < 0 || nx2 >= GRID_SIZE || ny2 < 0 || ny2 >= GRID_SIZE || currentBoard[ny2][nx2] !== player)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        function minimax(depth, alpha, beta, isMaximizing, player, currentHash, lastMove, difficulty) {
+            const cached = transpositionTable.get(currentHash);
+            if (cached && cached.depth >= depth) return cached.score;
+
+            // 強化：只要有五連，直接返回極大/極小分數
+            if (lastMove && checkWin(lastMove.x, lastMove.y, lastMove.player || player, board)) {
+                // 修正：根據當前玩家判斷勝利方
+                const aiPlayer = playerIsBlack ? 2 : 1;
+                return lastMove.player === aiPlayer ? 100000000 : -100000000;
+            }
+
+            if (depth === 0) return evaluateBoard(board, lastMove);
+            const moves = getPossibleMoves();
+            if (moves.length === 0) return 0;
+
+            const opponent = player === 1 ? 2 : 1;
+            let bestEval = isMaximizing ? -Infinity : Infinity;
+
+            // 評估走法以排序
+            const scoredMoves = moves.map(([y, x]) => {
+                board[y][x] = player;
+                const score = evaluateBoard(board, { x, y });
+                board[y][x] = 0;
+                return { x, y, score };
+            }).sort((a, b) => isMaximizing ? b.score - a.score : a.score - b.score);
+
+            // 限制走法數量，防止爆炸（可調整）
+            const limitedMoves = scoredMoves.slice(0, 15);
+
+            for (const { x, y } of limitedMoves) {
+                board[y][x] = player;
+                moveHistory.push({ x, y, player });
+
+                const newHash = currentHash ^ zobristTable[y][x][player - 1];
+                const evalScore = minimax(depth - 1, alpha, beta, !isMaximizing, opponent, newHash, { x, y, player }, difficulty);
+
+                board[y][x] = 0;
+                moveHistory.pop();
+
+                if (isMaximizing) {
+                    bestEval = Math.max(bestEval, evalScore);
+                    alpha = Math.max(alpha, evalScore);
+                } else {
+                    bestEval = Math.min(bestEval, evalScore);
+                    beta = Math.min(beta, evalScore);
+                }
+
+                if (beta <= alpha) break;
+            }
+
+            // 只記錄高深度評估
+            const prev = transpositionTable.get(currentHash);
+            if (!prev || prev.depth < depth) {
+                transpositionTable.set(currentHash, { depth, score: bestEval });
+            }
+
+            return bestEval;
+        }
+        function getPossibleMoves() {
+            const moves = new Set();
+            if (moveHistory.length === 0) {
+                // 修正：首手時返回中心點
+                const centerX = Math.floor(GRID_SIZE/2);
+                const centerY = Math.floor(GRID_SIZE/2);
+                moves.add(`${centerY},${centerX}`);
+                return Array.from(moves).map(s => s.split(',').map(Number));
+            }
+            
+            // 修正：確保至少有一個可落子位置
+            const range = 3; // 固定外圍三圈
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (board[y][x] !== 0) { // 只要有落子（不分顏色）
+                        for (let i = -range; i <= range; i++) {
+                            for (let j = -range; j <= range; j++) {
+                                const nx = x + j; const ny = y + i;
+                                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === 0) {
+                                    moves.add(`${ny},${nx}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 修正：如果沒有找到任何可落子位置，返回所有空位
+            if (moves.size === 0) {
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (board[y][x] === 0) {
+                            moves.add(`${y},${x}`);
+                        }
+                    }
+                }
+            }
+            
+            return Array.from(moves).map(s => s.split(',').map(Number));
+        }
+        function evaluateBoard(currentBoard, lastMove) {
+            const aiPlayer = playerIsBlack ? 2 : 1;
+            const humanPlayer = playerIsBlack ? 1 : 2;
+            return calculateTotalScore(currentBoard, aiPlayer)
+                 - calculateTotalScore(currentBoard, humanPlayer);
+        }
+
+        function calculateTotalScore(board, player) {
+            let total = 0;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (board[y][x] === player) {
+                        total += calculateScoreForMove({ x, y }, player, board);
+                    }
+                }
+            }
+            return total;
+        }
+        function calculateScoreForMove(move, player, currentBoard) {
+            if (!move) return 0;
+            const {x, y} = move;
+            let attackScore = 0;
+            let defenseScore = 0;
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            
+            // 計算我方的進攻分數
+            directions.forEach(([dx, dy]) => {
+                attackScore += getScoreFromLine(getLineInfo(x, y, dx, dy, player, currentBoard), true);
+            });
+            
+            // 計算我方的防守分數（阻止對手威脅）
+            const opponent = player === 1 ? 2 : 1;
+            directions.forEach(([dx, dy]) => {
+                defenseScore += getScoreFromLine(getLineInfo(x, y, dx, dy, opponent, currentBoard), false);
+            });
+            
+            // 優化：進攻優先，但防守也很重要
+            return attackScore + defenseScore * 0.9;
+        }
+        function getLineInfo(x, y, dx, dy, player, currentBoard) {
+            let maxCount = 1;
+            let maxOpenEnds = 0;
+    
+            // 活三固定三型：01110, 010110, 011010
+            const liveThreePatterns = [
+                [0, 1, 1, 1, 0],       // 01110
+                [0, 1, 0, 1, 1, 0],    // 010110
+                [0, 1, 1, 0, 1, 0]     // 011010
+            ];
+            // --- 新增：特殊死三型態 ---
+            const deadThreePatterns = [
+                [0, 1, 0, 1, 1, 2, 0], // 0X0XXY0 (Y=1/2, 2代表任意非0)
+                [0, 1, 0, 0, 1, 1, 0], // 0X00XX0
+                [0, 1, 0, 1, 0, 1, 0], // 0X0X0X0
+            ];
+            // --- 新增：特殊活二型態 ---
+            const liveTwoPatterns = [
+                [0, 1, 0, 1, 0],       // 0X0X0
+                [0, 1, 0, 0, 1, 0],    // 0X00X0
+            ];
+            // --- 新增：特殊死四型態 ---
+            const deadFourPatterns = [
+                [1, 0, 1, 1, 1],       // X0XXX
+                [1, 1, 0, 1, 1],       // XX0XX
+            ];
+    
+            // 優先檢查特定的活三模式
+            for (const pattern of liveThreePatterns) {
+                const patLen = pattern.length;
+                for (let offset = -(patLen - 1); offset <= 0; offset++) {
+                    let cells = [];
+                    let selfIdx = -1;
+    
+                    for (let k = 0; k < patLen; k++) {
+                        const nx = x + (offset + k) * dx;
+                        const ny = y + (offset + k) * dy;
+    
+                        if (nx === x && ny === y) {
+                            cells.push(player);
+                            selfIdx = k;
+                        } else if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                            cells.push(null);
+                        } else {
+                            cells.push(currentBoard[ny][nx]);
+                        }
+                    }
+    
+                    if (cells[0] === null || cells[patLen - 1] === null || cells[0] !== 0 || cells[patLen - 1] !== 0) {
+                        continue;
+                    }
+    
+                    let matched = true;
+                    for (let i = 0; i < patLen; i++) {
+                        if (cells[i] === null) { matched = false; break; }
+                        if (pattern[i] === 1 && cells[i] !== player) { matched = false; break; }
+                        if (pattern[i] === 0 && cells[i] !== 0) { matched = false; break; }
+                    }
+    
+                    if (matched && selfIdx !== -1 && pattern[selfIdx] === 1) {
+                        return { count: 3, openEnds: 2, special: '特殊活三' };
+                    }
+                }
+            }
+    
+            // --- 新增：特殊死三 pattern matching ---
+            for (const pattern of deadThreePatterns) {
+                const patLen = pattern.length;
+                for (let offset = -(patLen - 1); offset <= 0; offset++) {
+                    let cells = [];
+                    let selfIdx = -1;
+                    for (let k = 0; k < patLen; k++) {
+                        const nx = x + (offset + k) * dx;
+                        const ny = y + (offset + k) * dy;
+                        if (nx === x && ny === y) {
+                            cells.push(player);
+                            selfIdx = k;
+                        } else if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                            cells.push(null);
+                        } else {
+                            cells.push(currentBoard[ny][nx]);
+                        }
+                    }
+                    // 特殊判斷：允許 pattern 內的 2 代表任意非0
+                    let matched = true;
+                    for (let i = 0; i < patLen; i++) {
+                        if (cells[i] === null) { matched = false; break; }
+                        if (pattern[i] === 1 && cells[i] !== player) { matched = false; break; }
+                        if (pattern[i] === 0 && cells[i] !== 0) { matched = false; break; }
+                        if (pattern[i] === 2 && (cells[i] === 0 || cells[i] === null)) { matched = false; break; }
+                    }
+                    if (matched && selfIdx !== -1 && (pattern[selfIdx] === 1)) {
+                        return { count: 3, openEnds: 1, special: '特殊死三' };
+                    }
+                }
+            }
+    
+            // --- 新增：特殊活二 pattern matching ---
+            for (const pattern of liveTwoPatterns) {
+                const patLen = pattern.length;
+                for (let offset = -(patLen - 1); offset <= 0; offset++) {
+                    let cells = [];
+                    let selfIdx = -1;
+                    for (let k = 0; k < patLen; k++) {
+                        const nx = x + (offset + k) * dx;
+                        const ny = y + (offset + k) * dy;
+                        if (nx === x && ny === y) {
+                            cells.push(player);
+                            selfIdx = k;
+                        } else if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                            cells.push(null);
+                        } else {
+                            cells.push(currentBoard[ny][nx]);
+                        }
+                    }
+                    let matched = true;
+                    for (let i = 0; i < patLen; i++) {
+                        if (cells[i] === null) { matched = false; break; }
+                        if (pattern[i] === 1 && cells[i] !== player) { matched = false; break; }
+                        if (pattern[i] === 0 && cells[i] !== 0) { matched = false; break; }
+                    }
+                    if (matched && selfIdx !== -1 && pattern[selfIdx] === 1) {
+                        return { count: 2, openEnds: 2, special: '特殊活二' };
+                    }
+                }
+            }
+    
+            // --- 新增：特殊死四 pattern matching ---
+            for (const pattern of deadFourPatterns) {
+                const patLen = pattern.length;
+                for (let offset = -(patLen - 1); offset <= 0; offset++) {
+                    let cells = [];
+                    let selfIdx = -1;
+                    for (let k = 0; k < patLen; k++) {
+                        const nx = x + (offset + k) * dx;
+                        const ny = y + (offset + k) * dy;
+                        if (nx === x && ny === y) {
+                            cells.push(player);
+                            selfIdx = k;
+                        } else if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) {
+                            cells.push(null);
+                        } else {
+                            cells.push(currentBoard[ny][nx]);
+                        }
+                    }
+                    let matched = true;
+                    for (let i = 0; i < patLen; i++) {
+                        if (cells[i] === null) { matched = false; break; }
+                        if (pattern[i] === 1 && cells[i] !== player) { matched = false; break; }
+                        if (pattern[i] === 0 && cells[i] !== 0) { matched = false; break; }
+                    }
+                    if (matched && selfIdx !== -1 && pattern[selfIdx] === 1) {
+                        return { count: 4, openEnds: 1, special: '特殊死四' };
+                    }
+                }
+            }
+        
+            // 如果沒有匹配到任何特定的活三模式，則繼續執行原有的連續線判斷邏輯
+            // 注意：以下連續線判斷邏輯如果也需要考慮 (x,y) 為已落子狀態，可能也需調整。
+            // 但由於活三模式判斷優先，此處的影響較小。
+            let count = 1;
+            let openEnds = 0;
+        
+            // 正方向
+            for (let i = 1; i < 5; i++) {
+                const nx = x + i * dx;
+                const ny = y + i * dy;
+                if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) break;
+                if (currentBoard[ny][nx] === player) {
+                    count++;
+                } else if (currentBoard[ny][nx] === 0) {
+                    openEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+        
+            // 反方向
+            for (let i = 1; i < 5; i++) {
+                const nx = x - i * dx;
+                const ny = y - i * dy;
+                if (nx < 0 || nx >= GRID_SIZE || ny < 0 || ny >= GRID_SIZE) break;
+                if (currentBoard[ny][nx] === player) {
+                    count++;
+                } else if (currentBoard[ny][nx] === 0) {
+                    openEnds++;
+                    break;
+                } else {
+                    break;
+                }
+            }
+        
+            maxCount = count;
+            maxOpenEnds = openEnds;
+        
+            return { count: maxCount, openEnds: maxOpenEnds };
+        }
+        
+        function getScoreFromLine({ count, openEnds }, isSelf) {
+            // 若超過五連（六連或以上），不給分，避免AI主動連六
+            if (count > 5) return 0;
+            
+            // 優化的評分系統：平衡進攻與防守，重視威脅程度
+            if (isSelf && count === 5) return 13000; // 1. 自己五連（必勝）
+            if (!isSelf && count === 5) return 12000; // 2. 阻止對手五連（必防）
+            if (isSelf && count === 4 && openEnds === 2) return 7800; // 3. 自己活四（下活三必勝威脅）
+            if (!isSelf && count === 4 && openEnds === 2) return 7700; // 4. 防守活四（對手活三必防）
+
+            if (isSelf && count === 3 && openEnds === 2) return 3800; // 7. 自己活三（下活二）
+            if (!isSelf && count === 3 && openEnds === 2) return 3700; // 8. 防守活三 (擋住活二)
+
+            if (isSelf && count === 2 && openEnds === 2) return 170; // 11. 自己活二（基礎威脅）
+            if (!isSelf && count === 2 && openEnds === 2) return 160; // 12. 防守活二 (擋住單子) 
+
+            if (isSelf && count === 1 && openEnds === 2) return 0; // 15. 自己單子（潛在威脅）
+            if (!isSelf && count === 1 && openEnds === 2) return 0; // 16. 防守單子
+
+            if (isSelf && count === 4 && openEnds === 1) return 100; // 5. 自己死四（下在死三）
+            if (!isSelf && count === 4 && openEnds === 1) return 100; // 6. 防守死四（死三無威脅）
+
+            if (isSelf && count === 3 && openEnds === 1) return 50; // 9. 自己死三（下在死二）
+            if (!isSelf && count === 3 && openEnds === 1) return 50; // 10. 防守死三（死二無威脅）
+            
+            if (isSelf && count === 2 && openEnds === 1) return 20; // 13. 自己死二（微弱威脅）
+            if (!isSelf && count === 2 && openEnds === 1) return 20; // 14. 防守死二
+
+            // 修正：為其他情況提供基礎分數，避免AI無法選擇
+            return 1;
+        }
+
+        // 新增：計算對手在指定位置落子的分數
+        function calculateOpponentScoreForMove(move, opponent, currentBoard) {
+            if (!move) return 0;
+            const {x, y} = move;
+            let attackScore = 0;
+            let defenseScore = 0;
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            
+            // 計算對手的進攻分數
+            directions.forEach(([dx, dy]) => {
+                attackScore += getScoreFromLine(getLineInfo(x, y, dx, dy, opponent, currentBoard), true);
+            });
+            
+            // 計算對手的防守分數（阻止我方威脅）
+            const player = opponent === 1 ? 2 : 1;
+            directions.forEach(([dx, dy]) => {
+                defenseScore += getScoreFromLine(getLineInfo(x, y, dx, dy, player, currentBoard), false);
+            });
+            
+            // 優化：給予防守更高的權重，因為阻止對手威脅同樣重要
+            return attackScore + defenseScore * 1.1;
+        }
+
+        // 新增：取得威脅線上所有棋子與兩端空點座標（不包含偵測點本身）
+        function getThreatLine(x, y, dx, dy, count, player, board) {
+            let line = [];
+            // 向負方向找空點
+            let px = x, py = y;
+            while (true) {
+                const nx = px - dx, ny = py - dy;
+                if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) {
+                    px = nx; py = ny;
+                } else {
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === 0) {
+                        line.push({ x: nx, y: ny, type: 'empty' });
+                    }
+                    break;
+                }
+            }
+            // 正方向棋子（不包含偵測點本身）
+            let cx = px, cy = py;
+            let added = 0;
+            while (added < count) {
+                if ((cx !== x || cy !== y) && cx >= 0 && cx < GRID_SIZE && cy >= 0 && cy < GRID_SIZE && board[cy][cx] === player) {
+                    line.push({ x: cx, y: cy, type: 'stone' });
+                    added++;
+                }
+                cx += dx; cy += dy;
+            }
+            // 正方向空點
+            if (cx >= 0 && cx < GRID_SIZE && cy >= 0 && cy < GRID_SIZE && board[cy][cx] === 0) {
+                line.push({ x: cx, y: cy, type: 'empty' });
+            }
+            return line;
+        }
+
+        self.onmessage = function(e) {
+            const { command, data } = e.data;
+            if (command === 'init') {
+                initZobrist();
+            } else if (command === 'calculateMove' || command === 'getHint') { // --- 修改: 同時處理下棋和提示 ---
+                board = data.board;
+                playerIsBlack = data.playerIsBlack;
+                moveHistory = data.moveHistory;
+                // 修正：AI玩家判斷邏輯
+                // 如果玩家是黑棋，AI就是白棋(2)；如果玩家是白棋，AI就是黑棋(1)
+                const aiPlayer = playerIsBlack ? 2 : 1;
+                
+                const bestMove = findBestMove(data.difficulty, aiPlayer, data.difficulty);
+                
+                // --- 修改: 根據不同命令回傳不同類型的訊息 ---
+                if (command === 'calculateMove') {
+                    self.postMessage({ type: 'finalResult', data: bestMove });
+                } else { // command === 'getHint'
+                    self.postMessage({ type: 'hintResult', data: bestMove });
+                }
+            }
+        };
+    </script>
+
+    <script>
+        const canvas = document.getElementById('chess-board');
+        const ctx = canvas.getContext('2d');
+        const newGameBtn = document.getElementById('new-game-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const difficultySelect = document.getElementById('difficulty');
+        const playerFirstSelect = document.getElementById('player-first');
+        const aiStatusDiv = document.getElementById('ai-status');
+        const hintBtn = document.getElementById('hint-btn'); // 新增
+        const moveLogTextarea = document.getElementById('move-log'); // 新增
+        const copyLogBtn = document.getElementById('copy-log-btn'); // 新增
+        const autoPlayBtn = document.getElementById('auto-play-btn'); // 新增
+
+
+        const GRID_SIZE = 19;
+        let board = [];
+        let moveHistory = [];
+        let playerIsBlack = true;
+        let isPlayerTurn = true;
+        let gameOver = false;
+        let cellSize;
+        let previewPos = null;
+        let aiWorker = null;
+        
+        let aiThinkingData = null;
+        let hintMove = null; // --- 新增: 存儲 AI 提示的位置 ---
+        let lastAIMove = null; // --- 新增: 記錄 AI 最後下棋位置 ---
+        // let autoPlayMode = false; // --- 已移除: AI自動下棋模式 ---
+        // --- 新增: 棋局重播相關變數 ---
+        let isReplaying = false;
+        let replayIndex = 0;
+        let replayTimer = null;
+        let originalBoard = null;
+        let originalMoveHistory = null;
+        // --- 新增: 棋局跳步功能相關變數 ---
+        let fullMoveHistory = [];
+        let currentStep = null;
+        // 1. 新增一個全域變數，存放AI本步的searchLog
+        let aiSearchLog = [];
+        // 新增：AI評分表顯示開關
+        let showAIScoreVisual = false;
+        let hoverAIScorePos = null; // 新增：記錄滑鼠目前在棋盤的格子座標
+
+        function initAIWorker() {
+            if (window.Worker) {
+                const workerScript = document.getElementById('ai-worker').textContent;
+                const workerBlob = new Blob([workerScript], { type: 'application/javascript' });
+                aiWorker = new Worker(URL.createObjectURL(workerBlob));
+                
+                aiWorker.onmessage = function(e) {
+                    const { type, data } = e.data;
+                    
+                    if (type === 'progress') {
+                        updateAIProgressVisualization(data);
+                    } else if (type === 'finalResult') {
+                        const bestMove = data;
+                        aiSearchLog = bestMove && bestMove.searchLog ? bestMove.searchLog : [];
+                        console.log(`AI思考完成: aiSearchLog.length=${aiSearchLog.length}`);
+                        if(bestMove) {
+                            // 修正：AI下棋時，AI的玩家編號
+                            // 如果玩家是黑棋(1)，AI就是白棋(2)；如果玩家是白棋(2)，AI就是黑棋(1)
+                            const aiPlayerNumber = playerIsBlack ? 2 : 1;
+                            makeMove(bestMove.x, bestMove.y, aiPlayerNumber, bestMove.reason, bestMove.searchLog);
+                            updateMoveRecord();
+                            if (bestMove.reason) {
+                                aiStatusDiv.textContent = bestMove.reason;
+                            }
+                        }
+                        setThinking(false);
+                        // 確保AI評分表能夠持續顯示
+                        if (showAIScoreVisual && aiSearchLog.length > 0) {
+                            console.log(`AI思考完成後保持評分顯示: aiSearchLog.length=${aiSearchLog.length}`);
+                            // 強制重新繪製以確保評分表顯示
+                            setTimeout(() => redrawAll(), 10);
+                        }
+                        redrawAll(); // 重新繪製以顯示分數
+                    } else if (type === 'hintResult') { // --- 新增: 處理提示結果 ---
+                        setThinking(false);
+                        const bestMove = data;
+                        // 提示功能也應該更新aiSearchLog，這樣可以顯示評分
+                        aiSearchLog = bestMove && bestMove.searchLog ? bestMove.searchLog : [];
+                        console.log(`AI提示完成: aiSearchLog.length=${aiSearchLog.length}`);
+                        hintMove = bestMove;
+                        aiStatusDiv.textContent = 'AI 提示已標出';
+                        redrawAll();
+                    }
+                };
+                
+                aiWorker.postMessage({ command: 'init' });
+            } else {
+                console.error('您的瀏覽器不支持 Web Workers，性能可能較差。');
+            }
+        }
+        
+        function updateAIProgressVisualization(data) {
+            aiThinkingData = data;
+            aiStatusDiv.innerHTML = `思考中...<br>當前最佳分數: ${data.bestScoreSoFar}`;
+            redrawAll();
+        }
+        
+        function clearAIVisualization() {
+            aiThinkingData = null;
+            aiStatusDiv.textContent = isPlayerTurn ? '等待玩家落子...' : '遊戲結束';
+            redrawAll();
+        }
+
+        function setThinking(thinking) {
+            // 只根據 thinking 控制悔棋按鈕，不再考慮 gameOver
+            // undoBtn.disabled = thinking;
+            [newGameBtn, difficultySelect, playerFirstSelect, hintBtn].forEach(el => el.disabled = thinking);
+            canvas.classList.toggle('thinking', thinking);
+            if (thinking) {
+                // 不清空 aiSearchLog，保持上次的評分數據顯示
+                // aiSearchLog = [];
+            }
+            if (!thinking) {
+                // 不清空AI評分數據，只清除思考狀態
+                aiThinkingData = null;
+                aiStatusDiv.textContent = isPlayerTurn ? '等待玩家落子...' : '遊戲結束';
+                // aiSearchLog 不清空，直到下次 AI 思考
+            }
+        }
+        
+        function redrawAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBoard();
+            drawAISearchScores(false); // 先畫所有分數（非 hover）
+            drawPieces();
+            drawPreviewMarker(); // 半透明預覽棋子
+            drawAISearchScores(true); // 最後畫 hover 分數（紅色，最上層）
+            drawLastAIMoveMarker();
+            drawHintMarker();
+            drawAIThinkingMarkers();
+            
+            // 調試信息：每次重繪時檢查狀態
+            if (showAIScoreVisual) {
+                console.log(`redrawAll: showAIScoreVisual=${showAIScoreVisual}, aiSearchLog.length=${aiSearchLog ? aiSearchLog.length : 0}`);
+            }
+        }
+        
+        // --- 新增: 繪製 AI 提示位置的標記 ---
+        function drawHintMarker() {
+            if (!hintMove) return;
+            const { x, y } = hintMove;
+            const markerX = cellSize * (x + 1);
+            const markerY = cellSize * (y + 1);
+
+            ctx.save();
+            ctx.strokeStyle = '#FFD700'; //金色
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, cellSize/2.5, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // --- 新增: 標示 AI 剛剛下的位置 ---
+        function drawLastAIMoveMarker() {
+            if (!lastAIMove) return;
+            const { x, y } = lastAIMove;
+            const markerX = cellSize * (x + 1);
+            const markerY = cellSize * (y + 1);
+
+            ctx.save();
+            ctx.strokeStyle = '#FF3333'; // 紅色
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, cellSize/2.2, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawAIThinkingMarkers() {
+            if (!aiThinkingData) return;
+
+            const { currentlyChecking, bestMoveSoFar, threatType, threatPos } = aiThinkingData;
+
+            if (currentlyChecking) {
+                const { x, y } = currentlyChecking;
+                const markerX = cellSize * (x + 1);
+                const markerY = cellSize * (y + 1);
+                ctx.fillStyle = 'rgba(0, 100, 255, 0.4)';
+                ctx.strokeStyle = 'rgba(0, 100, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.rect(markerX - cellSize/2, markerY - cellSize/2, cellSize, cellSize);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            if (threatType && threatPos) {
+                const { x, y } = threatPos;
+                const markerX = cellSize * (x + 1);
+                const markerY = cellSize * (y + 1);
+                let color = '#FFD700'; // 預設金色
+                if (threatType === '活四') color = '#FF5722';
+                else if (threatType === '死四') color = '#9C27B0';
+                else if (threatType === '雙活三') color = '#2196F3';
+                else if (threatType === '活三') color = '#4CAF50';
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 5;
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath();
+                ctx.arc(markerX, markerY, cellSize/2.1, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.restore();
+                // 狀態區顯示
+                aiStatusDiv.innerHTML = `AI 正在檢查 <b>${threatType}</b> 威脅於 (${y}, ${x})...`;
+            }
+            if (bestMoveSoFar) {
+                const { x, y } = bestMoveSoFar;
+                const markerX = cellSize * (x + 1);
+                const markerY = cellSize * (y + 1);
+                ctx.fillStyle = 'rgba(76, 175, 80, 0.7)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(markerX, markerY, cellSize/3, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        function initBoard() {
+            fullMoveHistory = []; // 新增：清空完整棋譜紀錄
+            currentStep = null;   // 新增：清空跳步狀態
+            // 修正：使用與 resizeBoardCanvas 一致的計算邏輯
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const size = Math.min(vw, vh) * 0.9;
+            const dpr = window.devicePixelRatio || 1;
+            const boardContainer = document.getElementById('board-container');
+            // 強制外框正方形
+            boardContainer.style.width = size + 'px';
+            boardContainer.style.height = size + 'px';
+            boardContainer.style.maxWidth = size + 'px';
+            boardContainer.style.maxHeight = size + 'px';
+            boardContainer.style.aspectRatio = '1 / 1';
+            // 強制canvas正方形
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            canvas.style.maxWidth = size + 'px';
+            canvas.style.maxHeight = size + 'px';
+            canvas.style.aspectRatio = '1 / 1';
+            cellSize = size / (GRID_SIZE + 1);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            board = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+            moveHistory = [];
+            gameOver = false;
+            previewPos = null;
+            hintMove = null; // --- 新增: 清除提示 ---
+            lastAIMove = null; // --- 新增: 清除 AI 最後下棋位置 ---
+            // 初始化棋盤時清空AI評分數據
+            aiSearchLog = [];
+            clearAIVisualization();
+            updateMoveRecord(); // --- 新增: 清空紀錄 ---
+            redrawAll();
+        }
+
+        function startGame() {
+            fullMoveHistory = []; // 新增：新局時也清空完整棋譜紀錄
+            currentStep = null;   // 新增：新局時也清空跳步狀態
+            // 修正：確保新局時棋盤尺寸正確
+            initBoard();
+            // 新局開始時清空AI評分數據
+            aiSearchLog = [];
+            playerIsBlack = playerFirstSelect.value === 'true';
+            isPlayerTurn = playerIsBlack;
+            aiStatusDiv.textContent = isPlayerTurn ? '等待玩家落子...' : 'AI 思考中...';
+            // 修正：確保AI先手時能正確開始
+            if (!isPlayerTurn) {
+                setTimeout(aiMove, 500); 
+            }
+        }
+        
+        function makeMove(x, y, player, reason, searchLog) {
+            if (board[y][x] !== 0) return;
+            
+            // 修正：明確判斷 AI 下棋與玩家下棋，AI 下棋時正確保留 aiSearchLog
+            const isAI = (!isPlayerTurn);
+            if (isAI) {
+                lastAIMove = { x, y }; // --- 新增: AI 下棋時記錄 ---
+                // AI下棋時，若有searchLog則更新aiSearchLog，否則保留原本的
+                if (searchLog && searchLog.length > 0) {
+                    aiSearchLog = searchLog;
+                    console.log(`AI下棋時更新評分數據: aiSearchLog.length=${aiSearchLog.length}`);
+                }
+            } else {
+                lastAIMove = null; // --- 新增: 玩家下棋時清除 ---
+                // 玩家下棋後清空AI評分數據，因為棋盤狀態已改變
+                aiSearchLog = [];
+                console.log(`玩家下棋後清空AI評分數據`);
+            }
+            hintMove = null; // --- 新增: 玩家或AI下棋後，清除提示 ---
+
+            board[y][x] = player;
+            // 將 reason 一起存入 moveHistory
+            moveHistory.push({x, y, player, reason, searchLog});
+            updateMoveRecord(); // --- 新增: 更新紀錄 ---
+            previewPos = null;
+            redrawAll();
+
+            if (checkWin(x, y, player)) {
+                gameOver = true;
+                setThinking(false);
+                const winnerText = `${player === 1 ? '黑棋' : '白棋'} 勝利!`;
+                aiStatusDiv.textContent = winnerText;
+                setTimeout(() => alert(winnerText), 100);
+                return;
+            }
+
+            if (moveHistory.length === GRID_SIZE * GRID_SIZE) {
+                gameOver = true;
+                aiStatusDiv.textContent = '平局!';
+                setTimeout(() => alert('平局!'), 100);
+                return;
+            }
+
+            isPlayerTurn = !isPlayerTurn;
+            aiStatusDiv.textContent = isPlayerTurn ? '等待玩家落子...' : 'AI 思考中...';
+            if (!isPlayerTurn && !gameOver) {
+                aiMove();
+            }
+        }
+        
+        function undoMove() {
+            if (moveHistory.length === 0) return; // 允許任何時候悔棋
+            const minMoves = playerIsBlack ? 0 : 1;
+            if (moveHistory.length <= minMoves) return;
+            for(let i=0; i < 2 && moveHistory.length > 0; i++){
+                const lastMove = moveHistory.pop();
+                if(lastMove){ board[lastMove.y][lastMove.x] = 0; }
+            }
+            // 重新判斷遊戲是否結束，悔棋後一律恢復為未結束
+            gameOver = false;
+            // 根據moveHistory最後一步決定輪到誰
+            if (moveHistory.length === 0) {
+                isPlayerTurn = playerIsBlack;
+            } else {
+                const last = moveHistory[moveHistory.length - 1];
+                // 如果最後一步是AI，則輪到玩家
+                isPlayerTurn = ((playerIsBlack && last.player === 2) || (!playerIsBlack && last.player === 1));
+            }
+            aiStatusDiv.textContent = isPlayerTurn ? '等待玩家落子...' : 'AI 思考中...';
+            hintMove = null; // --- 新增: 悔棋後清除提示 ---
+            lastAIMove = null; // --- 新增: 悔棋後清除 AI 最後下棋位置 ---
+            // 悔棋後清空AI評分數據，因為棋盤狀態已改變
+            aiSearchLog = [];
+            aiThinkingData = null;
+            updateMoveRecord(); // --- 新增: 更新紀錄 ---
+            redrawAll();
+            // 修正：悔棋後如果輪到AI且未結束，應自動觸發AI
+            if (!isPlayerTurn && !gameOver) {
+                aiMove();
+            }
+        }
+
+        function aiMove() {
+            if (gameOver) return;
+            setThinking(true);
+            aiStatusDiv.textContent = 'AI 開始思考...';
+            // 修正：確保AI能正確處理白子先手的情況
+            aiWorker.postMessage({
+                command: 'calculateMove',
+                data: {
+                    board: board,
+                    playerIsBlack: playerIsBlack,
+                    moveHistory: moveHistory,
+                    difficulty: parseInt(difficultySelect.value)
+                }
+            });
+        }
+        
+        // --- 新增: 請求 AI 提示的函式 ---
+        function requestHint() {
+            if (gameOver || !isPlayerTurn) return;
+            setThinking(true);
+            aiStatusDiv.textContent = 'AI 正在為您建議...';
+            // AI 需要知道當前玩家是誰，才能為玩家計算最佳落子點
+            // 修正：提示時，AI 必須以『玩家』為我方
+            const currentPlayer = playerIsBlack ? 1 : 2;
+            aiWorker.postMessage({
+                command: 'getHint',
+                data: {
+                    board: board,
+                    playerIsBlack: true, // 強制讓 AI 以玩家為我方
+                    moveHistory: moveHistory,
+                    difficulty: parseInt(difficultySelect.value)
+                }
+            });
+        }
+        
+        // --- 新增: 更新棋局紀錄的函式，支援點擊跳步 ---
+        function updateMoveRecord() {
+            // 若在重播或跳步狀態，顯示 fullMoveHistory，否則顯示 moveHistory
+            const logList = document.getElementById('move-log');
+            const history = (fullMoveHistory.length > 0) ? fullMoveHistory : moveHistory;
+            logList.innerHTML = '';
+            history.forEach((move, index) => {
+                const moveNumber = index + 1;
+                const playerColor = move.player === 1 ? '黑棋' : '白棋';
+                let playerType;
+                if ((playerIsBlack && move.player === 1) || (!playerIsBlack && move.player === 2)) {
+                    playerType = '玩家';
+                } else {
+                    playerType = 'AI';
+                }
+                const li = document.createElement('li');
+                li.textContent = `#${moveNumber}: ${playerType} (${playerColor}) 落子于 (${move.y}, ${move.x})`;
+                li.setAttribute('data-index', index + 1);
+                li.style.cursor = 'pointer';
+                if (currentStep === index + 1) {
+                    li.style.background = '#ffe082';
+                    li.style.fontWeight = 'bold';
+                }
+                logList.appendChild(li);
+                // 顯示 reason
+                if (move.reason) {
+                    const reasonLi = document.createElement('li');
+                    reasonLi.textContent = `  └ ${move.reason}`;
+                    reasonLi.style.fontSize = '11px';
+                    reasonLi.style.color = '#b71c1c';
+                    reasonLi.style.background = '#fffde7';
+                    reasonLi.style.marginLeft = '1em';
+                    logList.appendChild(reasonLi);
+                }
+                // 顯示 AI 發現的威脅類型
+                if (move.searchLog && move.searchLog.length > 0) {
+                    const bestMove = move.searchLog.find(item => item.isBest);
+                    if (bestMove) {
+                        // 顯示自己的威脅
+                        if (bestMove.type && bestMove.type !== '') {
+                            const threatLi = document.createElement('li');
+                            threatLi.textContent = `  └ 形成 ${bestMove.type} 威脅`;
+                            threatLi.style.fontSize = '11px';
+                            threatLi.style.color = '#1976d2';
+                            threatLi.style.background = '#e3f2fd';
+                            threatLi.style.marginLeft = '1em';
+                            logList.appendChild(threatLi);
+                        }
+                        // 顯示對手的威脅（防守）
+                        if (bestMove.opponentMaxType && bestMove.opponentMaxType !== '') {
+                            const defenseLi = document.createElement('li');
+                            defenseLi.textContent = `  └ 防守對手 ${bestMove.opponentMaxType} 威脅`;
+                            defenseLi.style.fontSize = '11px';
+                            defenseLi.style.color = '#d32f2f';
+                            defenseLi.style.background = '#ffebee';
+                            defenseLi.style.marginLeft = '1em';
+                            logList.appendChild(defenseLi);
+                        }
+                    }
+                }
+            });
+            logList.scrollTop = logList.scrollHeight;
+        }
+
+        // --- 新增: 點擊棋譜跳步功能 ---
+        document.getElementById('move-log').addEventListener('click', function(e) {
+            if (e.target.tagName.toLowerCase() === 'li') {
+                const step = parseInt(e.target.getAttribute('data-index'));
+                showStep(step);
+            }
+        });
+
+        // --- 新增: 還原棋盤到指定步數的函式 ---
+        function showStep(step) {
+            if (!fullMoveHistory.length) return;
+            board = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+            moveHistory = [];
+            for (let i = 0; i < step; i++) {
+                const move = fullMoveHistory[i];
+                board[move.y][move.x] = move.player;
+                moveHistory.push(move);
+            }
+            currentStep = step;
+            // 跳步後清空AI評分數據，因為棋盤狀態已改變
+            aiSearchLog = [];
+            updateMoveRecord();
+            redrawAll();
+        }
+
+        // --- 新增: 棋局重播控制函式 ---
+        function startReplay() {
+            if (moveHistory.length === 0 || isReplaying) return;
+            isReplaying = true;
+            replayIndex = 0;
+            originalBoard = board.map(row => row.slice());
+            originalMoveHistory = moveHistory.slice();
+            board = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+            moveHistory = [];
+            // 開始重播時清空AI評分數據，因為棋盤狀態已改變
+            aiSearchLog = [];
+            setReplayButtons(true);
+            redrawAll();
+            replayStep();
+        }
+        function replayStep() {
+            if (!isReplaying || replayIndex >= originalMoveHistory.length) {
+                stopReplay();
+                return;
+            }
+            const move = originalMoveHistory[replayIndex];
+            board[move.y][move.x] = move.player;
+            moveHistory.push(move);
+            updateMoveRecord();
+            redrawAll();
+            replayIndex++;
+            replayTimer = setTimeout(replayStep, 500); // 0.5秒一手
+        }
+        function pauseReplay() {
+            if (!isReplaying) return;
+            clearTimeout(replayTimer);
+            setReplayButtons(false, true);
+        }
+        function resumeReplay() {
+            if (!isReplaying) return;
+            setReplayButtons(true);
+            replayStep();
+        }
+        function stopReplay() {
+            isReplaying = false;
+            clearTimeout(replayTimer);
+            if (originalBoard && originalMoveHistory) {
+                board = originalBoard.map(row => row.slice());
+                moveHistory = originalMoveHistory.slice();
+                // 停止重播時清空AI評分數據，因為棋盤狀態已改變
+                aiSearchLog = [];
+                updateMoveRecord();
+                redrawAll();
+            }
+            setReplayButtons(false, false, true);
+        }
+        function setReplayButtons(playing, paused, stopped) {
+            replayPlayBtn.disabled = playing;
+            replayPauseBtn.disabled = !playing;
+            replayStopBtn.disabled = !playing && !paused;
+        }
+
+        function checkWin(x, y, player) {
+            const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
+            for (const [dx, dy] of directions) {
+                let count = 1;
+                for (let i = 1; i < 5; i++) { const nx = x + i * dx, ny = y + i * dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++; else break; }
+                for (let i = 1; i < 5; i++) { const nx = x - i * dx, ny = y - i * dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++; else break; }
+                // 只判斷剛好五連珠才算勝利（不包含六連或以上）
+                if (count === 5) {
+                    // 檢查兩端是否還有同色棋子，若有則不算勝利
+                    const nx1 = x + 5 * dx, ny1 = y + 5 * dy;
+                    const nx2 = x - 5 * dx, ny2 = y - 5 * dy;
+                    if ((nx1 < 0 || nx1 >= GRID_SIZE || ny1 < 0 || ny1 >= GRID_SIZE || board[ny1][nx1] !== player) &&
+                        (nx2 < 0 || nx2 >= GRID_SIZE || ny2 < 0 || ny2 >= GRID_SIZE || board[ny2][nx2] !== player)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        function getBoardCoordinates(e) {
+            // 取得 canvas 元素相對於可視區域的位置和大小
+            const rect = canvas.getBoundingClientRect(); 
+
+            // 判斷是滑鼠事件還是觸控事件，並取得對應的座標
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // 計算點擊位置相對於 canvas 左上角的內部座標 (單位為 CSS 像素)
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            // 使用全域的 cellSize 變數，確保與繪製時的計算一致
+            // 修正：直接使用全域的 cellSize，而不是重新計算
+            const currentCellSize = cellSize;
+
+            // 將點擊的像素座標轉換為棋盤的格線座標 (例如 0,0 到 18,18)
+            // 減 1 是因為棋盤座標是從 0 開始，而我們的計算基準是從第 1 個 cellSize 開始的。
+            const boardX = Math.round(x / currentCellSize) - 1;
+            const boardY = Math.round(y / currentCellSize) - 1;
+
+            return { boardX, boardY };
+        }
+        canvas.addEventListener('click', (e) => {
+            if (!isPlayerTurn) return; // 移除 gameOver 限制
+            const { boardX, boardY } = getBoardCoordinates(e);
+            if (boardX >= 0 && boardX < GRID_SIZE && boardY >= 0 && boardY < GRID_SIZE) {
+                makeMove(boardX, boardY, playerIsBlack ? 1 : 2);
+            }
+        });
+        // 監聽滑鼠移動，記錄 hoverAIScorePos 並重繪
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isPlayerTurn) return; // 移除 gameOver 限制
+            const { boardX, boardY } = getBoardCoordinates(e);
+            if (boardX >= 0 && boardX < GRID_SIZE && boardY >= 0 && boardY < GRID_SIZE) {
+                if (!previewPos || previewPos.x !== boardX || previewPos.y !== boardY) {
+                    previewPos = { x: boardX, y: boardY };
+                    hoverAIScorePos = { x: boardX, y: boardY }; // 新增：記錄 hover 位置
+                    redrawAll();
+                }
+            } else { 
+                if (previewPos) { previewPos = null; redrawAll(); }
+                hoverAIScorePos = null; // 新增：離開棋盤時清除
+            }
+        });
+        canvas.addEventListener('mouseout', () => { if (previewPos) { previewPos = null; redrawAll(); } hoverAIScorePos = null; });
+        
+        // --- 新增: 綁定棋局重播按鈕事件 ---
+        const replayPlayBtn = document.getElementById('replay-play-btn');
+        const replayPauseBtn = document.getElementById('replay-pause-btn');
+        const replayStopBtn = document.getElementById('replay-stop-btn');
+        replayPlayBtn.addEventListener('click', () => {
+            if (isReplaying && !replayPauseBtn.disabled) {
+                resumeReplay();
+            } else {
+                startReplay();
+            }
+        });
+        replayPauseBtn.addEventListener('click', pauseReplay);
+        replayStopBtn.addEventListener('click', stopReplay);
+
+        // 在新局、悔棋、AI自動等操作時，記得呼叫 stopReplay 以避免重播狀態混亂
+        function safeStopReplay() {
+            if (isReplaying) stopReplay();
+            syncFullMoveHistory(); // 新增：同步 fullMoveHistory
+        }
+        newGameBtn.addEventListener('click', () => {
+            safeStopReplay();
+            startGame();
+        });
+        undoBtn.addEventListener('click', () => {
+            safeStopReplay();
+            undoMove();
+        });
+        hintBtn.addEventListener('click', requestHint); // --- 新增 ---
+
+        // --- 新增: 複製按鈕功能 ---
+        copyLogBtn.addEventListener('click', () => {
+            // 取得所有 li 的文字
+            const logList = document.getElementById('move-log');
+            const items = Array.from(logList.querySelectorAll('li'));
+            const text = items.map(li => li.textContent).join('\n');
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyLogBtn.textContent;
+                copyLogBtn.textContent = '已複製!';
+                copyLogBtn.disabled = true;
+                setTimeout(() => {
+                    copyLogBtn.textContent = originalText;
+                    copyLogBtn.disabled = false;
+                }, 1500);
+            }).catch(err => {
+                console.error('複製失敗: ', err);
+                alert('複製失敗，您的瀏覽器可能不支援此功能。');
+            });
+        });
+
+        // --- 新增: 只調整棋盤尺寸的函式 ---
+        function resizeBoardCanvas() {
+            // 取視窗寬高的最小值，確保棋盤正方形
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            // 減去一些 padding，避免超出視窗
+            const size = Math.min(vw, vh) * 0.9;
+            const dpr = window.devicePixelRatio || 1;
+            const boardContainer = document.getElementById('board-container');
+            // 強制外框正方形
+            boardContainer.style.width = size + 'px';
+            boardContainer.style.height = size + 'px';
+            boardContainer.style.maxWidth = size + 'px';
+            boardContainer.style.maxHeight = size + 'px';
+            boardContainer.style.aspectRatio = '1 / 1';
+            // 強制canvas正方形
+            canvas.width = size * dpr;
+            canvas.height = size * dpr;
+            canvas.style.width = size + 'px';
+            canvas.style.height = size + 'px';
+            canvas.style.maxWidth = size + 'px';
+            canvas.style.maxHeight = size + 'px';
+            canvas.style.aspectRatio = '1 / 1';
+            cellSize = size / (GRID_SIZE + 1);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            redrawAll();
+        }
+        // window.addEventListener('resize', initBoard);
+        window.addEventListener('resize', resizeBoardCanvas); // 只調整尺寸，不重設棋局
+        initAIWorker();
+        startGame();
+        resizeBoardCanvas(); // 新增：初始載入時也執行一次，確保棋盤正方形
+
+        // --- 省略了未變動的繪圖函式 ---
+        function drawBoard() {
+            ctx.fillStyle = '#dcb35c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+            // 讓棋盤網格線置中
+            for (let i = 0; i < GRID_SIZE; i++) {
+                // 垂直線
+                ctx.beginPath();
+                ctx.moveTo(cellSize * (i + 1), cellSize);
+                ctx.lineTo(cellSize * (i + 1), cellSize * GRID_SIZE);
+                ctx.stroke();
+                // 水平線
+                ctx.beginPath();
+                ctx.moveTo(cellSize, cellSize * (i + 1));
+                ctx.lineTo(cellSize * GRID_SIZE, cellSize * (i + 1));
+                ctx.stroke();
+            }
+            // 星位點
+            const starPoints = [ {x: 3, y: 3}, {x: 9, y: 3}, {x: 15, y: 3}, {x: 3, y: 9}, {x: 9, y: 9}, {x: 15, y: 9}, {x: 3, y: 15}, {x: 9, y: 15}, {x: 15, y: 15} ];
+            ctx.fillStyle = '#333';
+            starPoints.forEach(p => { ctx.beginPath(); ctx.arc(cellSize * (p.x + 1), cellSize * (p.y + 1), cellSize / 5, 0, 2 * Math.PI); ctx.fill(); });
+        }
+        function drawPieces() {
+            for (let y = 0; y < GRID_SIZE; y++) { for (let x = 0; x < GRID_SIZE; x++) { if (board[y][x] !== 0) drawPiece(x, y, board[y][x]); } }
+        }
+        function drawPiece(x, y, player) {
+            ctx.beginPath();
+            const radius = cellSize / 2 * 0.9; const pieceX = cellSize * (x + 1); const pieceY = cellSize * (y + 1);
+            const gradient = ctx.createRadialGradient(pieceX - radius * 0.2, pieceY - radius * 0.2, radius * 0.1, pieceX, pieceY, radius);
+            if (player === 1) { gradient.addColorStop(0, '#666'); gradient.addColorStop(1, '#000'); } else { gradient.addColorStop(0, '#fff'); gradient.addColorStop(1, '#ddd'); }
+            ctx.fillStyle = gradient; ctx.arc(pieceX, pieceY, radius, 0, 2 * Math.PI); ctx.fill();
+        }
+        function drawPreviewMarker() {
+            if (!previewPos || !isPlayerTurn) return; // 移除 gameOver 限制
+            const { x, y } = previewPos;
+            if (board[y][x] !== 0) return;
+            const player = playerIsBlack ? 1 : 2;
+            ctx.globalAlpha = 0.5; drawPiece(x, y, player); ctx.globalAlpha = 1.0;
+        }
+
+        function autoPlay() {
+            if (gameOver) {
+                return;
+            }
+            setThinking(true);
+            aiStatusDiv.textContent = 'AI自動下棋中...';
+            // 根據isPlayerTurn決定目前輪到哪一方
+            const currentPlayerIsBlack = isPlayerTurn ? playerIsBlack : !playerIsBlack;
+            aiWorker.postMessage({
+                command: 'getHint',
+                data: {
+                    board: board,
+                    playerIsBlack: currentPlayerIsBlack,
+                    moveHistory: moveHistory,
+                    difficulty: parseInt(difficultySelect.value)
+                }
+            });
+        }
+
+        // --- 修改: makeMove, undoMove, startGame, stopReplay, safeStopReplay, aiMove, autoPlay, startReplay, stopReplay, resumeReplay, pauseReplay ---
+        // 使 fullMoveHistory 與 moveHistory 保持同步，並在正常下棋時取消跳步高亮
+        function syncFullMoveHistory() {
+            fullMoveHistory = moveHistory.slice();
+            currentStep = null;
+        }
+        // 修改 makeMove
+        const _originalMakeMove = makeMove;
+        makeMove = function(x, y, player, reason, searchLog) {
+            _originalMakeMove(x, y, player, reason, searchLog);
+            syncFullMoveHistory();
+            updateUndoBtnState();
+        };
+        // 修改 undoMove
+        const _originalUndoMove = undoMove;
+        undoMove = function() {
+            _originalUndoMove();
+            syncFullMoveHistory();
+            updateMoveRecord(); // <-- 新增這行，確保棋譜刷新
+            updateUndoBtnState();
+        };
+        // 修改 startGame
+        const _originalStartGame = startGame;
+        startGame = function() {
+            _originalStartGame();
+            // syncFullMoveHistory(); // <-- 移除這行，避免新局時又把 moveHistory 複製到 fullMoveHistory
+            updateUndoBtnState();
+        };
+        // 修改 stopReplay
+        const _originalStopReplay = stopReplay;
+        stopReplay = function() {
+            _originalStopReplay();
+            syncFullMoveHistory();
+            updateUndoBtnState();
+        };
+        // 在新局、悔棋、AI自動等操作時，safeStopReplay 也同步 fullMoveHistory
+        function safeStopReplay() {
+            if (isReplaying) stopReplay();
+            syncFullMoveHistory();
+        }
+        // 在重播開始時，fullMoveHistory 設為 moveHistory 的快照
+        const _originalStartReplay = startReplay;
+        startReplay = function() {
+            fullMoveHistory = moveHistory.slice();
+            currentStep = null;
+            _originalStartReplay();
+        };
+        // 在重播暫停/繼續時，保持高亮
+        const _originalPauseReplay = pauseReplay;
+        pauseReplay = function() {
+            _originalPauseReplay();
+            currentStep = replayIndex;
+            updateMoveRecord();
+        };
+        const _originalResumeReplay = resumeReplay;
+        resumeReplay = function() {
+            _originalResumeReplay();
+            currentStep = null;
+            updateMoveRecord();
+        };
+
+        // 初始化時也要設置
+        updateUndoBtnState();
+
+        // 新增：悔棋按鈕狀態控制函式，只在 AI 思考時 disable
+        function updateUndoBtnState() {
+            // undoBtn 只在 AI 思考時不能按，遊戲結束也能悔棋
+            // undoBtn.disabled = canvas.classList.contains('thinking') || moveHistory.length === 0;
+            undoBtn.disabled = moveHistory.length === 0;
+        }
+
+        // 4. 新增drawAISearchScores函式，將aiSearchLog的每個點及分數畫在棋盤上
+        function drawAISearchScores(onlyHover = false) {
+            // 調試信息
+            if (showAIScoreVisual) {
+                console.log(`drawAISearchScores: onlyHover=${onlyHover}, showAIScoreVisual=${showAIScoreVisual}, aiSearchLog.length=${aiSearchLog ? aiSearchLog.length : 0}`);
+            }
+            
+            if (!showAIScoreVisual) return;
+            if (!aiSearchLog || aiSearchLog.length === 0) return;
+            ctx.save();
+            ctx.font = `${Math.floor(cellSize * 0.35)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const scoreMap = new Map();
+            aiSearchLog.forEach(item => {
+                scoreMap.set(`${item.x},${item.y}`, item);
+            });
+
+            scoreMap.forEach(item => {
+                const isHover = hoverAIScorePos && hoverAIScorePos.x === item.x && hoverAIScorePos.y === item.y;
+                if (onlyHover && !isHover) return;
+                if (!onlyHover && isHover) return;
+                const markerX = cellSize * (item.x + 1);
+                const markerY = cellSize * (item.y + 1);
+                ctx.beginPath();
+                ctx.arc(markerX, markerY, cellSize/2.3, 0, 2 * Math.PI);
+                ctx.globalAlpha = item.isBest ? 0.95 : 0.55;
+                ctx.fillStyle = item.isBest ? '#1565c0' : '#333';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                const displayScore = item.localScore !== undefined ? item.localScore : item.score;
+                ctx.strokeText(displayScore, markerX, markerY);
+                ctx.fillStyle = isHover ? '#d32f2f' : (item.isBest ? '#1565c0' : '#333');
+                ctx.fillText(displayScore, markerX, markerY);
+                if (item.isBest) {
+                    ctx.beginPath();
+                    ctx.arc(markerX, markerY, cellSize/2.5, 0, 2 * Math.PI);
+                    ctx.strokeStyle = '#1565c0';
+                    ctx.lineWidth = 3;
+                    ctx.globalAlpha = 0.7;
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+        // 滑鼠移動時更新 tooltip 內容與位置
+        canvas.addEventListener('mousemove', (e) => {
+            const { boardX, boardY } = getBoardCoordinates(e);
+            hoverAIScorePos = (boardX >= 0 && boardX < GRID_SIZE && boardY >= 0 && boardY < GRID_SIZE) ? { x: boardX, y: boardY } : null;
+            redrawAll();
+
+            if (showAIScoreVisual && hoverAIScorePos && aiSearchLog && aiSearchLog.length > 0) {
+                const found = aiSearchLog.find(item => item.x === boardX && item.y === boardY);
+                if (found && found.details) {
+                    let html = `<div style="text-align:center; margin-bottom:8px; font-weight:bold;">綜合評分：${found.localScore}</div>`;
+                    html += `<div style="display:flex; gap:15px;">`;
+                    // 左欄：我方資訊
+                    html += `<div style="flex:1;">`;
+                    html += `<div style="color:#4CAF50; font-weight:bold; margin-bottom:4px;">我方 (${found.details.selfTotal}分)</div>`;
+                    // 顯示我方進攻分數
+                    let attackScore = 0;
+                    found.details.self.forEach(d => {
+                        if (d.score > 0) {
+                            attackScore += d.score;
+                            let typeColor = '';
+                            if (d.type === '五連') typeColor = 'color:#FFD700; font-weight:bold;';
+                            else if (d.type === '活四') typeColor = 'color:#FF4500; font-weight:bold;';
+                            else if (d.type === '死四') typeColor = 'color:#FF6347; font-weight:bold;';
+                            else if (d.type === '活三') typeColor = 'color:#FF8C00; font-weight:bold;';
+                            html += `<div style="font-size:11px; margin:1px 0;">自己進攻 ${dirText(d.direction)} → <span style="${typeColor}">${d.type}</span> (${d.score})</div>`;
+                        }
+                    });
+                    if (attackScore > 0) {
+                        html += `<div style="font-size:11px; color:#4CAF50; font-weight:bold; margin:2px 0;">自己進攻總分: ${attackScore}</div>`;
+                    }
+                    // 顯示我方防守分數
+                    let defenseScore = 0;
+                    found.details.opponent.forEach(d => {
+                        if (d.score > 0) {
+                            defenseScore += d.score;
+                            let typeColor = '';
+                            if (d.type === '五連') typeColor = 'color:#FFD700; font-weight:bold;';
+                            else if (d.type === '活四') typeColor = 'color:#FF4500; font-weight:bold;';
+                            else if (d.type === '死四') typeColor = 'color:#FF6347; font-weight:bold;';
+                            else if (d.type === '活三') typeColor = 'color:#FF8C00; font-weight:bold;';
+                            html += `<div style="font-size:11px; margin:1px 0;">防守對手 ${dirText(d.direction)} → <span style="${typeColor}">${d.type}</span> (${d.score})</div>`;
+                        }
+                    });
+                    if (defenseScore > 0) {
+                        html += `<div style="font-size:11px; color:#4CAF50; font-weight:bold; margin:2px 0;">防守對手總分: ${defenseScore}</div>`;
+                    }
+                    html += `</div>`;
+                    // 右欄：對手資訊
+                    html += `<div style="flex:1;">`;
+                    html += `<div style="color:#FF5722; font-weight:bold; margin-bottom:4px;">對手 (${found.details.opponentTotal}分)</div>`;
+                    // 顯示對手進攻分數
+                    if (found.details.opponentDetails && found.details.opponentDetails.self) {
+                        let oppAttackScore = 0;
+                        found.details.opponentDetails.self.forEach(d => {
+                            if (d.score > 0) {
+                                oppAttackScore += d.score;
+                                let typeColor = '';
+                                if (d.type === '五連') typeColor = 'color:#FFD700; font-weight:bold;';
+                                else if (d.type === '活四') typeColor = 'color:#FF4500; font-weight:bold;';
+                                else if (d.type === '死四') typeColor = 'color:#FF6347; font-weight:bold;';
+                                else if (d.type === '活三') typeColor = 'color:#FF8C00; font-weight:bold;';
+                                html += `<div style="font-size:11px; margin:1px 0;">對手進攻 ${dirText(d.direction)} → <span style="${typeColor}">${d.type}</span> (${d.score})</div>`;
+                            }
+                        });
+                        if (oppAttackScore > 0) {
+                            html += `<div style="font-size:11px; color:#FF5722; font-weight:bold; margin:2px 0;">對手進攻總分: ${oppAttackScore}</div>`;
+                        }
+                        // 顯示對手防守分數
+                        let oppDefenseScore = 0;
+                        found.details.opponentDetails.opponent.forEach(d => {
+                            if (d.score > 0) {
+                                oppDefenseScore += d.score;
+                                let typeColor = '';
+                                if (d.type === '五連') typeColor = 'color:#FFD700; font-weight:bold;';
+                                else if (d.type === '活四') typeColor = 'color:#FF4500; font-weight:bold;';
+                                else if (d.type === '死四') typeColor = 'color:#FF6347; font-weight:bold;';
+                                else if (d.type === '活三') typeColor = 'color:#FF8C00; font-weight:bold;';
+                                html += `<div style="font-size:11px; margin:1px 0;">對手防守 ${dirText(d.direction)} → <span style="${typeColor}">${d.type}</span> (${d.score})</div>`;
+                            }
+                        });
+                        if (oppDefenseScore > 0) {
+                            html += `<div style="font-size:11px; color:#FF5722; font-weight:bold; margin:2px 0;">對手防守總分: ${oppDefenseScore}</div>`;
+                        }
+                    }
+                    html += `</div>`;
+                    html += `</div>`;
+                    html += `<div style="text-align:center; margin-top:8px; font-size:11px; color:#aaa;">→ 綜合評分 = max(我方總分, 對手總分) = ${found.localScore}</div>`;
+                    html += `<div style="text-align:center; font-size:10px; color:#aaa;">(AI優先選擇威脅程度最高的位置)</div>`;
+                    document.getElementById('score-tooltip').innerHTML = html;
+                    document.getElementById('score-tooltip').style.display = 'block';
+                    document.getElementById('score-tooltip').style.left = (e.pageX + 12) + 'px';
+                    document.getElementById('score-tooltip').style.top = (e.pageY + 12) + 'px';
+                } else {
+                    document.getElementById('score-tooltip').style.display = 'none';
+                }
+            } else {
+                document.getElementById('score-tooltip').style.display = 'none';
+            }
+        });
+        // 滑鼠移出棋盤時隱藏 tooltip
+        canvas.addEventListener('mouseleave', () => {
+            document.getElementById('score-tooltip').style.display = 'none';
+        });
+
+        // --- 新增: 綁定AI評分表顯示開關 ---
+        document.getElementById('toggle-score-visual').addEventListener('change', function(e) {
+            showAIScoreVisual = e.target.checked;
+            console.log(`AI評分表顯示開關: ${showAIScoreVisual}`);
+            redrawAll();
+        });
+        
+        // 確保頁面載入時檢查复选框狀態
+        window.addEventListener('load', function() {
+            const checkbox = document.getElementById('toggle-score-visual');
+            showAIScoreVisual = checkbox.checked;
+            console.log(`頁面載入時AI評分表狀態: ${showAIScoreVisual}`);
+        });
+
+        // 前端滑鼠移動時，tooltip 顯示明細
+        function dirText(dirIdx) {
+            // 修正方向標籤順序，對應 directions: [[1,0],[0,1],[1,1],[1,-1]]
+            return ['水平 ↔', '垂直 ↕', '右下 ↘', '左下 ↙'][dirIdx];
+        }
+
+
+    </script>
+<div id="score-tooltip" style="
+    position: absolute;
+    pointer-events: none;
+    background-color: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 9999;
+    white-space: nowrap;
+    display: none;
+"></div>
+</body></html> 
