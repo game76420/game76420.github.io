@@ -1587,26 +1587,16 @@
             return false;
         }
         function getBoardCoordinates(e) {
-            // 取得 canvas 元素相對於可視區域的位置和大小
-            const rect = canvas.getBoundingClientRect(); 
-
-            // 判斷是滑鼠事件還是觸控事件，並取得對應的座標
+            const rect = canvas.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-            // 計算點擊位置相對於 canvas 左上角的內部座標 (單位為 CSS 像素)
+            // 取得在canvas上的CSS像素座標
             const x = clientX - rect.left;
             const y = clientY - rect.top;
-
-            // 使用全域的 cellSize 變數，確保與繪製時的計算一致
-            // 修正：直接使用全域的 cellSize，而不是重新計算
-            const currentCellSize = cellSize;
-
-            // 將點擊的像素座標轉換為棋盤的格線座標 (例如 0,0 到 18,18)
-            // 減 1 是因為棋盤座標是從 0 開始，而我們的計算基準是從第 1 個 cellSize 開始的。
-            const boardX = Math.round(x / currentCellSize) - 1;
-            const boardY = Math.round(y / currentCellSize) - 1;
-
+            // 用實際CSS寬高計算cellSize，避免DPR或canvas屬性影響
+            const cssCellSize = rect.width / (GRID_SIZE + 1);
+            const boardX = Math.round(x / cssCellSize) - 1;
+            const boardY = Math.round(y / cssCellSize) - 1;
             return { boardX, boardY };
         }
         canvas.addEventListener('click', (e) => {
