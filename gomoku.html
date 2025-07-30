@@ -918,14 +918,14 @@
             // 優化的評分系統：平衡進攻與防守，重視威脅程度
             if (isSelf && count === 5) return 13000; // 1. 自己五連（必勝）
             if (!isSelf && count === 5) return 12000; // 2. 阻止對手五連（必防）
-            if (isSelf && count === 4 && openEnds === 2) return 7800; // 3. 自己活四（下活三必勝威脅）
+            if (isSelf && count === 4 && openEnds === 2) return 8000; // 3. 自己活四（下活三必勝威脅）
             if (!isSelf && count === 4 && openEnds === 2) return 7700; // 4. 防守活四（對手活三必防）
 
-            if (isSelf && count === 3 && openEnds === 2) return 3800; // 7. 自己活三（下活二）
-            if (!isSelf && count === 3 && openEnds === 2) return 3700; // 8. 防守活三 (擋住活二)
+            if (isSelf && count === 3 && openEnds === 2) return 4000; // 7. 自己活三（下活二）
+            if (!isSelf && count === 3 && openEnds === 2) return 3950; // 8. 防守活三 (擋住活二)
 
-            if (isSelf && count === 2 && openEnds === 2) return 170; // 11. 自己活二（基礎威脅）
-            if (!isSelf && count === 2 && openEnds === 2) return 160; // 12. 防守活二 (擋住單子) 
+            if (isSelf && count === 2 && openEnds === 2) return 200; // 11. 自己活二（基礎威脅）
+            if (!isSelf && count === 2 && openEnds === 2) return 195; // 12. 防守活二 (擋住單子) 
 
             if (isSelf && count === 1 && openEnds === 2) return 0; // 15. 自己單子（潛在威脅）
             if (!isSelf && count === 1 && openEnds === 2) return 0; // 16. 防守單子
@@ -933,8 +933,8 @@
             if (isSelf && count === 4 && openEnds === 1) return 100; // 5. 自己死四（下在死三）
             if (!isSelf && count === 4 && openEnds === 1) return 100; // 6. 防守死四（死三無威脅）
 
-            if (isSelf && count === 3 && openEnds === 1) return 50; // 9. 自己死三（下在死二）
-            if (!isSelf && count === 3 && openEnds === 1) return 50; // 10. 防守死三（死二無威脅）
+            if (isSelf && count === 3 && openEnds === 1) return 300; // 9. 自己死三（下在死二）
+            if (!isSelf && count === 3 && openEnds === 1) return 250; // 10. 防守死三（死二無威脅）
             
             if (isSelf && count === 2 && openEnds === 1) return 20; // 13. 自己死二（微弱威脅）
             if (!isSelf && count === 2 && openEnds === 1) return 20; // 14. 防守死二
@@ -1571,8 +1571,18 @@
             const directions = [[1, 0], [0, 1], [1, 1], [1, -1]];
             for (const [dx, dy] of directions) {
                 let count = 1;
-                for (let i = 1; i < 5; i++) { const nx = x + i * dx, ny = y + i * dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++; else break; }
-                for (let i = 1; i < 5; i++) { const nx = x - i * dx, ny = y - i * dy; if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++; else break; }
+                // 正方向
+                for (let i = 1; i < 5; i++) {
+                    const nx = x + i * dx, ny = y + i * dy;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++;
+                    else break;
+                }
+                // 反方向
+                for (let i = 1; i < 5; i++) {
+                    const nx = x - i * dx, ny = y - i * dy;
+                    if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && board[ny][nx] === player) count++;
+                    else break;
+                }
                 // 只判斷剛好五連珠才算勝利（不包含六連或以上）
                 if (count === 5) {
                     // 檢查兩端是否還有同色棋子，若有則不算勝利
