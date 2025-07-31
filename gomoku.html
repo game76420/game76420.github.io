@@ -1748,6 +1748,19 @@
             const gradient = ctx.createRadialGradient(pieceX - radius * 0.2, pieceY - radius * 0.2, radius * 0.1, pieceX, pieceY, radius);
             if (player === 1) { gradient.addColorStop(0, '#666'); gradient.addColorStop(1, '#000'); } else { gradient.addColorStop(0, '#fff'); gradient.addColorStop(1, '#ddd'); }
             ctx.fillStyle = gradient; ctx.arc(pieceX, pieceY, radius, 0, 2 * Math.PI); ctx.fill();
+            
+            // 添加棋譜數字顯示
+            const moveIndex = moveHistory.findIndex(move => move.x === x && move.y === y);
+            if (moveIndex !== -1) {
+                const moveNumber = moveIndex + 1;
+                ctx.save();
+                ctx.font = `${Math.floor(cellSize * 0.25)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = player === 1 ? '#ffffff' : '#000000'; // 黑子白字，白子黑字
+                ctx.fillText(moveNumber.toString(), pieceX, pieceY);
+                ctx.restore();
+            }
         }
         function drawPreviewMarker() {
             if (!previewPos || !isPlayerTurn) return; // 移除 gameOver 限制
