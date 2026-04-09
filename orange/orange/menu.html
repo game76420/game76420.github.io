@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>菜單｜橙果子 Q-Orange</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="nav">
+          <a class="brand" href="index.html">
+            <img src="https://i.imgur.com/6M6YJcQ.png" alt="Q-Orange logo" />
+            橙果子 Q-Orange
+          </a>
+          <button class="nav-toggle" aria-label="開啟主選單" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <div class="nav-menu">
+            <nav class="nav-links">
+              <a href="index.html">首頁</a>
+              <a href="about.html">關於我們</a>
+              <a href="menu.html">菜單</a>
+              <a href="farmers.html">台灣小農</a>
+              <a href="stores.html">門市資訊</a>
+              <a href="news.html">最新活動</a>
+              <a href="contact.html">聯絡我們</a>
+            </nav>
+            <a class="cta-btn" href="contact.html">企業訂購</a>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero hero-plain">
+          <div class="hero-inner">
+            <div class="hero-text">
+              <p class="card-tag">Signature Menu</p>
+              <h1>每一款飲品都是當季的風味筆記</h1>
+              <p>依照果香、茶韻、口感層次分類，快速找到你的命定飲品。</p>
+            </div>
+            <div class="hero-media">
+              <img src="https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=900&q=80" alt="Menu hero drink" />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-inner" data-tabs>
+            <div class="section-title">
+              <h2>飲品分類</h2>
+              <p>依照心情切換不同系列。</p>
+            </div>
+            <div class="tab-nav">
+              <button class="active" data-tab-btn="fruit">鮮果特調</button>
+              <button data-tab-btn="tea">經典茶韻</button>
+              <button data-tab-btn="milk">奶香系列</button>
+              <button data-tab-btn="seasonal">期間限定</button>
+            </div>
+
+            <div data-tab-panel="fruit" class="menu-gallery menu-grid-4">
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="澄香琥珀波波" />
+                <strong>澄香琥珀波波</strong>
+                <span>鮮橙＋伯爵紅茶＋黑糖波波</span>
+                <p>NT$75</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1516455207990-7a41ce80f7ee?auto=format&fit=crop&w=800&q=80" alt="香檬青檸樂" />
+                <strong>香檬青檸樂</strong>
+                <span>屏東香檬＋青茶</span>
+                <p>NT$70</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1510626176961-4b57d4fbad03?auto=format&fit=crop&w=800&q=80" alt="芭樂玫果舞" />
+                <strong>芭樂玫果舞</strong>
+                <span>粉紅芭樂＋玫瑰果露</span>
+                <p>NT$80</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=800&q=80" alt="蜜柚寒天凍" />
+                <strong>蜜柚寒天凍</strong>
+                <span>文旦柚肉＋寒天晶球</span>
+                <p>NT$85</p>
+              </article>
+            </div>
+
+            <div data-tab-panel="tea" class="menu-gallery menu-grid-4" hidden>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1513639725746-c5d3e861f32a?auto=format&fit=crop&w=800&q=80" alt="雲霧金萱" />
+                <strong>雲霧金萱</strong>
+                <span>南投金萱＋桂花蜜</span>
+                <p>NT$60</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1437419764061-2473afe69fc2?auto=format&fit=crop&w=800&q=80" alt="琥珀熟成紅" />
+                <strong>琥珀熟成紅</strong>
+                <span>小葉紅茶＋黑糖蜜</span>
+                <p>NT$55</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?auto=format&fit=crop&w=800&q=80" alt="四季春花香" />
+                <strong>四季春花香</strong>
+                <span>鹿谷四季春＋茉莉花瓣</span>
+                <p>NT$65</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1455642305363-d5bc1c40d0d3?auto=format&fit=crop&w=800&q=80" alt="蜜香紅玉" />
+                <strong>蜜香紅玉</strong>
+                <span>魚池紅玉紅茶＋荔香蜜</span>
+                <p>NT$70</p>
+              </article>
+            </div>
+
+            <div data-tab-panel="milk" class="menu-gallery menu-grid-4" hidden>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1481391032119-d89fee407e44?auto=format&fit=crop&w=800&q=80" alt="桂花奶露" />
+                <strong>桂花奶露</strong>
+                <span>桂花釀＋鮮奶</span>
+                <p>NT$75</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1514996937319-344454492b37?auto=format&fit=crop&w=800&q=80" alt="可可橙波波" />
+                <strong>可可橙波波</strong>
+                <span>70% 可可＋鮮奶＋波波</span>
+                <p>NT$85</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80" alt="黑糖蕨餅奶" />
+                <strong>黑糖蕨餅奶</strong>
+                <span>黑糖＋鮮奶＋蕨餅</span>
+                <p>NT$80</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1509564325907-088226307667?auto=format&fit=crop&w=800&q=80" alt="焙茶厚奶" />
+                <strong>焙茶厚奶</strong>
+                <span>焙香烏龍＋鮮奶泡</span>
+                <p>NT$85</p>
+              </article>
+            </div>
+
+            <div data-tab-panel="seasonal" class="menu-gallery menu-grid-4" hidden>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1440714738720-1bb90922b425?auto=format&fit=crop&w=800&q=80" alt="金桔暖薑茶" />
+                <strong>金桔暖薑茶（冬）</strong>
+                <span>台東金桔＋老薑汁</span>
+                <p>NT$70</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1502740479091-635887520276?auto=format&fit=crop&w=800&q=80" alt="夏日鳳梨冰沙" />
+                <strong>夏日鳳梨冰沙（夏）</strong>
+                <span>關廟鳳梨＋薄荷</span>
+                <p>NT$85</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1442048190820-6130cf0c46cf?auto=format&fit=crop&w=800&q=80" alt="草莓雲霜歐蕾" />
+                <strong>草莓雲霜歐蕾（冬春）</strong>
+                <span>大湖草莓＋雲朵奶霜</span>
+                <p>NT$95</p>
+              </article>
+              <article class="menu-card">
+                <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80" alt="台南芒果冰茶" />
+                <strong>台南芒果冰茶（盛夏）</strong>
+                <span>愛文芒果＋四季春</span>
+                <p>NT$90</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="section-inner cards-grid">
+            <article class="card">
+              <span class="card-tag">甜度冰塊</span>
+              <h3>客製化選項</h3>
+              <p>提供微糖 / 半糖 / 全糖與正常去冰多種選擇，滿足不同口感需求。</p>
+            </article>
+            <article class="card">
+              <span class="card-tag">企業訂購</span>
+              <h3>聚會首選</h3>
+              <p>滿 30 杯即可外送，附贈專屬小卡與客製貼紙，讓活動更有記憶點。</p>
+            </article>
+            <article class="card">
+              <span class="card-tag">過敏原資訊</span>
+              <h3>安心透明</h3>
+              <p>所有含奶製品、堅果成分皆於菜單明確標示，歡迎洽詢客服。</p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <div class="footer-inner">
+          <div class="footer-brand">
+            <img src="https://i.imgur.com/6M6YJcQ.png" alt="Q-Orange mini logo" />
+            <p>用最天然的方式，傳遞果香的溫度。</p>
+          </div>
+          <div class="footer-links">
+            <strong>快速連結</strong>
+            <a href="about.html">品牌故事</a>
+            <a href="menu.html">飲品菜單</a>
+            <a href="news.html">活動資訊</a>
+          </div>
+          <div class="footer-links">
+            <strong>客服資訊</strong>
+            <span>客服專線：0800-888-168</span>
+            <span>營業時間：10:00-22:00</span>
+            <span>Email：hello@q-orange.tw</span>
+          </div>
+          <div class="footer-links">
+            <strong>追蹤我們</strong>
+            <span>Instagram｜@qorange.tw</span>
+            <span>Facebook｜橙果子手搖飲</span>
+            <span>LINE｜@qorange</span>
+          </div>
+        </div>
+        <p class="footer-bottom">© 2025 橙果子 Q-Orange. All Rights Reserved.</p>
+      </footer>
+    </div>
+    <script src="js/main.js" defer></script>
+  </body>
+</html>
+
