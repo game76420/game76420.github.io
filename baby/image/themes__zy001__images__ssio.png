@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=Edge，chrome=1">
+<meta property="og:url" content="https://www.paragon-preschool.com.tw/" />
+<meta property="og:title" content="森典幼兒園" />
+<meta property="og:image" content="https://www.paragon-preschool.com.tw/uploads/use/20220530154850ce89.png"/>
+<script src="/js/jquery-1.11.2.min.js"></script>
+<script src="/js/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="/js/css/bootstrap.min.css">
+<script type="text/javascript" src="/js/all.js"></script>
+<link href="/themes/zy001/css/css.css" rel="stylesheet" type="text/css" />
+<link href="/themes/zy001/css/font-awesome.css" rel="stylesheet" type="text/css" />
+<script defer type="text/javascript" src="/js/jquery.lazyload.min.js"></script>
+<title>森典幼兒園</title>
+</head>
+<body>
+<div class="scrollup"><img src="/js/icon_top.png"></div>
+
+  <div class="right_icon">
+	  	  		<a href="tel:04-24512086" target="_blank"><img src="/images/TOP_CALLPHONE.png"></a>	  	  		<a href="https://www.facebook.com/105514608777498/" target="_blank"><img src="/images/TOP_FACEBOOK.png"></a>	  	  		<a href="https://lin.ee/GbDdteH" target="_blank"><img src="/images/TOP_LINE.png"></a>	  	  			  	  			  	  			  	  			  	  			  	  			  	  			  	  			  	  			    </div>
+
+<div class="col-xs-12 top">
+<span id="left-panel-link" href="#left-panel" class='openbutton glyphicon glyphicon-menu-hamburger'></span>
+	  <div class="col-xs-12 col-md-4 logoie">
+		<style>.logo{text-align:center;}</style>		<div class="logo"><a href="index.html"><img src="/uploads/use/20220530154850ce89.png"/></a></div>	  </div>
+
+             <div class="scut-container">
+            <div class="mcs">
+			  
+					
+									
+				           </div>
+       </div>
+         <style>
+.moremenu{ width:20%;}
+@media screen and (max-width: 767px) {
+	.moremenu{ width:100%;}
+}
+</style>
+<div id="left-panel" class="panel">
+<span id="close-panel-bt" class='closebutton glyphicon glyphicon-remove'></span>
+<ul class="col-xs-12 col-md-8 smenu venus-menu">
+  <li class="col-xs-12 col-md-2 moremenu"><a href="index.html">回到首頁<br> <span class='jiopn'>HOME</span></a></li><li class="col-xs-12 col-md-2 moremenu"><a href="aboutus.html">關於森典<br> <span class='jiopn'>ABOUT</span></a></li><li class="col-xs-12 col-md-2 moremenu"><a href="">森典環境<br> <span class='jiopn'>ENVIRONMENT</span></a><ul><li><a href="pics-show-3.html">行政區域</a></li><li><a href="pics-show-2.html">舒適安全的環境</a></li><li><a href="pics-show-1.html">戶外空間</a></li></ul></li><li class="col-xs-12 col-md-2 moremenu"><a href="">教學特色<br> <span class='jiopn'>FEATURES</span></a><ul class="col-xs-12" style="display:none"><li><a href="mo1.html">生活化美語教學</a></li><li><a href="mo2.html#mo2">豐富學習區學習</a></li><li><a href="mo3.html#mo3">基本認知學習</a></li><li><a href="mo4.html#mo4">品格教育</a></li><li><a href="mo5.html#mo5">其他課程活動</a></li><li><a href="https://www.youtube.com/@user-ef6ni4qs9l" target="_blank">課程介紹影片</a></li></ul></li><li class="col-xs-12 col-md-2 moremenu"><a href="">森典入學<br> <span class='jiopn'>ADMISSION</span></a><ul class="col-xs-12" style="display:none"><li><a href="instructions.html">招生說明</a></li><li><a href="dmissin.html">新生入園須知</a></li><li><a href="children.html">幼兒接送</a></li><li><a href="meal.html">美味餐點</a></li></ul></li></ul>
+</div>
+</div>
+<div id="indcon" class="col-xs-12">
+    <div class="col-xs-12 banner">
+	<div id="myCarousel" class="carousel slide carousel-fade">
+		<ol class="carousel-indicators">
+		</ol>
+
+		<div class="carousel-inner">
+			 <div class="item active">
+                  <a href="#"><img src="/uploads/use/202205301552586099.png" width="1920" /></a>
+			</div>
+		</div>
+	</div>
+</div>
+    <div id="myTabContent" class="tab-content">
+        <div id="jm" class="tab-pane fade">
+           
+        
+           
+            
+        </div>
+    </div>
+    <div class="col-xs-12 indexcon indexcon11 szy1"><div class="col-xs-12 movecontainer "><div class="col-xs-6 col-md-6 col-lg-4 uipn" data-aos="fade-down" onclick="javascript:window.location='mo1.html'">
+<div class="tiprn ksa1">
+<div class="imgre"><img src="/uploads/sendian/images/202205310159295355.png" /></div>
+
+<div class="sern1">生活美語</div>
+
+<div class="sern2">Everyday English</div>
+
+<div class="sern3"><img src="/uploads/sendian/images/202205310207534145.png" /></div>
+</div>
+</div>
+
+<div class="col-xs-6 col-md-6 col-lg-4 uipn" data-aos="fade-down" onclick="javascript:window.location='mo3.html#mo3'">
+<div class="tiprn ksa2">
+<div class="imgre"><img src="/uploads/sendian/images/202205310159443104.png" /></div>
+
+<div class="sern1">基本認知</div>
+
+<div class="sern2">Experiential Education</div>
+
+<div class="sern3"><img src="/uploads/sendian/images/202205310208099018.png" /></div>
+</div>
+</div>
+
+<div class="col-xs-6 col-md-6 col-lg-4 uipn" data-aos="fade-down" onclick="javascript:window.location='mo4.html#mo4'">
+<div class="tiprn ksa3">
+<div class="imgre"><img src="/uploads/sendian/images/202205310200066923.png" /></div>
+
+<div class="sern1">品格教育</div>
+
+<div class="sern2">Character Education</div>
+
+<div class="sern3"><img src="/uploads/sendian/images/202205310208442276.png" /></div>
+</div>
+</div>
+
+<div class="col-xs-6 col-md-6 col-lg-4 olrj uipn" data-aos="fade-down" onclick="javascript:window.location='mo2.html#mo2'">
+<div class="tiprn ksa4">
+<div class="imgre"><img src="/uploads/sendian/images/202205310200299573.png" /></div>
+
+<div class="sern1">活動體驗</div>
+
+<div class="sern2">Experiential Education</div>
+
+<div class="sern3"><img src="/uploads/sendian/images/202205310209321994.png" /></div>
+</div>
+</div>
+
+<div class="col-xs-6 col-md-6 col-lg-4 olrj2 uipn" data-aos="fade-down" onclick="javascript:window.location='mo5.html#mo5'">
+<div class="tiprn ksa5">
+<div class="imgre"><img src="/uploads/sendian/images/202205310200569898.png" /></div>
+
+<div class="sern1">多元才藝</div>
+
+<div class="sern2">Various Art Classes</div>
+
+<div class="sern3"><img src="/uploads/sendian/images/202205310236247117.png" /></div>
+</div>
+</div>
+</div></div><div class="col-xs-12 indexcon indexcon33 szy2"><div data-aos="flip-left"  class="col-xs-12  col-md-4 kin1"><div class="abeiprn"></div><div class="col-xs-12 reservepadding"><div class="gki1"><a href="aboutus.html"><span>ABOUT</span> 關於森典</a></div>
+
+<div class="aboutne">
+<p class="peinr" style="text-align: justify;">森典希望在這個忙碌的城市裡，能給寶貝探索事物和盡情發揮自己的小天地。</p>
+
+<p class="peinr" style="text-align: justify;">我們深信用愛及鼓勵的教育環境來陪伴寶貝長大，就像小小幼苗，給予它足夠養份，它會朝著有陽光的方向長大，幸福是環境及心靈的富足~</p>
+
+<p class="peinr" style="text-align: justify;">森典打造童趣的故事書景象，並結合貓頭鷹的初心象徵守護、智慧，我們秉持森典就像森林裡的字典，大自然的典範來鼓勵、祝福寶貝。</p>
+
+<p class="peinr" style="text-align: justify;">我們以多元學習、激發創造力，建立人文與愛的氛圍，讓寶貝訓練獨立性，從小幼苗慢慢長大，最後蛻變成小樹，經得起挑戰，開始勇敢表達，直到成為我們都引以為傲的大樹！</p>
+
+<div class="col-xs-12"><a class="jiprper" href="aboutus.html"><img src="/uploads/sendian/images/202205310742374390.png" /></a></div>
+</div>
+</div></div><div data-aos="flip-left"  class="col-xs-12  col-md-4 kin2"><div class="abeiprn"></div><div class="col-xs-12  titlekin2"><a href="contents-1.html">園內消息<br /><span>NEWS</span></a></div><div class="col-xs-12 reservepadding"><div class="col-xs-12 indexnews2"><a href="content-37.html"><span class="col-xs-3 col-md-3 newsimgs" ><img src="/uploads/news/202602/480_480/20260220222824e156.jpg" /></span ><span  class="col-xs-9 col-md-9"><span class="indexnewsb">2026-02-15</span ><span class="indexnewst2">Happy New Year</span></span></a></div><div class="col-xs-12 indexnews2"><a href="content-36.html"><span class="col-xs-3 col-md-3 newsimgs" ><img src="/uploads/news/202512/480_480/202512201739527726.jpg" /></span ><span  class="col-xs-9 col-md-9"><span class="indexnewsb">2025-12-20</span ><span class="indexnewst2">115學年度、116學年度招生資訊</span></span></a></div><div class="col-xs-12 indexnews2"><a href="content-35.html"><span class="col-xs-3 col-md-3 newsimgs" ><img src="/uploads/news/202512/480_480/20251220173351d648.jpg" /></span ><span  class="col-xs-9 col-md-9"><span class="indexnewsb">2025-12-20</span ><span class="indexnewst2">Italy Culture Day</span></span></a></div><div class="col-xs-12 col-md-12 indexnewmore"><a class="hipers jiprper" href="contents-1.html"></a></div></div></div><div data-aos="flip-left"  class="col-xs-12  col-md-4 kin3"><div class="abeiprn"></div><div class="col-xs-12 reservepadding"><div class="gfki1"><a href="philosophy.html">教學理念<br />
+<span>philosophy</span></a></div>
+
+<div class="ptopnrg">
+<div class="titlenr">PARAGON理念</div>
+
+<ul class="linrw">
+	<li><img src="/uploads/sendian/images/202206010155556536.png" /> (play)玩</li>
+	<li><img src="/uploads/sendian/images/202206010156089047.png" /> (analyze)分析</li>
+	<li><img src="/uploads/sendian/images/202206010156244951.png" /> (realize)理解</li>
+	<li><img src="/uploads/sendian/images/202206010156512153.png" /> (accompany)陪伴</li>
+	<li><img src="/uploads/sendian/images/202206010157083775.png" /> (guide)引導</li>
+	<li><img src="/uploads/sendian/images/202206010157269821.png" /> (organize)組織</li>
+	<li><img src="/uploads/sendian/images/202206010157414001.png" /> (narrate)叙述</li>
+</ul>
+</div>
+
+<div class="col-xs-12 otper text-center"><a class="jiprper" href="aboutus.html"><img src="/uploads/sendian/images/202205310746383782.png" /></a></div>
+</div></div></div><div class="col-xs-12 indexcon indexcon11 szy3"><div class="col-xs-12 movecontainer "><a href="aboutus.html"><img src="/uploads/sendian/images/202206051357393119.png" /></a></div></div></div>
+<div id="tipnr">
+    <div class="col-xs-12 footer">
+	<div class="botconmar">
+			 		 <div class="col-xs-12 col-md-12 loglek"><img alt="" src="/uploads/sendian/images/202206010349091965.png" /></div>
+
+<div class="col-xs-12 col-md-4">
+<div class="tripnp">地址：台中市西屯區福星北路136號</div>
+</div>
+
+<div class="col-xs-12 col-md-4">
+<div class="tripnp">電話：<a href="tel:04-24512086">04-24512086</a></div>
+</div>
+
+<div class="col-xs-12 col-md-4">
+<div class="tripnp">LINE：<a href="https://line.me/R/ti/p/@776braoi">@776braoi</a></div>
+</div>
+		  			   <div class="col-xs-12 copyright">
+	      <div class="col-xs-12 hidden-xs hidden-sm"></div>
+	      森典幼兒園PARAGON   版權所有  ©Copyright 2022.All Rights Reserved.          		  <div class="col-xs-12">瀏覽人數：181733</div>
+		   </div>
+	
+	</div>
+</div>
+<script src="/js/jquery.panelslider.min.js"></script>
+<script>
+
+$('#left-panel-link').panelslider({side: 'left', clickClose: false, duration: 200 });
+  $('#close-panel-bt').click(function() {
+  $.panelslider.close();
+});
+</script>
+</div>
+<script>
+$(function() {
+    $('.carousel').carousel({
+    interval: 3000
+  })
+    $('img.lazy').lazyload();
+  $(".carousel").on("slid.bs.carousel",function(){
+   $('img.lazy').lazyload();
+  })
+
+});
+</script>
+<link href="/js/lightbox/simple-lightbox.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="/js/lightbox/simple-lightbox.jquery.js"></script> 
+<script type="text/javascript" src="/js/js/hammer.min.js"></script> 
+<script>
+   $(function() {
+            	  $("#myCarousel").swipe({
+	     swipeLeft:function(){$(this).carousel('next');},
+	     swipeRight:function(){$(this).carousel('prev');},
+	  });
+        });
+</script>
+<link href="/js/aos/aos.css" rel="stylesheet" type="text/css" />
+<script src="/js/aos/aos.js"></script> 
+<script>
+  AOS.init({
+      anchorPlacement: 'center-center',
+      delay: 400, // values from 0 to 3000, with step 50ms
+      duration: 800, // values from 0 to 3000, with step 50ms
+   });
+</script>
+</body>
+</html>
