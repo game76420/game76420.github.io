@@ -1,43 +1,131 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>聯絡我們 | 喜悅托嬰中心</title>
-  <meta name="description" content="喜悅托嬰中心聯絡資訊與交通位置。">
-  <link rel="stylesheet" href="style.css">
+  <title>聯絡我們｜台中市喜悅托嬰中心</title>
+  <meta name="description" content="喜悅托嬰中心地址、電話與預約參觀聯絡方式。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/joyful.css">
 </head>
 <body>
-  <header>
-    <h1><a href="index.html">喜悅托嬰中心</a></h1>
-    <nav aria-label="主選單">
-      <ul>
-        <li><a href="about.html">關於喜悅</a></li>
-        <li><a href="environment.html">中心環境</a></li>
-        <li><a href="features.html">照護特色</a></li>
-        <li><a href="admission.html">喜悅入托</a></li>
-        <li><a href="news.html">園內消息</a></li>
-        <li><a href="contact.html">聯絡我們</a></li>
-      </ul>
-    </nav>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+
+  <header class="site-header kidv3-topbar">
+    <div class="header-inner">
+      <a class="brand" href="index.html">
+        <img class="brand-logo" src="image/20220530154850ce89.png" width="48" height="48" alt="喜悅托嬰中心標誌">
+        <span class="brand-text">
+          <strong>喜悅托嬰中心</strong>
+          <span>Joyful Nursery · Taichung</span>
+        </span>
+      </a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="開啟選單">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="site-nav" id="site-nav" aria-label="網站導覽">
+        <ul>
+          <li><a href="index.html">首頁</a></li>
+          <li><a href="about.html">關於我們</a></li>
+          <li><a href="care.html">特色教學</a></li>
+          <li><a href="environment.html">環境設施</a></li>
+          <li><a href="admission.html">家長專區</a></li>
+          <li><a href="contact.html" aria-current="page">聯絡我們</a></li>
+          <li class="nav-cta"><a class="btn btn-ghost" href="news.html">最新消息</a></li>
+          <li class="nav-cta"><a class="btn btn-primary" href="contact.html">預約參觀</a></li>
+        </ul>
+      </nav>
+    </div>
   </header>
 
-  <main>
-    <section>
-      <h2>CONTACT 聯絡我們</h2>
-      <img src="https://images.unsplash.com/photo-1526634332515-d56c5fd16991?auto=format&fit=crop&w=1200&q=80" alt="家長接送寶寶的溫馨畫面">
-      <address>
-        地址：403臺中市西區貴和街25號<br>
-        電話：<a href="tel:+886424512086">04 2375 4678</a><br>
-        LINE：<a href="https://line.me/R/ti/p/@776braoi">@776braoi</a><br>
-        服務時間：週一至週五 08:00 - 18:00
-      </address>
+  <main id="main">
+    <header class="page-hero">
+      <div class="section-inner">
+        <h1>聯絡我們</h1>
+        <p>預約參觀或詢問收托，歡迎來電或留下訊息，我們將盡快與您聯繫。</p>
+      </div>
+    </header>
+
+    <div class="section-inner page-hero-visual" style="margin-top: 0; margin-bottom: 0;">
+      <img src="image/202308140021442128.jpg" alt="喜悅托嬰中心園所空間" width="1200" height="360" loading="lazy" style="max-height: 280px; width: 100%; object-fit: cover;">
+    </div>
+
+    <section class="section">
+      <div class="section-inner two-col">
+        <div>
+          <h2 class="section-head" style="margin-bottom: 1rem;">聯絡資訊</h2>
+          <address style="font-style: normal; color: var(--muted); line-height: 1.8;">
+            <strong style="color: var(--ink);">台中市喜悅托嬰中心</strong><br>
+            地址：<a href="https://maps.google.com/?q=403%E8%87%BA%E4%B8%AD%E5%B8%82%E8%A5%BF%E5%8D%80%E8%B2%B4%E5%92%8C%E8%A1%9725%E8%99%9F" target="_blank" rel="noopener">403 臺中市西區貴和街 25 號</a><br>
+            電話：<a href="tel:0423754678">04 2375 4678</a><br>
+            服務時間：週一至週五 08:00–18:00（例假日另公告）
+          </address>
+        </div>
+        <div>
+          <img class="cover" src="image/202206051357393119.png" alt="歡迎與我們聯繫" width="800" height="600" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-tint">
+      <div class="section-inner">
+        <h2 class="section-head" style="margin-bottom: 1rem;">預約與詢問</h2>
+        <p style="color: var(--muted); margin-top: 0;">
+          建議直接來電，我們可協助安排參觀時段並說明收托細節。若您日後有官方 LINE 或表單連結，可在此頁替換為按鈕或嵌入表單。
+        </p>
+        <p style="margin-top: 1rem;">
+          <a class="btn btn-primary" href="tel:0423754678">撥打 04 2375 4678</a>
+          <a class="btn btn-ghost" href="admission.html" style="margin-left: 0.5rem;">先看入托流程</a>
+        </p>
+      </div>
     </section>
   </main>
 
-  <footer>
-    <p><a href="index.html">回首頁</a></p>
-    <p>喜悅托嬰中心 版權所有 © Copyright 2026. All Rights Reserved.</p>
+  <footer class="site-footer kidv3-footer">
+    <div class="kidv3-footer-inner">
+      <div class="kidv3-foot-col">
+        <strong>快速連結</strong>
+        <a href="index.html">首頁</a>
+        <a href="about.html">關於我們</a>
+        <a href="care.html">特色教學</a>
+        <a href="environment.html">環境設施</a>
+      </div>
+      <div class="kidv3-foot-col">
+        <strong>聯絡資訊</strong>
+        <a href="tel:0423754678">電話：04 2375 4678</a>
+        <span>信箱：joyful.nursery@gmail.com</span>
+        <span>服務時間：週一至週五 08:00–18:00</span>
+      </div>
+      <div class="kidv3-foot-col">
+        <strong>地址</strong>
+        <span>403 臺中市西區貴和街 25 號</span>
+        <div class="kidv3-foot-social" aria-label="社群與聯絡">
+          <a href="tel:0423754678" title="電話"><img src="image/TOP_CALLPHONE.png" alt="電話"></a>
+          <a href="https://www.facebook.com/105514608777498/" target="_blank" rel="noopener noreferrer" title="Facebook"><img src="image/TOP_FACEBOOK.png" alt="Facebook"></a>
+          <a href="https://lin.ee/GbDdteH" target="_blank" rel="noopener noreferrer" title="LINE"><img src="image/TOP_LINE.png" alt="LINE"></a>
+        </div>
+      </div>
+      <div class="kidv3-foot-col kidv3-map">
+        <strong>地圖</strong>
+        <a href="https://maps.google.com/?q=403%E8%87%BA%E4%B8%AD%E5%B8%82%E8%A5%BF%E5%8D%80%E8%B2%B4%E5%92%8C%E8%A1%9725%E8%99%9F" target="_blank" rel="noopener">
+          <img src="image/map.png" alt="地圖示意" width="320" height="240" loading="lazy">
+        </a>
+      </div>
+    </div>
+    <div class="kidv3-footer-bottom">© 2026 台中市喜悅托嬰中心 · 本網站為獨立設計，與其他機構無關。</div>
   </footer>
+
+  <div class="right_icon" aria-label="快速聯絡">
+    <a href="tel:0423754678" title="電話"><img src="image/TOP_CALLPHONE.png" alt="電話"></a>
+    <a href="https://www.facebook.com/105514608777498/" target="_blank" rel="noopener noreferrer" title="Facebook"><img src="image/TOP_FACEBOOK.png" alt="Facebook"></a>
+    <a href="https://lin.ee/GbDdteH" target="_blank" rel="noopener noreferrer" title="LINE"><img src="image/TOP_LINE.png" alt="LINE"></a>
+  </div>
+  <button type="button" class="scrollup" aria-label="回到頂端">
+    <img src="image/icon_top.png" alt="">
+  </button>
+
+  <script src="js/site.js" defer></script>
 </body>
 </html>
