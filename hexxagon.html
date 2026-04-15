@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Hexxagon Classic - Strategy Battle</title>
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
         body { 
             background: #000 url('https://www.transparenttextures.com/patterns/stardust.png'); 
             color: white; display: flex; flex-direction: column; align-items: center; 
@@ -19,6 +22,7 @@
         canvas {
             cursor: pointer; filter: drop-shadow(0 0 15px #5a189a); margin-top: 10px; background: transparent;
             width: min(900px, calc(100vw - 20px)); height: auto; max-height: 72vh; touch-action: none;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
         }
         .status { font-size: 28px; color: #f1c40f; text-shadow: 0 0 10px #f1c40f; height: 40px; }
         .controls {
