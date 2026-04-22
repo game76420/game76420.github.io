@@ -957,8 +957,8 @@
         // 控制開始按鈕狀態
         const startBtn = document.getElementById('start-btn');
         const amountToPay = currentTotalBet - paidAmount;
-        // 允許開始：遊戲不在進行中 && 有下注 && (餘額 + 當前贏分) 足夠支付
-        const canStart = !isRunning && !isGuessing && !isTransferring && currentTotalBet > 0 && (credit + winVal) >= amountToPay;
+        // 允許開始：遊戲不在進行中 && 有下注 && 餘額足夠支付 && WIN 必須為 0 (強制先得分)
+        const canStart = !isRunning && !isGuessing && !isTransferring && currentTotalBet > 0 && credit >= amountToPay && winVal === 0;
         
         if (canStart) {
             startBtn.classList.remove('disabled');
@@ -997,8 +997,8 @@
 
     function placeBet(index) {
         if (isRunning || isGuessing || isTransferring) return;
-        
-        // 檢查餘額是否足夠直接扣除
+
+        // 檢查餘額是否足夠直接扣除下注金額
         if (credit < betStep) {
             const el = document.getElementById('credit-val');
             el.classList.remove('flash-red');
@@ -1123,6 +1123,16 @@
     async function handleStart(isFreeSpin = false) {
         if (isRunning || isGuessing || isTransferring) return;
 
+        // 如果還有贏分，強制要求先得分才能開始下一局
+        if (winVal > 0) {
+            const el = document.getElementById('win-val');
+            el.classList.remove('flash-red');
+            void el.offsetWidth;
+            el.classList.add('flash-red');
+            playSound('clear');
+            return;
+        }
+
         // 如果是 Once More (免費轉次)，直接開始，不扣款
         if (isFreeSpin) {
             isRunning = true;
@@ -1130,11 +1140,6 @@
             playSound('start');
             await runGameAnimation();
             return;
-        }
-
-        // 如果有贏的錢，先自動加回餘額 (這一步很重要，確保 credit 足夠支付)
-        if (winVal > 0) {
-            await transferWinToCredit();
         }
 
         const totalBet = bets.reduce((a, b) => a + b, 0);
