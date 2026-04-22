@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>經典小瑪莉 - 修正版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        :root {
+            --gold: #ffcc00;
+            --active-light: #ffeb3b;
+            --led7-font: 'Orbitron', sans-serif;
+            --grid-bg: #fff9c4;
+            --border-wood: #5d4037;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            background: #2b1f1a;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: "Microsoft JhengHei", Arial, sans-serif;
+        }
+
+        .game-container {
+            width: 95vw;
+            max-width: 420px;
+            height: auto;
+            max-height: 98vh;
+            background: #4e342e;
+            border: 6px solid #3e2723;
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            -webkit-user-drag: none;
+            overflow-y: auto; /* 允許垂直捲動以防萬一 */
+            scrollbar-width: none; /* 隱藏捲軸 (Firefox) */
+        }
+
+        .game-container::-webkit-scrollbar {
+            display: none; /* 隱藏捲軸 (Chrome/Safari) */
+        }
+
+        @media (min-width: 600px) {
+            .game-container {
+                max-width: 450px;
+                max-height: 98vh;
+                margin: auto;
+            }
+        }
+
+        /* 自動縮放邏輯，確保在短螢幕上也能完整顯示 */
+        @media (max-height: 750px) and (min-width: 600px) {
+            .game-container {
+                transform: scale(0.85);
+                transform-origin: center center;
+            }
+        }
+
+        @media (max-height: 650px) and (min-width: 600px) {
+            .game-container {
+                transform: scale(0.75);
+            }
+        }
+
+        @media (max-height: 550px) and (min-width: 600px) {
+            .game-container {
+                transform: scale(0.65);
+            }
+        }
+
+        /* 上方顯示螢幕 - 六角形外觀 */
+        .display-screen {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            gap: 5px;
+            background: #2b1f1a;
+            padding: 2px 8px;
+            border-radius: 8px;
+            border: 2px solid #3e2723;
+            margin-bottom: 2px;
+        }
+
+        @media (min-width: 480px) {
+            .display-screen {
+                padding: 4px 10px;
+                gap: 10px;
+                margin-bottom: 4px;
+            }
+        }
+
+        .led-panel {
+            background: #3e2723;
+            padding: 4px 8px;
+            clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+            text-align: center;
+            flex: 1;
+            min-width: 70px;
+            border: 1px solid #5d4037;
+        }
+
+        @media (min-width: 480px) {
+            .led-panel {
+                padding: 5px 12px;
+                min-width: 100px;
+            }
+        }
+
+        .led-label {
+            color: #ff9800;
+            font-weight: bold;
+            font-size: 10px;
+            margin-bottom: 1px;
+        }
+
+        @media (min-width: 480px) {
+            .led-label {
+                font-size: 12px;
+                margin-bottom: 2px;
+            }
+        }
+
+        .led-value {
+            color: #ff0000;
+            font-family: var(--led7-font);
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+            letter-spacing: 2px;
+            background: #000; /* 純黑背景更像 LED */
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            min-width: 60px;
+        }
+
+        @media (min-width: 480px) {
+            .led-value {
+                font-size: 28px;
+                letter-spacing: 3px;
+                padding: 4px 10px;
+                min-width: 100px;
+            }
+        }
+
+        /* 猜大小顯示區 */
+        .double-up-display {
+            background: #1a1a1a;
+            padding: 4px 8px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            text-align: center;
+            flex: 0.6;
+            min-width: 60px;
+        }
+
+        @media (min-width: 480px) {
+            .double-up-display {
+                padding: 5px 12px;
+                border-width: 3px;
+                min-width: 70px;
+            }
+        }
+
+        .grid-main {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            gap: 2px;
+            background: #222;
+            padding: 4px;
+            border: 4px solid #111;
+            border-radius: 8px;
+            position: relative;
+            aspect-ratio: 1/1;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 600px) {
+            .grid-main {
+                max-width: 50vh; /* 稍微縮小網格，為按鈕騰出空間 */
+                gap: 2px;
+                padding: 4px;
+                margin: 0 auto;
+            }
+        }
+
+        .led-value.flash-red {
+            animation: flash-red-anim 0.3s ease;
+        }
+
+        @keyframes flash-red-anim {
+            0% { color: #ff0000; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); }
+            50% { color: #fff; text-shadow: 0 0 15px #fff; }
+            100% { color: #ff0000; text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); }
+        }
+
+        .cell {
+            background: #fff;
+            border-radius: 2px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 900;
+            color: #333;
+            position: relative;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (min-width: 600px) {
+            .cell { font-size: 20px; border-radius: 4px; }
+        }
+
+        .cell span {
+            display: block;
+            margin-top: 2px;
+        }
+
+        .cell.active {
+            background: #ffeb3b;
+            box-shadow: 0 0 15px #ffeb3b, inset 0 0 5px rgba(0,0,0,0.1);
+            z-index: 2;
+        }
+
+        @media (min-width: 480px) {
+            .cell.active {
+                box-shadow: 0 0 20px #ffeb3b;
+            }
+        }
+
+        .cell.active::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border: 2px solid #f44336;
+            border-radius: 2px;
+            animation: blink 0.2s infinite;
+        }
+
+        @media (min-width: 480px) {
+            .cell.active::after {
+                border-width: 4px;
+                border-radius: 4px;
+            }
+        }
+
+        /* 猜大小按鈕 */
+        .double-up-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
+            margin-top: 2px;
+            padding: 3px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            border: 1.5px solid #5d4037;
+        }
+
+        @media (min-width: 600px) {
+            .double-up-controls {
+                gap: 8px;
+                margin-top: 4px;
+                padding: 4px;
+            }
+        }
+
+        .guess-small { background: #4caf50 !important; border-color: #2e7d32 !important; color: white !important; box-shadow: 0 2px #1b5e20 !important; }
+        .guess-big { background: #ff9800 !important; border-color: #ef6c00 !important; color: white !important; box-shadow: 0 2px #e65100 !important; }
+
+        @media (min-width: 480px) {
+            .guess-small { box-shadow: 0 4px #1b5e20 !important; }
+            .guess-big { box-shadow: 0 4px #e65100 !important; }
+        }
+        
+        .control-btn.disabled, .bet-item.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .cell .small-led {
+            width: 5px;
+            height: 5px;
+            background: #440000;
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            border-radius: 50%;
+            border: 0.5px solid #000;
+        }
+
+        @media (min-width: 480px) {
+            .cell .small-led {
+                width: 10px;
+                height: 10px;
+                top: 3px;
+                right: 3px;
+                border-width: 1px;
+            }
+        }
+
+        .cell.active .small-led {
+            background: #ff0000;
+            box-shadow: 0 0 5px #ff0000;
+        }
+
+        @media (min-width: 480px) {
+            .cell.active .small-led {
+                box-shadow: 0 0 10px #ff0000;
+            }
+        }
+
+        /* 中央裝飾區 */
+        .center-decor {
+            position: absolute;
+            top: 14.285%; /* 1/7 */
+            left: 14.285%; /* 1/7 */
+            width: 71.43%; /* 5/7 */
+            height: 71.43%; /* 5/7 */
+            background: linear-gradient(135deg, #1a237e 0%, #0288d1 50%, #1a237e 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border: 3px solid #ffd700;
+            border-radius: 4px;
+            z-index: 10;
+            padding: 5px;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 15px rgba(255,215,0,0.3);
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        /* 模擬參考圖中的中央圖案 */
+        .center-decor::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.1) 0%, transparent 70%);
+            opacity: 0.5;
+            z-index: -1;
+        }
+
+        @media (min-width: 600px) {
+            .center-decor {
+                border-width: 6px;
+                border-radius: 12px;
+            }
+        }
+
+        .title-main {
+            font-size: 20px;
+            font-weight: 900;
+            color: #ffd700;
+            text-shadow: 2px 2px 0 #d32f2f;
+            margin-bottom: 2px;
+            letter-spacing: 1px;
+            font-style: italic;
+        }
+
+        .title-sub {
+            font-size: 8px;
+            background: #d32f2f;
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-bottom: 4px;
+            border: 1px solid #ffd700;
+            font-weight: bold;
+        }
+
+        @media (min-width: 600px) {
+            .title-main { font-size: 32px; letter-spacing: 2px; }
+            .title-sub { font-size: 12px; padding: 2px 10px; margin-bottom: 8px; }
+        }
+
+        .jp-container {
+            background: rgba(0,0,0,0.7);
+            border: 2px solid #ffd700;
+            border-radius: 6px;
+            padding: 4px 8px;
+            width: 85%;
+            text-align: center;
+        }
+
+        .jp-label {
+            font-size: 9px;
+            color: #ffd700;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+
+        @media (min-width: 600px) {
+            .jp-label { font-size: 12px; }
+        }
+
+        .jp-value {
+            font-family: var(--led7-font);
+            font-size: 16px;
+            color: #ff0000;
+            text-shadow: 0 0 5px rgba(255,0,0,0.8);
+            background: #000;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        @media (min-width: 600px) {
+            .jp-value { font-size: 22px; padding: 4px 10px; }
+        }
+
+        .once-more-text {
+            font-size: 8px; /* 稍微縮小 */
+            line-height: 1.0;
+            text-align: center;
+            font-weight: 900;
+            color: #d32f2f;
+            text-shadow: 0.5px 0.5px 0 #fff;
+        }
+
+        @media (min-width: 600px) {
+            .once-more-text {
+                font-size: 12px;
+            }
+        }
+
+        /* 下注面板與按鈕調整 */
+        .bet-panel {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            background: #222;
+            padding: 4px;
+            border-radius: 6px;
+            border: 1px solid #555;
+        }
+
+        .bet-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #333;
+            padding: 4px 1px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+
+        .bet-item:active {
+            transform: scale(0.95);
+            background: #444;
+        }
+
+        .bet-rate {
+            font-size: 8px;
+            color: #ffeb3b;
+            margin-bottom: 2px;
+            font-family: var(--led7-font);
+        }
+
+        .bet-icon {
+            font-size: 16px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bet-count {
+            font-family: var(--led7-font);
+            font-size: 10px;
+            color: #ff0000;
+            background: #000;
+            width: 90%;
+            text-align: center;
+            margin-top: 2px;
+            padding: 1px 0;
+            border-radius: 2px;
+            box-shadow: inset 0 0 5px rgba(255,0,0,0.5);
+        }
+
+        @media (min-width: 600px) {
+            .bet-icon { font-size: 20px; height: 30px; }
+            .bet-rate { font-size: 10px; }
+            .bet-count { font-size: 14px; }
+            .bet-panel { gap: 3px; padding: 6px; }
+        }
+
+        /* 操作按鈕區 */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3px;
+            margin-top: 2px;
+        }
+
+        @media (min-width: 600px) {
+            .controls { gap: 6px; margin-top: 4px; }
+        }
+
+        /* 操作按鈕縮小 */
+        .control-btn {
+            background: #eee;
+            border: 1px solid #999;
+            border-radius: 4px;
+            padding: 6px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px #ccc;
+        }
+
+        @media (min-width: 600px) {
+            .control-btn { font-size: 14px; padding: 10px 0; }
+        }
+
+        .control-btn.start { background: #4fc3f7; border-color: #0288d1; color: white; box-shadow: 0 2px #01579b; }
+        .control-btn.start.disabled { background: #999; border-color: #777; color: #ccc; box-shadow: none; cursor: not-allowed; opacity: 0.6; }
+        .control-btn.coin { background: #ffd54f; border-color: #fbc02d; box-shadow: 0 2px #f57f17; }
+        .control-btn.clear { background: #ef5350; border-color: #d32f2f; color: white; box-shadow: 0 2px #b71c1c; }
+        .control-btn.score { background: #e0e0e0; border-color: #9e9e9e; box-shadow: 0 2px #757575; }
+
+        .bet-step-bar {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 3px;
+            margin-top: 4px;
+        }
+
+        @media (min-width: 600px) {
+            .bet-step-bar { gap: 6px; margin-top: 8px; }
+        }
+
+        .step-btn {
+            padding: 4px 0;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 9px;
+        }
+
+        @media (min-width: 600px) {
+            .step-btn { font-size: 12px; padding: 6px 0; }
+        }
+
+        .step-btn.active {
+            background: #ffcc00;
+            color: #000;
+            border-color: #fbc02d;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        /* 猜大小按鈕 */
+        .double-up-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            margin-top: 5px;
+        }
+
+        @media (min-width: 480px) {
+            .double-up-panel { max-width: 42vh; margin: 8px auto 0; gap: 8px; }
+        }
+
+        .control-btn.guess-small, .control-btn.guess-big {
+            background: #999;
+            color: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+            box-shadow: 0 2px #666;
+            border-color: #777;
+        }
+
+        .control-btn.guess-small.active {
+            background: #ffeb3b;
+            color: #333;
+            cursor: pointer;
+            opacity: 1;
+            box-shadow: 0 2px #fbc02d;
+            border-color: #fbc02d;
+        }
+
+        .control-btn.guess-big.active {
+            background: #ff9800;
+            color: white;
+            cursor: pointer;
+            opacity: 1;
+            box-shadow: 0 2px #ef6c00;
+            border-color: #ef6c00;
+        }
+
+        @media (min-width: 600px) {
+            .guess-btn { font-size: 14px; padding: 12px 0; border-radius: 8px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- 上方螢幕 -->
+    <div class="display-screen">
+        <div class="led-panel">
+            <div class="led-label">WIN</div>
+            <div id="win-val" class="led-value">000000</div>
+        </div>
+        <div class="led-panel">
+            <div class="led-label">CREDIT</div>
+            <div id="credit-val" class="led-value">000000</div>
+        </div>
+    </div>
+
+    <!-- 遊戲網格 -->
+    <div class="grid-main" id="grid">
+    </div>
+
+    <!-- 下注面板 -->
+    <div class="bet-panel" id="bet-btns">
+    </div>
+
+    <!-- 下注倍率設定 -->
+    <div class="bet-step-bar">
+        <button class="step-btn active" onclick="setBetStep(1)">+1</button>
+        <button class="step-btn" onclick="setBetStep(5)">+5</button>
+        <button class="step-btn" onclick="setBetStep(10)">+10</button>
+    </div>
+
+    <!-- 控制按鈕 -->
+    <div class="controls">
+        <div class="control-btn coin" onclick="insertCoin()">投幣</div>
+        <div class="control-btn clear" onclick="clearAllBets()">清除</div>
+        <div class="control-btn" onclick="exchangeWin()">得分</div>
+        <div class="control-btn start" id="start-btn" onclick="handleStart()">開始</div>
+    </div>
+
+    <!-- 猜大小按鈕區 (預設隱藏或禁用) -->
+    <div class="double-up-controls" id="double-up-btns">
+        <div id="guess-small-btn" class="control-btn guess-small" onclick="handleGuess('small')">小 (1-6)</div>
+        <div id="guess-big-btn" class="control-btn guess-big" onclick="handleGuess('big')">大 (8-13)</div>
+    </div>
+</div>
+
+<script>
+    // --- 內置音效引擎 (Web Audio API) ---
+    const AudioEngine = {
+        ctx: null,
+        init() {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        },
+        play(type, freq = null) {
+            this.init();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+            
+            const now = this.ctx.currentTime;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            switch(type) {
+                case 'bet_piano':
+                    // 電子鋼琴音色
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq || 440, now);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'coin':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(880, now);
+                    osc.frequency.exponentialRampToValueAtTime(1760, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                    break;
+                case 'bet':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(440, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                    break;
+                case 'clear':
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(220, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                    break;
+                case 'start':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'tick':
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.02);
+                    osc.start(now);
+                    osc.stop(now + 0.02);
+                    break;
+                case 'stop':
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(150, now);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                    break;
+                case 'win':
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((f, i) => {
+                        const o = this.ctx.createOscillator();
+                        const g = this.ctx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(f, now + i * 0.1);
+                        g.gain.setValueAtTime(0.2, now + i * 0.1);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+                        o.connect(g);
+                        g.connect(this.ctx.destination);
+                        o.start(now + i * 0.1);
+                        o.stop(now + i * 0.1 + 0.3);
+                    });
+                    break;
+                case 'loss':
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(110, now);
+                    osc.frequency.linearRampToValueAtTime(55, now + 0.3);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                    break;
+                case 'onceMore':
+                    const twinkle = () => {
+                        const o = this.ctx.createOscillator();
+                        const g = this.ctx.createGain();
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(1500 + Math.random() * 1000, now);
+                        g.gain.setValueAtTime(0.1, now);
+                        g.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                        o.connect(g);
+                        g.connect(this.ctx.destination);
+                        o.start(now);
+                        o.stop(now + 0.1);
+                    };
+                    for(let i=0; i<5; i++) setTimeout(twinkle, i * 80);
+                    break;
+            }
+        }
+    };
+
+    // 音階頻率 (Do, Re, Mi, Fa, Sol, La, Si, Do, Re)
+    const pianoScales = [
+        261.63, // Do (C4)
+        293.66, // Re (D4)
+        329.63, // Mi (E4)
+        349.23, // Fa (F4)
+        392.00, // Sol (G4)
+        440.00, // La (A4)
+        493.88, // Si (B4)
+        523.25, // Do (C5)
+        587.33  // Re (D5)
+    ];
+
+    function playSound(type, freq = null) {
+        AudioEngine.play(type, freq);
+    }
+
+    // 獎項定義 (根據參考圖調整)
+    const items = [
+        { name: 'BAR', rate: 100, label: 'BAR' },
+        { name: '77', rate: 40, label: '77' },
+        { name: '⭐', rate: 30, label: 'STAR' },
+        { name: '🍉', rate: 20, label: 'WATERMELON' },
+        { name: '🔔', rate: 20, label: 'BELL' },
+        { name: '🍋', rate: 15, label: 'LEMON' },
+        { name: '🍊', rate: 10, label: 'ORANGE' },
+        { name: '🍎', rate: 5, label: 'APPLE' }
+    ];
+
+    // 7x7 網格佈局 (-1 為中央, -2 為 Once More)
+    // 0:BAR, 1:77, 2:⭐, 3:🍉, 4:🔔, 5:🍋, 6:🍊, 7:🍎
+    const gridLayout = [
+        6, 4, 0, 0, 0, 7, 5, // Top: 🍊, 🔔, BAR(X50), BAR, BAR(X25), 🍎, 🍋
+        4, -1, -1, -1, -1, -1, 3, // Right: 🔔(X2), 🍉(X2)
+        7, -1, -1, -1, -1, -1, 3, // Right: 🍎, 🍉
+        -2, -1, -1, -1, -1, -1, -2, // Mid: ONCE MORE, ONCE MORE
+        2, -1, -1, -1, -1, -1, 7, // Right: ⭐(X2), 🍎
+        2, -1, -1, -1, -1, -1, 6, // Right: ⭐, 🍊(X2)
+        3, 3, 7, 1, 1, 4, 6  // Bottom: �(X2), 🍉, 🍎, 77, 77(X2), 🔔, 🍊
+    ];
+
+    // 標記哪些位置有 X2 效果 (在渲染時顯示)
+    const doubleRates = {
+        7: true,  // 🔔(X2)
+        13: true, // 🍉(X2)
+        41: true, // 🍊(X2)
+        42: true, // �(X2)
+        46: true, // 77(X2)
+        28: true  // ⭐(X2)
+    };
+
+    // 跑燈路徑 (順時針繞行外圈)
+    const runPath = [
+        0, 1, 2, 3, 4, 5, 6,    // Top row
+        13, 20, 27, 34, 41, 48, // Right column
+        47, 46, 45, 44, 43, 42, // Bottom row
+        35, 28, 21, 14, 7       // Left column
+    ];
+
+    // 猜大小使用的索引 (左側/小 與 右側/大)
+    const leftSideIndices = [0, 7, 14, 21, 28, 35, 42];
+    const rightSideIndices = [6, 13, 20, 27, 34, 41, 48];
+
+    let credit = 10;
+    let winVal = 0;
+    let betStep = 1;
+    let bets = Array(9).fill(0);
+    let paidAmount = 0; // 本局已預付的下注總額
+    let isRunning = false;
+    let isGuessing = false; // 是否在猜大小模式
+    let currentPosIndex = 0;
+    let isTransferring = false; // 是否正在得分轉帳中
+
+    function initGame() {
+        const gridEl = document.getElementById('grid');
+        const betEl = document.getElementById('bet-btns');
+
+        // 生成網格
+        gridEl.innerHTML = ''; // 清空
+        
+        // 生成所有 49 個格子
+        gridLayout.forEach((itemIdx, i) => {
+            const div = document.createElement('div');
+            div.id = `cell-${i}`;
+            
+            if (itemIdx === -1) {
+                div.className = 'cell center-placeholder';
+                div.style.visibility = 'hidden'; // 隱藏佔位格，讓 center-decor 顯示
+            } else {
+                div.className = 'cell';
+                div.innerHTML = `<div class="small-led"></div>`;
+                
+                if (itemIdx === -2) {
+                    div.innerHTML += `<div class="once-more-text">ONCE<br>MORE</div>`;
+                } else {
+                    div.innerHTML += `<span>${items[itemIdx].name}</span>`;
+                    // 如果有特定位置的倍率標記
+                    if (doubleRates[i]) {
+                        div.innerHTML += `<div class="once-more-text" style="color:#d32f2f; font-size:10px;">X 2</div>`;
+                    }
+                    // 特殊處理 BAR 的顯示
+                    if (itemIdx === 0) {
+                        if (i === 2) div.innerHTML = `<div class="small-led"></div><div class="once-more-text" style="color:#d32f2f; font-size:9px;">X50</div><span>BAR</span>`;
+                        if (i === 4) div.innerHTML = `<div class="small-led"></div><div class="once-more-text" style="color:#d32f2f; font-size:9px;">X25</div><span>BAR</span>`;
+                    }
+                }
+            }
+            gridEl.appendChild(div);
+        });
+
+        // 建立中央裝飾區 (絕對定位) 並加入 gridEl
+        const centerDiv = document.createElement('div');
+        centerDiv.className = 'center-decor';
+        centerDiv.innerHTML = `
+            <div class="title-main">小瑪莉</div>
+            <div class="title-sub">CASINO CLASSIC</div>
+            <div class="jp-container" style="margin-top: 5px;">
+                <div class="jp-label">下注金額</div>
+                <div id="total-bet-val" class="jp-value">000</div>
+            </div>
+        `;
+        gridEl.appendChild(centerDiv);
+
+        // 生成下注按鈕
+        betEl.innerHTML = '';
+        items.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.className = 'bet-item';
+            div.onclick = () => placeBet(i);
+            div.innerHTML = `
+                <div class="bet-rate">${item.rate}</div>
+                <div class="bet-icon">${item.name}</div>
+                <div id="bet-count-${i}" class="bet-count">00</div>
+            `;
+            betEl.appendChild(div);
+        });
+
+        updateUI();
+    }
+
+    function updateUI() {
+        document.getElementById('credit-val').innerText = credit.toString().padStart(6, '0');
+        document.getElementById('win-val').innerText = winVal.toString().padStart(6, '0');
+        
+        const currentTotalBet = bets.reduce((a, b) => a + b, 0);
+        const totalBetEl = document.getElementById('total-bet-val');
+        if (totalBetEl) {
+            totalBetEl.innerText = currentTotalBet.toString().padStart(3, '0');
+        }
+
+        bets.forEach((count, i) => {
+            const el = document.getElementById(`bet-count-${i}`);
+            if (el) el.innerText = count.toString().padStart(2, '0');
+        });
+
+        // 控制下注按鈕狀態
+        const betItems = document.querySelectorAll('.bet-item');
+        const canBet = !isRunning && !isGuessing && !isTransferring && credit >= betStep;
+        betItems.forEach(btn => {
+            if (canBet) {
+                btn.classList.remove('disabled');
+            } else {
+                btn.classList.add('disabled');
+            }
+        });
+
+        // 控制開始按鈕狀態
+        const startBtn = document.getElementById('start-btn');
+        const amountToPay = currentTotalBet - paidAmount;
+        // 允許開始：遊戲不在進行中 && 有下注 && (餘額 + 當前贏分) 足夠支付
+        const canStart = !isRunning && !isGuessing && !isTransferring && currentTotalBet > 0 && (credit + winVal) >= amountToPay;
+        
+        if (canStart) {
+            startBtn.classList.remove('disabled');
+        } else {
+            startBtn.classList.add('disabled');
+        }
+
+        // 控制比大小按鈕狀態
+        const smallBtn = document.getElementById('guess-small-btn');
+        const bigBtn = document.getElementById('guess-big-btn');
+        const canGuess = winVal > 0 && !isRunning && !isGuessing && !isTransferring;
+        
+        if (canGuess) {
+            smallBtn.classList.add('active');
+            bigBtn.classList.add('active');
+        } else {
+            smallBtn.classList.remove('active');
+            bigBtn.classList.remove('active');
+        }
+    }
+
+    function setBetStep(step) {
+        betStep = step;
+        document.querySelectorAll('.step-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.innerText.replace('+', '')) === step);
+        });
+        playSound('bet');
+        updateUI();
+    }
+
+    function insertCoin() {
+        credit += 10;
+        playSound('coin');
+        updateUI();
+    }
+
+    function placeBet(index) {
+        if (isRunning || isGuessing || isTransferring) return;
+        
+        // 檢查餘額是否足夠直接扣除
+        if (credit < betStep) {
+            const el = document.getElementById('credit-val');
+            el.classList.remove('flash-red');
+            void el.offsetWidth; // 觸發重繪
+            el.classList.add('flash-red');
+            playSound('clear');
+            return;
+        }
+
+        // 下注圖案時自動扣除金額
+        credit -= betStep;
+        bets[index] += betStep;
+        paidAmount += betStep;
+        
+        playSound('bet_piano', pianoScales[index]);
+        updateUI();
+    }
+
+    function clearAllBets() {
+        if (isRunning || isGuessing || isTransferring) return;
+        
+        // 清除下注時將「本局預付」的錢返還至餘額
+        credit += paidAmount;
+        paidAmount = 0;
+        bets.fill(0);
+        
+        playSound('clear');
+        updateUI();
+    }
+
+    function exchangeWin() {
+        if (isRunning || isGuessing || winVal <= 0) return;
+        transferWinToCredit();
+    }
+
+    function handleGuess(side) {
+        if (isRunning || isGuessing || winVal <= 0) return;
+        
+        isGuessing = true;
+        playSound('start');
+        
+        // 增加更隨機的視覺動畫
+        let count = 0;
+        const maxCount = 20;
+        let currentSide = 'left';
+        
+        const interval = setInterval(() => {
+            // 隨機切換左右閃爍，而不是固定交替
+            currentSide = Math.random() > 0.5 ? 'left' : 'right';
+            const indices = currentSide === 'left' ? leftSideIndices : rightSideIndices;
+            
+            // 全亮效果
+            document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('active'));
+            indices.forEach(idx => {
+                document.getElementById(`cell-${idx}`).classList.add('active');
+            });
+            
+            playSound('tick');
+            count++;
+            
+            if (count >= maxCount) {
+                clearInterval(interval);
+                
+                // 最終結果判定：純隨機 50/50 概率
+                const isWin = Math.random() > 0.5;
+                
+                // 簡化邏輯：直接根據 isWin 決定結果
+                const resultSide = isWin ? side : (side === 'small' ? 'big' : 'small');
+                const indicesToLight = resultSide === 'small' ? leftSideIndices : rightSideIndices;
+
+                document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('active'));
+                indicesToLight.forEach(idx => {
+                    document.getElementById(`cell-${idx}`).classList.add('active');
+                });
+                
+                if (isWin) {
+                    winVal *= 2;
+                    playSound('win');
+                } else {
+                    winVal = 0;
+                    playSound('loss');
+                }
+                
+                isGuessing = false;
+                updateUI();
+                
+                // 3秒後清除全亮效果
+                setTimeout(() => {
+                    if (!isGuessing) {
+                        document.querySelectorAll('.cell').forEach(cell => cell.classList.remove('active'));
+                    }
+                }, 3000);
+            }
+        }, 100);
+    }
+    
+    async function transferWinToCredit() {
+        if (winVal <= 0 || isTransferring) return;
+        isTransferring = true;
+        
+        // 根據得分大小調整速度，得分越高跳越快但依然有「慢慢扣」的感覺
+        const totalWin = winVal;
+        const duration = Math.min(2000, 500 + totalWin * 2); // 最長 2 秒
+        const steps = 30;
+        const interval = duration / steps;
+        const amountPerStep = Math.ceil(totalWin / steps);
+        
+        while (winVal > 0) {
+            const amount = Math.min(winVal, amountPerStep);
+            winVal -= amount;
+            credit += amount;
+            updateUI();
+            playSound('coin'); // 改用金幣音效增加快感
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        winVal = 0;
+        isTransferring = false;
+        updateUI();
+    }
+
+    async function handleStart(isFreeSpin = false) {
+        if (isRunning || isGuessing || isTransferring) return;
+
+        // 如果是 Once More (免費轉次)，直接開始，不扣款
+        if (isFreeSpin) {
+            isRunning = true;
+            document.getElementById('start-btn').style.opacity = '0.5';
+            playSound('start');
+            await runGameAnimation();
+            return;
+        }
+
+        // 如果有贏的錢，先自動加回餘額 (這一步很重要，確保 credit 足夠支付)
+        if (winVal > 0) {
+            await transferWinToCredit();
+        }
+
+        const totalBet = bets.reduce((a, b) => a + b, 0);
+        if (totalBet <= 0) return;
+
+        // 計算還需要補扣的金額 (總下注 - 剛才手動點擊時已預付的金額)
+        const amountToPay = totalBet - paidAmount;
+        
+        // 檢查餘額是否足夠支付差額 (這時 credit 已經包含了剛才自動轉換的 winVal)
+        if (credit < amountToPay) {
+            const el = document.getElementById('credit-val');
+            el.classList.remove('flash-red');
+            void el.offsetWidth; // 觸發重繪
+            el.classList.add('flash-red');
+            playSound('clear');
+            return;
+        }
+        
+        // 按下開始時扣除剩餘押金
+        credit -= amountToPay;
+        paidAmount = 0; // 重置，表示本局下注已全數支付
+        updateUI();
+        
+        isRunning = true;
+        document.getElementById('start-btn').style.opacity = '0.5';
+        playSound('start');
+
+        await runGameAnimation();
+    }
+
+    async function runGameAnimation() {
+        // 隨機決定中獎位置
+        const minSteps = 40;
+        const randomSteps = Math.floor(Math.random() * runPath.length);
+        const totalSteps = minSteps + randomSteps;
+        let currentStep = 0;
+        
+        const run = () => {
+            return new Promise(resolve => {
+                let delay = 50; // 初始速度
+                
+                const nextStep = () => {
+                    // 移除舊的 active
+                    const oldCell = document.getElementById(`cell-${runPath[currentPosIndex]}`);
+                    if (oldCell) oldCell.classList.remove('active');
+
+                    // 更新位置
+                    currentPosIndex = (currentPosIndex + 1) % runPath.length;
+                    
+                    // 加入新的 active
+                    const newCell = document.getElementById(`cell-${runPath[currentPosIndex]}`);
+                    if (newCell) newCell.classList.add('active');
+                    
+                    playSound('tick');
+                    currentStep++;
+
+                    if (currentStep < totalSteps) {
+                        // 減速邏輯
+                        if (totalSteps - currentStep < 10) {
+                            delay += 50; // 最後 10 步逐漸減速
+                        } else if (currentStep < 5) {
+                            delay -= 5; // 前 5 步逐漸加速
+                        }
+                        setTimeout(nextStep, delay);
+                    } else {
+                        resolve();
+                    }
+                };
+                nextStep();
+            });
+        };
+
+        await run();
+        settleRound();
+    }
+
+    function settleRound() {
+        const stopIdx = runPath[currentPosIndex];
+        const itemIdx = gridLayout[stopIdx];
+
+        if (itemIdx === -2) {
+            // Once More 邏輯
+            playSound('onceMore');
+            setTimeout(() => {
+                isRunning = false;
+                handleStart(true); // 自動再跑一次，傳入 true 代表免費轉次
+            }, 1000);
+            return;
+        }
+
+        const baseRate = items[itemIdx].rate;
+        let winRate = baseRate;
+
+        // 特殊位置賠率計算
+        if (itemIdx === 0) { // BAR
+            if (stopIdx === 2) winRate = 50;
+            else if (stopIdx === 4) winRate = 25;
+            else winRate = 100;
+        } else if (doubleRates[stopIdx]) {
+            winRate = baseRate * 2;
+        }
+
+        const betAmount = bets[itemIdx];
+
+        if (betAmount > 0) {
+            const prize = betAmount * winRate;
+            winVal += prize;
+            playSound('win');
+            // 中獎閃爍效果
+            const betItems = document.querySelectorAll('.bet-item');
+            const betItem = betItems[itemIdx];
+            if (betItem) {
+                betItem.style.background = '#fff59d';
+                betItem.style.boxShadow = '0 0 20px #ffeb3b';
+                setTimeout(() => {
+                    betItem.style.background = '';
+                    betItem.style.boxShadow = '';
+                }, 2000);
+            }
+        } else {
+            playSound('loss');
+        }
+
+        isRunning = false;
+        document.getElementById('start-btn').style.opacity = '1';
+        updateUI();
+    }
+
+    window.onload = initGame;
+</script>
+
+</body>
+</html>
