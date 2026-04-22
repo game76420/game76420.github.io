@@ -298,7 +298,7 @@
             .guess-big { box-shadow: 0 4px #e65100 !important; }
         }
         
-        .control-btn.disabled, .bet-item.disabled {
+        .control-btn.disabled {
             opacity: 0.3;
             cursor: not-allowed;
             pointer-events: none;
@@ -952,17 +952,6 @@
         bets.forEach((count, i) => {
             const el = document.getElementById(`bet-count-${i}`);
             if (el) el.innerText = count.toString().padStart(2, '0');
-        });
-
-        // 控制下注按鈕狀態
-        const betItems = document.querySelectorAll('.bet-item');
-        const canBet = !isRunning && !isGuessing && !isTransferring && credit >= betStep;
-        betItems.forEach(btn => {
-            if (canBet) {
-                btn.classList.remove('disabled');
-            } else {
-                btn.classList.add('disabled');
-            }
         });
 
         // 控制開始按鈕狀態
