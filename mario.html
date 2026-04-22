@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>經典小瑪莉 - 修正版</title>
+    <title>經典小瑪莉</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -944,7 +944,7 @@
         items.forEach((item, i) => {
             const div = document.createElement('div');
             div.className = 'bet-item';
-            div.onclick = () => { if (!touchStarted) placeBet(i); };
+            // 移除 onclick 以防止滑鼠重複觸發 (由 onmousedown 處理)
             div.onmousedown = () => startBetRepeat(i);
             div.onmouseup = stopBetRepeat;
             div.onmouseleave = stopBetRepeat;
