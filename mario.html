@@ -887,6 +887,7 @@
     let currentPosIndex = 0;
     let isTransferring = false; // 是否正在得分轉帳中
     let betRepeatTimer = null; // 按住重複下注計時器
+    let touchStarted = false; // 防止 touch 觸發 onclick
 
     function initGame() {
         const gridEl = document.getElementById('grid');
@@ -943,12 +944,12 @@
         items.forEach((item, i) => {
             const div = document.createElement('div');
             div.className = 'bet-item';
-            div.onclick = () => placeBet(i);
+            div.onclick = () => { if (!touchStarted) placeBet(i); };
             div.onmousedown = () => startBetRepeat(i);
             div.onmouseup = stopBetRepeat;
             div.onmouseleave = stopBetRepeat;
-            div.ontouchstart = (e) => { e.preventDefault(); startBetRepeat(i); };
-            div.ontouchend = stopBetRepeat;
+            div.ontouchstart = (e) => { e.preventDefault(); touchStarted = true; startBetRepeat(i); };
+            div.ontouchend = () => { touchStarted = false; stopBetRepeat(); };
             div.innerHTML = `
                 <div class="bet-rate">${item.rate}</div>
                 <div class="bet-led"></div>
@@ -1020,9 +1021,8 @@
     function startBetRepeat(index) {
         if (isRunning || isGuessing || isTransferring) return;
         if (betRepeatTimer) clearInterval(betRepeatTimer);
-        let hadClick = false;
+        placeBet(index);
         const clickTimeout = setTimeout(() => {
-            hadClick = true;
             betRepeatTimer = setInterval(() => {
                 if (!isRunning && !isGuessing && !isTransferring && credit >= betStep) {
                     placeBet(index);
