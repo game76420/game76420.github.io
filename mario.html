@@ -512,6 +512,21 @@
             box-shadow: inset 0 0 5px rgba(255,0,0,0.5);
         }
 
+        .bet-led {
+            width: 6px;
+            height: 6px;
+            background: #440000;
+            border-radius: 50%;
+            border: 0.5px solid #000;
+            margin-bottom: 2px;
+            transition: all 0.1s;
+        }
+
+        .bet-item.hit .bet-led {
+            background: #ff0000;
+            box-shadow: 0 0 8px #ff0000;
+        }
+
         @media (min-width: 600px) {
             .bet-icon { font-size: 20px; height: 30px; }
             .bet-rate { font-size: 10px; }
@@ -871,6 +886,7 @@
     let isGuessing = false; // 是否在猜大小模式
     let currentPosIndex = 0;
     let isTransferring = false; // 是否正在得分轉帳中
+    let betRepeatTimer = null; // 按住重複下注計時器
 
     function initGame() {
         const gridEl = document.getElementById('grid');
@@ -928,8 +944,14 @@
             const div = document.createElement('div');
             div.className = 'bet-item';
             div.onclick = () => placeBet(i);
+            div.onmousedown = () => startBetRepeat(i);
+            div.onmouseup = stopBetRepeat;
+            div.onmouseleave = stopBetRepeat;
+            div.ontouchstart = (e) => { e.preventDefault(); startBetRepeat(i); };
+            div.ontouchend = stopBetRepeat;
             div.innerHTML = `
                 <div class="bet-rate">${item.rate}</div>
+                <div class="bet-led"></div>
                 <div class="bet-icon">${item.name}</div>
                 <div id="bet-count-${i}" class="bet-count">00</div>
             `;
@@ -993,6 +1015,30 @@
         credit += 10;
         playSound('coin');
         updateUI();
+    }
+
+    function startBetRepeat(index) {
+        if (isRunning || isGuessing || isTransferring) return;
+        if (betRepeatTimer) clearInterval(betRepeatTimer);
+        let hadClick = false;
+        const clickTimeout = setTimeout(() => {
+            hadClick = true;
+            betRepeatTimer = setInterval(() => {
+                if (!isRunning && !isGuessing && !isTransferring && credit >= betStep) {
+                    placeBet(index);
+                } else {
+                    stopBetRepeat();
+                }
+            }, 150);
+        }, 500);
+        betRepeatTimer = clickTimeout;
+    }
+
+    function stopBetRepeat() {
+        if (betRepeatTimer) {
+            clearTimeout(betRepeatTimer);
+            betRepeatTimer = null;
+        }
     }
 
     function placeBet(index) {
@@ -1252,9 +1298,11 @@
             const betItems = document.querySelectorAll('.bet-item');
             const betItem = betItems[itemIdx];
             if (betItem) {
+                betItem.classList.add('hit');
                 betItem.style.background = '#fff59d';
                 betItem.style.boxShadow = '0 0 20px #ffeb3b';
                 setTimeout(() => {
+                    betItem.classList.remove('hit');
                     betItem.style.background = '';
                     betItem.style.boxShadow = '';
                 }, 2000);
