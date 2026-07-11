@@ -1901,16 +1901,52 @@ window.addEventListener('keydown', function(e) {
     }
   }
 
+  function resetJoystick() {
+    dragging = false;
+    activeTouchId = null;
+    knob.style.left = knobCenterOffset + 'px';
+    knob.style.top = knobCenterOffset + 'px';
+    joyDX = 0; joyDY = 0;
+    keyState.left = keyState.right = keyState.up = keyState.down = false;
+    directionIndicators.forEach(indicator => {
+      indicator.classList.remove('active');
+    });
+  }
+
+  function moveKnobTo(clientX, clientY) {
+    let dx = clientX - startX;
+    let dy = clientY - startY;
+    const maxDist = knobMaxDist;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > maxDist) {
+      dx = dx * maxDist / dist;
+      dy = dy * maxDist / dist;
+    }
+    knob.style.left = (knobCenterOffset + dx) + 'px';
+    knob.style.top = (knobCenterOffset + dy) + 'px';
+    joyDX = dx / maxDist;
+    joyDY = dy / maxDist;
+    keyState.left = joyDX < -0.2;
+    keyState.right = joyDX > 0.2;
+    keyState.up = joyDY < -0.2;
+    keyState.down = joyDY > 0.2;
+    updateDirectionIndicators();
+  }
+
   if (joystick && knob) {
-    knob.addEventListener('touchstart', function(e) {
+    // 綁在整個底座（外圈）上，而不是只綁在中間的小旋鈕上，
+    // 這樣玩家點在搖桿範圍內任何地方都能立刻開始拖曳，大幅提升靈敏度
+    joystick.addEventListener('touchstart', function(e) {
       if (dragging) return;
       dragging = true;
       updateKnobGeometry();
-      const touch = e.touches[0];
+      const touch = e.changedTouches[0];
       activeTouchId = touch.identifier;
       baseRect = joystick.getBoundingClientRect();
       startX = baseRect.left + baseRect.width / 2;
       startY = baseRect.top + baseRect.height / 2;
+      // 立刻把旋鈕移動到手指按下的位置，減少「按了沒反應」的感覺
+      moveKnobTo(touch.clientX, touch.clientY);
       e.preventDefault();
       e.stopPropagation();
     }, { passive: false });
@@ -1925,23 +1961,7 @@ window.addEventListener('keydown', function(e) {
         }
       }
       if (!touch) return;
-      let dx = touch.clientX - startX;
-      let dy = touch.clientY - startY;
-      const maxDist = knobMaxDist;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist > maxDist) {
-        dx = dx * maxDist / dist;
-        dy = dy * maxDist / dist;
-      }
-      knob.style.left = (knobCenterOffset + dx) + 'px';
-      knob.style.top = (knobCenterOffset + dy) + 'px';
-      joyDX = dx / maxDist;
-      joyDY = dy / maxDist;
-      keyState.left = joyDX < -0.2;
-      keyState.right = joyDX > 0.2;
-      keyState.up = joyDY < -0.2;
-      keyState.down = joyDY > 0.2;
-      updateDirectionIndicators();
+      moveKnobTo(touch.clientX, touch.clientY);
       e.preventDefault();
     }, {passive: false});
 
@@ -1955,15 +1975,22 @@ window.addEventListener('keydown', function(e) {
         }
       }
       if (stillTouching) return;
-      dragging = false;
-      activeTouchId = null;
-      knob.style.left = knobCenterOffset + 'px';
-      knob.style.top = knobCenterOffset + 'px';
-      joyDX = 0; joyDY = 0;
-      keyState.left = keyState.right = keyState.up = keyState.down = false;
-      directionIndicators.forEach(indicator => {
-        indicator.classList.remove('active');
-      });
+      resetJoystick();
+    }, {passive: false});
+
+    // 補上 touchcancel：觸控常會被系統手勢、多指觸控等中斷而不會觸發 touchend，
+    // 若沒處理這個事件，dragging 會卡在 true，導致搖桿之後完全沒反應
+    document.addEventListener('touchcancel', function(e) {
+      if (!dragging) return;
+      let stillTouching = false;
+      for (let t of e.touches) {
+        if (t.identifier === activeTouchId) {
+          stillTouching = true;
+          break;
+        }
+      }
+      if (stillTouching) return;
+      resetJoystick();
     }, {passive: false});
   }
 
