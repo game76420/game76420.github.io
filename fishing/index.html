@@ -327,31 +327,33 @@
       
       #joystick {
         display: block !important;
-        left: 35%;
-        bottom: 20px;
+        left: 30%;
+        bottom: max(36px, env(safe-area-inset-bottom, 0px) + 24px);
         transform: translateX(-50%);
-        width: 120px;
-        height: 120px;
+        width: 130px;
+        height: 130px;
       }
       
       #joystick-knob {
-        width: 60px;
-        height: 60px;
-        left: 30px;
-        top: 30px;
+        width: 65px;
+        height: 65px;
+        left: 32.5px;
+        top: 32.5px;
       }
       
       #screenButtons {
         display: block !important;
-        right: 20px;
-        bottom: 20px;
+        right: 28px;
+        bottom: max(48px, env(safe-area-inset-bottom, 0px) + 36px);
         gap: 12px;
       }
       
       #screenButtons button {
-        width: 60px;
-        height: 60px;
-        font-size: 1em;
+        width: 96px;
+        height: 96px;
+        font-size: 1.25em;
+        font-weight: bold;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.35);
       }
     }
     
