@@ -1858,6 +1858,9 @@ window.addEventListener('keydown', function(e) {
   window.addEventListener('resize', updateControlsVisibility);
   window.addEventListener('orientationchange', updateControlsVisibility);
   updateControlsVisibility();
+  window.addEventListener('resize', () => setTimeout(updateKnobGeometry, 50));
+  window.addEventListener('orientationchange', () => setTimeout(updateKnobGeometry, 50));
+  setTimeout(updateKnobGeometry, 50);
 
   // 虛擬搖桿控制
   const joystick = document.getElementById('joystick');
@@ -1866,6 +1869,17 @@ window.addEventListener('keydown', function(e) {
   let dragging = false, startX = 0, startY = 0, baseRect = null;
   let joyDX = 0, joyDY = 0;
   let activeTouchId = null;
+  let knobCenterOffset = 35; // 動態計算：底座與旋鈕置中所需的位移量
+  let knobMaxDist = 45; // 動態計算：旋鈕可拖曳的最大距離
+
+  function updateKnobGeometry() {
+    if (!joystick || !knob) return;
+    const baseSize = joystick.offsetWidth;
+    const knobSize = knob.offsetWidth;
+    knobCenterOffset = (baseSize - knobSize) / 2;
+    // 讓旋鈕邊緣最遠可以貼到底座邊緣，並保留一點緩衝
+    knobMaxDist = Math.max(20, baseSize / 2 - knobSize / 4);
+  }
 
   function updateDirectionIndicators() {
     directionIndicators.forEach(indicator => {
@@ -1891,6 +1905,7 @@ window.addEventListener('keydown', function(e) {
     knob.addEventListener('touchstart', function(e) {
       if (dragging) return;
       dragging = true;
+      updateKnobGeometry();
       const touch = e.touches[0];
       activeTouchId = touch.identifier;
       baseRect = joystick.getBoundingClientRect();
@@ -1912,14 +1927,14 @@ window.addEventListener('keydown', function(e) {
       if (!touch) return;
       let dx = touch.clientX - startX;
       let dy = touch.clientY - startY;
-      const maxDist = 45;
+      const maxDist = knobMaxDist;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (dist > maxDist) {
         dx = dx * maxDist / dist;
         dy = dy * maxDist / dist;
       }
-      knob.style.left = (35 + dx) + 'px';
-      knob.style.top = (35 + dy) + 'px';
+      knob.style.left = (knobCenterOffset + dx) + 'px';
+      knob.style.top = (knobCenterOffset + dy) + 'px';
       joyDX = dx / maxDist;
       joyDY = dy / maxDist;
       keyState.left = joyDX < -0.2;
@@ -1942,8 +1957,8 @@ window.addEventListener('keydown', function(e) {
       if (stillTouching) return;
       dragging = false;
       activeTouchId = null;
-      knob.style.left = '35px';
-      knob.style.top = '35px';
+      knob.style.left = knobCenterOffset + 'px';
+      knob.style.top = knobCenterOffset + 'px';
       joyDX = 0; joyDY = 0;
       keyState.left = keyState.right = keyState.up = keyState.down = false;
       directionIndicators.forEach(indicator => {
