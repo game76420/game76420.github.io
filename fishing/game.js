@@ -272,12 +272,19 @@ function createFish() {
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
   const dir = fromLeft ? 1 : -1;
-  let speed = 1.4 + Math.random() * 1.2;
-  if (fishTier === 'mid') speed = 2 + Math.random() * 1.3;
-  if (fishTier === 'bad') speed = 1.2 + Math.random() * 0.9;
+  // 速度降低 30%（原速度 * 0.7）
+  let speed = 0.98 + Math.random() * 0.84;
+  if (fishTier === 'mid') speed = 1.4 + Math.random() * 0.91;
+  if (fishTier === 'bad') speed = 0.84 + Math.random() * 0.63;
+  const baseY = Math.random() * 350 + 220;
   return {
     x,
-    y: Math.random() * 350 + 220,
+    y: baseY,
+    baseY, // 新增：上下游動的基準高度
+    bobPhase: Math.random() * Math.PI * 2, // 新增：隨機起始相位，讓每條魚上下游動節奏不同步
+    bobSpeed: 0.5 + Math.random() * 0.9,   // 新增：上下游動的速度（隨機）
+    bobAmplitude: 12 + Math.random() * 20, // 新增：上下游動的幅度（隨機）
+    bobTime: 0, // 新增：上下游動經過的時間
     speed,
     dir,
     caught: false,
@@ -510,10 +517,17 @@ function createTrash() {
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -30 : canvas.width + 40;
   const dir = fromLeft ? 1 : -1;
+  const baseY = Math.random() * 350 + 220;
   return {
     x,
-    y: Math.random() * 350 + 220,
-    speed: 1 + Math.random() * 1.5,
+    y: baseY,
+    baseY, // 新增：上下游動的基準高度
+    bobPhase: Math.random() * Math.PI * 2, // 新增：隨機起始相位
+    bobSpeed: 0.5 + Math.random() * 0.9,   // 新增：上下游動速度（隨機）
+    bobAmplitude: 12 + Math.random() * 20, // 新增：上下游動幅度（隨機）
+    bobTime: 0,
+    // 速度降低 30%（原速度 * 0.7）
+    speed: 0.7 + Math.random() * 1.05,
     dir,
     type,
     hit: false,
@@ -1241,6 +1255,12 @@ function gameLoop(currentTime) {
     for (let fish of fishes) {
       if (!fish.caught) {
         fish.x += fish.speed * fish.dir * timeScale;
+        // 新增：讓魚一邊游一邊隨機上下浮動（被釣起／正在下沉回海裡的魚不套用，
+        // 不然這裡改掉的 y 會蓋掉「跟著釣線／鉤子移動」或「下沉動畫」用的座標，導致魚吊不起來）
+        if (!fish.lifting && !fish.falling) {
+          fish.bobTime = (fish.bobTime || 0) + deltaTime / 1000;
+          fish.y = fish.baseY + Math.sin(fish.bobTime * fish.bobSpeed + fish.bobPhase) * fish.bobAmplitude;
+        }
         // 如果游出畫面，重新生成一條新魚（根據 canvas.width 動態判斷）
         if ((fish.dir === 1 && fish.x > canvas.width + 40) || (fish.dir === -1 && fish.x < -40)) {
           Object.assign(fish, createFish());
@@ -1257,6 +1277,12 @@ function gameLoop(currentTime) {
     for (let trash of trashes) {
       if (!trash.lifting && !trash.hit) {
         trash.x += trash.speed * trash.dir * timeScale;
+        // 新增：讓垃圾一邊漂一邊隨機上下浮動（正在被釣起或掉回海裡的垃圾不套用，
+        // 避免蓋掉「跟著釣線／鉤子移動」或「掉回海裡」動畫用的座標）
+        if (!trash.falling) {
+          trash.bobTime = (trash.bobTime || 0) + deltaTime / 1000;
+          trash.y = trash.baseY + Math.sin(trash.bobTime * trash.bobSpeed + trash.bobPhase) * trash.bobAmplitude;
+        }
         if ((trash.dir === 1 && trash.x > canvas.width + 40) || (trash.dir === -1 && trash.x < -40)) {
           // 重新生成
           Object.assign(trash, createTrash());
