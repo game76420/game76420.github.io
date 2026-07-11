@@ -3,7 +3,21 @@ const ctx = canvas.getContext('2d');
 const restartBtn = document.getElementById('restartBtn');
 
 const FISH_COUNT = 20;
-const GAME_TIME = 85; // 秒
+const GAME_TIME = 100; // 以原版節奏為準，這裡當作元氣值上限
+// 參考版本（game-0.js）是每秒固定扣 1 點、上限 85，換算節奏後這裡當作「起始扣速」。
+// 另外原版的手感是「玩越久扣越快」：跟元氣高低無關，純粹跟這局已經玩了多久有關。
+const PASSIVE_DRAIN_BASE = GAME_TIME / 85;       // 遊戲剛開始時的扣速（每秒）
+const PASSIVE_DRAIN_ACCEL_PER_SEC = 0.02;        // 每經過1秒遊戲時間，扣速再增加多少（讓越後面扣越快）
+const PASSIVE_DRAIN_MAX = PASSIVE_DRAIN_BASE * 3; // 扣速上限，避免玩到後期扣到誇張快
+let elapsedGameTime = 0; // 這一局已經進行的時間（秒），用來讓扣速慢慢加速
+const TRASH_PENALTY = 12;
+const BAD_FISH_PENALTY = 8;
+const SMALL_FISH_SCORE = 5;
+const SMALL_FISH_ENERGY = 4;
+const MID_FISH_SCORE = 10;
+const MID_FISH_ENERGY = 7;
+const BIG_FISH_SCORE = 20;
+const BIG_FISH_ENERGY = 12;
 
 let fishes = [];
 let score = 0;
@@ -11,6 +25,7 @@ let timeLeft = GAME_TIME;
 let displayTimeLeft = GAME_TIME; // 新增：用於時間條補間動畫
 let gameOver = false;
 let fishing = false;
+let pendingGameOver = false;
 // 新增：時間控制變數
 let lastTime = 0;
 let deltaTime = 0;
@@ -21,6 +36,7 @@ let hookThrowing = false;
 let hookThrowT = 0;
 let hookThrowStartY = 0, hookThrowEndY = 0;
 let hookThrowStartX = 0, hookThrowEndX = 0;
+let hookDrawX = 0; // 新增：鉤子目前實際繪製用的 x 座標（甩竿時會前拋、繞頭頂、再往後甩）
 // 鉤子預設在水下
 let hookY = 400;
 let hookTargetY = 400;
@@ -70,10 +86,21 @@ let bowlSinkCallback = null;
 let bowlY_vel = 0;
 let bowlImpulseY = 0; // 新增：碗的下沉衝擊
 
+// --- 新增：碗左右來回慢慢移動 ---
+let bowlX = pot.x;
+let bowlXDir = 1; // 1 = 向右，-1 = 向左
+const bowlXSpeed = 0.4; // 移動速度（慢慢地）
+const bowlXMargin = 40;
+const bowlXMin = bowlXMargin;
+const bowlXMax = canvas.width - pot.w - bowlXMargin;
+
 // --- 新增：主角移動影響波浪 ---
 let waveDisturb = { x: 0, v: 0, t: 0 };
 
 const COLLISION_DIST = 38;
+
+// 甩竿完成後，鉤子應該落在角色「背後」（面向的反方向），而不是直接落在角色頭頂/正前方
+const HOOK_LANDING_BEHIND_OFFSET = 70;
 
 // 檢查魚線碰撞的函數
 function checkLineCollision() {
@@ -85,7 +112,14 @@ function checkLineCollision() {
     // 先判斷鉤子直接碰到（距離放寬）
     if (Math.abs(fish.x - bigFish.x) < 32 && Math.abs(fish.y - hookY) < 28) {
       fish.lifting = true;
+      fish.flying = false;
       fish.flyT = 0;
+      fish.liftAnimTime = 0; // 新增：重置吊起動畫時間
+      fish.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+      // 新增：記錄是被魚鉤本身勾到的（線的最末端），甩竿時才會跟著鉤子超出畫面
+      fish.hookLineIndex = LINE_POINTS - 1;
+      fish.hookLineT = 0;
+      fish.prevLiftY = fish.y; // 重置方向判斷用的前一幀 Y 座標
       // 播放釣到東西音效（隨機）
       playRandomCatchSound();
       continue;
@@ -102,7 +136,14 @@ function checkLineCollision() {
       let dist = Math.hypot(fish.x - px, fish.y - py);
       if (dist < COLLISION_DIST) { // 統一判斷距離
         fish.lifting = true;
+        fish.flying = false;
         fish.flyT = 0;
+        fish.liftAnimTime = 0; // 新增：重置吊起動畫時間
+        fish.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+        // 新增：記錄是被釣線的哪一段勾到，甩竿時跟著該段釣線移動，不會超出畫面
+        fish.hookLineIndex = i;
+        fish.hookLineT = t;
+        fish.prevLiftY = fish.y; // 重置方向判斷用的前一幀 Y 座標
         lineCollisions[i] = true;
         // 播放釣到東西音效（隨機）
         playRandomCatchSound();
@@ -116,17 +157,14 @@ function checkLineCollision() {
     if (trash.lifting || trash.hit) continue;
     if (Math.abs(trash.x - bigFish.x) < 32 && Math.abs(trash.y - hookY) < 28) {
       trash.lifting = true;
+      trash.flying = false;
       trash.flyT = 0;
+      trash.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+      // 新增：記錄是被魚鉤本身勾到的（線的最末端），甩竿時才會跟著鉤子超出畫面
+      trash.hookLineIndex = LINE_POINTS - 1;
+      trash.hookLineT = 0;
       // 播放釣到東西音效（隨機）
       playRandomCatchSound();
-      if (timeLeft > 0 && !gameOver) {
-        if (timeLeft - 30 <= 0) {
-          timeLeft = 0;
-          pendingGameOver = true;
-        } else {
-          timeLeft = Math.max(0, timeLeft - 30);
-        }
-      }
       continue;
     }
     // 線段碰撞（距離放寬）
@@ -141,17 +179,14 @@ function checkLineCollision() {
       let dist = Math.hypot(trash.x - px, trash.y - py);
       if (dist < COLLISION_DIST) { // 統一判斷距離
         trash.lifting = true;
+        trash.flying = false;
         trash.flyT = 0;
+        trash.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+        // 新增：記錄是被釣線的哪一段勾到，甩竿時跟著該段釣線移動，不會超出畫面
+        trash.hookLineIndex = i;
+        trash.hookLineT = t;
         // 播放釣到東西音效（隨機）
         playRandomCatchSound();
-        if (timeLeft > 0 && !gameOver) {
-          if (timeLeft - 30 <= 0) {
-            timeLeft = 0;
-            pendingGameOver = true;
-          } else {
-            timeLeft = Math.max(0, timeLeft - 30);
-          }
-        }
         lineCollisions[i] = true;
         break;
       }
@@ -162,7 +197,12 @@ function checkLineCollision() {
     // 先判斷鉤子直接碰到（距離放寬）
     if (Math.abs(specialSeaCreature.x - bigFish.x) < 36 && Math.abs(specialSeaCreature.y - hookY) < 32) {
       specialSeaCreature.lifting = true;
+      specialSeaCreature.flying = false;
       specialSeaCreature.flyT = 0;
+      specialSeaCreature.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+      // 新增：記錄是被魚鉤本身勾到的（線的最末端），甩竿時才會跟著鉤子超出畫面
+      specialSeaCreature.hookLineIndex = LINE_POINTS - 1;
+      specialSeaCreature.hookLineT = 0;
       // 播放釣到東西音效（隨機）
       playRandomCatchSound();
     } else {
@@ -178,7 +218,12 @@ function checkLineCollision() {
         let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
         if (dist < COLLISION_DIST) { // 統一判斷距離
           specialSeaCreature.lifting = true;
+          specialSeaCreature.flying = false;
           specialSeaCreature.flyT = 0;
+          specialSeaCreature.flyOffsetX = (Math.random() - 0.5) * 30; // 新增：甩竿落點與貓咪位置的隨機偏移
+          // 新增：記錄是被釣線的哪一段勾到，甩竿時跟著該段釣線移動，不會超出畫面
+          specialSeaCreature.hookLineIndex = i;
+          specialSeaCreature.hookLineT = t;
           lineCollisions[i] = true;
           // 播放釣到東西音效（隨機）
           playRandomCatchSound();
@@ -191,29 +236,50 @@ function checkLineCollision() {
 
 // 抽出單一魚生成函數
 function createFish() {
-  // 減少紫色魚的比例：90% 黃色，10% 紫色
-  const isGold = Math.random() < 0.9;
-  const color = isGold ? "gold" : "#fcf";
+  // 參考原版：主要是固定權重的魚種與較小的分數級距，不做後期瘋狂加速
+  const roll = Math.random();
+  let color = "gold";
+  let rewardScore = MID_FISH_SCORE;
+  let rewardEnergy = MID_FISH_ENERGY;
+  let fishTier = 'mid';
+  if (roll < 0.18) {
+    color = "#fcf";
+    rewardScore = 0;
+    rewardEnergy = -BAD_FISH_PENALTY;
+    fishTier = 'bad';
+  } else if (roll < 0.55) {
+    rewardScore = SMALL_FISH_SCORE;
+    rewardEnergy = SMALL_FISH_ENERGY;
+    fishTier = 'small';
+  }
   const face = Math.random() < 0.5 ? 'smile' : 'dot';
   // 隨機決定從左還是右進來
   const fromLeft = Math.random() < 0.5;
   const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
   const dir = fromLeft ? 1 : -1;
+  let speed = 1.4 + Math.random() * 1.2;
+  if (fishTier === 'mid') speed = 2 + Math.random() * 1.3;
+  if (fishTier === 'bad') speed = 1.2 + Math.random() * 0.9;
   return {
     x,
     y: Math.random() * 350 + 220,
-    speed: 1 + Math.random() * 2,
+    speed,
     dir,
     caught: false,
     lifting: false,
+    flying: false, // 新增：是否已經進入「飛向碗」動畫階段（脫離線段路徑）
     color,
+    fishTier,
+    rewardScore,
+    rewardEnergy,
     face,
     fadeOut: false, // 新增：漸層消失動畫
     alpha: 1, // 新增：漸層消失動畫
     fadeStep: 0.04, // 新增：漸層消失動畫
     // 新增：動畫相關屬性（僅黃魚）
     animTime: 0, // 動畫時間
-    animSpeed: 4 // 動畫速度（0.25秒切換一次）
+    animSpeed: 4, // 動畫速度（0.25秒切換一次）
+    liftAnimTime: 0 // 新增：被吊起時的動畫時間（0.5秒切換一次）
   };
 }
 // 修改 spawnFish 使用 createFish
@@ -225,7 +291,7 @@ function spawnFish() {
 }
 
 // --- 垃圾相關 ---
-const TRASH_COUNT = 2;
+const TRASH_COUNT = 1;
 let trashes = [];
 // 新增：預載雨鞋圖片
 const bootImg = new Image();
@@ -242,6 +308,11 @@ yellowFishImg2.src = 'img/yellow_fish2.png';
 // 新增：預載黃色魚圖片3
 const yellowFishImg3 = new Image();
 yellowFishImg3.src = 'img/yellow_fish3.png';
+// 新增：預載黃色魚被吊起圖片4、5（吊起動畫，0.5秒切換一張）
+const yellowFishImg4 = new Image();
+yellowFishImg4.src = 'img/yellow_fish4.png';
+const yellowFishImg5 = new Image();
+yellowFishImg5.src = 'img/yellow_fish5.png';
 // 新增：預載紫色魚圖片
 const purpleFishImg = new Image();
 purpleFishImg.src = 'img/purple_fish.png';
@@ -251,6 +322,11 @@ purpleFishImg2.src = 'img/purple_fish2.png';
 // 新增：預載紫色魚圖片3
 const purpleFishImg3 = new Image();
 purpleFishImg3.src = 'img/purple_fish3.png';
+// 新增：預載紫色魚被吊起圖片4、5（吊起動畫，0.2秒切換一張）
+const purpleFishImg4 = new Image();
+purpleFishImg4.src = 'img/purple_fish4.png';
+const purpleFishImg5 = new Image();
+purpleFishImg5.src = 'img/purple_fish5.png';
 // 新增：預載主角貓咪圖片
 const catImg = new Image();
 catImg.src = 'img/cat.png';
@@ -292,7 +368,7 @@ seaCucumberImg2.onload = function() {
 // --- 魷魚/章魚/海參相關 ---
 let specialSeaCreature = null; // 取代 squid
 let specialSeaCreatureTimer = null;
-const SPECIAL_CREATURE_INTERVAL = 3000; // 3秒
+const SPECIAL_CREATURE_INTERVAL = 8000; // 原版節奏比較稀疏，降低特殊目標頻率
 function createSpecialSeaCreature() {
   // 隨機生成魷魚、章魚或海參
   const types = ['squid', 'octopus', 'seacucumber'];
@@ -320,6 +396,7 @@ function createSpecialSeaCreature() {
     dir,
     caught: false,
     lifting: false,
+    flying: false, // 新增：是否已經進入「飛向碗」動畫階段
     flyT: 0,
     fadeOut: false,
     alpha: 1,
@@ -330,7 +407,6 @@ function createSpecialSeaCreature() {
 }
 function spawnSpecialSeaCreature() {
   specialSeaCreature = createSpecialSeaCreature();
-  console.log('生成特殊海洋生物:', specialSeaCreature.type);
 }
 function scheduleSpecialSeaCreature() {
   if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
@@ -361,7 +437,6 @@ function spawnTestSeaCucumber() {
     animTime: 0, // 動畫時間
     animSpeed: 2 // 動畫速度（0.5秒切換一次）
   };
-  console.log('測試：生成海參');
 }
 function drawSpecialSeaCreature(creature) {
   ctx.save();
@@ -415,6 +490,7 @@ function createTrash() {
     type,
     hit: false,
     lifting: false,
+    flying: false, // 新增：是否已經進入「飛向碗」動畫階段
     flyT: 0
   };
 }
@@ -476,14 +552,33 @@ function drawTrash(trash) {
 // --- 修改初始化 ---
 // 在 spawnFish 之後呼叫 spawnTrash
 
+// 新增：魚線起點在角色貼圖上的座標（以貼圖左上角為原點，未翻轉前）
+const LINE_START_IMG_X = 73;
+const LINE_START_IMG_Y = 20;
+
+// 計算魚線起點的世界座標（會隨 playerDir 左右翻轉而反向）
+function getLineStartPoint() {
+  if (catImg.complete && catImg.naturalWidth > 0) {
+    const offsetX = LINE_START_IMG_X - catImg.naturalWidth / 2;
+    const offsetY = LINE_START_IMG_Y - catImg.naturalHeight / 2;
+    return {
+      x: bigFish.x + playerDir * offsetX,
+      y: (bigFish.y - 40) + offsetY
+    };
+  }
+  // 圖片尚未載入時的備用座標
+  return { x: bigFish.x, y: bigFish.y - 10 };
+}
+
 // 初始化釣魚線點
 function initLinePoints() {
   linePoints = [];
   lineVels = [];
+  const start = getLineStartPoint();
   for (let i = 0; i < LINE_POINTS; i++) {
     let t = i / (LINE_POINTS - 1);
-    let x = bigFish.x;
-    let y = bigFish.y - 10 + (hookY - (bigFish.y - 10)) * t;
+    let x = start.x;
+    let y = start.y + (hookY - start.y) * t;
     linePoints.push({ x, y });
     lineVels.push({ x: 0, y: 0 });
   }
@@ -491,25 +586,48 @@ function initLinePoints() {
 
 // 每幀更新魚線物理
 function updateLinePhysics() {
-  // 物理參數
-  const spring = 0.18;
-  const damp = 0.72;
-  // 頂端跟隨大魚
-  linePoints[0].x = bigFish.x;
-  linePoints[0].y = bigFish.y - 10;
+  // 頂端跟隨角色嘴巴座標（會隨 playerDir 左右反向）
+  const lineStart = getLineStartPoint();
+  linePoints[0].x = lineStart.x;
+  linePoints[0].y = lineStart.y;
   // 底端跟隨鉤子
-  linePoints[LINE_POINTS - 1].x = bigFish.x;
+  linePoints[LINE_POINTS - 1].x = hookDrawX;
   linePoints[LINE_POINTS - 1].y = hookY;
-  // 中間點物理模擬
+
+  // 甩竿（拋起）動畫進行中：鉤子瞬間衝到高空再落下，速度非常快，
+  // 用彈簧模擬會讓中間的線點跟不上，導致勾在線中段的東西看起來像脫離了線、沒有被拋起來。
+  // 這種情況下改用「直接內插」讓整條線保持剛性，跟著鉤子一起被往上拋，
+  // 這樣勾在線中段的魚/垃圾也會確實跟著線一起飛起來。
+  if (hookThrowing) {
+    for (let i = 1; i < LINE_POINTS - 1; i++) {
+      let t = i / (LINE_POINTS - 1);
+      const newX = linePoints[0].x + (linePoints[LINE_POINTS - 1].x - linePoints[0].x) * t;
+      const newY = linePoints[0].y + (linePoints[LINE_POINTS - 1].y - linePoints[0].y) * t;
+      // 記錄這一幀的實際位移量（而非直接歸零），甩竿結束的瞬間線才會自然承接原本的動能，
+      // 不會出現「剛性瞬間切回彈簧」造成的銜接抖動
+      lineVels[i].x = newX - linePoints[i].x;
+      lineVels[i].y = newY - linePoints[i].y;
+      linePoints[i].x = newX;
+      linePoints[i].y = newY;
+    }
+    return;
+  }
+
+  // 物理參數：整條線不再用單一彈性係數，改成由竿頭到鉤端漸變，
+  // 靠近竿頭較硬（回彈快、不太晃），靠近鉤端較軟（甩動幅度大），加上重力讓線自然垂墜，
+  // 整體看起來才會像有重量、有鞭梢感的線，而不是均勻軟趴趴的橡皮筋
+  const damp = 0.86;
+  const gravity = 0.35;
   for (let i = 1; i < LINE_POINTS - 1; i++) {
-    // 受上下兩點彈簧力
     let prev = linePoints[i - 1];
     let next = linePoints[i + 1];
     let self = linePoints[i];
+    const segT = i / (LINE_POINTS - 1); // 0 = 竿頭端，1 = 鉤子端
+    const spring = 0.30 - 0.16 * segT; // 竿頭附近較硬，鉤子附近較軟
     let vx = (prev.x + next.x) / 2 - self.x;
     let vy = (prev.y + next.y) / 2 - self.y;
     lineVels[i].x = (lineVels[i].x + vx * spring) * damp;
-    lineVels[i].y = (lineVels[i].y + vy * spring) * damp;
+    lineVels[i].y = (lineVels[i].y + vy * spring + gravity * segT) * damp;
     self.x += lineVels[i].x;
     self.y += lineVels[i].y;
   }
@@ -576,16 +694,17 @@ function drawPlayer() {
   ctx.save();
   ctx.fillStyle = "#bbb";
   ctx.beginPath();
-  // --- 修改：y 改用 bowlY ---
+  // --- 修改：y 改用 bowlY，x 改用 bowlX ---
   let drawPotY = (typeof bowlY === 'number') ? bowlY : pot.y;
-  ctx.ellipse(pot.x + pot.w/2, drawPotY + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
+  let drawPotX = (typeof bowlX === 'number') ? bowlX : pot.x;
+  ctx.ellipse(drawPotX + pot.w/2, drawPotY + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = "#888";
   ctx.lineWidth = 4;
   ctx.stroke();
   // 鍋邊
   ctx.beginPath();
-  ctx.ellipse(pot.x + pot.w/2, drawPotY + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
+  ctx.ellipse(drawPotX + pot.w/2, drawPotY + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
   ctx.fillStyle = "#eee";
   ctx.fill();
   ctx.stroke();
@@ -631,7 +750,7 @@ function drawRod() {
   // 小圓點鉤子
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(bigFish.x, hookY, 6, 0, Math.PI * 2);
+  ctx.arc(hookDrawX, hookY, 6, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -647,18 +766,25 @@ function drawFish(fish) {
     if (fish.alpha < 0) fish.alpha = 0;
   }
   if (fish.color === 'gold') {
-    // 更新動畫時間（僅黃魚）
-    if (!fish.lifting && !fish.caught) {
-      fish.animTime += deltaTime / 1000; // 轉換為秒
-    }
-    
-    // 根據動畫時間決定使用哪張圖片（0.5秒切換一次）
-    const animFrame = Math.floor(fish.animTime * fish.animSpeed) % 3; // 3張圖片循環
     let currentImg;
-    if (animFrame === 0) currentImg = yellowFishImg;
-    else if (animFrame === 1) currentImg = yellowFishImg2;
-    else currentImg = yellowFishImg3;
-    
+    if (fish.lifting || fish.caught) {
+      // 被吊起、以及被吊入碗裡的瞬間都維持這個動畫（yellow_fish4 / yellow_fish5，0.2秒切換一張），不要跳回游泳圖
+      if (typeof fish.liftAnimTime !== 'number') fish.liftAnimTime = 0;
+      fish.liftAnimTime += deltaTime / 1000; // 轉換為秒
+      const liftFrame = Math.floor(fish.liftAnimTime * 5) % 2; // 0.2秒切換一次，2張圖循環
+      currentImg = (liftFrame === 0) ? yellowFishImg4 : yellowFishImg5;
+    } else {
+      // 更新動畫時間（僅黃魚游動時）
+      if (!fish.caught) {
+        fish.animTime += deltaTime / 1000; // 轉換為秒
+      }
+      // 根據動畫時間決定使用哪張圖片（0.25秒切換一次）
+      const animFrame = Math.floor(fish.animTime * fish.animSpeed) % 3; // 3張圖片循環
+      if (animFrame === 0) currentImg = yellowFishImg;
+      else if (animFrame === 1) currentImg = yellowFishImg2;
+      else currentImg = yellowFishImg3;
+    }
+
     // 用黃色魚圖片（原尺寸，置中）
     if (currentImg.complete && currentImg.naturalWidth > 0) {
       ctx.drawImage(
@@ -674,15 +800,23 @@ function drawFish(fish) {
       ctx.fill();
     }
   } else if (fish.color === "#fcf") {
-    // 新增：紫色魚動畫（0.25秒一張，三張循環）
-    if (!fish.lifting && !fish.caught) {
-      fish.animTime += deltaTime / 1000;
-    }
-    const animFrame = Math.floor(fish.animTime * 4) % 3; // 0.25秒一張
     let currentImg;
-    if (animFrame === 0) currentImg = purpleFishImg;
-    else if (animFrame === 1) currentImg = purpleFishImg2;
-    else currentImg = purpleFishImg3;
+    if (fish.lifting || fish.caught) {
+      // 被吊起、以及被吊入碗裡的瞬間都維持這個動畫（purple_fish4 / purple_fish5，0.2秒切換一張），不要跳回游泳圖
+      if (typeof fish.liftAnimTime !== 'number') fish.liftAnimTime = 0;
+      fish.liftAnimTime += deltaTime / 1000; // 轉換為秒
+      const liftFrame = Math.floor(fish.liftAnimTime * 5) % 2; // 0.2秒切換一次，2張圖循環
+      currentImg = (liftFrame === 0) ? purpleFishImg4 : purpleFishImg5;
+    } else {
+      // 新增：紫色魚動畫（0.25秒一張，三張循環）
+      if (!fish.caught) {
+        fish.animTime += deltaTime / 1000;
+      }
+      const animFrame = Math.floor(fish.animTime * 4) % 3; // 0.25秒一張
+      if (animFrame === 0) currentImg = purpleFishImg;
+      else if (animFrame === 1) currentImg = purpleFishImg2;
+      else currentImg = purpleFishImg3;
+    }
     if (currentImg.complete && currentImg.naturalWidth > 0) {
       ctx.drawImage(
         currentImg,
@@ -853,11 +987,20 @@ function gameLoop(currentTime) {
     if (!Array.isArray(fishes)) fishes = [];
     if (!Array.isArray(trashes)) trashes = [];
     
+    if (!gameOver && !bowlSinking) {
+      elapsedGameTime += deltaTime / 1000; // 累計這一局已經進行的時間
+      const passiveDrain = Math.min(
+        PASSIVE_DRAIN_MAX,
+        PASSIVE_DRAIN_BASE + elapsedGameTime * PASSIVE_DRAIN_ACCEL_PER_SEC
+      );
+      timeLeft = Math.max(0, timeLeft - passiveDrain * (deltaTime / 1000));
+    }
+
     updateLinePhysics();
     wavePhase += 0.035 * timeScale; // 波浪推進（根據時間縮放）
     // --- 主角移動速度影響波浪 ---
     let prevX = waveDisturb.x;
-    waveDisturb.x = pot.x + pot.w/2;
+    waveDisturb.x = bowlX + pot.w/2;
     waveDisturb.v = (waveDisturb.x - prevX);
     // 可加一點阻尼讓波動慢慢消失
     waveDisturb.v *= 0.92;
@@ -925,23 +1068,24 @@ function gameLoop(currentTime) {
 
     // 控制魚鉤上下移動（慣性/拉力）
     if (!fishing && !hookThrowing) {
+      const HOOK_ACCEL = 2.6; // 提高：按下上下鍵時的加速度，反應更直接
+      const HOOK_MAX_VEL = 9.5; // 新增：速度上限，避免無限加速造成飄浮感
       if (keyState.up) {
-        hookVelY -= 1.5 * timeScale; // 向上拉
+        hookVelY -= HOOK_ACCEL * timeScale; // 向上拉
       } else if (keyState.down) {
-        hookVelY += 1.5 * timeScale; // 向下拉
+        hookVelY += HOOK_ACCEL * timeScale; // 向下拉
       } else {
-        // 沒有按上下時，緩慢回到中間
+        // 沒有按上下時，回到中間的速度也拉快一些，減少「鬆手後還在飄」的感覺
         let diff = hookDefaultY - hookY;
         if (diff > 0) {
-          // 上浮（鉤子在下方）
-          hookVelY += diff * 0.001 * timeScale; // 上浮速度
+          hookVelY += diff * 0.0022 * timeScale; // 上浮速度
         } else {
-          // 下沉（鉤子在上方）
-          hookVelY += diff * 0.0002 * timeScale; // 下沉更慢
+          hookVelY += diff * 0.0009 * timeScale; // 下沉稍慢，但比原本更緊繃
         }
       }
-      // 阻尼
-      hookVelY *= Math.pow(0.92, timeScale);
+      // 阻尼：放手瞬間更快煞停，操作起來更「跟手」
+      hookVelY *= Math.pow(0.86, timeScale);
+      hookVelY = Math.max(-HOOK_MAX_VEL, Math.min(HOOK_MAX_VEL, hookVelY));
       hookY += hookVelY * timeScale;
       if (hookY < 120) {
         hookY = 120;
@@ -952,25 +1096,44 @@ function gameLoop(currentTime) {
         hookVelY = 0;
       }
     }
-    // --- 鉤子拋物線動畫 ---
+    // --- 鉤子拋物線動畫（甩竿時：先往前拋一點，拋物線飛得很高、繞過貓咪頭頂，再往後甩回定位）---
     if (hookThrowing) {
-      hookThrowT += 0.04 * timeScale; // 動畫進度
+      hookThrowT += 0.038 * timeScale; // 動畫進度加快：拋竿到收回的整體時間縮短，手感更俐落
       if (hookThrowT > 1) hookThrowT = 1;
       let t = hookThrowT;
-      // y 拋物線
-      hookY = hookThrowStartY * (1 - t) + hookThrowEndY * t - 120 * t * (1 - t);
-      // x 可微幅左右偏移（如需鉤子左右動，bigFish.x 也要跟著動，這裡只動 hookY）
-      // bigFish.x = hookThrowStartX * (1 - t) + hookThrowEndX * t;
+      // 讓甩竿動畫的終點即時跟著貓咪目前位置，這樣即使在甩竿過程中左右移動，
+      // 魚鉤（以及被吊起的魚）也會一路跟著貓咪走；並且改成落在角色「背後」
+      // （面向方向的反方向）而不是直接落在角色正上方/頭頂
+      hookThrowEndX = bigFish.x - HOOK_LANDING_BEHIND_OFFSET * playerDir;
+      // Y：使用二次貝茲曲線，讓鉤子先飛出畫面頂端的高空，再落回定位
+      const hookThrowPeakY = -150; // 高空控制點：仍會確實超出水面，但不再誇張到接近垂直的程度，讓弧線比例更接近手繪示意圖
+      hookY = (1 - t) * (1 - t) * hookThrowStartY
+            + 2 * (1 - t) * t * hookThrowPeakY
+            + t * t * hookThrowEndY;
+      // X：使用三次貝茲曲線，讓鉤子（連同魚線）先往前拋出一點，
+      // 繞過頭頂後再往後甩回定位，還原成「拉桿甩竿」的真實弧線動作
+      const hookThrowForward = 180 * playerDir; // 前拋方向依貓咪目前面向決定（數值越大，前拋/往後甩的幅度越大）
+      const p0x = hookThrowStartX;
+      const p1x = hookThrowStartX + hookThrowForward; // 前拋控制點
+      const p2x = hookThrowEndX - hookThrowForward; // 往後甩控制點
+      const p3x = hookThrowEndX;
+      hookDrawX = (1 - t) * (1 - t) * (1 - t) * p0x
+                + 3 * (1 - t) * (1 - t) * t * p1x
+                + 3 * (1 - t) * t * t * p2x
+                + t * t * t * p3x;
       if (hookThrowT === 1) {
         hookThrowing = false;
         fishing = false;
         hookTargetY = hookDefaultY;
       }
+    } else {
+      // 未在甩竿時，鉤子/釣線維持在角色背後垂放，跟甩竿落點一致，不會瞬間跳回正上方
+      hookDrawX = bigFish.x - HOOK_LANDING_BEHIND_OFFSET * playerDir;
     }
 
     // --- 鍋子隨波浪浮動 ---
     if (!bowlSinking) {
-      let bowlTargetY = getWaveY(pot.x + pot.w/2, wavePhase) - pot.h/2;
+      let bowlTargetY = getWaveY(bowlX + pot.w/2, wavePhase) - pot.h/2;
       let spring = 0.18, damp = 0.72;
       if (typeof bowlY !== 'number') bowlY = pot.y;
       // 新增：碗下沉彈跳
@@ -979,6 +1142,16 @@ function gameLoop(currentTime) {
       bowlImpulseY *= 0.85; // 衰減
       bowlY_vel *= damp;
       bowlY += bowlY_vel;
+      // --- 新增：碗慢慢向右移動，到最右邊後再慢慢向左移動，來回反覆 ---
+      if (typeof bowlX !== 'number') bowlX = pot.x;
+      bowlX += bowlXDir * bowlXSpeed * timeScale;
+      if (bowlX > bowlXMax) {
+        bowlX = bowlXMax;
+        bowlXDir = -1;
+      } else if (bowlX < bowlXMin) {
+        bowlX = bowlXMin;
+        bowlXDir = 1;
+      }
     }
     // 畫主角和釣竿
     drawPlayer();
@@ -1008,40 +1181,71 @@ function gameLoop(currentTime) {
       drawTrash(trash);
     }
 
-    // 垃圾被釣起來動畫
+    // 垃圾被釣起來動畫：全程緊貼釣線／鉤子，沒有自己獨立的物理運動
     for (let trash of trashes) {
       if (trash.lifting && !trash.hit) {
-        if (!trash.flyT) trash.flyT = 0;
-        trash.flyT += 0.04 * timeScale;
-        let startX = trash.x, startY = trash.y;
-        let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
-        let endY = pot.y + pot.h/2 - 10;
-        let t = trash.flyT;
-        if (t > 1) t = 1;
-        trash.x = startX * (1-t) + endX * t;
-        trash.y = startY * (1-t) + endY * t - 80*t*(1-t);
-        if (t === 1) {
-          trash.hit = true;
-          trash.lifting = false;
-          trash.flyT = 0;
-          // 新增：垃圾進入碗fadeOut時播放扣秒音效（延遲1秒）
-          penaltySound.currentTime = 0;
-          setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
-          Object.assign(trash, createTrash()); // 先讓垃圾消失
-          // --- 新增：如果 pendingGameOver，這時才正式 gameOver ---
-          if (pendingGameOver) {
-            pendingGameOver = false;
-            timeLeft = 0;
-            displayTimeLeft = 0;
-            gameOver = true;
-            if (countdownTimer) clearTimeout(countdownTimer); // 停止倒數
-            restartBtn.style.display = "block";
-            bowlSinking = true;
-            bowlY = pot.y;
-            bowlSinkTargetY = null;
-            animationId = requestAnimationFrame(gameLoop);
-            return;
+        let isHookCatch = (typeof trash.hookLineIndex !== 'number') || trash.hookLineIndex >= LINE_POINTS - 1;
+        // 每一幀都直接把垃圾的位置設成鉤子或釣線上那一點的當下位置
+        if (isHookCatch) {
+          trash.x = hookDrawX;
+          trash.y = hookY;
+        } else {
+          let idx = trash.hookLineIndex;
+          let tt = typeof trash.hookLineT === 'number' ? trash.hookLineT : 0;
+          let p1 = linePoints[idx];
+          let p2 = linePoints[idx + 1] || p1;
+          trash.x = p1.x + (p2.x - p1.x) * tt;
+          trash.y = p1.y + (p2.y - p1.y) * tt;
+        }
+
+        let waterY = getWaveY(trash.x, wavePhase);
+        let aboveWater = trash.y <= waterY;
+
+        if (aboveWater) {
+          trash.everAboveWater = true;
+          let inPot = trash.x > bowlX && trash.x < bowlX + pot.w &&
+                      trash.y > bowlY && trash.y < bowlY + pot.h;
+          if (inPot) {
+            // 只有真的掉進碗裡才會扣元氣
+            trash.hit = true;
+            // 新增：垃圾進入碗 fadeOut 時播放扣元氣音效（延遲 1 秒）
+            penaltySound.currentTime = 0;
+            setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
+            if (timeLeft > 0 && !gameOver) {
+              timeLeft = Math.max(0, timeLeft - TRASH_PENALTY);
+            }
+            Object.assign(trash, createTrash()); // 先讓垃圾消失（會重設 lifting/everAboveWater）
           }
+          // 還沒對到碗：繼續黏著鉤子/線等待玩家移動貓咪對準
+        } else {
+          if (trash.everAboveWater) {
+            // 曾經被拉出水面過，但沒對準碗、鉤子又沉回海裡：脫鉤沉回海底，之後繼續正常漂浮
+            trash.falling = true;
+            trash.fallT = 0;
+            trash.fallStartY = trash.y;
+            trash.fallEndY = 530 + Math.random() * 40;
+            trash.lifting = false;
+            trash.everAboveWater = false;
+          } else if (!fishing && !hookThrowing) {
+            trash.lifting = false;
+            trash.hookLineIndex = null;
+            trash.hookLineT = 0;
+          }
+        }
+      }
+      // 沒接住的垃圾：沉回海底後繼續往前漂（下沉速度跟漂動速度差不多）
+      if (trash.falling) {
+        let fallSpeed = trash.speed * 0.8;
+        if (trash.y < trash.fallEndY) {
+          trash.y += fallSpeed * timeScale;
+          if (trash.y > trash.fallEndY) trash.y = trash.fallEndY;
+        } else {
+          trash.y -= fallSpeed * timeScale;
+          if (trash.y < trash.fallEndY) trash.y = trash.fallEndY;
+        }
+        if (Math.abs(trash.y - trash.fallEndY) < 1) {
+          trash.y = trash.fallEndY;
+          trash.falling = false;
         }
       }
     }
@@ -1056,52 +1260,86 @@ function gameLoop(currentTime) {
       }
       drawSpecialSeaCreature(specialSeaCreature);
     }
-    // 特殊生物被釣上來動畫
+    // 特殊生物被釣上來動畫：全程緊貼釣線／鉤子，沒有自己獨立的物理運動
     if (specialSeaCreature && specialSeaCreature.lifting && !specialSeaCreature.caught) {
-      if (!specialSeaCreature.flyT) specialSeaCreature.flyT = 0;
-      specialSeaCreature.flyT += 0.04 * timeScale;
-      let startX = specialSeaCreature.x, startY = specialSeaCreature.y;
-      let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
-      let endY = pot.y + pot.h/2 - 10;
-      let t = specialSeaCreature.flyT;
-      if (t > 1) t = 1;
-      specialSeaCreature.x = startX * (1-t) + endX * t;
-      specialSeaCreature.y = startY * (1-t) + endY * t - 80*t*(1-t);
-      if (t === 1) {
-        if (
-          specialSeaCreature.x > pot.x && specialSeaCreature.x < pot.x + pot.w &&
-          specialSeaCreature.y > pot.y && specialSeaCreature.y < pot.y + pot.h
-        ) {
-          if (timeLeft > 0 && !gameOver) {
-            specialSeaCreature.caught = true;
-            // 根據特殊生物類型決定獎勵
-            if (specialSeaCreature.type === 'squid' || specialSeaCreature.type === 'octopus') {
-              score += 200; // 魷魚和章魚加分
-              timeLeft += 20;
-              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-              // playRandomFoodSound(); // 移除這行，改到下方
-            } else if (specialSeaCreature.type === 'seacucumber') {
-              score += 20; // 海參加分
-              timeLeft += 3;
-              if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-              // playRandomFoodSound(); // 移除這行，改到下方
-            }
-            // 進入漸層消失動畫
-            specialSeaCreature.fadeOut = true;
-            specialSeaCreature.alpha = 1;
-            specialSeaCreature.fadeStep = 0.04;
-            // 新增：只有特殊生物進入fadeOut時才播放食物音效
-            if (specialSeaCreature.type === 'squid' || specialSeaCreature.type === 'octopus' || specialSeaCreature.type === 'seacucumber') {
-              playRandomFoodSound();
-            }
-            // 下一隻特殊生物計時
-            scheduleSpecialSeaCreature();
+      let isHookCatch = (typeof specialSeaCreature.hookLineIndex !== 'number') || specialSeaCreature.hookLineIndex >= LINE_POINTS - 1;
+      if (isHookCatch) {
+        specialSeaCreature.x = hookDrawX;
+        specialSeaCreature.y = hookY;
+      } else {
+        let idx = specialSeaCreature.hookLineIndex;
+        let tt = typeof specialSeaCreature.hookLineT === 'number' ? specialSeaCreature.hookLineT : 0;
+        let p1 = linePoints[idx];
+        let p2 = linePoints[idx + 1] || p1;
+        specialSeaCreature.x = p1.x + (p2.x - p1.x) * tt;
+        specialSeaCreature.y = p1.y + (p2.y - p1.y) * tt;
+      }
+
+      let waterY = getWaveY(specialSeaCreature.x, wavePhase);
+      let aboveWater = specialSeaCreature.y <= waterY;
+
+      if (aboveWater) {
+        specialSeaCreature.everAboveWater = true;
+        let inPot = specialSeaCreature.x > bowlX && specialSeaCreature.x < bowlX + pot.w &&
+                    specialSeaCreature.y > bowlY && specialSeaCreature.y < bowlY + pot.h;
+        if (inPot && timeLeft > 0 && !gameOver) {
+          specialSeaCreature.caught = true;
+          // 參考原版的得分量級：以 +10 / +20 為主，不再用超大數值
+          if (specialSeaCreature.type === 'squid') {
+            score += BIG_FISH_SCORE;
+            timeLeft = Math.min(GAME_TIME, timeLeft + BIG_FISH_ENERGY);
+          } else if (specialSeaCreature.type === 'octopus') {
+            score += MID_FISH_SCORE;
+            timeLeft = Math.min(GAME_TIME, timeLeft + MID_FISH_ENERGY);
+          } else if (specialSeaCreature.type === 'seacucumber') {
+            score += SMALL_FISH_SCORE;
+            timeLeft = Math.min(GAME_TIME, timeLeft + SMALL_FISH_ENERGY);
           }
-          specialSeaCreature.lifting = false;
-          specialSeaCreature.flyT = 0;
+          // 進入漸層消失動畫
+          specialSeaCreature.fadeOut = true;
+          specialSeaCreature.alpha = 1;
+          specialSeaCreature.fadeStep = 0.04;
+          // 新增：只有特殊生物進入fadeOut時才播放食物音效
+          if (specialSeaCreature.type === 'squid' || specialSeaCreature.type === 'octopus' || specialSeaCreature.type === 'seacucumber') {
+            playRandomFoodSound();
+          }
+          // 下一隻特殊生物計時
+          scheduleSpecialSeaCreature();
           // 消失
           setTimeout(() => { specialSeaCreature = null; }, 800);
+          specialSeaCreature.lifting = false;
+          specialSeaCreature.everAboveWater = false;
         }
+        // 還沒對到碗：繼續黏著鉤子/線等待玩家移動貓咪對準
+      } else {
+        if (specialSeaCreature.everAboveWater) {
+          // 曾經被拉出水面過，但沒對準碗、鉤子又沉回海裡：脫鉤沉回海底，之後繼續正常游動
+          specialSeaCreature.falling = true;
+          specialSeaCreature.fallT = 0;
+          specialSeaCreature.fallStartY = specialSeaCreature.y;
+          specialSeaCreature.fallEndY = 530 + Math.random() * 40;
+          specialSeaCreature.lifting = false;
+          specialSeaCreature.everAboveWater = false;
+        } else if (!fishing && !hookThrowing) {
+          specialSeaCreature.lifting = false;
+          specialSeaCreature.hookLineIndex = null;
+          specialSeaCreature.hookLineT = 0;
+        }
+      }
+    }
+    // 沒接住的特殊生物：沉回海底後繼續往前游（下沉速度跟游動速度差不多）
+    if (specialSeaCreature && specialSeaCreature.falling) {
+      let fallSpeed = specialSeaCreature.speed * 0.8;
+      if (specialSeaCreature.y < specialSeaCreature.fallEndY) {
+        specialSeaCreature.y += fallSpeed * timeScale;
+        if (specialSeaCreature.y > specialSeaCreature.fallEndY) specialSeaCreature.y = specialSeaCreature.fallEndY;
+      } else {
+        specialSeaCreature.y -= fallSpeed * timeScale;
+        if (specialSeaCreature.y < specialSeaCreature.fallEndY) specialSeaCreature.y = specialSeaCreature.fallEndY;
+      }
+      if (Math.abs(specialSeaCreature.y - specialSeaCreature.fallEndY) < 1) {
+        specialSeaCreature.y = specialSeaCreature.fallEndY;
+        specialSeaCreature.falling = false;
       }
     }
 
@@ -1137,67 +1375,114 @@ function gameLoop(currentTime) {
     ctx.strokeRect(barX, barY, barW, barH);
     ctx.restore();
 
-    // 時間
+    // 元氣值
     ctx.fillStyle = "#06c"; // 藍色
     ctx.font = "24px Arial";
-    ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
+    ctx.fillText("元氣: " + Math.ceil(timeLeft), 620, 40);
 
-    // 魚被釣上來動畫
+    // 魚被釣上來動畫：全程緊貼釣線／鉤子，沒有自己獨立的物理運動
     for (let fish of fishes) {
       if (fish.lifting && !fish.caught) {
-        // 飛行進度
-        if (!fish.flyT) fish.flyT = 0;
-        fish.flyT += 0.04 * timeScale;
-        // 拋物線飛到空中
-        let startX = fish.x, startY = fish.y;
-        let endX = pot.x + pot.w/2 + (Math.random()-0.5)*pot.w*0.4;
-        let endY = pot.y + pot.h/2 - 10;
-        let t = fish.flyT;
-        if (t > 1) t = 1;
-        // 拋物線插值
-        fish.x = startX * (1-t) + endX * t;
-        fish.y = startY * (1-t) + endY * t - 80*t*(1-t); // 拋物線效果
-        // 進入船範圍才加分
-        if (t === 1) {
-          if (
-            fish.x > pot.x && fish.x < pot.x + pot.w &&
-            fish.y > pot.y && fish.y < pot.y + pot.h
-          ) {
-            // 若已經 gameOver 或 timeLeft <= 0，不再加分加時間
-            if (timeLeft > 0 && !gameOver) {
-              fish.caught = true;
-              // 新增：碗下沉衝擊
-              bowlImpulseY = 8; // 下沉
-              // 根據魚的顏色決定分數和時間
-              if (fish.color === "gold") {
-                score += 100;
-                timeLeft += 3;
-                if (timeLeft > GAME_TIME) timeLeft = GAME_TIME;
-                // playRandomFoodSound(); // 移除這行，改到下方
-              } else if (fish.color === "#fcf") {
-                if (timeLeft > 0 && !gameOver) {
-                  timeLeft = Math.max(0, timeLeft - 10);
-                }
-              }
-              // 立刻生成新魚
-              fishes.push(createFish());
-              // 新增：進入漸層消失動畫
-              fish.fadeOut = true;
-              fish.alpha = 1;
-              fish.fadeStep = 0.04;
-              // 新增：紫色魚進入fadeOut時播放扣秒音效（延遲1秒）
-              if (fish.color === "#fcf") {
-                penaltySound.currentTime = 0;
-                setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
-              }
-              // 黃色魚進入fadeOut時才播放食物音效
-              if (fish.color === "gold") {
-                playRandomFoodSound();
-              }
+        // 記錄前一幀的 Y 座標，用來判斷魚這一幀是「往下」還是「往上」經過碗
+        let prevLiftY = (typeof fish.prevLiftY === 'number') ? fish.prevLiftY : fish.y;
+        let isHookCatch = (typeof fish.hookLineIndex !== 'number') || fish.hookLineIndex >= LINE_POINTS - 1;
+        // 每一幀都直接把魚的位置設成鉤子或釣線上那一點的當下位置，
+        // 魚完全黏著線／鉤子移動，不會有自己另外的運動軌跡
+        if (isHookCatch) {
+          fish.x = hookDrawX;
+          fish.y = hookY;
+        } else {
+          let idx = fish.hookLineIndex;
+          let tt = typeof fish.hookLineT === 'number' ? fish.hookLineT : 0;
+          let p1 = linePoints[idx];
+          let p2 = linePoints[idx + 1] || p1;
+          fish.x = p1.x + (p2.x - p1.x) * tt;
+          fish.y = p1.y + (p2.y - p1.y) * tt;
+        }
+
+        let waterY = getWaveY(fish.x, wavePhase);
+        let aboveWater = fish.y <= waterY;
+        // 只有從碗的上方往下經過才算數；從下面往上經過碗不算
+        let movingDownIntoPot = fish.y > prevLiftY + 0.01;
+
+        if (aboveWater) {
+          fish.everAboveWater = true;
+          // 已經被拉出水面：貓咪左右移動時，魚會跟著鉤子/線一起移動，
+          // 只要目前位置剛好對到碗、且是從上往下經過，就算釣到
+          let inPot = fish.x > bowlX && fish.x < bowlX + pot.w &&
+                      fish.y > bowlY && fish.y < bowlY + pot.h &&
+                      movingDownIntoPot;
+          if (inPot && timeLeft > 0 && !gameOver) {
+            fish.caught = true;
+            // 新增：碗下沉衝擊
+            bowlImpulseY = 8; // 下沉
+            // 參考原版：魚類是小幅度累積分數，壞魚只會消耗元氣
+            if (fish.color === "gold") {
+              score += fish.rewardScore;
+              timeLeft = Math.min(GAME_TIME, timeLeft + fish.rewardEnergy);
+            } else if (fish.color === "#fcf") {
+              timeLeft = Math.max(0, timeLeft + fish.rewardEnergy);
             }
+            // 立刻生成新魚
+            fishes.push(createFish());
+            // 新增：進入漸層消失動畫
+            fish.fadeOut = true;
+            fish.alpha = 1;
+            fish.fadeStep = 0.04;
+            // 新增：壞魚進入 fadeOut 時播放扣元氣音效（延遲 1 秒）
+            if (fish.color === "#fcf") {
+              penaltySound.currentTime = 0;
+              setTimeout(() => penaltySound.play(), 1000); // 延遲1秒播放
+            }
+            // 黃色魚進入fadeOut時才播放食物音效
+            if (fish.color === "gold") {
+              playRandomFoodSound();
+            }
+            fish.lifting = false;
+            fish.everAboveWater = false;
+          } else if (inPot) {
+            // 對到碗了，但當下時間已到／遊戲已結束：視為沒接住，沉回海裡
+            fish.falling = true;
+            fish.fallT = 0;
+            fish.fallStartY = fish.y;
+            fish.fallEndY = 530 + Math.random() * 40;
+            fish.lifting = false;
+            fish.everAboveWater = false;
           }
-          fish.lifting = false;
-          fish.flyT = 0;
+          // 還沒對到碗：繼續黏著鉤子/線等待玩家移動貓咪對準
+        } else {
+          // 目前沒有露出水面
+          if (fish.everAboveWater) {
+            // 曾經被拉出水面過，但沒對準碗、鉤子又沉回海裡：脫鉤沉回海底，之後繼續正常游動
+            fish.falling = true;
+            fish.fallT = 0;
+            fish.fallStartY = fish.y;
+            fish.fallEndY = 530 + Math.random() * 40;
+            fish.lifting = false;
+            fish.everAboveWater = false;
+          } else if (!fishing && !hookThrowing) {
+            // 從沒被拉出水面過，玩家已經放開釣竿：脫離釣線，恢復自由游動
+            fish.lifting = false;
+            fish.hookLineIndex = null;
+            fish.hookLineT = 0;
+          }
+        }
+        // 記錄這一幀的 Y 座標，供下一幀判斷方向使用
+        fish.prevLiftY = fish.y;
+      }
+      // 沒接住的魚：沉回海底後繼續往前游（下沉速度跟游動速度差不多）
+      if (fish.falling) {
+        let fallSpeed = fish.speed * 0.8; // 跟游動速度相近，不要太快
+        if (fish.y < fish.fallEndY) {
+          fish.y += fallSpeed * timeScale;
+          if (fish.y > fish.fallEndY) fish.y = fish.fallEndY;
+        } else {
+          fish.y -= fallSpeed * timeScale;
+          if (fish.y < fish.fallEndY) fish.y = fish.fallEndY;
+        }
+        if (Math.abs(fish.y - fish.fallEndY) < 1) {
+          fish.y = fish.fallEndY;
+          fish.falling = false;
         }
       }
     }
@@ -1280,7 +1565,7 @@ function gameLoop(currentTime) {
       ctx.restore();
       ctx.fillStyle = "#06c";
       ctx.font = "24px Arial";
-      ctx.fillText("剩餘時間: " + timeLeft + " 秒", 600, 40);
+      ctx.fillText("元氣: " + Math.ceil(timeLeft), 620, 40);
       ctx.fillStyle = "#fff";
       ctx.font = "48px Arial";
       ctx.fillText("遊戲結束", 300, 300);
@@ -1314,7 +1599,7 @@ function gameLoop(currentTime) {
       bowlY = pot.y;
       bowlSinkTargetY = null;
       animationId = requestAnimationFrame(gameLoop);
-      // --- 新增：時間歸零時直接顯示排行榜（若沒有垃圾動畫）---
+      // --- 新增：元氣歸零時直接顯示排行榜（若沒有垃圾動畫）---
       if (!trashAnimating) {
         setTimeout(() => {
           let arr = addRank(score);
@@ -1350,24 +1635,8 @@ function gameLoop(currentTime) {
   }
 }
 
-// 倒數計時
 function countdown() {
-  if (!gameOver) {
-    timeLeft--;
-    if (timeLeft > 0) {
-      countdownTimer = setTimeout(countdown, 1000);
-    } else {
-      timeLeft = 0;
-      displayTimeLeft = 0; // 修正：同步顯示歸零
-      gameOver = true;
-      restartBtn.style.display = "block";
-      // 啟動碗沉到底動畫
-      bowlSinking = true;
-      bowlY = pot.y;
-      bowlSinkTargetY = null;
-      animationId = requestAnimationFrame(gameLoop);
-    }
-  }
+  // 保留舊函式名稱，避免外部綁定失效；新版改由 gameLoop 連續消耗元氣。
 }
 
 // 釣魚（滑鼠點擊或空白鍵）
@@ -1474,7 +1743,10 @@ restartBtn.addEventListener("click", () => {
   if (countdownTimer) clearTimeout(countdownTimer);
   score = 0;
   timeLeft = GAME_TIME;
+  displayTimeLeft = GAME_TIME;
+  elapsedGameTime = 0; // 重設扣速加速的計時
   gameOver = false;
+  restartBtn.style.display = "none";
   // 重置時間控制變數
   lastTime = 0;
   deltaTime = 0;
@@ -1490,13 +1762,14 @@ scheduleSpecialSeaCreature();
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
   bowlY = pot.y;
+  bowlX = pot.x;
+  bowlXDir = 1;
   bowlSinking = false;
   bowlSinkTargetY = null;
   bowlY_vel = 0;
   bowlImpulseY = 0; // 重置碗下沉衝擊
   pendingGameOver = false; // 重置 pendingGameOver
   animationId = requestAnimationFrame(gameLoop);
-  countdownTimer = setTimeout(countdown, 1000);
 });
 // 新增：遊戲說明按鈕
 const infoBtn = document.getElementById('infoBtn');
@@ -1508,21 +1781,22 @@ infoBtn.addEventListener('click', () => {
   infoModal.style.display = 'flex';
   infoModalText.innerHTML = `
     <ol style="padding-left: 1.2em;">
-      <li>方向鍵移動主角與魚鉤。</li>
-      <li>點擊畫面或按空白鍵釣魚。</li>
-      <li>黃色魚加分加時間，紫色魚只扣時間。</li>
-      <li>勿釣到垃圾，會扣時間。</li>
-      <li>時間歸零遊戲結束，可隨時再玩一次。</li>
+      <li>方向鍵移動，空白鍵或點擊畫面甩竿。</li>
+      <li>現在改成更接近原版的「元氣條」玩法，元氣會持續下降。</li>
+      <li>一般魚給小幅分數與元氣，壞魚和垃圾會扣元氣。</li>
+      <li>元氣歸零就結束，可隨時再玩一次。</li>
     </ol>
     <hr style="margin: 12px 0;">
     <div style="font-size:1.1em;">
-      <b>【詳細分數與時間規則】</b><br>
+      <b>【目前版本規則】</b><br>
       <ul style="padding-left: 1.2em;">
-        <li><b>黃色魚</b><br>分數：+100 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
-        <li><b>紫色魚</b><br>分數：不變<br>時間：-10 秒（但剩餘時間不會低於 0）</li>
-        <li><b>垃圾（罐頭、瓶子）</b><br>分數：不變<br><span style="color:#e11;"><b>時間：-30 秒</b></span>（但剩餘時間不會低於 0）</li>
-        <li><b>魷魚/章魚</b><br>分數：+200 分<br>時間：+20 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
-        <li><b>海參</b><br>分數：+20 分<br>時間：+3 秒（但總時間不會超過遊戲起始時間 85 秒）</li>
+        <li><b>小魚</b><br>分數：+5 分<br>元氣：+4</li>
+        <li><b>中魚</b><br>分數：+10 分<br>元氣：+7</li>
+        <li><b>魷魚</b><br>分數：+20 分<br>元氣：+12</li>
+        <li><b>章魚</b><br>分數：+10 分<br>元氣：+7</li>
+        <li><b>海參</b><br>分數：+5 分<br>元氣：+4</li>
+        <li><b>紫色魚</b><br>分數：不變<br><span style="color:#e11;"><b>元氣：-8</b></span></li>
+        <li><b>垃圾</b><br>分數：不變<br><span style="color:#e11;"><b>元氣：-12</b></span></li>
       </ul>
     </div>
   `;
@@ -1736,12 +2010,13 @@ scheduleSpecialSeaCreature();
 resizeGameCanvas();
 // --- 新增：重設鍋子位置與動畫狀態 ---
 bowlY = pot.y;
+bowlX = pot.x;
+bowlXDir = 1;
 bowlSinking = false;
 bowlSinkTargetY = null;
 bowlY_vel = 0;
 bowlImpulseY = 0; // 重置碗下沉衝擊
 animationId = requestAnimationFrame(gameLoop);
-countdownTimer = setTimeout(countdown, 1000); 
 
 // 新增：拉起釣竿音效
 const rodPullSound = new Audio('sound/Data_1.wav');
@@ -1774,7 +2049,7 @@ function playRandomCatchSound() {
   if (sound) { sound.currentTime = 0; sound.play(); }
 }
 
-// 新增：扣秒物品消失音效
+// 新增：扣元氣物品消失音效
 const penaltySound = new Audio('sound/Data_15.wav');
 // 新增：碗沉到底音效
 const bowlSinkSound = new Audio('sound/Data_16.wav');
