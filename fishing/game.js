@@ -98,6 +98,13 @@ const bowlXMargin = 40;
 const bowlXMin = bowlXMargin;
 const bowlXMax = canvas.width - pot.w - bowlXMargin;
 
+// --- 新增：遊戲結束時，鍋蓋先從上方蓋下來，蓋緊後鍋子才開始下沉 ---
+let lidDropping = false;         // 是否正在播放「鍋蓋往下蓋」的動畫
+let lidDropOffset = 0;           // 鍋蓋目前相對於「蓋緊位置」的垂直偏移，負值代表還在上方、0 代表已完全蓋上
+const LID_DROP_START_OFFSET = -260; // 鍋蓋一開始距離蓋緊位置的高度
+const LID_DROP_SPEED = 9;        // 鍋蓋下落速度（每幀，會乘上 timeScale）
+
+
 // --- 新增：主角移動影響波浪 ---
 let waveDisturb = { x: 0, v: 0, t: 0 };
 
@@ -338,6 +345,14 @@ purpleFishImg5.src = 'img/purple_fish5.png';
 // 新增：預載主角貓咪圖片
 const catImg = new Image();
 catImg.src = 'img/cat.png';
+
+// 新增：預載火鍋（鍋身，開蓋狀態）圖片
+const hotpotImg = new Image();
+hotpotImg.src = 'img/hotpot.png';
+
+// 新增：預載火鍋蓋圖片（遊戲結束時蓋上，與鍋身組合成完整的鍋）
+const hotpotCupImg = new Image();
+hotpotCupImg.src = 'img/hotpot_cup.png';
 
 // 新增：預載魷魚圖片
 const squidImg = new Image();
@@ -719,22 +734,40 @@ function updateLineCollisions() {
 function drawPlayer() {
   // 大鍋
   ctx.save();
-  ctx.fillStyle = "#bbb";
-  ctx.beginPath();
   // --- 修改：y 改用 bowlY，x 改用 bowlX ---
   let drawPotY = (typeof bowlY === 'number') ? bowlY : pot.y;
   let drawPotX = (typeof bowlX === 'number') ? bowlX : pot.x;
-  ctx.ellipse(drawPotX + pot.w/2, drawPotY + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "#888";
-  ctx.lineWidth = 4;
-  ctx.stroke();
-  // 鍋邊
-  ctx.beginPath();
-  ctx.ellipse(drawPotX + pot.w/2, drawPotY + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#eee";
-  ctx.fill();
-  ctx.stroke();
+  if (hotpotImg.complete && hotpotImg.naturalWidth > 0) {
+    // 用 hotpot.png（開蓋鍋身）素材繪製，寬度對齊 pot.w，並依原圖比例縮放高度
+    const potScale = pot.w / hotpotImg.naturalWidth;
+    const potDrawW = pot.w;
+    const potDrawH = hotpotImg.naturalHeight * potScale;
+    ctx.drawImage(hotpotImg, drawPotX, drawPotY, potDrawW, potDrawH);
+    // 遊戲結束時，把 hotpot_cup.png（鍋蓋）疊在鍋身「上面」，組合成完整鍋子的樣子
+    // 偏移量 17 / -40 是依照鍋身與鍋蓋原始素材（201x116 與 167x102）對齊組合圖算出來的比例
+    if (gameOver && hotpotCupImg.complete && hotpotCupImg.naturalWidth > 0) {
+      const lidDrawW = hotpotCupImg.naturalWidth * potScale;
+      const lidDrawH = hotpotCupImg.naturalHeight * potScale;
+      const lidX = drawPotX + 17 * potScale;
+      const lidY = drawPotY - 40 * potScale + lidDropOffset;
+      ctx.drawImage(hotpotCupImg, lidX, lidY, lidDrawW, lidDrawH);
+    }
+  } else {
+    // 圖片尚未載入完成時，顯示原本的向量鍋子作為佔位
+    ctx.fillStyle = "#bbb";
+    ctx.beginPath();
+    ctx.ellipse(drawPotX + pot.w/2, drawPotY + pot.h/2, pot.w/2, pot.h/2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#888";
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    // 鍋邊
+    ctx.beginPath();
+    ctx.ellipse(drawPotX + pot.w/2, drawPotY + 20, pot.w/2, 20, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#eee";
+    ctx.fill();
+    ctx.stroke();
+  }
   ctx.restore();
   // 已移除大魚繪製
   // 主角（貓咪圖片）
@@ -1164,7 +1197,8 @@ function gameLoop(currentTime) {
     }
 
     // --- 鍋子隨波浪浮動 ---
-    if (!bowlSinking) {
+    // 鍋蓋正在蓋下來，或已經開始下沉時，鍋子都要停止移動
+    if (!bowlSinking && !lidDropping) {
       let bowlTargetY = getWaveY(bowlX + pot.w/2, wavePhase) - pot.h/2;
       let spring = 0.18, damp = 0.72;
       if (typeof bowlY !== 'number') bowlY = pot.y;
@@ -1185,6 +1219,20 @@ function gameLoop(currentTime) {
         bowlXDir = 1;
       }
     }
+
+    // --- 新增：鍋蓋往下蓋的動畫，蓋緊後才開始鍋子下沉 ---
+    if (lidDropping) {
+      lidDropOffset += LID_DROP_SPEED * timeScale;
+      if (lidDropOffset >= 0) {
+        lidDropOffset = 0;
+        lidDropping = false;
+        // 鍋蓋蓋緊了，換成鍋子整個往下沉的動畫（從目前所在高度開始沉，而不是跳回原位）
+        bowlSinking = true;
+        bowlSinkTargetY = null;
+        if (typeof bowlY !== 'number') bowlY = pot.y;
+      }
+    }
+
     // 畫主角和釣竿
     drawPlayer();
     drawRod();
@@ -1674,18 +1722,11 @@ function gameLoop(currentTime) {
       gameOver = true;
       displayTimeLeft = 0; // 修正：同步顯示歸零
       restartBtn.style.display = "block";
-      // --- 新增：啟動碗沉到底動畫 ---
-      bowlSinking = true;
-      bowlY = pot.y;
-      bowlSinkTargetY = null;
+      // --- 修改：先播放「鍋蓋蓋下來」的動畫，鍋子先停止移動，蓋緊後才開始下沉 ---
+      lidDropping = true;
+      lidDropOffset = LID_DROP_START_OFFSET;
       animationId = requestAnimationFrame(gameLoop);
-      // --- 新增：元氣歸零時直接顯示排行榜（若沒有垃圾動畫）---
-      if (!trashAnimating) {
-        setTimeout(() => {
-          let arr = addRank(score);
-          showRankModal(score);
-        }, 1200); // 與碗下沉動畫同步
-      }
+      // 排行榜會在下沉動畫真正結束後才顯示（見下方 bowlSinking 動畫結束處）
       return;
     }
     animationId = requestAnimationFrame(gameLoop);
@@ -1848,6 +1889,8 @@ scheduleSpecialSeaCreature();
   bowlSinkTargetY = null;
   bowlY_vel = 0;
   bowlImpulseY = 0; // 重置碗下沉衝擊
+  lidDropping = false; // 重置鍋蓋動畫狀態
+  lidDropOffset = 0;
   pendingGameOver = false; // 重置 pendingGameOver
   animationId = requestAnimationFrame(gameLoop);
 });
@@ -2138,6 +2181,8 @@ bowlSinking = false;
 bowlSinkTargetY = null;
 bowlY_vel = 0;
 bowlImpulseY = 0; // 重置碗下沉衝擊
+lidDropping = false;
+lidDropOffset = 0;
 animationId = requestAnimationFrame(gameLoop);
 
 // 新增：拉起釣竿音效
