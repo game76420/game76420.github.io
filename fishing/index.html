@@ -472,6 +472,56 @@
   padding-bottom: 10px;
   border-bottom: 1px solid #eee;
 }
+.param-group {
+  margin-bottom: 12px;
+  border: 1px solid #e2e2e2;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fbfbfc;
+}
+.param-group[data-kind="line"] {
+  border-color: #bcdcf7;
+}
+.param-group[data-kind="hook"] {
+  border-color: #f7dcae;
+}
+.param-group summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 9px 12px;
+  font-size: 0.88em;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+  color: #fff;
+  background: #4a90e2;
+}
+.param-group[data-kind="hook"] summary {
+  background: #e2984a;
+}
+.param-group summary::-webkit-details-marker {
+  display: none;
+}
+.param-group summary::before {
+  content: '▶';
+  font-size: 0.7em;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.param-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+.param-group summary .param-group-count {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+.param-group-body {
+  padding: 12px 12px 2px 12px;
+}
 .param-row {
   margin-bottom: 14px;
 }
@@ -783,12 +833,35 @@ let LINE_PARAMS = {
   hookXSpring: 0.006,        // 釣線拖動鉤子的彈簧力道（越小，鉤子越不會馬上跟著角色跑）
   hookXDamp: 0.88,           // 鉤子水平速度的阻尼（越小，晃動停得越快，越不容易被快速晃動甩動）
   hookThrowSpeed: 0.022,     // 拉竿甩線動畫的播放速度（這才是真正控制拉起/甩竿快慢的參數）
-  hookPullFrontLeanOffset: 60, // 拉竿一開始「往前（面向方向）」拉出水面的水平距離
-  hookLandingBehindOffset: 18, // 甩竿落地時，鉤子偏移到角色背後的距離
-  hookPullPeakSideOffset: 140, // 迴圈頂點在角色「背後」的水平偏移幅度（越大，繞過角色的感覺越明顯）
-  hookPullOvershoot: 90,     // 迴圈頂點比最終定位高度再高多少（y 更小），確保第二段是明確的「往下甩」
-  hookPullVerticalRatio: 0.6, // 拉竿一開始「幾乎垂直往上拉」的程度（越大，起手拉得越直）
-  hookSettleDownSpeed: 8     // 收竿後鉤子回到定位的下沉速度
+  hookPullFrontLeanOffset: 15, // （新版單段弧線已不使用，保留供舊版相容）
+  hookLandingBehindOffset: 91, // 甩竿落地時，鉤子偏移到角色背後的距離
+  hookPullPeakSideOffset: 170, // （新版單段弧線已不使用，保留供舊版相容）
+  hookPullOvershoot: 260,    // 弧線頂點比起點/終點都再高多少（y 更小），值越大甩竿弧線越高
+  hookPullVerticalRatio: 0.4, // 貝茲控制點落在起點→終點之間的比例（0~1）：決定「往後」的動作在弧線裡分布得多平均，讓上升和往後同時發生
+  hookSettleDownSpeed: 8,    // 收竿後鉤子回到定位的下沉速度
+  lineCollisionDist: 38,     // 魚/垃圾/魷魚判定「碰到釣線本體」的統一距離
+  hookCatchRadiusX: 32,      // 魚/垃圾判定「直接被鉤子勾到」的水平範圍
+  hookCatchRadiusY: 28,      // 魚/垃圾判定「直接被鉤子勾到」的垂直範圍
+  hookCatchRadiusXSpecial: 36, // 特殊海洋生物判定「直接被鉤子勾到」的水平範圍
+  hookCatchRadiusYSpecial: 32, // 特殊海洋生物判定「直接被鉤子勾到」的垂直範圍
+  hookThrowT1: 0.34,         // （新版單段弧線已不使用，保留供舊版相容）
+  hookThrowT2: 0.76,         // （新版單段弧線已不使用，保留供舊版相容）
+  hookSurfaceBreakOffset: 20,// （新版單段弧線已不使用，保留供舊版相容）
+  hookThrowMidCurveRatio: 0.35, // （新版單段弧線已不使用，保留供舊版相容）
+  lineStartImgX: 73,         // 站姿貼圖（catImg）上，線起點的 X 座標（貼圖左上角為原點）
+  lineStartImgY: 20,         // 站姿貼圖（catImg）上，線起點的 Y 座標
+  lineStartImg2X: 58,        // 拉竿姿勢貼圖（catImg2）上，線起點的 X 座標
+  lineStartImg2Y: 2,         // 拉竿姿勢貼圖（catImg2）上，線起點的 Y 座標
+  hookThrowSkyY: 60,         // 甩竿動畫終點的天空高度（Y 座標，越小鉤子甩得越高）
+  lineDrawWidth: 2,          // 釣線繪製的線寬
+  lineDashLength: 6,         // 虛線每一段實線的長度
+  lineDashGap: 8,            // 虛線每一段間隔的長度
+  hookDotRadius: 6,          // 鉤子圓點的繪製半徑
+  throwSagDistRatio: 0.4,    // 甩竿時線的垂度：隨「起點-鉤子距離」增加的比例
+  throwSagBaseOffset: 18,    // 甩竿時線的垂度：固定基底值（避免線很短時垂度看不出來）
+  throwSagMaxDistRatio: 0.65,// 甩竿時線的垂度：相對於線長的上限比例（避免垂度比線本身還長）
+  throwSagGravityBase: 55,   // 甩竿時線的垂度：與重力連動的基底值
+  throwSagGravityMult: 110   // 甩竿時線的垂度：重力參數（lineGravity）對垂度的放大倍率
 };
 // 保留一份原始預設值，供調參面板的「還原預設值」使用
 const LINE_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(LINE_PARAMS));
@@ -813,8 +886,76 @@ const LINE_PARAMS_META = [
   ["鉤-甩竿落地偏移 hookLandingBehindOffset", "hookLandingBehindOffset", 0, 150, 1],
   ["鉤-迴圈頂點背後偏移 hookPullPeakSideOffset", "hookPullPeakSideOffset", 0, 400, 5],
   ["鉤-迴圈頂點超高量 hookPullOvershoot", "hookPullOvershoot", 0, 300, 5],
-  ["鉤-拉竿起手垂直比例 hookPullVerticalRatio", "hookPullVerticalRatio", 0, 1, 0.01],
-  ["鉤-收竿下沉速度 hookSettleDownSpeed", "hookSettleDownSpeed", 1, 30, 1]
+  ["鉤-弧線控制點水平比例 hookPullVerticalRatio", "hookPullVerticalRatio", 0, 1, 0.01],
+  ["鉤-收竿下沉速度 hookSettleDownSpeed", "hookSettleDownSpeed", 1, 30, 1],
+  ["線-碰撞判定距離 lineCollisionDist", "lineCollisionDist", 10, 80, 1],
+  ["鉤-勾中判定範圍X hookCatchRadiusX", "hookCatchRadiusX", 10, 80, 1],
+  ["鉤-勾中判定範圍Y hookCatchRadiusY", "hookCatchRadiusY", 10, 80, 1],
+  ["鉤-勾中判定範圍X(特殊) hookCatchRadiusXSpecial", "hookCatchRadiusXSpecial", 10, 80, 1],
+  ["鉤-勾中判定範圍Y(特殊) hookCatchRadiusYSpecial", "hookCatchRadiusYSpecial", 10, 80, 1],
+  ["鉤-甩竿動畫第一段比例 hookThrowT1", "hookThrowT1", 0.05, 0.9, 0.01],
+  ["鉤-甩竿動畫第二段比例 hookThrowT2", "hookThrowT2", 0.1, 0.95, 0.01],
+  ["鉤-破水面高度緩衝 hookSurfaceBreakOffset", "hookSurfaceBreakOffset", 0, 100, 1],
+  ["鉤-甩竿中段曲線比例 hookThrowMidCurveRatio", "hookThrowMidCurveRatio", 0, 1, 0.01],
+  ["線-起點X(站姿) lineStartImgX", "lineStartImgX", 0, 200, 1],
+  ["線-起點Y(站姿) lineStartImgY", "lineStartImgY", -50, 100, 1],
+  ["線-起點X(拉竿姿勢) lineStartImg2X", "lineStartImg2X", 0, 200, 1],
+  ["線-起點Y(拉竿姿勢) lineStartImg2Y", "lineStartImg2Y", -50, 100, 1],
+  ["鉤-甩竿最高點天空高度 hookThrowSkyY", "hookThrowSkyY", 0, 300, 5],
+  ["線-繪製線寬 lineDrawWidth", "lineDrawWidth", 1, 8, 0.5],
+  ["線-虛線實線長度 lineDashLength", "lineDashLength", 1, 30, 1],
+  ["線-虛線間隔長度 lineDashGap", "lineDashGap", 1, 30, 1],
+  ["鉤-圓點繪製半徑 hookDotRadius", "hookDotRadius", 2, 20, 1],
+  ["線-甩竿垂度(距離比例) throwSagDistRatio", "throwSagDistRatio", 0, 1, 0.01],
+  ["線-甩竿垂度(固定基底) throwSagBaseOffset", "throwSagBaseOffset", 0, 80, 1],
+  ["線-甩竿垂度(線長上限比例) throwSagMaxDistRatio", "throwSagMaxDistRatio", 0, 1, 0.01],
+  ["線-甩竿垂度(重力基底) throwSagGravityBase", "throwSagGravityBase", 0, 150, 1],
+  ["線-甩竿垂度(重力倍率) throwSagGravityMult", "throwSagGravityMult", 0, 300, 5]
+];
+
+// 調參面板分類設定：先分「線」「鉤」兩大類，各大類底下再依功能細分小分類，
+// 面板會依此順序把 LINE_PARAMS_META 的每個參數分組顯示。
+const PARAM_CATEGORIES = [
+  {
+    kind: "line",
+    title: "🧵 線　基本物理",
+    keys: ["lineDamp", "lineGravity", "lineSpringBase", "lineSpringRange", "lineCollisionDist"]
+  },
+  {
+    kind: "hook",
+    title: "🪝 鉤　移動與速度",
+    keys: ["hookAccel", "hookMaxVel", "hookVelDamp", "hookReturnUpRate", "hookReturnDownRate", "hookXSpring", "hookXDamp", "hookSettleDownSpeed"]
+  },
+  {
+    kind: "hook",
+    title: "🪝 鉤　垂直位置範圍",
+    keys: ["hookMinY", "hookMaxY", "hookRestY"]
+  },
+  {
+    kind: "hook",
+    title: "🪝 鉤　拋竿／甩竿動畫",
+    keys: ["hookThrowSpeed", "hookThrowSkyY", "hookThrowT1", "hookThrowT2", "hookThrowMidCurveRatio", "hookPullVerticalRatio", "hookPullFrontLeanOffset", "hookPullPeakSideOffset", "hookPullOvershoot", "hookLandingBehindOffset", "hookSurfaceBreakOffset"]
+  },
+  {
+    kind: "hook",
+    title: "🪝 鉤　勾中判定範圍",
+    keys: ["hookCatchRadiusX", "hookCatchRadiusY", "hookCatchRadiusXSpecial", "hookCatchRadiusYSpecial"]
+  },
+  {
+    kind: "line",
+    title: "🧵 線　起點座標（貼圖像素）",
+    keys: ["lineStartImgX", "lineStartImgY", "lineStartImg2X", "lineStartImg2Y"]
+  },
+  {
+    kind: "line",
+    title: "🧵 線　外觀樣式",
+    keys: ["lineDrawWidth", "lineDashLength", "lineDashGap", "hookDotRadius"]
+  },
+  {
+    kind: "line",
+    title: "🧵 線　甩竿時的垂度弧線",
+    keys: ["throwSagDistRatio", "throwSagBaseOffset", "throwSagMaxDistRatio", "throwSagGravityBase", "throwSagGravityMult"]
+  }
 ];
 
 // 檢查魚線碰撞的函數
@@ -825,7 +966,7 @@ function checkLineCollision() {
   for (let fish of fishes) {
     if (fish.lifting || fish.caught) continue;
     // 先判斷鉤子直接碰到（距離放寬）
-    if (Math.abs(fish.x - bigFish.x) < 32 && Math.abs(fish.y - hookY) < 28) {
+    if (Math.abs(fish.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusX && Math.abs(fish.y - hookY) < LINE_PARAMS.hookCatchRadiusY) {
       fish.lifting = true;
       fish.flying = false;
       fish.flyT = 0;
@@ -849,7 +990,7 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(fish.x - px, fish.y - py);
-      if (dist < COLLISION_DIST) { // 統一判斷距離
+      if (dist < LINE_PARAMS.lineCollisionDist) { // 統一判斷距離
         fish.lifting = true;
         fish.flying = false;
         fish.flyT = 0;
@@ -870,7 +1011,7 @@ function checkLineCollision() {
   // 檢查垃圾碰撞
   for (let trash of trashes) {
     if (trash.lifting || trash.hit) continue;
-    if (Math.abs(trash.x - bigFish.x) < 32 && Math.abs(trash.y - hookY) < 28) {
+    if (Math.abs(trash.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusX && Math.abs(trash.y - hookY) < LINE_PARAMS.hookCatchRadiusY) {
       trash.lifting = true;
       trash.flying = false;
       trash.flyT = 0;
@@ -893,7 +1034,7 @@ function checkLineCollision() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(trash.x - px, trash.y - py);
-      if (dist < COLLISION_DIST) { // 統一判斷距離
+      if (dist < LINE_PARAMS.lineCollisionDist) { // 統一判斷距離
         trash.lifting = true;
         trash.flying = false;
         trash.flyT = 0;
@@ -912,7 +1053,7 @@ function checkLineCollision() {
   // 檢查魷魚碰撞
   if (specialSeaCreature && !specialSeaCreature.lifting && !specialSeaCreature.caught) {
     // 先判斷鉤子直接碰到（距離放寬）
-    if (Math.abs(specialSeaCreature.x - bigFish.x) < 36 && Math.abs(specialSeaCreature.y - hookY) < 32) {
+    if (Math.abs(specialSeaCreature.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusXSpecial && Math.abs(specialSeaCreature.y - hookY) < LINE_PARAMS.hookCatchRadiusYSpecial) {
       specialSeaCreature.lifting = true;
       specialSeaCreature.flying = false;
       specialSeaCreature.flyT = 0;
@@ -934,7 +1075,7 @@ function checkLineCollision() {
         t = Math.max(0, Math.min(1, t));
         let px = x1 + t * dx, py = y1 + t * dy;
         let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
-        if (dist < COLLISION_DIST) { // 統一判斷距離
+        if (dist < LINE_PARAMS.lineCollisionDist) { // 統一判斷距離
           specialSeaCreature.lifting = true;
           specialSeaCreature.flying = false;
           specialSeaCreature.flyT = 0;
@@ -1014,6 +1155,68 @@ function spawnFish() {
   for (let i = 0; i < FISH_COUNT; i++) {
     fishes.push(createFish());
   }
+}
+
+// --- 新增：小黃魚群（週期性大量小魚）相關設定 ---
+const FISH_SCHOOL_INTERVAL = 35000;   // 每隔幾毫秒出現一次小黃魚群（35 秒）
+const FISH_SCHOOL_COUNT = 100;        // 一群總共幾隻
+const FISH_SCHOOL_SIZE_SCALE = 0.25;  // 小黃魚體型＝正常黃魚的四分之一
+let fishSchoolTimer = null;
+
+// 建立小黃魚群裡的一隻魚：固定從左邊或右邊進場（不像一般魚是隨機挑邊），
+// 速度是「大黃魚」（也就是一般黃魚 mid 等級）的兩倍，體型縮小成四分之一。
+function createSchoolFish(fromLeft) {
+  const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
+  const dir = fromLeft ? 1 : -1;
+  // 「大黃魚」＝一般黃魚 mid 等級的速度公式（1.4 ~ 2.31），這裡直接取同樣公式再乘以 2 倍
+  const bigFishSpeed = 1.4 + Math.random() * 0.91;
+  const speed = bigFishSpeed * 2;
+  const baseY = Math.random() * 350 + 220;
+  return {
+    x,
+    y: baseY,
+    baseY,
+    bobPhase: Math.random() * Math.PI * 2,
+    bobSpeed: 0.5 + Math.random() * 0.9,
+    bobAmplitude: 12 + Math.random() * 20,
+    bobTime: 0,
+    speed,
+    dir,
+    caught: false,
+    lifting: false,
+    flying: false,
+    color: "gold",           // 沿用一般黃魚的圖片與動畫
+    fishTier: "school",      // 獨立的等級標籤，不影響原本 small/mid/bad 的判斷
+    rewardScore: SMALL_FISH_SCORE,
+    rewardEnergy: SMALL_FISH_ENERGY,
+    face: Math.random() < 0.5 ? 'smile' : 'dot',
+    fadeOut: false,
+    alpha: 1,
+    fadeElapsed: 0,
+    animTime: 0,
+    animSpeed: 4,
+    liftAnimTime: 0,
+    sizeScale: FISH_SCHOOL_SIZE_SCALE // 繪製時的縮放比例；一般魚沒有這個屬性時預設當作 1
+  };
+}
+
+// 產生一整群小黃魚：前一半從左邊出現、後一半從右邊出現
+function spawnFishSchool() {
+  const half = Math.floor(FISH_SCHOOL_COUNT / 2);
+  for (let i = 0; i < FISH_SCHOOL_COUNT; i++) {
+    fishes.push(createSchoolFish(i < half));
+  }
+}
+
+// 排程：每隔 FISH_SCHOOL_INTERVAL 觸發一次小黃魚群（遊戲結束/碗下沉/面板開啟時暫停觸發，但排程本身照常繼續倒數）
+function scheduleFishSchool() {
+  if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
+  fishSchoolTimer = setTimeout(() => {
+    if (!gameOver && !bowlSinking && !paramPanelOpen) {
+      spawnFishSchool();
+    }
+    scheduleFishSchool();
+  }, FISH_SCHOOL_INTERVAL);
 }
 
 // --- 垃圾相關 ---
@@ -1316,12 +1519,7 @@ function drawTrash(trash) {
 // 在 spawnFish 之後呼叫 spawnTrash
 
 // 新增：魚線起點在角色貼圖上的座標（以貼圖左上角為原點，未翻轉前）
-const LINE_START_IMG_X = 73;
-const LINE_START_IMG_Y = 20;
-// 新增：拉竿姿勢（cat2.png）的魚線起點座標——這個姿勢手臂舉高、釣竿尖端在貼圖右上角接近頂端，
-// 量測自 cat2.png 實際貼圖像素（竿尖大約在 x=58, y=0~2 一帶），跟站姿的座標不同
-const LINE_START_IMG2_X = 58;
-const LINE_START_IMG2_Y = 2;
+// 這幾個座標已經移到 LINE_PARAMS（lineStartImgX/Y、lineStartImg2X/Y），可在調參面板即時調整
 
 // 判斷目前是否要用「拉竿姿勢」貼圖：按下釣魚鍵、鉤子正在往上甩／已經釣到東西收線時都算
 function isPullingPose() {
@@ -1333,8 +1531,8 @@ function getLineStartPoint() {
   const pulling = isPullingPose();
   const activeImg = (pulling && catImg2.complete && catImg2.naturalWidth > 0) ? catImg2 : catImg;
   if (activeImg.complete && activeImg.naturalWidth > 0) {
-    const imgX = (activeImg === catImg2) ? LINE_START_IMG2_X : LINE_START_IMG_X;
-    const imgY = (activeImg === catImg2) ? LINE_START_IMG2_Y : LINE_START_IMG_Y;
+    const imgX = (activeImg === catImg2) ? LINE_PARAMS.lineStartImg2X : LINE_PARAMS.lineStartImgX;
+    const imgY = (activeImg === catImg2) ? LINE_PARAMS.lineStartImg2Y : LINE_PARAMS.lineStartImgY;
     const offsetX = imgX - activeImg.naturalWidth / 2;
     const offsetY = imgY - activeImg.naturalHeight / 2;
     return {
@@ -1372,13 +1570,32 @@ function updateLinePhysics() {
 
   // 甩竿（拋起）動畫進行中：鉤子瞬間衝到高空再落下，速度非常快，
   // 用彈簧模擬會讓中間的線點跟不上，導致勾在線中段的東西看起來像脫離了線、沒有被拋起來。
-  // 這種情況下改用「直接內插」讓整條線保持剛性，跟著鉤子一起被往上拋，
-  // 這樣勾在線中段的魚/垃圾也會確實跟著線一起飛起來。
+  // 這種情況下改用「每幀直接依起點/鉤子位置計算」讓整條線保持剛性、不會有延遲，
+  // 但不要單純直線內插（那樣看起來像鐵絲很不自然），而是疊加一段弧形垂度，
+  // 讓線的中段隨著重力參數自然下垂彎曲，兩端仍準確貼齊竿頭與鉤子。
   if (hookThrowing) {
+    const startPt = linePoints[0];
+    const endPt = linePoints[LINE_POINTS - 1];
+    const dx = endPt.x - startPt.x;
+    const dy = endPt.y - startPt.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    // 垂度幅度跟目前線長、以及「線-重力」參數連動：線越長、重力設定越大，弧度越明顯；
+    // 另外加上一個固定基底值，這樣即使線長較短（例如剛拉起的瞬間）弧度也不會小到看不出來；
+    // 同時用「線長的比例」再夾一次上限，避免線很短時垂度比線本身還長，變成怪異的迴圈形狀
+    const sagAmount = Math.min(
+      dist * LINE_PARAMS.throwSagDistRatio + LINE_PARAMS.throwSagBaseOffset,
+      dist * LINE_PARAMS.throwSagMaxDistRatio,
+      LINE_PARAMS.throwSagGravityBase + LINE_PARAMS.lineGravity * LINE_PARAMS.throwSagGravityMult
+    );
     for (let i = 1; i < LINE_POINTS - 1; i++) {
       let t = i / (LINE_POINTS - 1);
-      const newX = linePoints[0].x + (linePoints[LINE_POINTS - 1].x - linePoints[0].x) * t;
-      const newY = linePoints[0].y + (linePoints[LINE_POINTS - 1].y - linePoints[0].y) * t;
+      const baseX = startPt.x + dx * t;
+      const baseY = startPt.y + dy * t;
+      // sin 曲線：兩端偏移為 0（貼齊起點/鉤子），中間偏移最大；
+      // 拋起動畫時要讓中段往上拱，所以這裡要從 baseY 減掉偏移量，而不是往下加
+      const sag = Math.sin(Math.PI * t) * sagAmount;
+      const newX = baseX;
+      const newY = baseY - sag;
       // 記錄這一幀的實際位移量（而非直接歸零），甩竿結束的瞬間線才會自然承接原本的動能，
       // 不會出現「剛性瞬間切回彈簧」造成的銜接抖動
       lineVels[i].x = newX - linePoints[i].x;
@@ -1424,7 +1641,7 @@ function updateLineCollisions() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(fish.x - px, fish.y - py);
-      if (dist < COLLISION_DIST) {
+      if (dist < LINE_PARAMS.lineCollisionDist) {
         lineCollisions[i] = true;
       }
     }
@@ -1441,7 +1658,7 @@ function updateLineCollisions() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(trash.x - px, trash.y - py);
-      if (dist < COLLISION_DIST) {
+      if (dist < LINE_PARAMS.lineCollisionDist) {
         lineCollisions[i] = true;
       }
     }
@@ -1457,7 +1674,7 @@ function updateLineCollisions() {
       t = Math.max(0, Math.min(1, t));
       let px = x1 + t * dx, py = y1 + t * dy;
       let dist = Math.hypot(specialSeaCreature.x - px, specialSeaCreature.y - py);
-      if (dist < COLLISION_DIST) {
+      if (dist < LINE_PARAMS.lineCollisionDist) {
         lineCollisions[i] = true;
       }
     }
@@ -1534,8 +1751,8 @@ function drawRod() {
   for (let i = 0; i < linePoints.length - 1; i++) {
     ctx.save();
     ctx.strokeStyle = (lineCollisions[i]) ? '#f00' : '#fff';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 8]);
+    ctx.lineWidth = LINE_PARAMS.lineDrawWidth;
+    ctx.setLineDash([LINE_PARAMS.lineDashLength, LINE_PARAMS.lineDashGap]);
     ctx.beginPath();
     ctx.moveTo(linePoints[i].x, linePoints[i].y);
     ctx.lineTo(linePoints[i+1].x, linePoints[i+1].y);
@@ -1546,7 +1763,7 @@ function drawRod() {
   // 小圓點鉤子
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(hookDrawX, hookY, 6, 0, Math.PI * 2);
+  ctx.arc(hookDrawX, hookY, LINE_PARAMS.hookDotRadius, 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -1554,7 +1771,9 @@ function drawRod() {
 function drawFish(fish) {
   ctx.save();
   ctx.translate(fish.x, fish.y);
-  ctx.scale(fish.dir, 1);
+  // 體型縮放比例：一般魚沒有 sizeScale 屬性時預設為 1（不影響原本大小）
+  const sizeScale = (typeof fish.sizeScale === 'number') ? fish.sizeScale : 1;
+  ctx.scale(fish.dir * sizeScale, sizeScale);
   // 新增：漸層消失（先完全顯示一段時間讓玩家看清楚，再花時間慢慢淡出）
   if (fish.fadeOut) {
     fish.fadeElapsed = (fish.fadeElapsed || 0) + deltaTime;
@@ -1900,56 +2119,37 @@ function gameLoop(currentTime) {
         hookVelY = 0;
       }
     }
-    // --- 鉤子拉竿動畫（拉起釣竿時：先「往前、往上」拉，破水面之後再「往後」甩，
-    // 在角色「背後」高處繞一個彎，最後再往下甩回定位，形成一個明顯的勾狀迴圈）---
-    // 用三段二次貝茲曲線串接（而不是單一條曲線疊加 X/Y），原因是：
-    // 單一條曲線很難同時做出「先往前」再「往後甩」這種變換方向的動作，
-    // 拆成「往前破水面」「破水面往後甩到頂點」「頂點甩下到定位」三段，
-    // 每一段的轉折點都是曲線真正會經過的點（而不是永遠碰不到的貝茲控制點），
-    // 這樣才能穩定做出「先前後再往上、再往後拋」的明顯效果。
+    // --- 鉤子拉竿動畫 ---
+    // 改成單一段連續弧線（一條二次貝茲曲線），從水下拋竿位置直接拉到角色背後：
+    // 全程「往上」跟「往後」同時、連續地發生，不再分成「先直直往上衝到頂、
+    // 到頂點才轉往後甩」兩段式的動作，看起來更像一次自然、一氣呵成的甩竿。
+    // 這樣同時也讓釣線在拉竿過程中的形狀更單純（不再有繞過頭頂的迴圈），
+    // 掛在線上的魚／垃圾在拉竿途中才不會因為線的形狀突然大轉彎而看起來像脫離了線。
     if (hookThrowing) {
       hookThrowT += LINE_PARAMS.hookThrowSpeed * timeScale; // 動畫進度速度
       if (hookThrowT > 1) hookThrowT = 1;
       let t = hookThrowT;
-      // 讓終點即時跟著貓咪目前位置，這樣即使在拉竿過程中左右移動，
-      // 魚鉤（以及被吊起的魚）也會一路跟著貓咪走；並且落在角色「背後」
-      // （面向方向的反方向）而不是直接落在角色正上方/頭頂
-      hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir;
-      // 迴圈頂點：水平上位在角色「背後」（面向的反方向）一段距離，
-      // 垂直上要比最終定位高度更高（y 更小），這樣最後一段才會是明確的「往下甩」；
-      // 同時把頂點限制在畫面可見範圍內（不能是負值），避免甩到畫面外看不到。
-      const peakX = bigFish.x - LINE_PARAMS.hookPullPeakSideOffset * playerDir;
-      const peakY = hookThrowEndY - LINE_PARAMS.hookPullOvershoot;
-      // 破水面的中繼點：鉤子先往「面向方向」（前方）拉一小段，且高度落在水面附近，
-      // 讓玩家先看到「往前往上拉」的動作，之後才開始往後甩向頂點
-      const surfaceY = Math.max(Math.min(getWaveY(hookThrowStartX, wavePhase), hookThrowStartY - 20), peakY + 20);
-      const frontX = hookThrowStartX + LINE_PARAMS.hookPullFrontLeanOffset * playerDir;
+      // 注意：拋竿終點（hookThrowEndX）只在「甩竿開始的那一刻」決定一次（見下方各處觸發甩竿的程式碼），
+      // 這裡不再每一幀都重新讀取貓咪目前位置去즉時追蹤終點——
+      // 因為左右移動只應該控制貓咪本身，鉤子在空中飛的軌跡應該是甩竿當下就決定好的固定弧線，
+      // 不會因為甩竿途中玩家按了左右鍵就被直接拉著跑；甩竿結束落地後，
+      // 鉤子才會恢復成「靠釣線彈簧拉力被拖著走」的模式（見下方 else 分支）。
 
-      const T1 = 0.28; // 破水面前（往前往上拉）所佔的動畫比例
-      const T2 = 0.62; // 到達迴圈頂點所佔的動畫比例
+      // 弧線頂點：比起點、終點都再高一些（y 更小），高度由 hookPullOvershoot 控制
+      // 弧線頂點高度完全由 hookPullOvershoot 決定，不設上限——
+      // 甩得越用力（數值越大）鉤子就飛得越高，可以飛出畫面上緣，
+      // 不會被夾在畫面頂端附近、變成每次都「撞到頂就掉下來」的固定高度
+      const peakY = Math.min(hookThrowStartY, hookThrowEndY) - LINE_PARAMS.hookPullOvershoot;
+      // 控制點的水平位置決定「往後」的動作在整段弧線裡分布得多平均：
+      // 用 hookPullVerticalRatio 當作 0~1 的比例，放在起點與終點之間，
+      // 讓水平方向（往後）跟垂直方向（往上再落下）用同一條曲線、同一個時間軸一起變化，
+      // 不會出現「先跑完上升、才開始往後」的分段感。
+      const ctrlX = hookThrowStartX + (hookThrowEndX - hookThrowStartX) * LINE_PARAMS.hookPullVerticalRatio;
+      const ctrlY = peakY;
 
-      if (t <= T1) {
-        // 第一段：勾到東西的位置 → 破水面中繼點（往前、往上拉，幾乎垂直帶一點前傾）
-        const u = t / T1, mu = 1 - u;
-        const c1x = hookThrowStartX; // 控制點在起點正上方，讓一開始的拉動幾乎垂直
-        const c1y = hookThrowStartY + (surfaceY - hookThrowStartY) * LINE_PARAMS.hookPullVerticalRatio;
-        hookDrawX = mu*mu * hookThrowStartX + 2*mu*u * c1x + u*u * frontX;
-        hookY     = mu*mu * hookThrowStartY + 2*mu*u * c1y + u*u * surfaceY;
-      } else if (t <= T2) {
-        // 第二段：破水面中繼點 → 迴圈頂點（延續往前的動能後，轉向往「背後」甩上去）
-        const u = (t - T1) / (T2 - T1), mu = 1 - u;
-        const c2x = frontX; // 控制點延續前一段的水平動能
-        const c2y = surfaceY - (surfaceY - peakY) * 0.35;
-        hookDrawX = mu*mu * frontX + 2*mu*u * c2x + u*u * peakX;
-        hookY     = mu*mu * surfaceY + 2*mu*u * c2y + u*u * peakY;
-      } else {
-        // 第三段：迴圈頂點 → 最終定位（先延續甩出去的橫向動能，再往下彎回終點）
-        const u = (t - T2) / (1 - T2), mu = 1 - u;
-        const c3x = hookThrowEndX; // 控制點在終點正上方（頂點高度），讓最後收尾的動作是「往下蓋」
-        const c3y = peakY;
-        hookDrawX = mu*mu * peakX + 2*mu*u * c3x + u*u * hookThrowEndX;
-        hookY     = mu*mu * peakY + 2*mu*u * c3y + u*u * hookThrowEndY;
-      }
+      const u = t, mu = 1 - u;
+      hookDrawX = mu*mu * hookThrowStartX + 2*mu*u * ctrlX + u*u * hookThrowEndX;
+      hookY     = mu*mu * hookThrowStartY + 2*mu*u * ctrlY + u*u * hookThrowEndY;
 
       if (hookThrowT === 1) {
         hookThrowing = false;
@@ -2021,8 +2221,15 @@ function gameLoop(currentTime) {
           fish.bobTime = (fish.bobTime || 0) + deltaTime / 1000;
           fish.y = fish.baseY + Math.sin(fish.bobTime * fish.bobSpeed + fish.bobPhase) * fish.bobAmplitude;
         }
-        // 如果游出畫面，重新生成一條新魚（根據 canvas.width 動態判斷）
+        // 如果游出畫面：
+        // - 一般魚：直接原地重生成一條新魚（維持畫面上魚的總數固定）
+        // - 小黃魚群的魚：游出畫面就直接消失、不再補新的，
+        //   這樣一群魚游完之後就會恢復成只有一般魚，並乾淨地等待下一次 35 秒倒數
         if ((fish.dir === 1 && fish.x > canvas.width + 40) || (fish.dir === -1 && fish.x < -40)) {
+          if (fish.fishTier === 'school') {
+            fish.removeMe = true;
+            continue; // 不畫也不補新魚，直接跳過
+          }
           Object.assign(fish, createFish());
         }
       } else if (fish.fadeOut) {
@@ -2031,6 +2238,10 @@ function gameLoop(currentTime) {
         fish.y = bowlY + (fish.caughtOffsetY || 0);
       }
       drawFish(fish);
+    }
+    // 把游出畫面的小黃魚群成員從陣列中移除，避免牠們一直留在 fishes 裡佔用數量
+    if (fishes.some(f => f.removeMe)) {
+      fishes = fishes.filter(f => !f.removeMe);
     }
 
     // 畫垃圾
@@ -2337,8 +2548,11 @@ function gameLoop(currentTime) {
             } else if (fish.color === "#fcf") {
               timeLeft = Math.max(0, timeLeft + fish.rewardEnergy);
             }
-            // 立刻生成新魚
-            fishes.push(createFish());
+            // 立刻生成新魚（小黃魚群的魚被釣到後不補新魚，牠們只在魚群批次裡出現，
+            // 釣完/游完就消失，等下一次 35 秒倒數才會有下一批）
+            if (fish.fishTier !== 'school') {
+              fishes.push(createFish());
+            }
             // 新增：進入漸層消失動畫
             fish.fadeOut = true;
             fish.alpha = 1;
@@ -2547,9 +2761,9 @@ canvas.addEventListener("mousedown", () => {
     hookThrowing = true;
     hookThrowT = 0;
     hookThrowStartY = hookY;
-    hookThrowEndY = 60; // 天空高度
+    hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
     hookThrowStartX = bigFish.x;
-    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir; // 甩竿當下就決定落點（角色背後），之後不再跟著角色即時移動
     // 播放拉竿音效
     if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
@@ -2563,9 +2777,9 @@ document.addEventListener("keydown", (e) => {
     hookThrowing = true;
     hookThrowT = 0;
     hookThrowStartY = hookY;
-    hookThrowEndY = 60; // 天空高度
+    hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
     hookThrowStartX = bigFish.x;
-    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir; // 甩竿當下就決定落點（角色背後），之後不再跟著角色即時移動
     // 播放拉竿音效
     if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
@@ -2586,9 +2800,9 @@ window.addEventListener('keydown', (e) => {
     hookThrowing = true;
     hookThrowT = 0;
     hookThrowStartY = hookY;
-    hookThrowEndY = 60; // 天空高度
+    hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
     hookThrowStartX = bigFish.x;
-    hookThrowEndX = bigFish.x + 120 * (Math.random() - 0.5); // 可微幅左右偏移
+    hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir; // 甩竿當下就決定落點（角色背後），之後不再跟著角色即時移動
     // 播放拉竿音效
     if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
   }
@@ -2659,6 +2873,8 @@ restartBtn.addEventListener("click", () => {
   specialSeaCreature = null;
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
+if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
+scheduleFishSchool();
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
   bowlY = pot.y;
@@ -2906,9 +3122,9 @@ window.addEventListener('keydown', function(e) {
         hookThrowing = true;
         hookThrowT = 0;
         hookThrowStartY = hookY;
-        hookThrowEndY = 60; // 改為 60
+        hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
         hookThrowStartX = bigFish.x;
-        hookThrowEndX = bigFish.x;
+        hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir; // 甩竿當下就決定落點，之後不再跟著角色即時移動
         if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
       }
       if (e) {
@@ -2927,9 +3143,9 @@ window.addEventListener('keydown', function(e) {
       hookThrowing = true;
       hookThrowT = 0;
       hookThrowStartY = hookY;
-      hookThrowEndY = 60;
+      hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
       hookThrowStartX = bigFish.x;
-      hookThrowEndX = bigFish.x;
+      hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * playerDir; // 甩竿當下就決定落點，之後不再跟著角色即時移動
       if (rodPullSound) { rodPullSound.currentTime = 0; rodPullSound.play(); }
     }
     if (e) e.preventDefault();
@@ -2948,7 +3164,14 @@ window.addEventListener('keydown', function(e) {
     const container = document.getElementById('paramSliders');
     if (!container) return;
     container.innerHTML = '';
+
+    // 先把 meta 依 key 建立索引，方便依分類查找
+    const metaByKey = {};
     LINE_PARAMS_META.forEach(function(meta) {
+      metaByKey[meta[1]] = meta;
+    });
+
+    function buildRow(meta) {
       const label = meta[0], key = meta[1], min = meta[2], max = meta[3], step = meta[4];
 
       const row = document.createElement('div');
@@ -2958,7 +3181,10 @@ window.addEventListener('keydown', function(e) {
       top.className = 'param-row-top';
 
       const labelEl = document.createElement('label');
-      labelEl.textContent = label;
+      // 只顯示分類前綴之後的說明文字（避免每一列都重複「線-」「鉤-」字樣）
+      const shortLabel = label.replace(/^(線|鉤)-/, '');
+      labelEl.textContent = shortLabel;
+      labelEl.title = label;
       labelEl.htmlFor = 'param-range-' + key;
 
       const num = document.createElement('input');
@@ -2991,12 +3217,71 @@ window.addEventListener('keydown', function(e) {
       }
 
       range.addEventListener('input', function() { updateValue(range.value); });
-      num.addEventListener('change', function() { updateValue(num.value); });
+      // 拖曳中維持焦點（不影響拖動手感），但一放開就立刻失焦，
+      // 讓鍵盤事件（方向鍵、空白鍵等）可以馬上回到遊戲操作，不會被滑桿吃掉
+      range.addEventListener('change', function() { range.blur(); });
+      range.addEventListener('mouseup', function() { range.blur(); });
+      range.addEventListener('touchend', function() { range.blur(); });
+      num.addEventListener('change', function() { updateValue(num.value); num.blur(); });
 
       row.appendChild(top);
       row.appendChild(range);
-      container.appendChild(row);
+      return row;
+    }
+
+    // 依分類產生可折疊區塊；每個分類都是一個 <details>，標題點一下可展開/收合
+    PARAM_CATEGORIES.forEach(function(cat) {
+      const details = document.createElement('details');
+      details.className = 'param-group';
+      details.dataset.kind = cat.kind;
+      details.open = true;
+
+      const summary = document.createElement('summary');
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = cat.title;
+      const countSpan = document.createElement('span');
+      countSpan.className = 'param-group-count';
+      countSpan.textContent = cat.keys.length + ' 項';
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+
+      const body = document.createElement('div');
+      body.className = 'param-group-body';
+
+      cat.keys.forEach(function(key) {
+        const meta = metaByKey[key];
+        if (!meta) return; // 保護：分類設定裡若打錯 key 就跳過，不讓面板整個壞掉
+        body.appendChild(buildRow(meta));
+      });
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
     });
+
+    // 保護：如果有參數忘了放進 PARAM_CATEGORIES，仍會列在最後的「其他」分類，避免遺漏
+    const categorizedKeys = new Set(PARAM_CATEGORIES.reduce(function(acc, c) { return acc.concat(c.keys); }, []));
+    const leftover = LINE_PARAMS_META.filter(function(meta) { return !categorizedKeys.has(meta[1]); });
+    if (leftover.length) {
+      const details = document.createElement('details');
+      details.className = 'param-group';
+      details.dataset.kind = 'other';
+      details.open = true;
+      const summary = document.createElement('summary');
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = '⚙️ 其他';
+      const countSpan = document.createElement('span');
+      countSpan.className = 'param-group-count';
+      countSpan.textContent = leftover.length + ' 項';
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+      const body = document.createElement('div');
+      body.className = 'param-group-body';
+      leftover.forEach(function(meta) { body.appendChild(buildRow(meta)); });
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
   }
 
   function refreshParamPanelValues() {
@@ -3030,12 +3315,14 @@ window.addEventListener('keydown', function(e) {
       paramPanel.style.display = willShow ? 'flex' : 'none';
       paramPanelOpen = willShow;
       if (willShow) refreshParamPanelValues();
+      paramPanelBtn.blur();
     });
   }
   if (closeParamPanel && paramPanel) {
     closeParamPanel.addEventListener('click', function() {
       paramPanel.style.display = 'none';
       paramPanelOpen = false;
+      closeParamPanel.blur();
     });
   }
   if (copyParamsBtn && paramTextArea) {
@@ -3057,6 +3344,8 @@ window.addEventListener('keydown', function(e) {
         } catch (e) { /* 忽略 */ }
       }
       showStatus(copied ? '已複製到剪貼簿！可以貼到別的地方保存。' : '已顯示在下方文字框，請手動全選複製。');
+      copyParamsBtn.blur();
+      paramTextArea.blur();
     });
   }
   if (applyParamsBtn && paramTextArea) {
@@ -3073,6 +3362,8 @@ window.addEventListener('keydown', function(e) {
       } catch (e) {
         showStatus('格式錯誤，請確認貼上的是完整的參數 JSON。', 3000);
       }
+      applyParamsBtn.blur();
+      paramTextArea.blur();
     });
   }
   if (resetParamsBtn) {
@@ -3080,6 +3371,7 @@ window.addEventListener('keydown', function(e) {
       Object.assign(LINE_PARAMS, JSON.parse(JSON.stringify(LINE_PARAMS_DEFAULTS)));
       refreshParamPanelValues();
       showStatus('已還原成預設值。');
+      resetParamsBtn.blur();
     });
   }
 
@@ -3099,6 +3391,8 @@ initLinePoints();
 specialSeaCreature = null;
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
+if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
+scheduleFishSchool();
 resizeGameCanvas();
 // --- 新增：重設鍋子位置與動畫狀態 ---
 bowlY = pot.y;
