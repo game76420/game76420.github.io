@@ -850,7 +850,7 @@ let LINE_PARAMS = {
   hookRestY: 380,            // 鉤子沒有操作時，靜止回到的預設高度（Y 座標，越小鉤子平時越靠上）
   hookXSpring: 0.0005,       // 釣線拖動鉤子的彈簧力道（越小，鉤子越不會馬上跟著角色跑）
   hookXDamp: 0.93,           // 鉤子水平速度的阻尼（越小，晃動停得越快，越不容易被快速晃動甩動）
-  hookLandingBehindOffset: 39, // 甩竿落地時，鉤子偏移到角色背後的距離
+  hookLandingBehindOffset: 11, // 甩竿落地時，鉤子偏移到角色背後的距離
   hookLoopHeight: 55,        // 迴圈甩竿動畫：迴圈中心點比起點/終點連線再往上偏移多少，值越大迴圈鼓起得越高
   hookLoopTurns: 0,          // 迴圈甩竿動畫：從起點繞到終點的途中，額外多繞幾整圈（1＝多繞一圈）
   hookLoopDirection: -1,     // 迴圈甩竿動畫：繞圈方向，1＝順時針、-1＝逆時針
@@ -884,7 +884,7 @@ let LINE_PARAMS = {
   hookSinkVelXDamp: 0.85,    // 新增：鉤子在水中下沉時水平速度的阻尼（比空中阻力更強，入水後水平漂移很快停下）
 
   // --- 新增：海平面／海浪相關參數 ---
-  seaSurfaceY: 260,          // 海平面基準高度（Y 座標，越小海平面越靠上、水域範圍越大）
+  seaSurfaceY: 270,          // 海平面基準高度（Y 座標，越小海平面越靠上、水域範圍越大）
   waveAmplitudeMain: 12,     // 主波浪的起伏幅度（越大波浪越明顯）
   waveAmplitudeSecondary: 4, // 次波浪的起伏幅度（疊加在主波浪上的細碎波紋）
   waveDisturbAmplitude: 10   // 主角移動時，擾動水面的強度
