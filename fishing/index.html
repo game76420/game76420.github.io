@@ -752,9 +752,12 @@ let hookVelY = 0;
 // hookThrowPhase 記錄甩竿目前在哪個物理階段：
 //   'loop'：拉竿瞬間給鉤子一股初始迴圈衝力，鉤子沿迴圈路徑往前往上衝，
 //           衝力會隨時間自然變慢（模擬重力/甩竿阻力），衝到接近頂端時最慢，因此有「衝到頂端再後甩」的手感
-//   'fall'：迴圈甩完之後，不再是內插動畫，而是真正用重力加速度讓鉤子自由落下，
-//           直到鉤子確實碰到水面（或沒入水面以下）才會結束，整個過程 fishing/hookThrowing 都維持 true，
-//           所以拉竿甩竿、鉤子還在半空中掉落的這段期間，重複按空白鍵完全無效
+//   'fall'：迴圈甩完之後，不再是內插動畫，而是真正用重力加速度讓鉤子在空中自由落下，
+//           直到鉤子碰到水面為止，會切換到 'sink' 階段（而不是直接結束）
+//   'sink'：鉤子已經沒入水面以下，改用較弱的重力＋較強的水阻力繼續往下沉，
+//           直到真正碰到海底（hookMaxY）這次拉竿才算結束，
+//           整個 'fall' + 'sink' 過程 fishing/hookThrowing 都維持 true，
+//           所以拉竿甩竿、鉤子還在半空中或水裡下沉的這段期間，重複按空白鍵完全無效
 let hookThrowPhase = 'loop';
 let hookThrowAngVel = 0;      // 迴圈甩竿的瞬時角速度，由拉竿當下給予的初始衝力決定，之後每幀自然衰減
 let hookThrowLoopElapsedMs = 0; // 新增：迴圈甩竿階段已經過的「真實」毫秒數，用來做強制完成的保險機制（見下方 hookLoopForceCompleteMs）
@@ -876,6 +879,9 @@ let LINE_PARAMS = {
   hookFallVelXDamp: 0.9,     // 落下階段水平速度的阻尼（模擬空氣阻力，讓落下路徑不會一直往同方向飄）
   hookFallMaxVelY: 22,       // 落下階段垂直速度上限，避免重力累積過久造成穿模式的過快下墜
   hookLoopForceCompleteMs: 2000, // 新增：迴圈甩竿最長允許時間（毫秒）；不論角色跑到哪裡、參數怎麼調，超過這個時間一定強制把迴圈補完，保證每次都會確實甩過去，不會卡在半路直接下墜
+  hookSinkGravity: 0.5,      // 新增：鉤子沒入水面以下後，繼續下沉到海底的重力加速度（比空中的 hookFallGravity 弱，模擬水阻力）
+  hookSinkMaxVelY: 10,       // 新增：鉤子在水中下沉的垂直速度上限（比空中的 hookFallMaxVelY 慢）
+  hookSinkVelXDamp: 0.85,    // 新增：鉤子在水中下沉時水平速度的阻尼（比空中阻力更強，入水後水平漂移很快停下）
 
   // --- 新增：海平面／海浪相關參數 ---
   seaSurfaceY: 260,          // 海平面基準高度（Y 座標，越小海平面越靠上、水域範圍越大）
@@ -928,6 +934,9 @@ const LINE_PARAMS_META = [
   ["鉤-落下水平阻尼 hookFallVelXDamp", "hookFallVelXDamp", 0.9, 0.999, 0.001],
   ["鉤-落下垂直速度上限 hookFallMaxVelY", "hookFallMaxVelY", 5, 60, 1],
   ["鉤-迴圈強制完成時間(ms) hookLoopForceCompleteMs", "hookLoopForceCompleteMs", 300, 5000, 100],
+  ["鉤-水中下沉重力 hookSinkGravity", "hookSinkGravity", 0.05, 2, 0.05],
+  ["鉤-水中下沉速度上限 hookSinkMaxVelY", "hookSinkMaxVelY", 1, 30, 1],
+  ["鉤-水中水平阻尼 hookSinkVelXDamp", "hookSinkVelXDamp", 0.5, 0.99, 0.01],
   ["海-海平面高度 seaSurfaceY", "seaSurfaceY", 50, 500, 5],
   ["海-主波浪幅度 waveAmplitudeMain", "waveAmplitudeMain", 0, 40, 1],
   ["海-次波浪幅度 waveAmplitudeSecondary", "waveAmplitudeSecondary", 0, 20, 1],
@@ -955,7 +964,7 @@ const PARAM_CATEGORIES = [
   {
     kind: "hook",
     title: "🪝 鉤　拋竿／甩竿動畫",
-    keys: ["hookThrowSkyY", "hookLoopHeight", "hookLoopTurns", "hookLoopDirection", "hookLoopXScale", "hookLandingBehindOffset", "hookCastImpulse", "hookCastAngDamp", "hookCastMinAngVel", "hookLoopForceCompleteMs", "hookFallGravity", "hookFallVelXDamp", "hookFallMaxVelY"]
+    keys: ["hookThrowSkyY", "hookLoopHeight", "hookLoopTurns", "hookLoopDirection", "hookLoopXScale", "hookLandingBehindOffset", "hookCastImpulse", "hookCastAngDamp", "hookCastMinAngVel", "hookLoopForceCompleteMs", "hookFallGravity", "hookFallVelXDamp", "hookFallMaxVelY", "hookSinkGravity", "hookSinkMaxVelY", "hookSinkVelXDamp"]
   },
   {
     kind: "hook",
@@ -1205,10 +1214,13 @@ function spawnFish() {
 }
 
 // --- 新增：小黃魚群（週期性大量小魚）相關設定 ---
-const FISH_SCHOOL_INTERVAL = 35000;   // 每隔幾毫秒出現一次小黃魚群（35 秒）
-const FISH_SCHOOL_COUNT = 100;        // 一群總共幾隻
-const FISH_SCHOOL_SIZE_SCALE = 0.5;   // 小黃魚體型＝正常黃魚的一半
-let fishSchoolTimer = null;
+const FISH_SCHOOL_INTERVAL = 35000;       // 每隔幾毫秒觸發一次小黃魚群（35 秒）
+const FISH_SCHOOL_BATCH_SIZE = 30;        // 每一批生成幾隻小黃魚
+const FISH_SCHOOL_BATCH_INTERVAL = 500;   // 每批之間間隔幾毫秒（0.5 秒生成一批）
+const FISH_SCHOOL_BATCH_COUNT = 10;       // 一輪總共生成幾批（10 批 x 30 隻 = 共 300 隻）
+const FISH_SCHOOL_SIZE_SCALE = 0.5;       // 小黃魚體型＝正常黃魚的一半
+let fishSchoolTimer = null;      // 35 秒倒數計時器
+let fishSchoolBatchTimer = null; // 每批之間 0.5 秒的計時器
 
 // 建立小黃魚群裡的一隻魚：固定從左邊或右邊進場（不像一般魚是隨機挑邊），
 // 速度是「大黃魚」（也就是一般黃魚 mid 等級）的兩倍，體型縮小成一半。
@@ -1247,22 +1259,41 @@ function createSchoolFish(fromLeft) {
   };
 }
 
-// 產生一整群小黃魚：前一半從左邊出現、後一半從右邊出現
-function spawnFishSchool() {
-  const half = Math.floor(FISH_SCHOOL_COUNT / 2);
-  for (let i = 0; i < FISH_SCHOOL_COUNT; i++) {
+// 產生「一批」小黃魚：前一半從左邊出現、後一半從右邊出現
+function spawnFishSchoolBatch() {
+  const half = Math.floor(FISH_SCHOOL_BATCH_SIZE / 2);
+  for (let i = 0; i < FISH_SCHOOL_BATCH_SIZE; i++) {
     fishes.push(createSchoolFish(i < half));
   }
 }
 
-// 排程：每隔 FISH_SCHOOL_INTERVAL 觸發一次小黃魚群（遊戲結束/碗下沉/面板開啟時暫停觸發，但排程本身照常繼續倒數）
+// 連續生成 FISH_SCHOOL_BATCH_COUNT 批小黃魚，每批間隔 FISH_SCHOOL_BATCH_INTERVAL 毫秒
+// （每 0.5 秒生成 30 隻，共生成 10 次、總共 300 隻），
+// 全部批次生成完之後，才重新開始下一輪 35 秒倒數（scheduleFishSchool）。
+function runFishSchoolBatches() {
+  let batchesSpawned = 0;
+  if (fishSchoolBatchTimer) clearInterval(fishSchoolBatchTimer);
+  fishSchoolBatchTimer = setInterval(() => {
+    if (!gameOver && !bowlSinking && !paramPanelOpen) {
+      spawnFishSchoolBatch();
+    }
+    batchesSpawned++;
+    if (batchesSpawned >= FISH_SCHOOL_BATCH_COUNT) {
+      clearInterval(fishSchoolBatchTimer);
+      fishSchoolBatchTimer = null;
+      scheduleFishSchool(); // 這一輪批次全部跑完，重新開始下一次 35 秒倒數
+    }
+  }, FISH_SCHOOL_BATCH_INTERVAL);
+}
+
+// 排程：每隔 FISH_SCHOOL_INTERVAL（35 秒）觸發一次小黃魚群事件；
+// 觸發後不是一次生成完，而是交給 runFishSchoolBatches 每 0.5 秒生成一批（共 10 批），
+// 全部批次跑完後才會再重新呼叫這個函式、重新開始下一次 35 秒倒數。
+// （遊戲結束/碗下沉/面板開啟時暫停生成，但排程本身照常繼續倒數）
 function scheduleFishSchool() {
   if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
   fishSchoolTimer = setTimeout(() => {
-    if (!gameOver && !bowlSinking && !paramPanelOpen) {
-      spawnFishSchool();
-    }
-    scheduleFishSchool();
+    runFishSchoolBatches();
   }, FISH_SCHOOL_INTERVAL);
 }
 
@@ -2225,22 +2256,37 @@ function gameLoop(currentTime) {
           hookFallVelX = (-Math.sin(angle) * angVelNow * radius + Math.cos(angle) * radVelNow) * xScale;
           hookFallVelY =  Math.cos(angle) * angVelNow * radius + Math.sin(angle) * radVelNow;
         }
-      } else {
-        // 'fall' 階段：真正的重力物理，不再是內插動畫。
+      } else if (hookThrowPhase === 'fall') {
+        // 'fall' 階段：鉤子還在空中，真正的重力物理，不再是內插動畫。
         hookFallVelY += LINE_PARAMS.hookFallGravity * timeScale;
         if (hookFallVelY > LINE_PARAMS.hookFallMaxVelY) hookFallVelY = LINE_PARAMS.hookFallMaxVelY;
         hookFallVelX *= Math.pow(LINE_PARAMS.hookFallVelXDamp, timeScale);
         hookDrawX += hookFallVelX * timeScale;
         hookY += hookFallVelY * timeScale;
 
-        // 只有鉤子真的碰到水面、或已經沒入水面以下，這次拉竿才算真正結束，
-        // 玩家才能再按一次空白鍵甩下一竿。
+        // 鉤子碰到水面後，先不要結束拉竿；改成切換到「沒入水中繼續下沉」階段，
+        // 這樣才會像原版一樣一路沉到海底碰底，而不是碰到水面就停住。
         const waterYHere = getWaveY(hookDrawX, wavePhase);
         if (hookY >= waterYHere) {
+          hookThrowPhase = 'sink';
+          hookFallVelY *= 0.5; // 入水瞬間水的阻力讓下沉速度先減半，銜接更自然
+        }
+      } else if (hookThrowPhase === 'sink') {
+        // 'sink' 階段：鉤子已經沒入水面以下，用比空中更弱的重力＋更強的阻力繼續下沉，
+        // 一路沉到真正的海底（hookMaxY）才算這次拉竿真正結束。
+        hookFallVelY += LINE_PARAMS.hookSinkGravity * timeScale;
+        if (hookFallVelY > LINE_PARAMS.hookSinkMaxVelY) hookFallVelY = LINE_PARAMS.hookSinkMaxVelY;
+        hookFallVelX *= Math.pow(LINE_PARAMS.hookSinkVelXDamp, timeScale);
+        hookDrawX += hookFallVelX * timeScale;
+        hookY += hookFallVelY * timeScale;
+
+        // 只有鉤子真的碰到海底，這次拉竿才算真正結束，玩家才能再按一次空白鍵甩下一竿。
+        if (hookY >= LINE_PARAMS.hookMaxY) {
+          hookY = LINE_PARAMS.hookMaxY;
           hookThrowing = false;
           fishing = false;
           hookThrowPhase = 'loop'; // 重置，準備下一次甩竿
-          hookVelY = hookFallVelY * 0.3; // 保留一點入水衝力，銜接水下上下操作的手感
+          hookVelY = 0; // 碰底後速度歸零，避免殘留下沉速度讓鉤子看起來彈起來
           hookVelX = hookFallVelX * 0.3;
           hookTargetY = LINE_PARAMS.hookRestY;
         }
@@ -2948,6 +2994,7 @@ restartBtn.addEventListener("click", () => {
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
 if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
+if (fishSchoolBatchTimer) clearInterval(fishSchoolBatchTimer);
 scheduleFishSchool();
   resizeGameCanvas();
   // --- 新增：重設鍋子位置與動畫狀態 ---
@@ -3450,6 +3497,7 @@ specialSeaCreature = null;
 if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
 scheduleSpecialSeaCreature();
 if (fishSchoolTimer) clearTimeout(fishSchoolTimer);
+if (fishSchoolBatchTimer) clearInterval(fishSchoolBatchTimer);
 scheduleFishSchool();
 resizeGameCanvas();
 // --- 新增：重設鍋子位置與動畫狀態 ---
