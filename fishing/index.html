@@ -737,6 +737,7 @@ let hookThrowT = 0;
 let hookThrowStartY = 0, hookThrowEndY = 0;
 let hookThrowStartX = 0, hookThrowEndX = 0;
 let hookThrowPlayerDir = 1; // 新增：拉竿當下就凍結角色面向，整個迴圈甩竿動力學都用這個值，不受甩竿過程中角色轉向影響
+let hookThrowTiltAngle = 0; // 新增：拉竿當下凍結「精靈與魚鉤之間的傾斜角度」，整個迴圈橢圓的傾斜方向都直接沿用這個值
 let hookDrawX = 0; // 新增：鉤子目前實際繪製用的 x 座標（甩竿時會前拋、繞頭頂、再往後甩）
 // 鉤子水平方向的物理狀態：鉤子不再直接鎖定在角色背後的固定位置，
 // 而是像被釣線「拖著走」一樣，用彈簧+阻尼慢慢追向角色移動後的目標位置，
@@ -753,15 +754,18 @@ let hookVelY = 0;
 //   'loop'：拉竿瞬間給鉤子一股初始迴圈衝力，鉤子沿迴圈路徑往前往上衝，
 //           衝力會隨時間自然變慢（模擬重力/甩竿阻力），衝到接近頂端時最慢，因此有「衝到頂端再後甩」的手感
 //   'fall'：迴圈甩完之後，不再是內插動畫，而是真正用重力加速度讓鉤子在空中自由落下，
-//           直到鉤子碰到水面為止，會切換到 'sink' 階段（而不是直接結束）
-//   'sink'：鉤子已經沒入水面以下，改用較弱的重力＋較強的水阻力繼續往下沉，
-//           直到真正碰到海底（hookMaxY）這次拉竿才算結束，
-//           整個 'fall' + 'sink' 過程 fishing/hookThrowing 都維持 true，
-//           所以拉竿甩竿、鉤子還在半空中或水裡下沉的這段期間，重複按空白鍵完全無效
+//           一旦鉤子碰到水面，這次拉竿就算結束（不需要再沉到海底），
+//           整個 'loop' + 'fall' 過程 fishing/hookThrowing 都維持 true，
+//           所以拉竿甩竿、鉤子還在半空中下落的這段期間，重複按空白鍵完全無效，
+//           一碰到水面就會恢復成可以再按空白鍵甩下一竿
 let hookThrowPhase = 'loop';
 let hookThrowAngVel = 0;      // 迴圈甩竿的瞬時角速度，由拉竿當下給予的初始衝力決定，之後每幀自然衰減
 let hookThrowLoopElapsedMs = 0; // 新增：迴圈甩竿階段已經過的「真實」毫秒數，用來做強制完成的保險機制（見下方 hookLoopForceCompleteMs）
 let hookFallVelX = 0, hookFallVelY = 0; // 甩完之後自由落下階段，鉤子的真實水平/垂直速度（重力物理）
+// 新增：鉤子碰到水面、拉竿結束後，如果玩家還沒有再次拉竿也沒有按上下鍵操作，
+// 鉤子要靠這個旗標繼續自動往下沉到海底，碰底之後才會自動浮回待機高度（hookRestY）。
+// 只要玩家按了上/下鍵，或又按了一次拉竿，就會取消這個自動下沉、改成正常操作。
+let hookAutoSinking = false;
 
 // 控制狀態
 let keyState = { left: false, right: false, up: false, down: false };
@@ -855,12 +859,13 @@ let LINE_PARAMS = {
   hookLoopTurns: 0,          // 迴圈甩竿動畫：從起點繞到終點的途中，額外多繞幾整圈（1＝多繞一圈）
   hookLoopDirection: -1,     // 迴圈甩竿動畫：繞圈方向，1＝順時針、-1＝逆時針
   hookLoopXScale: 0.3,       // 迴圈甩竿動畫：迴圈的水平（X）縮放比例，1＝正圓，越小迴圈越窄、越像橢圓（起點/終點位置不受影響）
+  hookLoopTiltFactor: 1,     // 迴圈甩竿動畫：橢圓迴圈跟著「魚線甩出角度」傾斜的程度，0＝迴圈永遠正對垂直方向、1＝傾斜角度等同魚線角度、大於1＝魚線越斜、迴圈歪得更誇張（起點/終點位置不受影響）
   hookSettleDownSpeed: 8,    // 收竿後鉤子回到定位的下沉速度
   lineCollisionDist: 38,     // 魚/垃圾/魷魚判定「碰到釣線本體」的統一距離
-  hookCatchRadiusX: 32,      // 魚/垃圾判定「直接被鉤子勾到」的水平範圍
-  hookCatchRadiusY: 28,      // 魚/垃圾判定「直接被鉤子勾到」的垂直範圍
-  hookCatchRadiusXSpecial: 36, // 特殊海洋生物判定「直接被鉤子勾到」的水平範圍
-  hookCatchRadiusYSpecial: 32, // 特殊海洋生物判定「直接被鉤子勾到」的垂直範圍
+  hookCatchPadScaleX: 1.1,   // 魚/垃圾判定「直接被鉤子勾到」的水平寬鬆倍率（基準＝該圖片實際寬度，1＝剛好貼合圖片，>1 稍微寬鬆一點）
+  hookCatchPadScaleY: 1.1,   // 魚/垃圾判定「直接被鉤子勾到」的垂直寬鬆倍率（基準＝該圖片實際高度）
+  hookCatchPadScaleXSpecial: 1.15, // 特殊海洋生物（魷魚/章魚/海參）判定範圍的水平寬鬆倍率（基準＝該圖片實際寬度）
+  hookCatchPadScaleYSpecial: 1.15, // 特殊海洋生物判定範圍的垂直寬鬆倍率（基準＝該圖片實際高度）
   lineStartImgX: 73,         // 站姿貼圖（catImg）上，線起點的 X 座標（貼圖左上角為原點）
   lineStartImgY: 20,         // 站姿貼圖（catImg）上，線起點的 Y 座標
   lineStartImg2X: 58,        // 拉竿姿勢貼圖（catImg2）上，線起點的 X 座標
@@ -879,9 +884,9 @@ let LINE_PARAMS = {
   hookFallVelXDamp: 0.9,     // 落下階段水平速度的阻尼（模擬空氣阻力，讓落下路徑不會一直往同方向飄）
   hookFallMaxVelY: 22,       // 落下階段垂直速度上限，避免重力累積過久造成穿模式的過快下墜
   hookLoopForceCompleteMs: 2000, // 新增：迴圈甩竿最長允許時間（毫秒）；不論角色跑到哪裡、參數怎麼調，超過這個時間一定強制把迴圈補完，保證每次都會確實甩過去，不會卡在半路直接下墜
-  hookSinkGravity: 0.5,      // 新增：鉤子沒入水面以下後，繼續下沉到海底的重力加速度（比空中的 hookFallGravity 弱，模擬水阻力）
-  hookSinkMaxVelY: 10,       // 新增：鉤子在水中下沉的垂直速度上限（比空中的 hookFallMaxVelY 慢）
-  hookSinkVelXDamp: 0.85,    // 新增：鉤子在水中下沉時水平速度的阻尼（比空中阻力更強，入水後水平漂移很快停下）
+  hookAutoSinkGravity: 0.5,   // 新增：拉竿結束、碰到水面後，玩家還沒操作前，鉤子自動下沉到海底的重力加速度
+  hookAutoSinkMaxVelY: 10,    // 新增：自動下沉時的垂直速度上限
+  hookAutoSinkVelXDamp: 0.85, // 新增：自動下沉時水平速度的阻尼（水阻力，讓下沉時左右漂移很快停下）
 
   // --- 新增：海平面／海浪相關參數 ---
   seaSurfaceY: 270,          // 海平面基準高度（Y 座標，越小海平面越靠上、水域範圍越大）
@@ -912,12 +917,13 @@ const LINE_PARAMS_META = [
   ["鉤-迴圈額外圈數 hookLoopTurns", "hookLoopTurns", 0, 3, 0.1],
   ["鉤-迴圈方向(1順時針/-1逆時針) hookLoopDirection", "hookLoopDirection", -1, 1, 2],
   ["鉤-迴圈X縮放(越小越橢圓) hookLoopXScale", "hookLoopXScale", 0.1, 1, 0.05],
+  ["鉤-迴圈隨魚線傾斜程度 hookLoopTiltFactor", "hookLoopTiltFactor", 0, 2, 0.05],
   ["鉤-收竿下沉速度 hookSettleDownSpeed", "hookSettleDownSpeed", 1, 30, 1],
   ["線-碰撞判定距離 lineCollisionDist", "lineCollisionDist", 10, 80, 1],
-  ["鉤-勾中判定範圍X hookCatchRadiusX", "hookCatchRadiusX", 10, 80, 1],
-  ["鉤-勾中判定範圍Y hookCatchRadiusY", "hookCatchRadiusY", 10, 80, 1],
-  ["鉤-勾中判定範圍X(特殊) hookCatchRadiusXSpecial", "hookCatchRadiusXSpecial", 10, 80, 1],
-  ["鉤-勾中判定範圍Y(特殊) hookCatchRadiusYSpecial", "hookCatchRadiusYSpecial", 10, 80, 1],
+  ["鉤-勾中判定寬鬆倍率X(貼合圖片) hookCatchPadScaleX", "hookCatchPadScaleX", 0.8, 1.6, 0.02],
+  ["鉤-勾中判定寬鬆倍率Y(貼合圖片) hookCatchPadScaleY", "hookCatchPadScaleY", 0.8, 1.6, 0.02],
+  ["鉤-勾中判定寬鬆倍率X(特殊,貼合圖片) hookCatchPadScaleXSpecial", "hookCatchPadScaleXSpecial", 0.8, 1.6, 0.02],
+  ["鉤-勾中判定寬鬆倍率Y(特殊,貼合圖片) hookCatchPadScaleYSpecial", "hookCatchPadScaleYSpecial", 0.8, 1.6, 0.02],
   ["線-起點X(站姿) lineStartImgX", "lineStartImgX", 0, 200, 1],
   ["線-起點Y(站姿) lineStartImgY", "lineStartImgY", -50, 100, 1],
   ["線-起點X(拉竿姿勢) lineStartImg2X", "lineStartImg2X", 0, 200, 1],
@@ -934,9 +940,9 @@ const LINE_PARAMS_META = [
   ["鉤-落下水平阻尼 hookFallVelXDamp", "hookFallVelXDamp", 0.9, 0.999, 0.001],
   ["鉤-落下垂直速度上限 hookFallMaxVelY", "hookFallMaxVelY", 5, 60, 1],
   ["鉤-迴圈強制完成時間(ms) hookLoopForceCompleteMs", "hookLoopForceCompleteMs", 300, 5000, 100],
-  ["鉤-水中下沉重力 hookSinkGravity", "hookSinkGravity", 0.05, 2, 0.05],
-  ["鉤-水中下沉速度上限 hookSinkMaxVelY", "hookSinkMaxVelY", 1, 30, 1],
-  ["鉤-水中水平阻尼 hookSinkVelXDamp", "hookSinkVelXDamp", 0.5, 0.99, 0.01],
+  ["鉤-碰水後自動下沉重力 hookAutoSinkGravity", "hookAutoSinkGravity", 0.05, 2, 0.05],
+  ["鉤-碰水後自動下沉速度上限 hookAutoSinkMaxVelY", "hookAutoSinkMaxVelY", 1, 30, 1],
+  ["鉤-碰水後自動下沉水平阻尼 hookAutoSinkVelXDamp", "hookAutoSinkVelXDamp", 0.5, 0.99, 0.01],
   ["海-海平面高度 seaSurfaceY", "seaSurfaceY", 50, 500, 5],
   ["海-主波浪幅度 waveAmplitudeMain", "waveAmplitudeMain", 0, 40, 1],
   ["海-次波浪幅度 waveAmplitudeSecondary", "waveAmplitudeSecondary", 0, 20, 1],
@@ -964,12 +970,12 @@ const PARAM_CATEGORIES = [
   {
     kind: "hook",
     title: "🪝 鉤　拋竿／甩竿動畫",
-    keys: ["hookThrowSkyY", "hookLoopHeight", "hookLoopTurns", "hookLoopDirection", "hookLoopXScale", "hookLandingBehindOffset", "hookCastImpulse", "hookCastAngDamp", "hookCastMinAngVel", "hookLoopForceCompleteMs", "hookFallGravity", "hookFallVelXDamp", "hookFallMaxVelY", "hookSinkGravity", "hookSinkMaxVelY", "hookSinkVelXDamp"]
+    keys: ["hookThrowSkyY", "hookLoopHeight", "hookLoopTurns", "hookLoopDirection", "hookLoopXScale", "hookLoopTiltFactor", "hookLandingBehindOffset", "hookCastImpulse", "hookCastAngDamp", "hookCastMinAngVel", "hookLoopForceCompleteMs", "hookFallGravity", "hookFallVelXDamp", "hookFallMaxVelY", "hookAutoSinkGravity", "hookAutoSinkMaxVelY", "hookAutoSinkVelXDamp"]
   },
   {
     kind: "hook",
     title: "🪝 鉤　勾中判定範圍",
-    keys: ["hookCatchRadiusX", "hookCatchRadiusY", "hookCatchRadiusXSpecial", "hookCatchRadiusYSpecial"]
+    keys: ["hookCatchPadScaleX", "hookCatchPadScaleY", "hookCatchPadScaleXSpecial", "hookCatchPadScaleYSpecial"]
   },
   {
     kind: "line",
@@ -996,7 +1002,11 @@ function checkLineCollision() {
   for (let fish of fishes) {
     if (fish.lifting || fish.caught) continue;
     // 先判斷鉤子直接碰到（距離放寬）
-    if (Math.abs(fish.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusX && Math.abs(fish.y - hookY) < LINE_PARAMS.hookCatchRadiusY) {
+    const fishHalf = getCatchHalfSize(fish.color === 'gold' ? 'yellowFish' : 'purpleFish', LINE_PARAMS.hookCatchPadScaleX, LINE_PARAMS.hookCatchPadScaleY);
+    const fishSizeScale = (typeof fish.sizeScale === 'number') ? fish.sizeScale : 1;
+    const fishCatchHW = fishHalf.hw * fishSizeScale;
+    const fishCatchHH = fishHalf.hh * fishSizeScale;
+    if (Math.abs(fish.x - bigFish.x) < fishCatchHW && Math.abs(fish.y - hookY) < fishCatchHH) {
       fish.lifting = true;
       fish.flying = false;
       fish.flyT = 0;
@@ -1041,7 +1051,8 @@ function checkLineCollision() {
   // 檢查垃圾碰撞
   for (let trash of trashes) {
     if (trash.lifting || trash.hit) continue;
-    if (Math.abs(trash.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusX && Math.abs(trash.y - hookY) < LINE_PARAMS.hookCatchRadiusY) {
+    const trashHalf = getCatchHalfSize(trash.type, LINE_PARAMS.hookCatchPadScaleX, LINE_PARAMS.hookCatchPadScaleY);
+    if (Math.abs(trash.x - bigFish.x) < trashHalf.hw && Math.abs(trash.y - hookY) < trashHalf.hh) {
       trash.lifting = true;
       trash.flying = false;
       trash.flyT = 0;
@@ -1083,7 +1094,8 @@ function checkLineCollision() {
   // 檢查魷魚碰撞
   if (specialSeaCreature && !specialSeaCreature.lifting && !specialSeaCreature.caught) {
     // 先判斷鉤子直接碰到（距離放寬）
-    if (Math.abs(specialSeaCreature.x - bigFish.x) < LINE_PARAMS.hookCatchRadiusXSpecial && Math.abs(specialSeaCreature.y - hookY) < LINE_PARAMS.hookCatchRadiusYSpecial) {
+    const specialHalf = getCatchHalfSize(specialSeaCreature.type, LINE_PARAMS.hookCatchPadScaleXSpecial, LINE_PARAMS.hookCatchPadScaleYSpecial);
+    if (Math.abs(specialSeaCreature.x - bigFish.x) < specialHalf.hw && Math.abs(specialSeaCreature.y - hookY) < specialHalf.hh) {
       specialSeaCreature.lifting = true;
       specialSeaCreature.flying = false;
       specialSeaCreature.flyT = 0;
@@ -1132,13 +1144,30 @@ function startHookCast() {
   checkLineCollision(); // 檢查碰撞
   fishing = true;
   hookThrowing = true;
+  hookAutoSinking = false; // 玩家又拉竿了，取消上一輪的自動下沉狀態
   hookThrowPhase = 'loop'; // 先進入「迴圈甩竿」階段，之後甩完會自動切到 'fall' 自由落下階段
   hookThrowT = 0;
   hookThrowStartY = hookY;
   hookThrowEndY = LINE_PARAMS.hookThrowSkyY; // 天空高度
-  hookThrowStartX = bigFish.x;
+  // 起始 X 座標要用鉤子「目前實際的繪製位置」hookDrawX，而不是角色的 bigFish.x。
+  // 因為未拉竿時鉤子是靠彈簧物理跟著釣線被拖著走的（見下方 else 分支），
+  // hookDrawX 很可能跟角色位置有一段水平落差，這段落差就是「精靈與魚鉤之間目前的傾斜角度」。
+  // 如果這裡誤用 bigFish.x（等同於直接假設鉤子永遠在角色正下方），
+  // 甩竿時算出來的 throwTiltAngle 就會被歸零、只剩下面 hookLandingBehindOffset 那一點點固定偏移，
+  // 導致不管拉竿前鉤子偏得多斜，甩出去永遠都幾乎是垂直向上。
+  hookThrowStartX = hookDrawX;
   hookThrowPlayerDir = playerDir; // 凍結拉竿當下的角色面向，之後整個迴圈甩竿過程都用這個值，不再讀取即時 playerDir
-  hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * hookThrowPlayerDir; // 甩竿當下就決定落點（角色背後），之後不再跟著角色即時移動
+  hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * hookThrowPlayerDir; // 甩竿當下先算一次初始落點；之後在 loop / fall 階段每一幀都會依照角色目前位置重新計算（見 gameLoop）
+
+  // 凍結「精靈（釣線起點）與魚鉤目前實際位置」之間的傾斜角度，整個迴圈橢圓（含衝破水面那一瞬間）
+  // 都要直接沿用這個角度，而不是用起點到終點（終點是天空高度 hookThrowSkyY，垂直距離非常大）
+  // 重新算一次角度——那樣算出來的角度會被巨大的垂直距離稀釋成幾乎是 0，導致迴圈看起來還是快垂直。
+  // 算法：取「魚鉤 -> 釣線起點」這條向量（也就是魚鉤往上衝向角色嘴巴的方向），
+  // 用跟原本 throwTiltAngle 一樣的 atan2(dx, -dy) 慣例換算成「離正上方多少角度」。
+  const preCastAnchor = getLineStartPoint();
+  const preCastDX = preCastAnchor.x - hookThrowStartX;
+  const preCastDY = preCastAnchor.y - hookThrowStartY; // 錨點在魚鉤上方，這裡通常是負值
+  hookThrowTiltAngle = Math.atan2(preCastDX, -preCastDY);
   // 拉竿的初始動力：給鉤子一股迴圈角速度衝力，讓它「往前往上衝」，
   // 之後這股衝力會在 gameLoop 裡隨時間自然衰減（模擬重力/甩竿阻力），
   // 使鉤子衝到接近頂端時明顯變慢，呈現「衝到頂端再後甩」的物理手感。
@@ -1151,6 +1180,11 @@ function startHookCast() {
 }
 
 // 抽出單一魚生成函數
+// 統一的「畫面外生成／消失」緩衝距離：
+// 目前最寬的圖片是魷魚（132px，半寬 66px），這裡抓一個足夠大的邊界，
+// 確保任何魚、垃圾、特殊海洋生物都是「整隻完全在畫面外」才會被生成或判定消失，
+// 這樣視覺上就一定是「從左邊或右邊游進來 / 游出去」，不會有一出生就已經半個身體在畫面內的「憑空出現」感。
+const SPAWN_MARGIN = 90;
 function createFish() {
   // 參考原版：主要是固定權重的魚種與較小的分數級距，不做後期瘋狂加速
   const roll = Math.random();
@@ -1171,13 +1205,13 @@ function createFish() {
   const face = Math.random() < 0.5 ? 'smile' : 'dot';
   // 隨機決定從左還是右進來
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
+  const x = fromLeft ? -SPAWN_MARGIN : canvas.width + SPAWN_MARGIN; // 畫面外
   const dir = fromLeft ? 1 : -1;
   // 速度降低 30%（原速度 * 0.7）
   let speed = 0.98 + Math.random() * 0.84;
   if (fishTier === 'mid') speed = 1.4 + Math.random() * 0.91;
   if (fishTier === 'bad') speed = 0.84 + Math.random() * 0.63;
-  const baseY = Math.random() * 350 + getFishTopY();
+  const baseY = Math.random() * Math.max(0, getFishBottomY() - getFishTopY()) + getFishTopY();
   return {
     x,
     y: baseY,
@@ -1225,12 +1259,12 @@ let fishSchoolBatchTimer = null; // 每批之間 0.5 秒的計時器
 // 建立小黃魚群裡的一隻魚：固定從左邊或右邊進場（不像一般魚是隨機挑邊），
 // 速度是「大黃魚」（也就是一般黃魚 mid 等級）的兩倍，體型縮小成一半。
 function createSchoolFish(fromLeft) {
-  const x = fromLeft ? -30 : canvas.width + 40; // 畫面外
+  const x = fromLeft ? -SPAWN_MARGIN : canvas.width + SPAWN_MARGIN; // 畫面外
   const dir = fromLeft ? 1 : -1;
   // 「大黃魚」＝一般黃魚 mid 等級的速度公式（1.4 ~ 2.31），這裡直接取同樣公式再乘以 2 倍
   const bigFishSpeed = 1.4 + Math.random() * 0.91;
   const speed = bigFishSpeed * 2;
-  const baseY = Math.random() * 350 + getFishTopY();
+  const baseY = Math.random() * Math.max(0, getFishBottomY() - getFishTopY()) + getFishTopY();
   return {
     x,
     y: baseY,
@@ -1366,7 +1400,7 @@ octopusImg.src = 'img/octopus.png';
 
 // 新增：預載海參圖片
 const seaCucumberImg = new Image();
-seaCucumberImg.src = 'img/sea​​cucumber.png'; // 使用正確的文件名
+seaCucumberImg.src = 'img/seacucumber.png'; // 對應實際檔名 seacucumber.png（先前這裡混進了看不見的零寬空白字元，導致實際請求的檔名跟真正的檔案對不上，已清除）
 // 添加圖片載入錯誤處理
 seaCucumberImg.onerror = function() {
   console.error('海參圖片載入失敗:', seaCucumberImg.src);
@@ -1377,7 +1411,7 @@ seaCucumberImg.onload = function() {
 
 // 新增：預載海參圖片2
 const seaCucumberImg2 = new Image();
-seaCucumberImg2.src = 'img/sea​​cucumber2.png';
+seaCucumberImg2.src = 'img/seacucumber2.png'; // 對應實際檔名 seacucumber2.png（無底線）
 // 添加圖片載入錯誤處理
 seaCucumberImg2.onerror = function() {
   console.error('海參圖片2載入失敗:', seaCucumberImg2.src);
@@ -1385,6 +1419,51 @@ seaCucumberImg2.onerror = function() {
 seaCucumberImg2.onload = function() {
   console.log('海參圖片2載入成功');
 };
+
+// --- 新增：各素材的實際圖片尺寸（px），圖片還沒載入完成、或載入失敗時，
+// 佔位圖形與碰撞判定範圍都會改用這裡的尺寸，確保跟正式圖片大小一致 ---
+const REAL_IMG_SIZE = {
+  boot: { w: 54, h: 60 },        // img/boots.png（雨鞋）
+  can: { w: 45, h: 66 },         // img/can.png（罐頭）
+  seaurchin: { w: 66, h: 60 },   // img/seaurchin.png（海膽）
+  squid: { w: 132, h: 66 },      // img/squid.png（魷魚）
+  octopus: { w: 70, h: 41 },     // img/octopus.png（章魚）
+  seacucumber: { w: 42, h: 13 }, // img/sea​​cucumber.png（海參，較窄的那張）
+  yellowFish: { w: 65, h: 32 },  // img/yellow_fish.png（黃魚）
+  purpleFish: { w: 65, h: 32 }   // img/purple_fish.png（紫魚）
+};
+
+// 依「圖片是否已經成功載入」取得目前應該使用的寬高：
+// 圖片載入成功 -> 用圖片本身的 naturalWidth/naturalHeight（最準確）
+// 圖片還沒載好或載入失敗 -> 用上面 REAL_IMG_SIZE 記錄的實際圖片尺寸當備援，
+// 這樣即使圖片一時沒顯示出來，判定範圍跟佔位圖形也不會跟正式圖片對不上。
+function getImgDrawSize(img, fallbackKey) {
+  if (img && img.complete && img.naturalWidth > 0) {
+    return { w: img.naturalWidth, h: img.naturalHeight };
+  }
+  const fb = REAL_IMG_SIZE[fallbackKey];
+  return fb ? { w: fb.w, h: fb.h } : { w: 32, h: 32 };
+}
+
+// 取得某個垃圾／特殊海洋生物／魚「被鉤子直接勾到」判定範圍的半寬、半高，
+// 基準為該類型實際圖片的大小，再乘上寬鬆倍率（padScaleX/padScaleY，來自 LINE_PARAMS，可在調參面板調整）
+function getCatchHalfSize(kind, padScaleX, padScaleY) {
+  padScaleX = (typeof padScaleX === 'number') ? padScaleX : 1.1;
+  padScaleY = (typeof padScaleY === 'number') ? padScaleY : 1.1;
+  let size;
+  switch (kind) {
+    case 'can': size = getImgDrawSize(canImg, 'can'); break;
+    case 'bottle': size = getImgDrawSize(bootImg, 'boot'); break;
+    case 'seaurchin': size = getImgDrawSize(seaUrchinImg, 'seaurchin'); break;
+    case 'squid': size = getImgDrawSize(squidImg, 'squid'); break;
+    case 'octopus': size = getImgDrawSize(octopusImg, 'octopus'); break;
+    case 'seacucumber': size = getImgDrawSize(seaCucumberImg, 'seacucumber'); break;
+    case 'yellowFish': size = getImgDrawSize(yellowFishImg, 'yellowFish'); break;
+    case 'purpleFish': size = getImgDrawSize(purpleFishImg, 'purpleFish'); break;
+    default: size = { w: 44, h: 32 };
+  }
+  return { hw: (size.w / 2) * padScaleX, hh: (size.h / 2) * padScaleY };
+}
 
 // --- 魷魚/章魚/海參相關 ---
 let specialSeaCreature = null; // 取代 squid
@@ -1395,7 +1474,7 @@ function createSpecialSeaCreature() {
   const types = ['squid', 'octopus', 'seacucumber'];
   const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -40 : canvas.width + 40;
+  const x = fromLeft ? -SPAWN_MARGIN : canvas.width + SPAWN_MARGIN;
   const dir = fromLeft ? 1 : -1;
   let speed = 2.2 + Math.random() * 1.5;
   let animSpeed = 2; // 預設動畫速度
@@ -1412,7 +1491,7 @@ function createSpecialSeaCreature() {
   return {
     type,
     x,
-    y: Math.random() * 350 + getFishTopY(),
+    y: Math.random() * Math.max(0, getFishBottomY() - getFishTopY()) + getFishTopY(),
     speed,
     dir,
     caught: false,
@@ -1433,7 +1512,7 @@ function scheduleSpecialSeaCreature() {
   if (specialSeaCreatureTimer) clearTimeout(specialSeaCreatureTimer);
   specialSeaCreatureTimer = setTimeout(() => {
     // 只有當畫面上沒有海參時才生成
-    if (!specialSeaCreature || specialSeaCreature.caught || (specialSeaCreature.x < -60 || specialSeaCreature.x > canvas.width + 60)) {
+    if (!specialSeaCreature || specialSeaCreature.caught || (specialSeaCreature.x < -SPAWN_MARGIN || specialSeaCreature.x > canvas.width + SPAWN_MARGIN)) {
       spawnSpecialSeaCreature();
     }
     scheduleSpecialSeaCreature();
@@ -1493,11 +1572,67 @@ function drawSpecialSeaCreature(creature) {
       -currentImg.naturalWidth / 2,
       -currentImg.naturalHeight / 2
     );
-  } else {
-    ctx.fillStyle = '#222';
+  } else if (creature.type === 'squid') {
+    // 佔位圖形：對應 squid.png（132x66，橢圓身體＋左側一叢細長觸手）
+    const hw = REAL_IMG_SIZE.squid.w / 2, hh = REAL_IMG_SIZE.squid.h / 2;
+    ctx.fillStyle = '#c9cdd3';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 24, 32, 0, 0, Math.PI * 2);
+    ctx.ellipse(hw * 0.15, 0, hw * 0.55, hh * 0.85, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = '#c9cdd3';
+    ctx.lineWidth = 3;
+    for (let t = -3; t <= 3; t++) {
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.35, t * (hh * 0.18));
+      ctx.quadraticCurveTo(-hw * 0.75, t * (hh * 0.3), -hw, t * (hh * 0.42));
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(hw * 0.4, -hh * 0.15, 3, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (creature.type === 'octopus') {
+    // 佔位圖形：對應 octopus.png（70x41，圓頭＋下方波浪狀觸手）
+    const hw = REAL_IMG_SIZE.octopus.w / 2, hh = REAL_IMG_SIZE.octopus.h / 2;
+    ctx.fillStyle = '#b7bec7';
+    ctx.beginPath();
+    ctx.ellipse(0, -hh * 0.25, hw * 0.7, hh * 0.65, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#b7bec7';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    for (let i = -2; i <= 2; i++) {
+      const tx = i * (hw * 0.28);
+      ctx.beginPath();
+      ctx.moveTo(tx, hh * 0.1);
+      ctx.quadraticCurveTo(tx + (i >= 0 ? 4 : -4), hh * 0.7, tx * 0.6, hh * 0.95);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(hw * 0.3, -hh * 0.35, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // 佔位圖形：對應海參圖片（sea​​cucumber.png 系列，細長膠囊狀身體）
+    const key = (currentImg === seaCucumberImg2) ? 'seacucumber2' : 'seacucumber';
+    const w = (key === 'seacucumber2') ? 39 : REAL_IMG_SIZE.seacucumber.w;
+    const h = (key === 'seacucumber2') ? 19 : REAL_IMG_SIZE.seacucumber.h;
+    const hw = w / 2, hh = h / 2;
+    ctx.fillStyle = '#8d8a7c';
+    ctx.beginPath();
+    ctx.moveTo(-hw, 0);
+    ctx.quadraticCurveTo(-hw, -hh, 0, -hh);
+    ctx.quadraticCurveTo(hw, -hh, hw, 0);
+    ctx.quadraticCurveTo(hw, hh, 0, hh);
+    ctx.quadraticCurveTo(-hw, hh, -hw, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.arc(i * hw * 0.5, 0, hh * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
   ctx.restore();
 }
@@ -1506,9 +1641,9 @@ function createTrash() {
   const types = ['can', 'bottle', 'seaurchin'];
   const type = types[Math.floor(Math.random() * types.length)];
   const fromLeft = Math.random() < 0.5;
-  const x = fromLeft ? -30 : canvas.width + 40;
+  const x = fromLeft ? -SPAWN_MARGIN : canvas.width + SPAWN_MARGIN;
   const dir = fromLeft ? 1 : -1;
-  const baseY = Math.random() * 350 + getFishTopY();
+  const baseY = Math.random() * Math.max(0, getFishBottomY() - getFishTopY()) + getFishTopY();
   return {
     x,
     y: baseY,
@@ -1561,9 +1696,15 @@ function drawTrash(trash) {
         -canImg.naturalHeight / 2
       );
     } else {
-      // 圖片尚未載入時，顯示灰色方塊作為佔位
-      ctx.fillStyle = '#bbb';
-      ctx.fillRect(-16, -16, 32, 32);
+      // 圖片尚未載入時，顯示貼近 can.png（45x66）外形的佔位圖形：灰色罐身＋紅色罐口
+      const hw = REAL_IMG_SIZE.can.w / 2, hh = REAL_IMG_SIZE.can.h / 2;
+      ctx.fillStyle = '#9aa0a6';
+      ctx.fillRect(-hw, -hh + 6, hw * 2, hh * 2 - 6);
+      ctx.fillStyle = '#c0392b';
+      ctx.fillRect(-hw, -hh, hw * 2, 8);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-hw, -hh + 6, hw * 2, hh * 2 - 6);
     }
   } else if (trash.type === 'bottle') {
     // 改為顯示雨鞋圖片（原尺寸，置中）
@@ -1574,9 +1715,21 @@ function drawTrash(trash) {
         -bootImg.naturalHeight / 2
       );
     } else {
-      // 圖片尚未載入時，顯示灰色方塊作為佔位
-      ctx.fillStyle = '#bbb';
-      ctx.fillRect(-16, -16, 32, 32);
+      // 圖片尚未載入時，顯示貼近 boots.png（54x60）外形的佔位圖形：灰色雨鞋剪影（L形靴筒＋靴底）
+      const hw = REAL_IMG_SIZE.boot.w / 2, hh = REAL_IMG_SIZE.boot.h / 2;
+      ctx.fillStyle = '#a9a9a9';
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.5, -hh);
+      ctx.lineTo(hw * 0.3, -hh);
+      ctx.lineTo(hw * 0.3, hh * 0.35);
+      ctx.lineTo(hw, hh * 0.35);
+      ctx.lineTo(hw, hh);
+      ctx.lineTo(-hw * 0.5, hh);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
   } else if (trash.type === 'seaurchin') {
     // 顯示海膽圖片
@@ -1587,10 +1740,21 @@ function drawTrash(trash) {
         -seaUrchinImg.naturalHeight / 2
       );
     } else {
-      // 圖片尚未載入時，顯示黑色圓形作為佔位
+      // 圖片尚未載入時，顯示貼近 seaurchin.png（66x60）外形的佔位圖形：深灰圓球＋放射狀尖刺
+      const hw = REAL_IMG_SIZE.seaurchin.w / 2, hh = REAL_IMG_SIZE.seaurchin.h / 2;
+      const r = Math.min(hw, hh) * 0.55;
+      ctx.strokeStyle = '#3a3a3a';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 16; i++) {
+        const ang = (Math.PI * 2 / 16) * i;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang) * r * 0.6, Math.sin(ang) * r * 0.6);
+        ctx.lineTo(Math.cos(ang) * Math.max(hw, hh), Math.sin(ang) * Math.max(hw, hh));
+        ctx.stroke();
+      }
       ctx.fillStyle = '#222';
       ctx.beginPath();
-      ctx.arc(0, 0, 16, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -1859,10 +2023,21 @@ function drawFish(fish) {
         -currentImg.naturalHeight / 2
       );
     } else {
-      // 尚未載入時，顯示黃色橢圓作為佔位
+      // 尚未載入時，顯示貼近 yellow_fish.png（65x32）尺寸比例的黃色魚形佔位圖
+      const hw = REAL_IMG_SIZE.yellowFish.w / 2, hh = REAL_IMG_SIZE.yellowFish.h / 2;
       ctx.fillStyle = 'gold';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(hw * 0.15, 0, hw * 0.75, hh, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.55, 0);
+      ctx.lineTo(-hw, -hh * 0.6);
+      ctx.lineTo(-hw, hh * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(hw * 0.55, -hh * 0.2, 2, 0, Math.PI * 2);
       ctx.fill();
     }
   } else if (fish.color === "#fcf") {
@@ -1890,10 +2065,27 @@ function drawFish(fish) {
         -currentImg.naturalHeight / 2
       );
     } else {
-      // 尚未載入時，顯示紫色橢圓作為佔位
+      // 尚未載入時，顯示貼近 purple_fish.png（65x32）尺寸比例、帶粉紫斑點的魚形佔位圖
+      const hw = REAL_IMG_SIZE.purpleFish.w / 2, hh = REAL_IMG_SIZE.purpleFish.h / 2;
       ctx.fillStyle = '#fcf';
       ctx.beginPath();
-      ctx.ellipse(0, 0, 22, 12, 0, 0, Math.PI * 2);
+      ctx.ellipse(hw * 0.15, 0, hw * 0.75, hh, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-hw * 0.55, 0);
+      ctx.lineTo(-hw, -hh * 0.6);
+      ctx.lineTo(-hw, hh * 0.6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#a020a0';
+      [[-hw*0.1,-hh*0.3],[hw*0.3,0],[-hw*0.15,hh*0.35]].forEach(function(p) {
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(hw * 0.55, -hh * 0.2, 2, 0, Math.PI * 2);
       ctx.fill();
     }
   } else {
@@ -2021,6 +2213,18 @@ function getFishTopY() {
   return LINE_PARAMS.seaSurfaceY + 20;
 }
 
+// 遊戲內部畫布的高度（對應 resizeGameCanvas 裡的 GAME_HEIGHT，固定 600）。
+// 這裡獨立寫死一份常數，是因為 spawnFish() 等生成函式在遊戲一開始執行時，
+// canvas.height 可能還沒被 resizeGameCanvas() 設定成正式尺寸，用 canvas.height 算會不準。
+const GAME_CANVAS_HEIGHT = 600;
+
+// 魚／垃圾／特殊海洋生物出生時的「最低路徑」高度上限：
+// 扣掉上下漂動的最大幅度（bobAmplitude 最高約 32）與圖片本身的高度，
+// 抓一個安全邊界，確保生成出來的最低路徑，整隻圖片都還在畫面裡，不會有一部分掉到畫面下緣看不到。
+function getFishBottomY() {
+  return GAME_CANVAS_HEIGHT - 70;
+}
+
 // --- 新增：海浪波動 ---
 let wavePhase = 0;
 function getWaveY(x, t) {
@@ -2037,6 +2241,73 @@ function getWaveY(x, t) {
 const tensionSound = new Audio('sound/Data_4.wav');
 let lastTensionSoundTime = 0;
 let tensionSoundInterval = 2000; // 初始2秒
+
+// --- 分數／元氣 HUD，樣式參考原版（藍框白字「分數」＋徽章數字／橘框白字「元氣」＋紅橘漸層量表），
+//           分數在上、元氣量表在下，兩排都是「粗體字＋外框」，取代原本分散在畫面各處的小字 ---
+function drawScoreAndEnergyHUD() {
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  // 第一排：分數（白字＋藍色文字外框，不是實心方框）
+  const scoreLabelX = 20, scoreLabelY = 42;
+  ctx.font = "bold 30px Arial";
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#1a6dff";
+  ctx.fillStyle = "#fff";
+  ctx.strokeText("分數", scoreLabelX, scoreLabelY);
+  ctx.fillText("分數", scoreLabelX, scoreLabelY);
+
+  // 分數數字：白字＋綠色文字外框，粗體，不套方框
+  const scoreText = String(score);
+  ctx.font = "bold 30px Arial";
+  const scoreNumX = scoreLabelX + 92;
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#2ecc40";
+  ctx.fillStyle = "#fff";
+  ctx.strokeText(scoreText, scoreNumX, scoreLabelY);
+  ctx.fillText(scoreText, scoreNumX, scoreLabelY);
+
+  // 第二排：元氣量表（白字＋橘色文字外框，不是實心方框；紅橘黃漸層長條，方角不倒圓角）
+  const gaugeLabelX = 20, gaugeLabelY = 88;
+  ctx.font = "bold 26px Arial";
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#ff8c1a";
+  ctx.fillStyle = "#fff";
+  ctx.strokeText("元氣", gaugeLabelX, gaugeLabelY);
+  ctx.fillText("元氣", gaugeLabelX, gaugeLabelY);
+
+  const barX = gaugeLabelX + 82, barY = 68, barH = 26;
+  const barW = Math.max(40, canvas.width - barX - 20);
+  // 底色（量表沒有量的部分，深紅棕色，貼近原版量表底色）
+  ctx.fillStyle = '#7a2b12';
+  ctx.fillRect(barX, barY, barW, barH);
+  // 進度（紅-橙-黃漸層，跟隨 displayTimeLeft 補間動畫）
+  let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME));
+  let fillW = Math.max(0, barW * percent);
+  let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+  grad.addColorStop(0, '#f00');
+  grad.addColorStop(0.25, '#ff8000');
+  grad.addColorStop(0.6, '#ffe600');
+  grad.addColorStop(1, '#ffe600');
+  ctx.fillStyle = grad;
+  ctx.fillRect(barX, barY, fillW, barH);
+  // 外框（改細一點，不要太粗）
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#000';
+  ctx.strokeRect(barX, barY, barW, barH);
+  // 目前數值疊在量表右側，方便玩家看到精確數字
+  ctx.font = "bold 16px Arial";
+  ctx.textAlign = 'right';
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillStyle = "#fff";
+  const energyText = String(Math.ceil(timeLeft));
+  ctx.strokeText(energyText, barX + barW - 10, barY + barH - 7);
+  ctx.fillText(energyText, barX + barW - 10, barY + barH - 7);
+
+  ctx.restore();
+}
 
 // 遊戲主迴圈
 function gameLoop(currentTime) {
@@ -2152,7 +2423,25 @@ function gameLoop(currentTime) {
     if (!fishing && !hookThrowing) {
       const HOOK_ACCEL = LINE_PARAMS.hookAccel; // 按下上下鍵時的加速度
       const HOOK_MAX_VEL = LINE_PARAMS.hookMaxVel; // 速度上限，避免無限加速造成飄浮感
-      if (keyState.up) {
+
+      // 玩家一按上／下鍵操作鉤子，就取消「碰水後自動下沉」，改成完全由玩家控制
+      if (keyState.up || keyState.down) {
+        hookAutoSinking = false;
+      }
+
+      if (hookAutoSinking) {
+        // 拉竿結束、鉤子碰到水面後，如果玩家還沒有操作，鉤子要靠慣性繼續往下沉，
+        // 一路沉到海底（hookMaxY）才會解除這個狀態，之後才會自動慢慢浮回待機高度。
+        hookVelY += LINE_PARAMS.hookAutoSinkGravity * timeScale;
+        if (hookVelY > LINE_PARAMS.hookAutoSinkMaxVelY) hookVelY = LINE_PARAMS.hookAutoSinkMaxVelY;
+        hookVelX *= Math.pow(LINE_PARAMS.hookAutoSinkVelXDamp, timeScale); // 只加強阻尼模擬水阻力，水平位移仍交給下方彈簧物理區塊統一處理，避免重複位移
+        hookY += hookVelY * timeScale;
+        if (hookY >= LINE_PARAMS.hookMaxY) {
+          hookY = LINE_PARAMS.hookMaxY;
+          hookVelY = 0;
+          hookAutoSinking = false; // 碰底了，解除自動下沉，接下來恢復一般行為（會自動慢慢浮回 hookRestY）
+        }
+      } else if (keyState.up) {
         hookVelY -= HOOK_ACCEL * timeScale; // 向上拉
       } else if (keyState.down) {
         hookVelY += HOOK_ACCEL * timeScale; // 向下拉
@@ -2165,10 +2454,13 @@ function gameLoop(currentTime) {
           hookVelY += diff * LINE_PARAMS.hookReturnDownRate * timeScale; // 下沉稍慢，但比原本更緊繃
         }
       }
-      // 阻尼：放手瞬間更快煞停，操作起來更「跟手」
-      hookVelY *= Math.pow(LINE_PARAMS.hookVelDamp, timeScale);
-      hookVelY = Math.max(-HOOK_MAX_VEL, Math.min(HOOK_MAX_VEL, hookVelY));
-      hookY += hookVelY * timeScale;
+
+      if (!hookAutoSinking) {
+        // 阻尼：放手瞬間更快煞停，操作起來更「跟手」
+        hookVelY *= Math.pow(LINE_PARAMS.hookVelDamp, timeScale);
+        hookVelY = Math.max(-HOOK_MAX_VEL, Math.min(HOOK_MAX_VEL, hookVelY));
+        hookY += hookVelY * timeScale;
+      }
       if (hookY < LINE_PARAMS.hookMinY) {
         hookY = LINE_PARAMS.hookMinY;
         hookVelY = 0;
@@ -2190,19 +2482,47 @@ function gameLoop(currentTime) {
     //           一定要等鉤子真的碰到水面才能按空白鍵拉第二次竿。
     if (hookThrowing) {
       if (hookThrowPhase === 'loop') {
+        // 修正：落點 X 不再只在甩竿開始那一刻凍結一次，而是每一幀都重新讀取角色目前的 x，
+        // 這樣鉤子迴圈甩出去、準備落下的目標位置，會即時跟著角色的左右移動而改變，
+        // 不會出現「角色明明移動了，鉤子卻還是往舊位置甩」的錯位感。
+        // （hookThrowPlayerDir 仍維持凍結，只用來決定偏移量的方向，避免迴圈甩到一半突然變向）
+        hookThrowEndX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * hookThrowPlayerDir;
         // 迴圈中心點：落在起點與終點連線的中點，並往上偏移 hookLoopHeight，
         // 讓整個迴圈鼓起在連線上方（對應參考圖：鉤子往上繞一圈再落到角色身邊）。
         // 迴圈本身的幾何形狀維持原本設計，改變的只有「沿著迴圈前進的速度」。
         const loopCenterX = (hookThrowStartX + hookThrowEndX) / 2;
         const loopCenterY = (hookThrowStartY + hookThrowEndY) / 2 - LINE_PARAMS.hookLoopHeight;
 
+        // 整個橢圓迴圈要跟著「拉竿當下，精靈與魚鉤之間的傾斜角度」一起歪——這個角度已經在
+        // startHookCast() 裡凍結成 hookThrowTiltAngle，衝破水面那一瞬間就是沿著這個方向衝出去，
+        // 不是每一幀重新用「起點到終點」（終點是很遠的天空高度 hookThrowSkyY）算一次角度。
+        // 如果重新用起點到終點算，垂直距離會遠大於水平落差，算出來的角度會被稀釋到接近 0，
+        // 導致不管拉竿前魚鉤偏得多斜，整個迴圈看起來還是幾乎垂直。hookLoopTiltFactor 用來加強/減弱
+        // 這個效果（1＝傾斜角度完全比照精靈與魚鉤的角度，>1＝更誇張，0＝關閉、迴圈永遠正對垂直方向）。
+        const loopTiltAngle = hookThrowTiltAngle * LINE_PARAMS.hookLoopTiltFactor;
+        const cosTilt = Math.cos(loopTiltAngle), sinTilt = Math.sin(loopTiltAngle);
+        // 世界座標 -> 迴圈本地座標：把整個世界「轉回」讓迴圈主軸朝正上方的角度，
+        // 這樣底下橢圓壓縮的算法完全不用變，繼續假設自己是「正對垂直方向」在算。
+        function toLoopLocal(px, py) {
+          const dx = px - loopCenterX, dy = py - loopCenterY;
+          return { x: dx * cosTilt + dy * sinTilt, y: -dx * sinTilt + dy * cosTilt };
+        }
+        // 迴圈本地座標 -> 世界座標：算完路徑後，再把結果「轉回」疊上魚線的傾斜角度。
+        // 因為起點/終點都是先轉進再轉出（互為反向旋轉），所以起點/終點在世界座標系的位置
+        // 完全不受影響，只有中間鼓起繞圈的部分會跟著整體歪斜。
+        function toLoopWorld(lx, ly) {
+          return { x: loopCenterX + lx * cosTilt - ly * sinTilt, y: loopCenterY + lx * sinTilt + ly * cosTilt };
+        }
+
         // 讓迴圈變橢圓的技巧：先把水平座標「壓縮」進一個圓形空間裡算角度／半徑（跟原本算法一樣是圓），
         // 最後畫出來的瞬間再把 X 座標「放大」回真實空間，整條路徑就會變成水平方向被壓扁的橢圓；
         // 因為起點/終點在壓縮再放大之後會精確還原成原始座標，所以起點和終點的位置完全不受影響，
         // 只有中間鼓起繞圈的部分會變窄。hookLoopXScale 越小，迴圈越扁越像橢圓；1 則維持原本正圓。
         const xScale = Math.max(0.05, LINE_PARAMS.hookLoopXScale);
-        const startDX = (hookThrowStartX - loopCenterX) / xScale, startDY = hookThrowStartY - loopCenterY;
-        const endDX = (hookThrowEndX - loopCenterX) / xScale, endDY = hookThrowEndY - loopCenterY;
+        const startLocal = toLoopLocal(hookThrowStartX, hookThrowStartY);
+        const endLocal = toLoopLocal(hookThrowEndX, hookThrowEndY);
+        const startDX = startLocal.x / xScale, startDY = startLocal.y;
+        const endDX = endLocal.x / xScale, endDY = endLocal.y;
         const startAngle = Math.atan2(startDY, startDX);
         const endAngle = Math.atan2(endDY, endDX);
         const startRadius = Math.hypot(startDX, startDY);
@@ -2241,8 +2561,13 @@ function gameLoop(currentTime) {
         const angle = startAngle + totalAngle * t;
         const radius = startRadius + (endRadius - startRadius) * t;
 
-        hookDrawX = loopCenterX + Math.cos(angle) * radius * xScale;
-        hookY     = loopCenterY + Math.sin(angle) * radius;
+        // 先在「迴圈本地座標」（永遠正對垂直方向）算出橢圓上的點，最後才轉回世界座標、
+        // 疊上魚線甩出的傾斜角度，讓整個迴圈跟著歪斜。
+        const loopLocalX = Math.cos(angle) * radius * xScale;
+        const loopLocalY = Math.sin(angle) * radius;
+        const loopWorldPt = toLoopWorld(loopLocalX, loopLocalY);
+        hookDrawX = loopWorldPt.x;
+        hookY     = loopWorldPt.y;
 
         if (hookThrowT >= 1) {
           // 迴圈甩完，交給真正的重力自由落下階段——此時鉤子通常還在半空中（角色背後上方），
@@ -2250,45 +2575,41 @@ function gameLoop(currentTime) {
           hookThrowPhase = 'fall';
           // 用迴圈甩到最後瞬間的速度（角速度 × 半徑變化）換算出真實的切線速度，
           // 讓自由落下的初始動量延續甩竿最後的力道，銜接得自然，不會憑空歸零卡一下。
-          // 水平分量一樣要乘上 xScale 放大回真實空間，跟畫面座標算法保持一致。
+          // 水平分量一樣要乘上 xScale 放大回真實空間，跟畫面座標算法保持一致；
+          // 這股速度是「本地座標」算出來的方向量，最後也要用同一個傾斜角度轉回世界座標
+          // （方向量只需要旋轉，不需要再加上 loopCenter 的位移）。
           const angVelNow = totalAngle * hookThrowAngVel;
           const radVelNow = (endRadius - startRadius) * hookThrowAngVel;
-          hookFallVelX = (-Math.sin(angle) * angVelNow * radius + Math.cos(angle) * radVelNow) * xScale;
-          hookFallVelY =  Math.cos(angle) * angVelNow * radius + Math.sin(angle) * radVelNow;
+          const localVelX = (-Math.sin(angle) * angVelNow * radius + Math.cos(angle) * radVelNow) * xScale;
+          const localVelY =  Math.cos(angle) * angVelNow * radius + Math.sin(angle) * radVelNow;
+          hookFallVelX = localVelX * cosTilt - localVelY * sinTilt;
+          hookFallVelY = localVelX * sinTilt + localVelY * cosTilt;
         }
       } else if (hookThrowPhase === 'fall') {
         // 'fall' 階段：鉤子還在空中，真正的重力物理，不再是內插動畫。
         hookFallVelY += LINE_PARAMS.hookFallGravity * timeScale;
         if (hookFallVelY > LINE_PARAMS.hookFallMaxVelY) hookFallVelY = LINE_PARAMS.hookFallMaxVelY;
         hookFallVelX *= Math.pow(LINE_PARAMS.hookFallVelXDamp, timeScale);
+        // 修正：自由落下時也持續往「角色目前位置對應的落點」方向做一點點牽引，
+        // 讓玩家在鉤子還沒落水前繼續左右移動時，最終落水點依然會跟著微調，
+        // 而不是完全交給甩竿那一瞬間就已經固定死的動量決定。
+        const fallTargetX = bigFish.x - LINE_PARAMS.hookLandingBehindOffset * hookThrowPlayerDir;
+        hookFallVelX += (fallTargetX - hookDrawX) * LINE_PARAMS.hookXSpring * timeScale;
         hookDrawX += hookFallVelX * timeScale;
         hookY += hookFallVelY * timeScale;
 
-        // 鉤子碰到水面後，先不要結束拉竿；改成切換到「沒入水中繼續下沉」階段，
-        // 這樣才會像原版一樣一路沉到海底碰底，而不是碰到水面就停住。
+        // 鉤子碰到水面，這次拉竿就算結束，玩家可以馬上再按一次空白鍵甩下一竿；
+        // 但如果玩家沒有馬上再拉竿、也沒按上下鍵，鉤子要繼續靠慣性自動下沉到海底，
+        // 碰底之後才會自動浮回待機高度（見下方 hookAutoSinking 的處理）。
         const waterYHere = getWaveY(hookDrawX, wavePhase);
         if (hookY >= waterYHere) {
-          hookThrowPhase = 'sink';
-          hookFallVelY *= 0.5; // 入水瞬間水的阻力讓下沉速度先減半，銜接更自然
-        }
-      } else if (hookThrowPhase === 'sink') {
-        // 'sink' 階段：鉤子已經沒入水面以下，用比空中更弱的重力＋更強的阻力繼續下沉，
-        // 一路沉到真正的海底（hookMaxY）才算這次拉竿真正結束。
-        hookFallVelY += LINE_PARAMS.hookSinkGravity * timeScale;
-        if (hookFallVelY > LINE_PARAMS.hookSinkMaxVelY) hookFallVelY = LINE_PARAMS.hookSinkMaxVelY;
-        hookFallVelX *= Math.pow(LINE_PARAMS.hookSinkVelXDamp, timeScale);
-        hookDrawX += hookFallVelX * timeScale;
-        hookY += hookFallVelY * timeScale;
-
-        // 只有鉤子真的碰到海底，這次拉竿才算真正結束，玩家才能再按一次空白鍵甩下一竿。
-        if (hookY >= LINE_PARAMS.hookMaxY) {
-          hookY = LINE_PARAMS.hookMaxY;
+          hookY = waterYHere;
           hookThrowing = false;
           fishing = false;
           hookThrowPhase = 'loop'; // 重置，準備下一次甩竿
-          hookVelY = 0; // 碰底後速度歸零，避免殘留下沉速度讓鉤子看起來彈起來
+          hookVelY = hookFallVelY; // 保留碰水當下的下沉動量，讓鉤子自然接著往下沉，而不是瞬間停住
           hookVelX = hookFallVelX * 0.3;
-          hookTargetY = LINE_PARAMS.hookRestY;
+          hookAutoSinking = true; // 進入「自動下沉到海底」狀態，直到碰底或玩家操作為止
         }
       }
     } else {
@@ -2360,7 +2681,7 @@ function gameLoop(currentTime) {
         // - 一般魚：直接原地重生成一條新魚（維持畫面上魚的總數固定）
         // - 小黃魚群的魚：游出畫面就直接消失、不再補新的，
         //   這樣一群魚游完之後就會恢復成只有一般魚，並乾淨地等待下一次 35 秒倒數
-        if ((fish.dir === 1 && fish.x > canvas.width + 40) || (fish.dir === -1 && fish.x < -40)) {
+        if ((fish.dir === 1 && fish.x > canvas.width + SPAWN_MARGIN) || (fish.dir === -1 && fish.x < -SPAWN_MARGIN)) {
           if (fish.fishTier === 'school') {
             fish.removeMe = true;
             continue; // 不畫也不補新魚，直接跳過
@@ -2389,7 +2710,7 @@ function gameLoop(currentTime) {
           trash.bobTime = (trash.bobTime || 0) + deltaTime / 1000;
           trash.y = trash.baseY + Math.sin(trash.bobTime * trash.bobSpeed + trash.bobPhase) * trash.bobAmplitude;
         }
-        if ((trash.dir === 1 && trash.x > canvas.width + 40) || (trash.dir === -1 && trash.x < -40)) {
+        if ((trash.dir === 1 && trash.x > canvas.width + SPAWN_MARGIN) || (trash.dir === -1 && trash.x < -SPAWN_MARGIN)) {
           // 重新生成
           Object.assign(trash, createTrash());
         }
@@ -2464,6 +2785,9 @@ function gameLoop(currentTime) {
             trash.lifting = false;
             trash.everAboveWater = false;
           } else if (!fishing && !hookThrowing) {
+            // 修正：把 baseY 同步成目前實際位置，避免下一幀用舊的 baseY 計算位置，
+            // 造成垃圾瞬間「消失、瞬移回海裡」的跳動感
+            trash.baseY = trash.y;
             trash.lifting = false;
             trash.hookLineIndex = null;
             trash.hookLineT = 0;
@@ -2484,6 +2808,8 @@ function gameLoop(currentTime) {
         }
         if (Math.abs(trash.y - trash.fallEndY) < 1) {
           trash.y = trash.fallEndY;
+          // 修正：下沉動畫結束時同步 baseY，避免恢復自由漂動那一幀又跳回舊的 baseY
+          trash.baseY = trash.y;
           trash.falling = false;
         }
       }
@@ -2493,7 +2819,7 @@ function gameLoop(currentTime) {
     if (specialSeaCreature) {
       if (!specialSeaCreature.caught && !specialSeaCreature.lifting) {
         specialSeaCreature.x += specialSeaCreature.speed * specialSeaCreature.dir * timeScale;
-        if ((specialSeaCreature.dir === 1 && specialSeaCreature.x > canvas.width + 40) || (specialSeaCreature.dir === -1 && specialSeaCreature.x < -40)) {
+        if ((specialSeaCreature.dir === 1 && specialSeaCreature.x > canvas.width + SPAWN_MARGIN) || (specialSeaCreature.dir === -1 && specialSeaCreature.x < -SPAWN_MARGIN)) {
           specialSeaCreature = null; // 游出畫面消失
         }
       } else if (specialSeaCreature.caught && specialSeaCreature.fadeOut) {
@@ -2599,42 +2925,12 @@ function gameLoop(currentTime) {
       }
     }
 
-    // 分數顯示在畫面上方
-    ctx.save();
-    ctx.font = "bold 36px Arial";
-    ctx.fillStyle = "#0c0"; // 綠色
-    ctx.fillText("分數: " + score, 30, 60);
-    ctx.restore();
-
+    // 分數與元氣 HUD（樣式參考原版：分數在上、元氣量表在下）
     // 補間動畫：讓 displayTimeLeft 慢慢趨近 timeLeft
     const lerpSpeed = 0.18; // 越大越快
     displayTimeLeft += (timeLeft - displayTimeLeft) * lerpSpeed;
     if (Math.abs(displayTimeLeft - timeLeft) < 0.1) displayTimeLeft = timeLeft;
-    // 時間百分比條
-    const barX = 200, barY = 20, barW = 400, barH = 18;
-    ctx.save();
-    // 底色
-    ctx.fillStyle = '#ccc';
-    ctx.fillRect(barX, barY, barW, barH);
-    // 進度（彩色漸層條，依照圖片：紅-橙-黃-金黃）
-    let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME)); // 用 displayTimeLeft
-    let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-    grad.addColorStop(0, '#f00'); // 紅
-    grad.addColorStop(0.25, '#ff8000'); // 橙
-    grad.addColorStop(0.6, '#ffe600'); // 黃
-    grad.addColorStop(1, '#ffe600'); // 金黃
-    ctx.fillStyle = grad;
-    ctx.fillRect(barX, barY, barW * percent, barH);
-    // 邊框
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(barX, barY, barW, barH);
-    ctx.restore();
-
-    // 元氣值
-    ctx.fillStyle = "#06c"; // 藍色
-    ctx.font = "24px Arial";
-    ctx.fillText("元氣: " + Math.ceil(timeLeft), 620, 40);
+    drawScoreAndEnergyHUD();
 
     // 魚被釣上來動畫：全程緊貼釣線／鉤子，沒有自己獨立的物理運動
     for (let fish of fishes) {
@@ -2725,6 +3021,9 @@ function gameLoop(currentTime) {
             fish.everAboveWater = false;
           } else if (!fishing && !hookThrowing) {
             // 從沒被拉出水面過，玩家已經放開釣竿：脫離釣線，恢復自由游動
+            // 修正：把 baseY 同步成目前實際位置，避免下一幀用舊的 baseY 計算位置，
+            // 造成魚瞬間「消失、瞬移回海裡」的跳動感
+            fish.baseY = fish.y;
             fish.lifting = false;
             fish.hookLineIndex = null;
             fish.hookLineT = 0;
@@ -2745,6 +3044,8 @@ function gameLoop(currentTime) {
         }
         if (Math.abs(fish.y - fish.fallEndY) < 1) {
           fish.y = fish.fallEndY;
+          // 修正：下沉動畫結束時同步 baseY，避免恢復自由游動那一幀又跳回舊的 baseY
+          fish.baseY = fish.y;
           fish.falling = false;
         }
       }
@@ -2797,36 +3098,13 @@ function gameLoop(currentTime) {
         if (bowlY > bowlSinkTargetY) bowlY = bowlSinkTargetY;
       }
       drawPlayer();
-      // 遮罩與分數、結束字樣
-      ctx.fillStyle = "rgba(0,0,0,0.7)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.font = "bold 36px Arial";
-      ctx.fillStyle = "#0c0";
-      ctx.fillText("分數: " + score, 30, 60);
-      ctx.restore();
-      // 時間條
-      const barX = 200, barY = 20, barW = 400, barH = 18;
-      ctx.save();
-      ctx.fillStyle = '#ccc';
-      ctx.fillRect(barX, barY, barW, barH);
-      let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME)); // 用 displayTimeLeft
-      let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-      grad.addColorStop(0, '#f00');
-      grad.addColorStop(0.25, '#ff8000');
-      grad.addColorStop(0.6, '#ffe600');
-      grad.addColorStop(1, '#ffe600');
-      ctx.fillStyle = grad;
-      ctx.fillRect(barX, barY, barW * percent, barH);
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(barX, barY, barW, barH);
-      ctx.restore();
-      ctx.fillStyle = "#06c";
-      ctx.font = "24px Arial";
-      ctx.fillText("元氣: " + Math.ceil(timeLeft), 620, 40);
+      // 分數／元氣 HUD 與結束字樣（不再疊加黑色半透明遮罩，畫面維持乾淨）
+      drawScoreAndEnergyHUD();
       ctx.fillStyle = "#fff";
-      ctx.font = "48px Arial";
+      ctx.font = "bold 48px Arial";
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "rgba(0,0,0,0.55)";
+      ctx.strokeText("遊戲結束", 300, 300);
       ctx.fillText("遊戲結束", 300, 300);
       ctx.font = "36px Arial";
       ctx.fillStyle = "#0c0";
@@ -2981,6 +3259,7 @@ restartBtn.addEventListener("click", () => {
   hookVelY = 0;
   hookTargetY = LINE_PARAMS.hookRestY;
   hookVelX = 0;
+  hookAutoSinking = false; // 重新開始時重置自動下沉狀態
   // 重置拉竿物理狀態，避免重新開始時卡在上一輪的甩竿/落下狀態
   fishing = false;
   hookThrowing = false;
