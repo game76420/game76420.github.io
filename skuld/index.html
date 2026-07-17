@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -42,6 +43,19 @@
     transition:background 0.2s, transform 0.2s;
   }
   #settingsBtn:hover{ background:rgba(20,20,20,0.85); transform:scale(1.06); }
+
+  /* ===== 重開遊戲按鈕：固定在設定齒輪下方，設定面板開關都能點，共用同一顆 ===== */
+  #restartGameBtn{
+    position:fixed; top:56px; right:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:rgba(58,168,86,0.85);
+    color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transition:background 0.2s, transform 0.2s;
+  }
+  #restartGameBtn:hover{ background:rgba(47,140,70,0.95); transform:scale(1.06); }
 
   /* ===== 設定面板：靠右側的側邊面板，不會擋住整個遊戲畫面 ===== */
   #paramPanel{
@@ -231,6 +245,7 @@
 <div id="hint">← → 移動　↑ 跳躍　空白鍵 揮槌　跳到兔子頭上可直接踩踏</div>
 
 <button id="settingsBtn" title="遊戲參數設定">⚙️</button>
+<button id="restartGameBtn" title="重新開始遊戲">🔄</button>
 
 <!-- 虛擬搖桿：手機/平板上用來控制左右移動與跳躍 -->
 <div id="joystick" style="display:none;">
@@ -376,6 +391,19 @@ const IMG = {
   bunPop: [
     img("bunny_pop_1.png"),
     img("bunny_pop_2.png")
+  ],
+
+  // 兔子王專屬跑步/跳躍動畫幀（用法跟 bunRun 完全相同，只是換成兔子王的圖）
+  bunKingRun: [
+    img("bunny_king_run_1.png"),
+    img("bunny_king_run_2.png"),
+    img("bunny_king_run_3.png"),
+    img("bunny_king_run_4.png"),
+    img("bunny_king_run_5.png"),
+    img("bunny_king_run_6.png"),
+    img("bunny_king_run_7.png"),
+    img("bunny_king_run_8.png"),
+    img("bunny_king_run_9.png")
   ]
 };
 
@@ -471,7 +499,8 @@ let GAME_PARAMS = {
   hammerHitboxHeight: 132,     // 揮槌的攻擊判定高度
   hammerHitboxYOffset: 132,    // 揮槌判定範圍往上偏移多少（以玩家腳底為基準）
   hammerHitboxOffsetX: 0,      // 揮槌攻擊判定左右偏移（正值往右移，負值往左移，不受朝向影響，方便微調攻擊框跟角色圖像的對齊）
-  stompHitboxScale: 0.1,       // 跳到兔子頭上踩踏判定的高度比例（相對於兔子碰撞箱高度）
+  stompHitboxScale: 0.5,       // 跳到兔子頭上踩踏判定的高度比例（相對於兔子碰撞箱高度；0.5=兔子上半身都算踩踏範圍）
+  playerStompHitboxHeight: 26, // 玩家腳底的踩踏判定箱高度（從腳底往上延伸多高都算「腳」，箱子越高，踩踏越好按）
   itemWidth: 24,               // 加命道具碰撞箱寬度（掉落中）
   itemHeight: 30,              // 加命道具碰撞箱高度（掉落中）
   itemLandedWidth: 30,         // 加命道具落地後碰撞箱寬度（同時也是繪製寬度）
@@ -503,18 +532,30 @@ let GAME_PARAMS = {
   holeRadiusMax: 18,           // 洞口圓形隨時間增長到的最大半徑
   holeOpacity: 1,              // 洞口的不透明度（1=全黑不透光，數值越小越透明）
   spawnTimerInitial: 40,       // 開始遊戲後，第一隻兔子出現前的等待時間
-  spawnIntervalStart: 600,     // 遊戲開始時，兔子生成的間隔（600影格＝10秒 @60fps；影響值越大越少兔子）
-  spawnIntervalMin: 60,        // 生成間隔會隨著洞口數量縮短，這是最短間隔（下限）
-  spawnIntervalDecayRatio: 0.7, // 每次生成新洞口後，下一次的生成間隔＝目前間隔×此比例（例如 0.95＝每個洞口縮短 5%，數值越小縮減越快）
-  maxConcurrentEnemies: 1,     // 場上同時存在的洞口+兔子數量上限
+  spawnIntervalStart: 300,     // 遊戲開始時，兔子生成的間隔（300影格＝5秒 @60fps；第一個洞口用這個值）
+  spawnIntervalMin: 30,        // 生成間隔會隨著洞口數量縮短，這是最短間隔（下限，30影格=0.5秒）
+  bunnyAppearIntervalDecayRatio: 0.9, // 洞口兔子出現間隔的縮減比例：每開一個新洞口後，下一次「洞口兔子出現間隔」＝目前間隔×此比例（0.9＝每次縮短10%，例如 5秒→4.5秒→4.05秒…，縮到 spawnIntervalMin 為止；兔子王的洞口不計入這個縮減），比例越小，下一個洞口的兔子出現得越快
+  maxConcurrentHoles: 1,       // 場上同時存在的洞口數量上限初始值（包含還在排隊生兔子的洞口）；每打敗一隻兔子王，這個上限會 +1（遊戲執行期間累加，此參數只影響開局初始值）
   bunnySpawnCountMin: 5,       // 一個洞口一次會生出的兔子數量下限（可在設定面板調整）
   bunnySpawnCountMax: 10,      // 一個洞口一次會生出的兔子數量上限（可在設定面板調整）
-  bunnySpawnStagger: 600,      // 同一個洞口的兔子，每隻之間相隔幾格才出現下一隻（一隻接一隻，不是一次全部冒出）（600 影格 = 10 秒 @60fps）
+  bunnySpawnStagger: 300,      // 同一個洞口的兔子，每隻之間相隔幾格才出現下一隻（一隻接一隻，不是一次全部冒出）（60 影格 = 1 秒 @60fps）
 
   // --- 加命道具（隨機時間從畫面上方掉落，接住可以加一命）---
   itemDropIntervalMin: 3600,       // 加命道具生成間隔下限（影格數）
   itemFallSpeed: 3.2,              // 加命道具掉落速度
   itemLandDuration: 90,            // 加命道具落地後，停留幾影格讓玩家還能撿（超過就消失）
+
+  // --- 兔子王（隨機出現的強化版兔子，外型跟一般兔子相同、頭上戴皇冠，跳起後朝玩家方向緩慢滑行下降）---
+  kingSpawnIntervalMin: 1200,      // 兔子王出現間隔下限（影格數，1200影格=20秒 @60fps）
+  kingSpawnIntervalMax: 1800,      // 兔子王出現間隔上限（1800影格=30秒 @60fps）
+  kingHP: 3,                       // 兔子王需要被打中幾次才會消滅
+  kingGlideDurationStart: 40,      // 第1隻兔子王：從最高點滑行到落地所需的時間（影格數，越小落地越快，難度越低）
+  kingGlideDurationIncrease: 20,   // 每出現一隻兔子王，下一隻的滑行時間增加多少（讓越後面的兔子王滑得越久）
+  kingGlideDurationMax: 220,       // 滑行時間上限，避免無限增加
+  kingRiseHeight: 260,             // 兔子王跳起的最高點，相對於地面往上多少像素
+  kingRiseDuration: 35,            // 兔子王從地面跳到最高點所需時間（影格數）
+  kingHitFlashDuration: 10,        // 兔子王被打中一次後，受擊閃爍效果持續時間（還沒死掉時）
+  kingHorizontalEase: 0.06,        // 滑行中每影格朝玩家水平位置修正的比例（越大追蹤越緊、轉向越快）
 
   // --- 音效檔案名稱（檔案要放在 sound/ 資料夾底下，例如 Data_1.wav）---
   sfxFileHurt: "Data_4.wav",         // 玩家受傷
@@ -558,6 +599,7 @@ const GAME_PARAMS_META = [
   ["揮槌判定上偏移 hammerHitboxYOffset", "hammerHitboxYOffset", 0, 80, 2, "free"],
   ["揮槌攻擊左右偏移 hammerHitboxOffsetX", "hammerHitboxOffsetX", -40, 40, 2, "free"],
   ["踩踏判定比例 stompHitboxScale", "stompHitboxScale", 0.2, 1, 0.05, "free"],
+  ["玩家踩踏箱高度 playerStompHitboxHeight", "playerStompHitboxHeight", 4, 60, 1, "free"],
   ["道具碰撞箱寬度(掉落中) itemWidth", "itemWidth", 10, 60, 2, "free"],
   ["道具碰撞箱高度(掉落中) itemHeight", "itemHeight", 10, 60, 2, "free"],
   ["道具碰撞箱寬度(落地後) itemLandedWidth", "itemLandedWidth", 10, 60, 2, "free"],
@@ -585,10 +627,10 @@ const GAME_PARAMS_META = [
   ["洞口最大半徑 holeRadiusMax", "holeRadiusMax", 1, 60, 1, "free"],
   ["洞口不透明度 holeOpacity", "holeOpacity", 0, 1, 0.05],
   ["第一隻兔子等待 spawnTimerInitial", "spawnTimerInitial", 0, 3.35, 0.1, "sec"],
-  ["生成間隔(初始) spawnIntervalStart", "spawnIntervalStart", 0.5, 15, 0.1, "sec"],
-  ["生成間隔(下限) spawnIntervalMin", "spawnIntervalMin", 0.25, 3.35, 0.1, "sec"],
-  ["生成間隔縮減比例(每洞口) spawnIntervalDecayRatio", "spawnIntervalDecayRatio", 0.5, 1, 0.01, "free"],
-  ["場上兔子上限 maxConcurrentEnemies", "maxConcurrentEnemies", 1, 12, 1],
+  ["洞口生成間隔(初始) spawnIntervalStart", "spawnIntervalStart", 0.5, 15, 0.1, "sec"],
+  ["洞口生成間隔(下限) spawnIntervalMin", "spawnIntervalMin", 0.25, 3.35, 0.1, "sec"],
+  ["洞口兔子出現間隔縮減比例 bunnyAppearIntervalDecayRatio", "bunnyAppearIntervalDecayRatio", 0.5, 1, 0.01, "free"],
+  ["場上洞口上限(初始) maxConcurrentHoles", "maxConcurrentHoles", 1, 10, 1],
   ["單一洞口生兔數下限 bunnySpawnCountMin", "bunnySpawnCountMin", 1, 15, 1],
   ["單一洞口生兔數上限 bunnySpawnCountMax", "bunnySpawnCountMax", 1, 20, 1],
   ["洞口兔子出現間隔 bunnySpawnStagger", "bunnySpawnStagger", 0.03, 15, 0.1, "sec"],
@@ -596,6 +638,17 @@ const GAME_PARAMS_META = [
   ["加命道具間隔(下限) itemDropIntervalMin", "itemDropIntervalMin", 2, 40, 1, "sec"],
   ["加命道具掉落速度 itemFallSpeed", "itemFallSpeed", 0.3, 6, 0.1],
   ["加命道具落地停留時間 itemLandDuration", "itemLandDuration", 0.2, 5, 0.1, "sec"],
+
+  ["兔子王出現間隔(下限) kingSpawnIntervalMin", "kingSpawnIntervalMin", 5, 60, 1, "sec"],
+  ["兔子王出現間隔(上限) kingSpawnIntervalMax", "kingSpawnIntervalMax", 5, 90, 1, "sec"],
+  ["兔子王血量(第1隻) kingHP", "kingHP", 1, 10, 1],
+  ["兔子王滑行時間(初始) kingGlideDurationStart", "kingGlideDurationStart", 0.2, 3, 0.05, "sec"],
+  ["兔子王滑行時間增量 kingGlideDurationIncrease", "kingGlideDurationIncrease", 0, 2, 0.05, "sec"],
+  ["兔子王滑行時間上限 kingGlideDurationMax", "kingGlideDurationMax", 0.5, 6, 0.05, "sec"],
+  ["兔子王跳躍高度 kingRiseHeight", "kingRiseHeight", 50, 400, 5, "free"],
+  ["兔子王上升時間 kingRiseDuration", "kingRiseDuration", 0.1, 2, 0.05, "sec"],
+  ["兔子王受擊閃爍時間 kingHitFlashDuration", "kingHitFlashDuration", 0.02, 1, 0.02, "sec"],
+  ["兔子王滑行追蹤靈敏度 kingHorizontalEase", "kingHorizontalEase", 0.01, 0.3, 0.01, "free"],
 
   ["受傷音效檔名 sfxFileHurt", "sfxFileHurt", 0, 0, 0, "text"],
   ["揮槌音效檔名 sfxFileSwing", "sfxFileSwing", 0, 0, 0, "text"],
@@ -619,15 +672,17 @@ const PARAM_CATEGORIES = [
   { kind: "player", title: "🎯 玩家　受傷狀態",
     keys: ["hurtDuration", "invulnDuration", "hurtKnockbackSpeed"] },
   { kind: "hitbox", title: "🧩 碰撞箱尺寸（開面板時畫面顯示邊框）",
-    keys: ["playerWidth", "playerHeight", "playerHitboxOffsetX", "bunnyWidth", "bunnyHeight", "bunnyHitboxOffsetX", "hammerReach", "hammerHitboxHeight", "hammerHitboxYOffset", "hammerHitboxOffsetX", "stompHitboxScale", "itemWidth", "itemHeight", "itemLandedWidth", "itemLandedHeight"] },
+    keys: ["playerWidth", "playerHeight", "playerHitboxOffsetX", "bunnyWidth", "bunnyHeight", "bunnyHitboxOffsetX", "hammerReach", "hammerHitboxHeight", "hammerHitboxYOffset", "hammerHitboxOffsetX", "stompHitboxScale", "playerStompHitboxHeight", "itemWidth", "itemHeight", "itemLandedWidth", "itemLandedHeight"] },
   { kind: "enemy", title: "🐰 兔子　移動與動畫",
     keys: ["bunnyRunSpeedMin", "bunnyRunSpeedMax", "bunnyHopVelocity", "bunnyHopGravity", "bunnyHopInterval", "bunnyDirChangeChance"] },
   { kind: "enemy", title: "🐰 兔子　被打中效果",
     keys: ["bunnyHitKnockbackVX", "bunnyHitKnockbackVY", "bunnyHitGravity", "bunnyHitDuration"] },
   { kind: "spawn", title: "🕳️ 生成　節奏與難度",
-    keys: ["bunnyEmergeDuration", "holeOpenDuration", "holeRadiusStart", "holeRadiusMax", "holeOpacity", "spawnTimerInitial", "spawnIntervalStart", "spawnIntervalMin", "spawnIntervalDecayRatio", "maxConcurrentEnemies", "bunnySpawnCountMin", "bunnySpawnCountMax", "bunnySpawnStagger"] },
+    keys: ["bunnyEmergeDuration", "holeOpenDuration", "holeRadiusStart", "holeRadiusMax", "holeOpacity", "spawnTimerInitial", "spawnIntervalStart", "spawnIntervalMin", "bunnyAppearIntervalDecayRatio", "maxConcurrentHoles", "bunnySpawnCountMin", "bunnySpawnCountMax", "bunnySpawnStagger"] },
   { kind: "spawn", title: "💊 加命道具",
     keys: ["itemDropIntervalMin", "itemFallSpeed", "itemLandDuration"] },
+  { kind: "enemy", title: "👑 兔子王",
+    keys: ["kingSpawnIntervalMin", "kingSpawnIntervalMax", "kingHP", "kingGlideDurationStart", "kingGlideDurationIncrease", "kingGlideDurationMax", "kingRiseHeight", "kingRiseDuration", "kingHitFlashDuration", "kingHorizontalEase"] },
   { kind: "sound", title: "🎵 音效檔案名稱 (sound/ 資料夾)",
     keys: ["sfxFileHurt", "sfxFileSwing", "sfxFileBunnyAppear", "sfxFileGameOver", "sfxFileJump", "sfxFileBunnyHop", "sfxFileHoleOpen", "sfxFileHit", "sfxFileStomp", "sfxFileLifeUp", "sfxFileAngry"] }
 ];
@@ -688,6 +743,13 @@ let lifeItems = [];  // 畫面上正在掉落的加命道具 {x,y,vy}
 let itemSpawnTimer = 0;
 let score = 0;
 let spawnInterval = GAME_PARAMS.spawnIntervalStart;
+let currentMaxConcurrentHoles = GAME_PARAMS.maxConcurrentHoles; // 場上洞口數量上限，每打敗一隻兔子王會 +1（難度遞增），重玩時重置
+
+// --- 兔子王 ---
+let kingRabbit = null;     // 目前場上的兔子王（同時間只會有一隻），null 代表沒有
+let kingSpawnTimer = 0;    // 距離下一次兔子王出現還要多久（影格數）
+let kingAppearCount = 0;   // 已經出現過幾隻兔子王，用來讓越後面的兔子王滑行越久（難度遞增）
+let kingHoleWait = null;   // 兔子王專屬的洞口正在開啟中，還沒正式冒出來：{holeId}，null代表沒有在等待
 
 function spawnHole(){
   const spot = HOLE_SPOTS[Math.floor(Math.random()*HOLE_SPOTS.length)];
@@ -816,6 +878,256 @@ function updateLifeItems(){
 }
 
 /* ============================================================
+   兔子王：隨機出現的強化版兔子（使用專屬的 bunny_king_run_1~9.png 圖片，
+   用法跟一般兔子的 bunRun 完全相同；被打死時的動畫則沿用一般兔子的 bunny_hit_1~6.png）。
+   跟一般兔子一樣，會先開一個洞口、從洞口裡放大冒出來、掉落到地面，
+   接著才跳到畫面最高點，朝著「玩家目前所在的水平位置」緩慢滑行下降；
+   越早出現的兔子王，滑行時間越短（下降快，落地快，難度低）；
+   越晚出現的兔子王，滑行時間越長（可以在空中滑得更久）。
+   每被打中(揮槌)或踩中一次，視同被扣一命、向後擊退並播放死亡動畫；
+   命還沒扣完的話，動畫播完後會在原地復活、繼續追玩家（等於可以復活「命數-1」次），
+   直到命全部歸零的那一次死亡動畫播完，才會真正消失。
+   第一隻兔子王預設 kingHP=3 命（可復活 2 次），之後每出現一隻新的兔子王，
+   命數就比上一隻多 1（第2隻4命/可復活3次、第3隻5命/可復活4次…以此類推）。
+   ============================================================ */
+function resetKingSpawnTimer(){
+  const lo = Math.min(GAME_PARAMS.kingSpawnIntervalMin, GAME_PARAMS.kingSpawnIntervalMax);
+  const hi = Math.max(GAME_PARAMS.kingSpawnIntervalMin, GAME_PARAMS.kingSpawnIntervalMax);
+  kingSpawnTimer = lo + Math.random()*Math.max(0, hi-lo);
+}
+
+// spot：兔子王要冒出來的洞口座標；holeId：對應的洞口編號，讓 emerge 動畫結束時知道要關閉哪個洞口
+// （兩者都由 updateKingRabbit 在洞口開完後傳進來）
+function spawnKingRabbit(spot, holeId){
+  // 滑行時間隨著已出現次數遞增：第一隻最短（落地快、難度低），之後每隻增加一些，直到上限為止
+  const glideDuration = Math.min(
+    GAME_PARAMS.kingGlideDurationMax,
+    GAME_PARAMS.kingGlideDurationStart + kingAppearCount * GAME_PARAMS.kingGlideDurationIncrease
+  );
+  // 耐打度隨著出現次數遞增：第一隻兔子王 = kingHP（預設3命），
+  // 之後每出現一隻，血量比上一隻多1命（第2隻4命、第3隻5命…以此類推）
+  const kingHitPoints = GAME_PARAMS.kingHP + kingAppearCount;
+  kingAppearCount++;
+
+  kingRabbit = {
+    x: spot.x,
+    y: spot.y,                // 一開始停在洞口位置，跟一般兔子一樣，之後才 fall 到地面
+    targetX: spot.x,          // 滑行目標 x，會在 rise 階段結束時鎖定成玩家當時的位置
+    dir: 1,
+    // emerge(從洞口放大冒出) -> fall(掉落到地面) -> rise(跳到最高點)
+    // -> glide(朝玩家方向緩慢滑行下降) -> run(落地後跟一般兔子一樣亂跳)
+    // -> hit(被打死，播放消滅動畫) -> gone
+    state: "emerge",
+    stateTimer: 0,
+    emergeScale: 0,            // emerge 狀態時，由小(0)放大到正常(1)的縮放比例，跟一般兔子的 scale 用法相同
+    holeId: holeId,            // 這隻兔子王是從哪個洞口冒出來的，emerge 動畫結束時要移除該洞口
+    riseStartY: GAME_PARAMS.floorY - 4,
+    riseTopY: (GAME_PARAMS.floorY - 4) - GAME_PARAMS.kingRiseHeight,
+    glideDuration: glideDuration,
+    glideStartX: spot.x,
+    glideStartY: GAME_PARAMS.floorY - 4,
+    hp: kingHitPoints,
+    hitFlash: 0,               // 被打中一次但還沒死時，短暫的受擊閃爍計時
+    frame: 0, frameTimer: 0,
+    hopTimer: 0, hopPrepTimer: 0,
+    vx: 0, vy: 0,
+    // 兔子王的大小固定跟一般兔子完全一致（不額外放大），兩者只差在行為模式與血量
+    w: GAME_PARAMS.bunnyWidth, h: GAME_PARAMS.bunnyHeight
+  };
+}
+
+function updateKingRabbit(){
+  // 兔子王專屬的洞口正在開啟中（放大冒出前的準備動作），先讓洞口長大，還不會生兔子王
+  if(kingHoleWait){
+    const h = holes.find(function(hh){ return hh.id === kingHoleWait.holeId; });
+    if(!h){
+      kingHoleWait = null; // 保險：洞口意外消失就重置，避免卡住
+    } else if(h.timer > 0){
+      h.timer--;
+      return;
+    } else {
+      // 洞口開好了：正式生出兔子王，記住是哪個洞口，讓 emerge 動畫結束時知道要關閉它。
+      // 這裡不 return，讓流程直接往下走，接著處理這隻新兔子王的 emerge 狀態（放大冒出動畫）
+      const spot = { x: h.x, y: h.y };
+      const holeId = h.id;
+      kingHoleWait = null;
+      spawnKingRabbit(spot, holeId);
+      play("kono");
+    }
+  }
+
+  if(!kingRabbit){
+    kingSpawnTimer--;
+    if(kingSpawnTimer <= 0){
+      // 跟一般兔子一樣，先開一個洞口，等洞口長大完成後才正式生出兔子王
+      const spot = HOLE_SPOTS[Math.floor(Math.random()*HOLE_SPOTS.length)];
+      const holeId = nextHoleId++;
+      holes.push({id: holeId, x: spot.x, y: spot.y, timer: GAME_PARAMS.holeOpenDuration, spawned: true});
+      kingHoleWait = { holeId: holeId };
+      play("popin");
+    }
+    return;
+  }
+
+  const k = kingRabbit;
+  if(k.hitFlash > 0) k.hitFlash--;
+  k.frameTimer++;
+  if(k.frameTimer > CONST.bunnyFrameInterval){
+    k.frame = (k.frame+1) % 5;
+    k.frameTimer = 0;
+  }
+
+  if(k.state === "emerge"){
+    // 剛從洞口冒出來：停在洞口位置，由小放大到正常大小，時間到了之後掉落到地面，
+    // 這時候也才移除背後那個兔子王專屬的洞口特效
+    k.stateTimer++;
+    k.emergeScale = Math.min(1, k.stateTimer / Math.max(1, GAME_PARAMS.bunnyEmergeDuration));
+    if(k.stateTimer >= GAME_PARAMS.bunnyEmergeDuration){
+      k.emergeScale = 1;
+      k.state = "fall";
+      k.stateTimer = 0;
+      if(k.holeId != null){
+        const hIdx = holes.findIndex(function(hh){ return hh.id === k.holeId; });
+        if(hIdx !== -1) holes.splice(hIdx, 1);
+        k.holeId = null;
+      }
+    }
+  } else if(k.state === "fall"){
+    // 從洞口掉落到地面，掉到地面後才開始原本「跳到最高點」的動作
+    k.vy += CONST.bunnyFallGravity;
+    k.y += k.vy;
+    if(k.y >= GAME_PARAMS.floorY - 4){
+      k.y = GAME_PARAMS.floorY - 4;
+      k.vy = 0;
+      k.state = "rise";
+      k.stateTimer = 0;
+      k.riseStartY = k.y;
+    }
+  } else if(k.state === "rise"){
+    // 跳到最高點：用平滑的 ease-out 曲線往上跳，跳到頂點時鎖定要朝玩家目前位置滑行
+    k.stateTimer++;
+    const t = Math.min(1, k.stateTimer / Math.max(1, GAME_PARAMS.kingRiseDuration));
+    const eased = 1 - (1-t)*(1-t); // ease-out
+    k.y = k.riseStartY + (k.riseTopY - k.riseStartY) * eased;
+    if(t >= 1){
+      k.state = "glide";
+      k.stateTimer = 0;
+      k.glideStartX = k.x;
+      k.glideStartY = k.y;
+    }
+  } else if(k.state === "glide"){
+    // 緩慢下降 + 持續朝玩家目前位置滑行（每影格都重新往玩家所在方向修正，而不是只鎖定起跳當下的位置，
+    // 這樣玩家移動時兔子王也會跟著調整方向，感覺像是緊追著玩家）
+    k.stateTimer++;
+    const t = Math.min(1, k.stateTimer / Math.max(1, k.glideDuration));
+    const targetX = Math.max(CONST.stageLeftBound+20, Math.min(CONST.stageRightBound-20, player.x + player.w/2));
+    k.x += (targetX - k.x) * GAME_PARAMS.kingHorizontalEase;
+    k.y = k.glideStartY + (GAME_PARAMS.floorY - 4 - k.glideStartY) * t;
+    k.dir = (targetX >= k.x) ? 1 : -1;
+    if(t >= 1){
+      k.y = GAME_PARAMS.floorY - 4;
+      k.state = "run";
+      k.stateTimer = 0;
+      k.vx = 0; k.vy = 0;
+      k.hopTimer = 0;
+    }
+    // 撞到玩家的判定已統一移到 stompCheck()（在所有位置更新完之後才判斷，
+    // 避免這裡用「移動前」的位置判斷、跟之後踩踏判定用「移動後」的位置對不上）
+  } else if(k.state === "run"){
+    // 落地後：不再隨機挑方向，而是每次起跳前都往玩家目前所在的方向跳，緊緊追著玩家
+    const grounded = (k.vy === 0 && k.y >= GAME_PARAMS.floorY - 4);
+    if(grounded){
+      k.y = GAME_PARAMS.floorY - 4;
+      k.vx = 0;
+      if(k.hopPrepTimer > 0){
+        k.hopPrepTimer--;
+        k.frame = 5;
+        if(k.hopPrepTimer <= 0){
+          // 每次落地後再次起跳，都重新走一次「跳到最高點→朝玩家滑行下降」的流程，
+          // 而不是像一般兔子那樣用固定速度的拋物線跳躍，讓兔子王每一跳都持續追蹤玩家。
+          k.state = "rise";
+          k.stateTimer = 0;
+          k.riseStartY = k.y;
+          k.vx = 0; k.vy = 0;
+          k.hopTimer = 0;
+          play("pyon");
+        }
+      } else {
+        k.hopTimer++;
+        if(k.hopTimer >= GAME_PARAMS.bunnyHopInterval){
+          k.hopPrepTimer = CONST.bunnyHopPrepDuration;
+          k.frame = 5;
+        }
+      }
+    } else {
+      k.vy += GAME_PARAMS.bunnyHopGravity;
+      k.y += k.vy;
+      k.x += k.vx;
+      if(k.y >= GAME_PARAMS.floorY - 4){
+        k.y = GAME_PARAMS.floorY - 4;
+        k.vy = 0;
+      }
+    }
+    if(k.x < CONST.stageLeftBound+10){ k.x = CONST.stageLeftBound+10; k.dir = 1; }
+    if(k.x > CONST.stageRightBound-10){ k.x = CONST.stageRightBound-10; k.dir = -1; }
+    // 撞到玩家的判定已統一移到 stompCheck()（原因同上，避免用「移動前」的舊位置判斷）
+  } else if(k.state === "hit"){
+    // 被打死了：跟一般兔子的 hit 狀態一樣，播放彈起/落地動畫後消失
+    k.stateTimer++;
+    if(k.frameTimer > CONST.bunnyHitFrameInterval){
+      k.frameTimer = 0;
+      if(!k.hitLanded) k.frame = Math.min(k.frame+1, 2);
+      else k.frame = Math.min(k.frame+1, 5);
+    }
+    if(!k.hitLanded){
+      k.vy += GAME_PARAMS.bunnyHitGravity;
+      k.x += k.vx;
+      k.y += k.vy;
+      if(k.y >= GAME_PARAMS.floorY){
+        k.y = GAME_PARAMS.floorY;
+        k.vx = 0; k.vy = 0;
+        k.hitLanded = true;
+        k.frame = 3;
+        k.frameTimer = 0;
+      }
+    }
+    if(k.stateTimer > GAME_PARAMS.bunnyHitDuration){
+      if(k.hp <= 0){
+        // 命全部用完：這次才是真的死亡消失
+        kingRabbit = null;
+        currentMaxConcurrentHoles++; // 每打敗一隻兔子王，場上洞口上限 +1，之後洞口會越開越多
+        resetKingSpawnTimer();
+      } else {
+        // 還有命：在原地復活，重新回到落地跑跳的狀態，繼續追玩家
+        k.state = "run";
+        k.stateTimer = 0;
+        k.frame = 0; k.frameTimer = 0;
+        k.y = GAME_PARAMS.floorY - 4;
+        k.vx = 0; k.vy = 0;
+        k.hopTimer = 0; k.hopPrepTimer = 0;
+        k.hitLanded = false;
+        play("kono");
+      }
+    }
+  }
+}
+
+// 兔子王被打中一次（揮槌或踩踏都會呼叫）：視同扣一命 + 向後擊退，並播放死亡動畫，
+// 命歸零才真正消失，否則動畫播完後在原地復活繼續追玩家。
+function hitKingRabbit(viaStomp){
+  const k = kingRabbit;
+  if(!k || k.state === "hit") return; // 死亡/復活動畫進行中，不重複判定
+  k.hp--;
+  k.state = "hit";
+  k.frame = 0; k.frameTimer = 0; k.stateTimer = 0;
+  k.hitLanded = false;
+  k.vy = GAME_PARAMS.bunnyHitKnockbackVY;
+  k.vx = (k.x < player.x ? -GAME_PARAMS.bunnyHitKnockbackVX : GAME_PARAMS.bunnyHitKnockbackVX);
+  score += (k.hp <= 0) ? 5 : 2; // 真正消滅給比較高的分數，只是扣命復活則給較少分數
+  play(viaStomp ? "fumi" : "pon");
+}
+
+/* ============================================================
    遊戲狀態
    ============================================================ */
 let gameState = "title";  // title, playing, gameover
@@ -834,6 +1146,11 @@ function startGame(){
   resetItemSpawnTimer();
   spawnTimer = GAME_PARAMS.spawnTimerInitial;
   spawnInterval = GAME_PARAMS.spawnIntervalStart;
+  currentMaxConcurrentHoles = GAME_PARAMS.maxConcurrentHoles;
+  kingRabbit = null;
+  kingAppearCount = 0;
+  kingHoleWait = null;
+  resetKingSpawnTimer();
   gameState = "playing";
 }
 
@@ -963,6 +1280,14 @@ function resolveHammerHit(){
       player.swingHitBunnies.add(b);
     }
   }
+  // 兔子王：rise(上升)、glide(滑行中)、run(落地後) 都可以被揮槌打中，全程沒有無敵空窗。
+  // 大小與碰撞箱跟一般兔子完全一致，直接沿用同一套 bunnyBoxX() 公式，只差在呼叫 hitKingRabbit()。
+  if(kingRabbit && (kingRabbit.state === "rise" || kingRabbit.state === "glide" || kingRabbit.state === "run") && !player.swingHitBunnies.has(kingRabbit)){
+    if(overlap(hitX, player.y-yOff, reach, hh, bunnyBoxX(kingRabbit), kingRabbit.y - kingRabbit.h, kingRabbit.w, kingRabbit.h)){
+      hitKingRabbit(false);
+      player.swingHitBunnies.add(kingRabbit);
+    }
+  }
 }
 
 function hitBunny(b, viaStomp){
@@ -975,23 +1300,50 @@ function hitBunny(b, viaStomp){
   play(viaStomp ? "fumi" : "pon");   // 踩踏用 fumi（Data_8.wav），揮槌用 pon
 }
 
+// 判斷「玩家腳底踩踏箱」是否踩中某隻兔子（一般兔子或兔子王共用同一套大小與判定邏輯，
+// 兩者的碰撞箱都是 entity.w / entity.h，不會另外放大，唯一差別在呼叫方要各自處理命中效果）
+function isStomped(entity, px, pStompTop, pStompBottom){
+  const ex = bunnyBoxX(entity);
+  const stompTop = entity.y - entity.h;
+  const stompBottom = stompTop + entity.h*GAME_PARAMS.stompHitboxScale;
+  const horizontalOverlap = px < ex + entity.w && px + player.w > ex;
+  const verticalOverlap = pStompBottom >= stompTop && pStompTop <= stompBottom;
+  return horizontalOverlap && verticalOverlap;
+}
+
 function stompCheck(){
-  // 踩踏判定：只有玩家正在「從高處往下墜」（vy > 0）的時候才算數，
-  // 而且必須是玩家碰撞箱的底部（腳底）落在兔子踩踏判定區的上緣～下緣之間，
-  // 也就是真的由上往下踩到兔子頭頂，才會判定攻擊有效（往上跳、平移擦過等狀況都不算）。
-  if(!player.onGround && player.vy > 0){
-    const px = playerBoxX(), pBottom = player.y; // 玩家碰撞箱底部＝腳底 Y 座標
-    for(const b of bunnies){
-      if(b.state !== "run" && b.state !== "fall") continue;
-      const bx = bunnyBoxX(b);
-      const stompTop = b.y - b.h;
-      const stompBottom = stompTop + b.h*GAME_PARAMS.stompHitboxScale;
-      const horizontalOverlap = px < bx + b.w && px + player.w > bx;
-      const bottomInStompBand = pBottom >= stompTop && pBottom <= stompBottom;
-      if(horizontalOverlap && bottomInStompBand){
-        hitBunny(b, true);
-        player.vy = GAME_PARAMS.jumpVelocity*0.6;
-      }
+  // 踩踏／撞到玩家的判定，統一在這裡處理（在所有兔子、兔子王都移動完這一格之後才呼叫，
+  // 確保「有沒有踩中」跟「有沒有撞到受傷」用的是同一個、這一格最終定案的位置，不會因為
+  // 兩個判定分別發生在「移動前」和「移動後」而互相矛盾，導致明明踩踏成功卻又同時被判定受傷）
+  const px = playerBoxX();
+  const canStomp = !player.onGround && player.vy > 0;
+  const pStompBottom = player.y;                                   // 玩家腳底（碰撞箱最下緣）
+  const pStompTop = player.y - GAME_PARAMS.playerStompHitboxHeight; // 腳底往上延伸的踩踏箱上緣
+
+  for(const b of bunnies){
+    if(b.state !== "run" && b.state !== "fall") continue;
+    // 踩踏優先判斷：只要這一格算踩踏成功，這隻兔子這一格就不再判定撞到受傷
+    if(canStomp && isStomped(b, px, pStompTop, pStompBottom)){
+      hitBunny(b, true);
+      player.vy = GAME_PARAMS.jumpVelocity*0.6;
+      continue;
+    }
+    if(overlap(bunnyBoxX(b), b.y-b.h, b.w, b.h, px, player.y-player.h, player.w, player.h)){
+      playerHurtByBunny();
+      b.vx = (b.x < player.x ? -CONST.bunnyPushApartSpeed : CONST.bunnyPushApartSpeed);
+    }
+  }
+
+  // 兔子王：rise(上升)、glide(滑行中)、run(落地後) 都可以互動，一樣優先判斷踩踏，
+  // 沒踩中才判定撞到受傷；如果剛被踩中還在受擊閃爍中（hitFlash > 0），暫時不判定撞到受傷
+  if(kingRabbit && (kingRabbit.state === "rise" || kingRabbit.state === "glide" || kingRabbit.state === "run")){
+    const k = kingRabbit;
+    if(canStomp && isStomped(k, px, pStompTop, pStompBottom)){
+      hitKingRabbit(true);
+      player.vy = GAME_PARAMS.jumpVelocity*0.6;
+    } else if(k.hitFlash <= 0 && overlap(bunnyBoxX(k), k.y-k.h, k.w, k.h, px, player.y-player.h, player.w, player.h)){
+      playerHurtByBunny();
+      if(k.state === "run") k.vx = (k.x < player.x ? -CONST.bunnyPushApartSpeed : CONST.bunnyPushApartSpeed);
     }
   }
 }
@@ -1120,12 +1472,8 @@ function updateBunnies(){
       // 邊界安全夾限（保險，避免極端情況跳出畫面外）
       if(b.x < CONST.stageLeftBound+10){ b.x = CONST.stageLeftBound+10; b.dir = 1; }
       if(b.x > CONST.stageRightBound-10){ b.x = CONST.stageRightBound-10; b.dir = -1; }
-
-      // 撞到玩家
-      if(overlap(bunnyBoxX(b), b.y-b.h, b.w, b.h, playerBoxX(), player.y-player.h, player.w, player.h)){
-        playerHurtByBunny();
-        b.vx = (b.x < player.x ? -CONST.bunnyPushApartSpeed : CONST.bunnyPushApartSpeed);
-      }
+      // 撞到玩家的判定已統一移到 stompCheck()（在所有兔子位置都移動完之後才判斷，
+      // 並且優先判斷踩踏，避免跟「移動前的舊位置」判定互相打架）
     } else if(b.state === "hit"){
       b.stateTimer++;
 
@@ -1163,14 +1511,14 @@ function updateBunnies(){
 
 function updateSpawning(){
   spawnTimer--;
-  const pendingQueued = spawnQueue.reduce(function(sum, q){ return sum + q.remaining; }, 0);
-  // 已經開始生兔子、只是還在等最後一隻跳出來的洞口，不算進場上上限，維持跟以前一樣的生成節奏
-  const openHoles = holes.reduce(function(sum, h){ return sum + (h.spawned ? 0 : 1); }, 0);
-  if(spawnTimer <= 0 && bunnies.length + openHoles + pendingQueued < GAME_PARAMS.maxConcurrentEnemies){
+  // 場上洞口數量上限：holes 陣列包含「還沒開完」跟「開完了、還在排隊生兔子」的洞口，
+  // 只要目前洞口數量還沒到上限，且生成計時器到了，就開新洞口；
+  // 如果已經到上限，spawnTimer 會維持在 <= 0，等洞口數量降下來的那一刻就會立刻補上新洞口。
+  if(spawnTimer <= 0 && holes.length < currentMaxConcurrentHoles){
     spawnHole();
-    // 每生成一個新洞口，下一次的生成間隔就依比例縮短一次（例如 10 秒 → ×0.95 → 9.5 秒 → ×0.95 → 9.025 秒...），
-    // 直到縮到 spawnIntervalMin 這個下限為止，之後就不再繼續縮短。
-    spawnInterval = Math.max(GAME_PARAMS.spawnIntervalMin, spawnInterval * GAME_PARAMS.spawnIntervalDecayRatio);
+    // 每開一個新洞口，下一次「洞口兔子出現間隔」就依比例縮短一次（例如 10 秒 → ×0.95 → 9.5 秒 → ×0.95 → 9.025 秒...），
+    // 讓下一個洞口的兔子出現得越來越快，直到縮到 spawnIntervalMin 這個下限為止，之後就不再繼續縮短。
+    spawnInterval = Math.max(GAME_PARAMS.spawnIntervalMin, spawnInterval * GAME_PARAMS.bunnyAppearIntervalDecayRatio);
     spawnTimer = spawnInterval + Math.random()*CONST.spawnIntervalRandomExtra;
   }
 }
@@ -1185,10 +1533,11 @@ function update(){
     return;
   }
   updatePlayer();
-  stompCheck();
   updateHoles();
   updateSpawnQueue();
   updateBunnies();
+  updateKingRabbit();
+  stompCheck();
   updateLifeItems();
   updateSpawning();
 }
@@ -1289,6 +1638,43 @@ function drawBunnies(){
   }
 }
 
+function drawKingRabbit(){
+  if(!kingRabbit) return;
+  const k = kingRabbit;
+  let im, w, h;
+  if(k.state === "hit"){
+    im = IMG.bunHit[k.frame]; // 被打死的動畫沿用一般兔子的 bunny_hit_1~6.png
+  } else if(k.state === "emerge"){
+    im = IMG.bunKingRun[0]; // bunny_king_run_1.png：從洞口放大冒出，跟一般兔子的 emerge 用法相同
+  } else if(k.state === "fall"){
+    im = IMG.bunKingRun[7]; // bunny_king_run_8.png：從洞口掉落到地面
+  } else if(k.state === "rise" || k.state === "glide"){
+    im = IMG.bunKingRun[8]; // bunny_king_run_9.png：在空中的姿勢，滑行中沿用「跳到最高處」的圖
+  } else {
+    im = IMG.bunKingRun[k.frame];
+  }
+  w = im.width; h = im.height;
+
+  ctx.save();
+  // 受擊閃爍：hitFlash 期間快速切換透明度，讓玩家能明確感受到「打中了但還沒死」
+  if(k.hitFlash > 0 && Math.floor(k.hitFlash/2)%2===0){
+    ctx.globalAlpha = 0.45;
+  }
+  ctx.translate(k.x, k.y);
+  // emerge 狀態疊加「由小放大到正常大小」的縮放，跟一般兔子從洞口冒出的效果相同；
+  // 其餘狀態不再額外放大，兔子王的顯示大小跟一般兔子完全一致
+  const emergeMul = (k.state === "emerge") ? (typeof k.emergeScale === "number" ? k.emergeScale : 1) : 1;
+  ctx.scale(emergeMul, emergeMul);
+  if((k.state === "run" || k.state === "glide") && k.dir < 0) ctx.scale(-1,1);
+  if(im && im.complete && im.naturalWidth){
+    ctx.drawImage(im, -w/2, -h, w, h);
+  } else {
+    ctx.fillStyle = "#ffd23c";
+    ctx.fillRect(-k.w/2, -k.h, k.w, k.h);
+  }
+  ctx.restore();
+}
+
 function drawLifeItems(){
   const wFall = GAME_PARAMS.itemWidth, hFall = GAME_PARAMS.itemHeight;
   const wLand = GAME_PARAMS.itemLandedWidth, hLand = GAME_PARAMS.itemLandedHeight;
@@ -1363,12 +1749,22 @@ function drawDebugHitboxes(){
 
   // 玩家碰撞箱
   drawDebugRect(playerBoxX(), player.y - player.h, player.w, player.h, "#39ff6a", false, "player");
+  // 玩家腳底的踩踏碰撞箱（從腳底往上延伸一段高度，只要跟兔子頭頂的踩踏箱重疊就算踩踏成功）
+  drawDebugRect(playerBoxX(), player.y - GAME_PARAMS.playerStompHitboxHeight, player.w, GAME_PARAMS.playerStompHitboxHeight, "#3cffe0", true, "player-stomp");
 
   // 兔子碰撞箱 + 踩踏判定區
   for(const b of bunnies){
     drawDebugRect(bunnyBoxX(b), b.y - b.h, b.w, b.h, "#ffa539", false, "bunny");
     const stompH = b.h * GAME_PARAMS.stompHitboxScale;
     drawDebugRect(bunnyBoxX(b), b.y - b.h, b.w, stompH, "#3c7bff", true, "stomp");
+  }
+
+  // 兔子王碰撞箱 + 踩踏判定區（大小、公式跟一般兔子完全一致）
+  if(kingRabbit && (kingRabbit.state === "rise" || kingRabbit.state === "glide" || kingRabbit.state === "run")){
+    const kx = bunnyBoxX(kingRabbit);
+    drawDebugRect(kx, kingRabbit.y - kingRabbit.h, kingRabbit.w, kingRabbit.h, "#ffd23c", false, "king(hp:"+kingRabbit.hp+")");
+    const stompH = kingRabbit.h * GAME_PARAMS.stompHitboxScale;
+    drawDebugRect(kx, kingRabbit.y - kingRabbit.h, kingRabbit.w, stompH, "#3c7bff", true, "stomp");
   }
 
   // 揮槌攻擊判定區（依目前朝向即時顯示，不需要真的揮槌）
@@ -1450,6 +1846,7 @@ function draw(){
   drawBG();
   drawHoles();
   drawBunnies();
+  drawKingRabbit();
   drawLifeItems();
   drawPlayer();
   drawScore();
@@ -1657,6 +2054,7 @@ function draw(){
   const copyParamsBtn = document.getElementById("copyParamsBtn");
   const applyParamsBtn = document.getElementById("applyParamsBtn");
   const resetParamsBtn = document.getElementById("resetParamsBtn");
+  const restartGameBtn = document.getElementById("restartGameBtn");
 
   if(settingsBtn && paramPanel){
     settingsBtn.addEventListener("click", function(){
@@ -1725,6 +2123,16 @@ function draw(){
       refreshParamPanelValues();
       showStatus("已還原成預設值。");
       resetParamsBtn.blur();
+    });
+  }
+
+  if(restartGameBtn){
+    restartGameBtn.addEventListener("click", function(){
+      // 獨立按鈕，跟設定齒輪並排固定在畫面上，不管設定面板有沒有打開都能點來重開一局，
+      // 點下去也不會去動 paramPanel 的顯示狀態。
+      startGame();
+      showStatus("遊戲已重新開始！");
+      restartGameBtn.blur();
     });
   }
 
