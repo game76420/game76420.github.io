@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>幸運女神打兔子 Skuld's Bug Bash</title>
+<style>
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#000;
+    overflow:hidden;
+    font-family:"Microsoft JhengHei","PingFang TC",sans-serif;
+  }
+  #stage-wrap{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#000;
+  }
+  #game{
+    display:block;
+    background:#000;
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+  }
+  #hint{
+    position:fixed; left:0; right:0; bottom:6px;
+    text-align:center; color:#999; font-size:12px;
+    pointer-events:none; user-select:none;
+    text-shadow:0 1px 2px #000;
+  }
+
+  /* ===== 設定按鈕 ===== */
+  #settingsBtn{
+    position:fixed; top:10px; right:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:rgba(20,20,20,0.55);
+    color:#fff; font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    transition:background 0.2s, transform 0.2s;
+  }
+  #settingsBtn:hover{ background:rgba(20,20,20,0.85); transform:scale(1.06); }
+
+  /* ===== 設定面板：靠右側的側邊面板，不會擋住整個遊戲畫面 ===== */
+  #paramPanel{
+    position:fixed; top:0; right:0; height:100vh; z-index:1200;
+    display:none; /* JS 會切換成 flex */
+    pointer-events:none; /* 面板以外的區域讓滑鼠事件穿透，遊戲仍可正常操作 */
+  }
+  .param-side-panel{
+    pointer-events:auto;
+    position:relative;
+    width:360px; max-width:90vw; height:100%;
+    background:rgba(255,255,255,0.98);
+    box-shadow:-6px 0 24px rgba(0,0,0,0.35);
+    border-radius:14px 0 0 14px;
+    padding:22px 18px 16px 18px;
+    overflow-y:auto; box-sizing:border-box;
+    font-family:"Microsoft JhengHei","PingFang TC",sans-serif;
+    color:#222;
+  }
+  .param-side-panel h2{
+    margin:0 0 8px 0; font-size:1.2em; color:#0077cc; padding-right:26px;
+  }
+  .param-hint{
+    font-size:0.8em; color:#0a0; background:#eaffea;
+    border:1px solid #bfe8bf; border-radius:6px;
+    padding:8px 10px; margin:0 0 14px 0; line-height:1.5;
+  }
+  .modal-close-x{
+    position:absolute; top:12px; right:12px;
+    width:28px; height:28px; border:none; border-radius:50%;
+    background:#eee; color:#444; font-size:18px; line-height:1;
+    cursor:pointer;
+  }
+  .modal-close-x:hover{ background:#ddd; }
+  .param-group{
+    margin-bottom:10px; border:1px solid #e2e2e2; border-radius:10px;
+    overflow:hidden; background:#fbfbfc;
+  }
+  .param-group[data-kind="player"]{ border-color:#bcdcf7; }
+  .param-group[data-kind="enemy"]{ border-color:#f7dcae; }
+  .param-group[data-kind="spawn"]{ border-color:#cdeac0; }
+  .param-group[data-kind="sound"]{ border-color:#dcc7f0; }
+  .param-group[data-kind="hitbox"]{ border-color:#f5b8c4; }
+  .param-group summary{
+    list-style:none; cursor:pointer; padding:9px 12px;
+    font-size:0.86em; font-weight:700; display:flex; align-items:center;
+    gap:6px; user-select:none; color:#fff; background:#4a90e2;
+  }
+  .param-group[data-kind="enemy"] summary{ background:#e2984a; }
+  .param-group[data-kind="spawn"] summary{ background:#5cb85c; }
+  .param-group[data-kind="sound"] summary{ background:#9b59b6; }
+  .param-group[data-kind="hitbox"] summary{ background:#e0507a; }
+  .param-group summary::-webkit-details-marker{ display:none; }
+  .param-group summary::before{
+    content:'▶'; font-size:0.7em; transition:transform 0.15s; flex-shrink:0;
+  }
+  .param-group[open] > summary::before{ transform:rotate(90deg); }
+  .param-group summary .param-group-count{
+    margin-left:auto; font-weight:400; font-size:0.85em; opacity:0.85;
+  }
+  .param-group-body{ padding:12px 12px 2px 12px; }
+  .param-row{ margin-bottom:14px; }
+  .param-row-top{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:8px; margin-bottom:4px;
+  }
+  .param-row-top label{ font-size:0.8em; color:#444; flex:1; }
+  .param-num{
+    width:76px; font-size:0.8em; padding:2px 4px;
+    border:1px solid #ccc; border-radius:4px;
+  }
+  .param-row input[type="range"]{ width:100%; }
+  .param-row input.param-text{
+    width:100%; box-sizing:border-box; padding:5px 8px;
+    border:1px solid #ccc; border-radius:6px; font-size:0.85em;
+    font-family:inherit; color:#222;
+  }
+  .param-row input.param-text:focus{ outline:none; border-color:#9b59b6; }
+  .param-row-hint{ font-size:0.72em; color:#999; margin-top:2px; }
+  .param-json-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .param-json-row label{ font-size:0.8em; color:#444; }
+  #paramTextArea{
+    width:100%; font-family:'Consolas','Menlo',monospace; font-size:0.76em;
+    padding:8px; border:1px solid #ccc; border-radius:6px;
+    resize:vertical; box-sizing:border-box;
+  }
+  .param-btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .param-btn-row button{
+    flex:1 1 auto; padding:8px 10px; font-size:0.84em; border:none;
+    border-radius:6px; cursor:pointer; background:#4a90e2; color:#fff;
+    transition:background 0.2s;
+  }
+  .param-btn-row button:hover{ background:#357abd; }
+  #resetParamsBtn{ background:#fff; color:#e11; border:1.5px solid #e11 !important; }
+  #resetParamsBtn:hover{ background:#ffeaea; }
+  .param-status{
+    min-height:1.2em; font-size:0.8em; color:#0a0; margin-top:8px; text-align:center;
+  }
+  @media (max-width:600px){
+    .param-side-panel{ width:92vw; padding:16px 12px 12px 12px; }
+  }
+
+  /* ===== 虛擬搖桿與揮槌按鈕（觸控裝置用）===== */
+  #joystick{
+    position:fixed; left:32px; bottom:32px;
+    width:140px; height:140px; z-index:2000;
+    touch-action:none; display:none;
+  }
+  #joystick-base{
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    border:3px solid rgba(255,255,255,0.3);
+    border-radius:50%; position:absolute;
+    backdrop-filter:blur(10px);
+  }
+  #joystick-knob{
+    width:70px; height:70px;
+    background:linear-gradient(135deg,#4a90e2,#357abd);
+    border:2px solid rgba(255,255,255,0.5);
+    border-radius:50%; position:absolute;
+    left:35px; top:35px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:left 0.05s, top 0.05s;
+  }
+  #joystick-direction{
+    position:absolute; width:100%; height:100%;
+    border-radius:50%; pointer-events:none; z-index:1;
+  }
+  .direction-indicator{
+    position:absolute; width:20px; height:20px;
+    background:rgba(255,255,255,0.8); border-radius:50%;
+    transform:translate(-50%,-50%);
+    opacity:0; transition:opacity 0.2s;
+  }
+  .direction-indicator.active{
+    opacity:1; background:#4a90e2;
+    box-shadow:0 0 10px rgba(74,144,226,0.6);
+  }
+  .direction-indicator.up{ top:10px; left:50%; }
+  .direction-indicator.down{ bottom:10px; left:50%; }
+  .direction-indicator.left{ left:10px; top:50%; }
+  .direction-indicator.right{ right:10px; top:50%; }
+  .direction-indicator.up-left{ top:15px; left:15px; }
+  .direction-indicator.up-right{ top:15px; right:15px; }
+  .direction-indicator.down-left{ bottom:15px; left:15px; }
+  .direction-indicator.down-right{ bottom:15px; right:15px; }
+
+  #screenButtons{
+    position:fixed; right:32px; bottom:48px; z-index:2000;
+    display:none; flex-direction:column; gap:18px;
+  }
+  #screenButtons button{
+    width:80px; height:80px; border-radius:50%;
+    font-size:1.2em; background:#e2984a; color:#fff;
+    border:none; box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    font-family:inherit; cursor:pointer;
+  }
+  #screenButtons button:active{ background:#c97f36; transform:scale(0.95); }
+
+  @media (orientation:landscape) and (max-width:900px){
+    #joystick, #screenButtons{ display:block !important; }
+  }
+  @media (orientation:portrait) and (max-width:768px){
+    #joystick{
+      display:block !important;
+      left:30%; bottom:max(36px, env(safe-area-inset-bottom, 0px) + 24px);
+      transform:translateX(-50%);
+      width:130px; height:130px;
+    }
+    #joystick-knob{ width:65px; height:65px; left:32.5px; top:32.5px; }
+    #screenButtons{
+      display:block !important;
+      right:28px; bottom:max(48px, env(safe-area-inset-bottom, 0px) + 36px);
+      gap:12px;
+    }
+    #screenButtons button{
+      width:96px; height:96px; font-size:1.25em; font-weight:700;
+      box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <canvas id="game" width="640" height="400"></canvas>
+</div>
+<div id="hint">← → 移動　↑ 跳躍　空白鍵 揮槌　跳到兔子頭上可直接踩踏</div>
+
+<button id="settingsBtn" title="遊戲參數設定">⚙️</button>
+
+<!-- 虛擬搖桿：手機/平板上用來控制左右移動與跳躍 -->
+<div id="joystick" style="display:none;">
+  <div id="joystick-base"></div>
+  <div id="joystick-direction">
+    <div class="direction-indicator up"></div>
+    <div class="direction-indicator down"></div>
+    <div class="direction-indicator left"></div>
+    <div class="direction-indicator right"></div>
+    <div class="direction-indicator up-left"></div>
+    <div class="direction-indicator up-right"></div>
+    <div class="direction-indicator down-left"></div>
+    <div class="direction-indicator down-right"></div>
+  </div>
+  <div id="joystick-knob"></div>
+</div>
+<!-- 虛擬按鈕：對應鍵盤的空白鍵，觸發揮槌攻擊 -->
+<div id="screenButtons" style="display:none;">
+  <button id="actionBtn">揮槌</button>
+</div>
+
+<!-- 設定面板：靠右側的側邊面板（不是全螢幕遮罩），開啟時遊戲仍會繼續運作，
+     方便玩家一邊調整一邊實際測試手感 -->
+<div id="paramPanel" style="display:none;">
+  <div class="param-side-panel">
+    <button id="closeParamPanel" class="modal-close-x" title="關閉">×</button>
+    <h2>遊戲參數設定</h2>
+    <p class="param-hint">面板開啟時遊戲照常運作，可以邊調邊玩測試手感。覺得太快，先拉低「玩家移動速度」「兔子奔跑速度」「兔子生成間隔」試試看。<br>面板開啟中，畫面上會用彩色邊框顯示所有碰撞判定範圍（玩家/兔子/踩踏區/揮槌攻擊區/道具），關閉面板後邊框會自動消失，方便對照「🧩 碰撞箱尺寸」分類調整數值。</p>
+    <div id="paramSliders" class="param-sliders"></div>
+    <div class="param-json-row">
+      <label for="paramTextArea">參數總表（JSON，可複製 / 貼上）：</label>
+      <textarea id="paramTextArea" rows="8" spellcheck="false" placeholder="按「複製目前參數」會把目前數值產生在這裡；下次要套用同一組設定時，把內容貼回這裡，再按「套用貼上的參數」即可。"></textarea>
+    </div>
+    <div class="param-btn-row">
+      <button id="copyParamsBtn">複製目前參數</button>
+      <button id="applyParamsBtn">套用貼上的參數</button>
+      <button id="resetParamsBtn">還原預設值</button>
+    </div>
+    <div id="paramCopyStatus" class="param-status"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   基本設定 / Canvas 等比縮放（兩側留黑）
+   ============================================================ */
+const NATIVE_W = 640, NATIVE_H = 400;
+// 遊戲主迴圈以 requestAnimationFrame 驅動，約為每秒 60 影格，
+// 設定面板顯示「秒」時以此換算成內部使用的影格數
+const FPS = 60;
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+function resize(){
+  const scale = Math.min(window.innerWidth / NATIVE_W, window.innerHeight / NATIVE_H);
+  canvas.style.width  = Math.floor(NATIVE_W * scale) + "px";
+  canvas.style.height = Math.floor(NATIVE_H * scale) + "px";
+}
+window.addEventListener("resize", resize);
+resize();
+
+/* ============================================================
+   資源載入 (圖片放在 img/ ，聲音放在 sound/)
+   ============================================================ */
+function img(name){
+  const i = new Image();
+  i.src = "img/" + name;
+  return i;
+}
+function snd(name){
+  const a = new Audio("sound/" + name);
+  a.preload = "auto";
+  return a;
+}
+
+const IMG = {
+  bg:        img("bg_background.png"),
+  scoreLabel: img("score.png"),              // 左上角的「score」圖示，取代原本用文字畫出來的 SCORE 標籤
+
+  // 素材檔名已依實際圖案內容重新命名，檔名與用途一致，方便對照
+  lifeIcon:  img("ui_life_icon.png"),        // 生命頭像圖示，用在畫面右上角生命值
+  digit0Alt: img("ui_digit_0_alt.png"),      // 數字「0」的備用版（目前未使用，保留載入）
+  lifeItemFalling: img("ui_life_icecream_falling.png"), // 掉落式加命道具（冰淇淋，掉落中、尚未落地的樣子）
+  lifeItemLanded:  img("ui_life_icecream_landed.png"),  // 掉落式加命道具（冰淇淋，掉到地上之後的樣子）
+
+  // 分數數字 1-9 (同一套字型)
+  digit: {
+    1: img("ui_digit_1.png"),
+    2: img("ui_digit_2.png"),
+    3: img("ui_digit_3.png"),
+    4: img("ui_digit_4.png"),
+    5: img("ui_digit_5.png"),
+    6: img("ui_digit_6.png"),
+    7: img("ui_digit_7.png"),
+    8: img("ui_digit_8.png"),
+    9: img("ui_digit_9.png")
+  },
+  zero:      img("ui_digit_0.png"),        // 分數前導的"0"
+  decimalPt: img("unused_decimal_point.png"), // 小數點（目前分數顯示用不到，保留供未來使用）
+
+  titleLogo: img("ui_title_logo.png"),
+  banner27:  img("ui_banner_1.png"),
+  banner28:  img("ui_banner_2.png"),
+  banner29:  img("ui_banner_3.png"),
+  banner30:  img("ui_banner_4.png"),
+
+  // 詩庫露德 (Skuld) 動作幀
+  pIdle:     img("player.png"),
+  pWalk1:    img("player_walk_1.png"),
+  pWalk2:    img("player_walk_2.png"),
+  pSwing1:   img("player_swing_1.png"),
+  pSwing2:   img("player_swing_2.png"),
+  pJump:     img("player_jump.png"),
+  pRise:     img("player_rise.png"),
+  pHurt:     img("player_hurt.png"),
+  pCry1:     img("player_cry_1.png"),
+  pCry2:     img("player_cry_2.png"),
+
+  // 除蟲兔（Bug）動作幀 - 全部以面向右方繪製，面向左時用翻轉
+  bunRun: [
+    img("bunny_run_1.png"),
+    img("bunny_run_2.png"),
+    img("bunny_run_3.png"),
+    img("bunny_run_4.png"),
+    img("bunny_run_5.png"),
+    img("bunny_run_6.png"),
+    img("bunny_run_7.png"),
+    img("bunny_run_8.png"),
+    img("bunny_run_9.png")
+  ],
+  bunHit: [
+    img("bunny_hit_1.png"),
+    img("bunny_hit_2.png"),
+    img("bunny_hit_3.png"),
+    img("bunny_hit_4.png"),
+    img("bunny_hit_5.png"),
+    img("bunny_hit_6.png")
+  ],
+  bunPop: [
+    img("bunny_pop_1.png"),
+    img("bunny_pop_2.png")
+  ]
+};
+
+// 所有音效統一使用固定音量（不再開放個別調整，簡化參數）
+const SFX_VOLUME = 0.8;
+// 每個音效對應的「檔案名稱」參數名稱（放進 GAME_PARAMS，可在設定面板調整，
+// 對應的檔案要放在 sound/ 資料夾底下，例如 Data_1.wav）
+const SND_FILE_KEY = {
+  arn:   "sfxFileHurt",        // 玩家受傷
+  ei:    "sfxFileSwing",       // 揮槌
+  kono:  "sfxFileBunnyAppear", // 兔子出現
+  kya:   "sfxFileGameOver",    // 遊戲結束
+  sore:  "sfxFileJump",        // 玩家跳躍
+  pyon:  "sfxFileBunnyHop",    // 兔子跳動
+  popin: "sfxFileHoleOpen",    // 洞口開啟
+  pon:   "sfxFileHit",         // 打中兔子
+  fumi:  "sfxFileStomp",       // 踩踏兔子
+  life:  "sfxFileLifeUp",      // 撿到加命道具
+  kuyashi: "sfxFileAngry"      // 玩家受傷後延遲播放的「可惡！」語音
+};
+// 反查表：GAME_PARAMS 的檔名鍵 -> SND 的音效鍵，設定面板改檔名時用來重新載入該音效
+const FILE_KEY_TO_SND_KEY = {};
+Object.keys(SND_FILE_KEY).forEach(function(k){ FILE_KEY_TO_SND_KEY[SND_FILE_KEY[k]] = k; });
+
+const SND = {};
+// 依照 GAME_PARAMS 目前指定的檔名，(重新)載入某個音效。
+// 在 GAME_PARAMS 定義完成之後才會被呼叫一次做初始載入，
+// 之後設定面板修改檔名時也會呼叫這個函式來換掉音效檔。
+function reloadSound(key){
+  const fileKey = SND_FILE_KEY[key];
+  const filename = (fileKey && GAME_PARAMS[fileKey]) || "";
+  if(!filename) return;
+  SND[key] = snd(filename);
+}
+function play(key){
+  const a = SND[key];
+  if(!a) return;
+  try{
+    const c = a.cloneNode();
+    c.volume = SFX_VOLUME;
+    c.play().catch(()=>{});
+  }catch(e){}
+}
+
+/* ============================================================
+   【可調式參數面板】所有影響遊戲速度/手感/版面的數值都集中放在這裡，
+   右上角⚙️設定面板會即時讀取/修改，並且能複製成 JSON 文字保存。
+   覺得遊戲太快，可以直接降低 playerSpeed / bunnyRunSpeedMin(Max) /
+   spawnIntervalStart 等數值。
+   ============================================================ */
+// 結構性 / 細節微調用的固定常數：這些數值幾乎不需要即時調整，
+// 直接寫死在程式碼裡，不再放進設定面板，藉此大幅精簡可調參數的數量。
+const CONST = {
+  stageLeftBound: 0,           // 舞台左邊界（對應 canvas 寬度）
+  stageRightBound: 640,        // 舞台右邊界（對應 canvas 寬度）
+
+  hurtKnockbackFriction: 0.9,  // 受傷擊退速度的摩擦力衰減（越小停得越快）
+
+  bunnyFrameInterval: 6,       // 兔子跑步動畫換幀的間隔
+  playerWalkFrameInterval: 8,  // 玩家走路動畫換幀的間隔（player_walk_1 / player_walk_2 交替）
+  playerCryFrameInterval: 15,  // 遊戲結束時玩家哭泣動畫換幀的間隔（player_cry_1 / player_cry_2 交替）
+  bunnyFallGravity: 0.05,      // 兔子從洞口掉落到地面的重力加速度
+  bunnyPushApartSpeed: 2,      // 兔子撞到玩家時，被推開的速度
+  bunnyHitFrameInterval: 4,    // 兔子被打中動畫的換幀間隔
+  bunnyHopPrepDuration: 10,    // 兔子起跳前「準備跳」姿勢要停留幾格
+
+  spawnIntervalRandomExtra: 40,// 每次生成間隔額外加上的隨機時間上限
+
+  itemDropIntervalRandomExtra: 900 // 加命道具生成間隔額外隨機值上限
+};
+
+let GAME_PARAMS = {
+  // --- 場地與版面 ---
+  floorY: 380,                 // 玩家與兔子站立的地面 y 座標(腳底)
+  startingLives: 5,            // 開始遊戲時的生命數
+
+  // --- 玩家移動與攻擊 ---
+  playerSpeed: 3.3,            // 玩家左右移動速度
+  jumpVelocity: -12.6,         // 跳躍瞬間的初速（負值，絕對值越大跳越高）
+  gravity: 0.4,                // 玩家與兔子共用的重力加速度
+  swingDuration: 22,           // 揮槌動作總長度（影響格數，數值越大攻擊動作越慢）
+  hammerActiveDuration: 12,    // 揮槌攻擊判定持續時間（預設 12 影格＝0.2 秒 @60fps；攻擊判定會在這段時間內持續有效，而非只判定一瞬間）
+  playerSwingDrawOffsetX: 0,   // 揮槌時圖片額外的左右位移修正（用來修正揮槌圖檔跟站立/走路圖檔沒對齊、看起來像自動後退的問題；正值＝往面向方向往前移，負值＝往後移，只影響畫面顯示，不影響碰撞判定）
+
+  // --- 碰撞箱尺寸（設定面板開啟時，遊戲畫面會用邊框顯示這些碰撞範圍，方便測試）---
+  playerWidth: 66,             // 玩家碰撞箱寬度
+  playerHeight: 118,           // 玩家碰撞箱高度
+  playerHitboxOffsetX: 0,      // 玩家碰撞箱左右偏移（正值往右移，負值往左移，圖像位置不受影響）
+  bunnyWidth: 62,              // 兔子碰撞箱寬度
+  bunnyHeight: 46,             // 兔子碰撞箱高度
+  bunnyHitboxOffsetX: 0,       // 兔子碰撞箱左右偏移（正值往右移，負值往左移，圖像位置不受影響）
+  hammerReach: 76,             // 揮槌的攻擊判定寬度
+  hammerHitboxHeight: 132,     // 揮槌的攻擊判定高度
+  hammerHitboxYOffset: 132,    // 揮槌判定範圍往上偏移多少（以玩家腳底為基準）
+  hammerHitboxOffsetX: 0,      // 揮槌攻擊判定左右偏移（正值往右移，負值往左移，不受朝向影響，方便微調攻擊框跟角色圖像的對齊）
+  stompHitboxScale: 0.1,       // 跳到兔子頭上踩踏判定的高度比例（相對於兔子碰撞箱高度）
+  itemWidth: 24,               // 加命道具碰撞箱寬度（掉落中）
+  itemHeight: 30,              // 加命道具碰撞箱高度（掉落中）
+  itemLandedWidth: 30,         // 加命道具落地後碰撞箱寬度（同時也是繪製寬度）
+  itemLandedHeight: 22,        // 加命道具落地後碰撞箱高度（同時也是繪製高度）
+
+  // --- 玩家受傷狀態 ---
+  hurtDuration: 46,            // 玩家受傷後僵直/無法操作的時間長度
+  invulnDuration: 90,          // 玩家受傷後的無敵閃爍時間長度
+  hurtKnockbackSpeed: 4,       // 玩家受傷當下被擊退的初速
+
+  // --- 兔子移動與動畫 ---
+  bunnyRunSpeedMin: 0.7,       // 兔子奔跑速度下限
+  bunnyRunSpeedMax: 1.3,       // 兔子奔跑速度上限
+  bunnyHopVelocity: -12.5,     // 兔子起跳瞬間的初速（負值，絕對值越大跳越高）
+  bunnyHopGravity: 0.35,       // 兔子跳躍時的重力加速度（越大跳得越快落地）
+  bunnyHopInterval: 40,        // 兔子落地後，等多久再跳下一次（影格數，越小跳越頻繁）
+  bunnyDirChangeChance: 0.35,  // 兔子每次落地起跳前，隨機換方向（左跳/右跳）的機率
+
+  // --- 兔子被打中效果 ---
+  bunnyHitKnockbackVX: 3,      // 兔子被打中時的水平擊退速度
+  bunnyHitKnockbackVY: -6,     // 兔子被打中時的垂直彈起初速
+  bunnyHitGravity: 0.5,        // 兔子被打中彈起後的下墜重力
+  bunnyHitDuration: 65,        // 兔子被打中後，維持多久才從畫面上消失（需夠長，讓空中掉落動畫+落地動畫都播得完）
+
+  // --- 洞口與生成節奏 ---
+  bunnyEmergeDuration: 30,     // 兔子從洞口冒出時，由小放大到正常大小所需的時間（預設 30 影格 = 0.5 秒）
+  holeOpenDuration: 26,        // 洞口從出現到兔子跳出來的時間
+  holeRadiusStart: 6,          // 洞口圓形的起始半徑（剛出現時）
+  holeRadiusMax: 18,           // 洞口圓形隨時間增長到的最大半徑
+  holeOpacity: 1,              // 洞口的不透明度（1=全黑不透光，數值越小越透明）
+  spawnTimerInitial: 40,       // 開始遊戲後，第一隻兔子出現前的等待時間
+  spawnIntervalStart: 600,     // 遊戲開始時，兔子生成的間隔（600影格＝10秒 @60fps；影響值越大越少兔子）
+  spawnIntervalMin: 60,        // 生成間隔會隨著洞口數量縮短，這是最短間隔（下限）
+  spawnIntervalDecayRatio: 0.7, // 每次生成新洞口後，下一次的生成間隔＝目前間隔×此比例（例如 0.95＝每個洞口縮短 5%，數值越小縮減越快）
+  maxConcurrentEnemies: 1,     // 場上同時存在的洞口+兔子數量上限
+  bunnySpawnCountMin: 5,       // 一個洞口一次會生出的兔子數量下限（可在設定面板調整）
+  bunnySpawnCountMax: 10,      // 一個洞口一次會生出的兔子數量上限（可在設定面板調整）
+  bunnySpawnStagger: 600,      // 同一個洞口的兔子，每隻之間相隔幾格才出現下一隻（一隻接一隻，不是一次全部冒出）（600 影格 = 10 秒 @60fps）
+
+  // --- 加命道具（隨機時間從畫面上方掉落，接住可以加一命）---
+  itemDropIntervalMin: 3600,       // 加命道具生成間隔下限（影格數）
+  itemFallSpeed: 3.2,              // 加命道具掉落速度
+  itemLandDuration: 90,            // 加命道具落地後，停留幾影格讓玩家還能撿（超過就消失）
+
+  // --- 音效檔案名稱（檔案要放在 sound/ 資料夾底下，例如 Data_1.wav）---
+  sfxFileHurt: "Data_4.wav",         // 玩家受傷
+  sfxFileSwing: "Data_6.wav",        // 揮槌
+  sfxFileBunnyAppear: "Data_5.wav",  // 兔子出現
+  sfxFileGameOver: "Data_1.wav",     // 遊戲結束
+  sfxFileJump: "Data_7.wav",         // 玩家跳躍
+  sfxFileBunnyHop: "Data_7.wav",     // 兔子跳動
+  sfxFileHoleOpen: "Data_7.wav",     // 洞口開啟
+  sfxFileHit: "Data_5.wav",          // 打中兔子
+  sfxFileStomp: "Data_8.wav",        // 踩踏兔子
+  sfxFileLifeUp: "Data_9.wav",       // 撿到加命道具
+  sfxFileAngry: "Data_3.wav"         // 玩家受傷後延遲播放的「可惡！」語音
+};
+// 保留一份原始預設值，供設定面板的「還原預設值」使用
+const GAME_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(GAME_PARAMS));
+
+// GAME_PARAMS 定義完成後，依照上面指定的檔名，第一次載入所有音效
+Object.keys(SND_FILE_KEY).forEach(reloadSound);
+
+// 面板用的參數說明表：[顯示名稱, 參數鍵, 最小值, 最大值, 每格間距]
+const GAME_PARAMS_META = [
+  ["地面高度 floorY", "floorY", 200, 380, 2],
+  ["初始生命數 startingLives", "startingLives", 1, 9, 1],
+
+  ["移動速度 playerSpeed", "playerSpeed", 0.5, 6, 0.1],
+  ["跳躍力道 jumpVelocity", "jumpVelocity", -16, -3, 0.2],
+  ["重力 gravity", "gravity", 0.1, 1.2, 0.05],
+  ["揮槌動作長度 swingDuration", "swingDuration", 0.1, 0.7, 0.02, "sec"],
+  ["揮槌攻擊判定持續時間 hammerActiveDuration", "hammerActiveDuration", 0.02, 1, 0.02, "sec"],
+  ["揮槌圖像位移修正 playerSwingDrawOffsetX", "playerSwingDrawOffsetX", -40, 40, 1, "free"],
+
+  ["玩家碰撞箱寬度 playerWidth", "playerWidth", 20, 120, 2, "free"],
+  ["玩家碰撞箱高度 playerHeight", "playerHeight", 40, 160, 2, "free"],
+  ["玩家碰撞箱左右偏移 playerHitboxOffsetX", "playerHitboxOffsetX", -40, 40, 2, "free"],
+  ["兔子碰撞箱寬度 bunnyWidth", "bunnyWidth", 20, 120, 2, "free"],
+  ["兔子碰撞箱高度 bunnyHeight", "bunnyHeight", 20, 100, 2, "free"],
+  ["兔子碰撞箱左右偏移 bunnyHitboxOffsetX", "bunnyHitboxOffsetX", -40, 40, 2, "free"],
+  ["揮槌攻擊寬度 hammerReach", "hammerReach", 20, 90, 2, "free"],
+  ["揮槌攻擊高度 hammerHitboxHeight", "hammerHitboxHeight", 20, 120, 2, "free"],
+  ["揮槌判定上偏移 hammerHitboxYOffset", "hammerHitboxYOffset", 0, 80, 2, "free"],
+  ["揮槌攻擊左右偏移 hammerHitboxOffsetX", "hammerHitboxOffsetX", -40, 40, 2, "free"],
+  ["踩踏判定比例 stompHitboxScale", "stompHitboxScale", 0.2, 1, 0.05, "free"],
+  ["道具碰撞箱寬度(掉落中) itemWidth", "itemWidth", 10, 60, 2, "free"],
+  ["道具碰撞箱高度(掉落中) itemHeight", "itemHeight", 10, 60, 2, "free"],
+  ["道具碰撞箱寬度(落地後) itemLandedWidth", "itemLandedWidth", 10, 60, 2, "free"],
+  ["道具碰撞箱高度(落地後) itemLandedHeight", "itemLandedHeight", 10, 60, 2, "free"],
+
+  ["受傷僵直時間 hurtDuration", "hurtDuration", 0.15, 1.5, 0.05, "sec"],
+  ["受傷無敵時間 invulnDuration", "invulnDuration", 0.3, 3, 0.1, "sec"],
+  ["受傷擊退速度 hurtKnockbackSpeed", "hurtKnockbackSpeed", 0, 12, 0.5],
+
+  ["兔子速度下限 bunnyRunSpeedMin", "bunnyRunSpeedMin", 0.2, 4, 0.1],
+  ["兔子速度上限 bunnyRunSpeedMax", "bunnyRunSpeedMax", 0.5, 6, 0.1],
+  ["兔子跳躍力道 bunnyHopVelocity", "bunnyHopVelocity", -14, -1, 0.5],
+  ["兔子跳躍重力 bunnyHopGravity", "bunnyHopGravity", 0.1, 1.5, 0.05],
+  ["兔子跳躍間隔 bunnyHopInterval", "bunnyHopInterval", 0.15, 2, 0.1, "sec"],
+  ["兔子跳躍轉向機率 bunnyDirChangeChance", "bunnyDirChangeChance", 0, 1, 0.05],
+
+  ["被打水平擊退 bunnyHitKnockbackVX", "bunnyHitKnockbackVX", 0, 10, 0.5],
+  ["被打垂直彈起 bunnyHitKnockbackVY", "bunnyHitKnockbackVY", -12, 0, 0.5],
+  ["被打彈起重力 bunnyHitGravity", "bunnyHitGravity", 0.05, 1.5, 0.05],
+  ["被打消失時間 bunnyHitDuration", "bunnyHitDuration", 0.15, 1.7, 0.1, "sec"],
+
+  ["兔子冒出放大時間 bunnyEmergeDuration", "bunnyEmergeDuration", 0.05, 1.5, 0.02, "sec"],
+  ["洞口開啟時間 holeOpenDuration", "holeOpenDuration", 0.08, 1.35, 0.02, "sec"],
+  ["洞口起始半徑 holeRadiusStart", "holeRadiusStart", 1, 40, 1, "free"],
+  ["洞口最大半徑 holeRadiusMax", "holeRadiusMax", 1, 60, 1, "free"],
+  ["洞口不透明度 holeOpacity", "holeOpacity", 0, 1, 0.05],
+  ["第一隻兔子等待 spawnTimerInitial", "spawnTimerInitial", 0, 3.35, 0.1, "sec"],
+  ["生成間隔(初始) spawnIntervalStart", "spawnIntervalStart", 0.5, 15, 0.1, "sec"],
+  ["生成間隔(下限) spawnIntervalMin", "spawnIntervalMin", 0.25, 3.35, 0.1, "sec"],
+  ["生成間隔縮減比例(每洞口) spawnIntervalDecayRatio", "spawnIntervalDecayRatio", 0.5, 1, 0.01, "free"],
+  ["場上兔子上限 maxConcurrentEnemies", "maxConcurrentEnemies", 1, 12, 1],
+  ["單一洞口生兔數下限 bunnySpawnCountMin", "bunnySpawnCountMin", 1, 15, 1],
+  ["單一洞口生兔數上限 bunnySpawnCountMax", "bunnySpawnCountMax", 1, 20, 1],
+  ["洞口兔子出現間隔 bunnySpawnStagger", "bunnySpawnStagger", 0.03, 15, 0.1, "sec"],
+
+  ["加命道具間隔(下限) itemDropIntervalMin", "itemDropIntervalMin", 2, 40, 1, "sec"],
+  ["加命道具掉落速度 itemFallSpeed", "itemFallSpeed", 0.3, 6, 0.1],
+  ["加命道具落地停留時間 itemLandDuration", "itemLandDuration", 0.2, 5, 0.1, "sec"],
+
+  ["受傷音效檔名 sfxFileHurt", "sfxFileHurt", 0, 0, 0, "text"],
+  ["揮槌音效檔名 sfxFileSwing", "sfxFileSwing", 0, 0, 0, "text"],
+  ["兔子出現音效檔名 sfxFileBunnyAppear", "sfxFileBunnyAppear", 0, 0, 0, "text"],
+  ["遊戲結束音效檔名 sfxFileGameOver", "sfxFileGameOver", 0, 0, 0, "text"],
+  ["玩家跳躍音效檔名 sfxFileJump", "sfxFileJump", 0, 0, 0, "text"],
+  ["兔子跳動音效檔名 sfxFileBunnyHop", "sfxFileBunnyHop", 0, 0, 0, "text"],
+  ["洞口開啟音效檔名 sfxFileHoleOpen", "sfxFileHoleOpen", 0, 0, 0, "text"],
+  ["打中兔子音效檔名 sfxFileHit", "sfxFileHit", 0, 0, 0, "text"],
+  ["踩踏兔子音效檔名 sfxFileStomp", "sfxFileStomp", 0, 0, 0, "text"],
+  ["加命道具音效檔名 sfxFileLifeUp", "sfxFileLifeUp", 0, 0, 0, "text"],
+  ["可惡語音檔名 sfxFileAngry", "sfxFileAngry", 0, 0, 0, "text"]
+];
+
+// 設定面板分類：把參數依用途分組顯示
+const PARAM_CATEGORIES = [
+  { kind: "player", title: "🗺️ 場地與版面",
+    keys: ["floorY", "startingLives"] },
+  { kind: "player", title: "🎯 玩家　移動與攻擊",
+    keys: ["playerSpeed", "jumpVelocity", "gravity", "swingDuration", "hammerActiveDuration", "playerSwingDrawOffsetX"] },
+  { kind: "player", title: "🎯 玩家　受傷狀態",
+    keys: ["hurtDuration", "invulnDuration", "hurtKnockbackSpeed"] },
+  { kind: "hitbox", title: "🧩 碰撞箱尺寸（開面板時畫面顯示邊框）",
+    keys: ["playerWidth", "playerHeight", "playerHitboxOffsetX", "bunnyWidth", "bunnyHeight", "bunnyHitboxOffsetX", "hammerReach", "hammerHitboxHeight", "hammerHitboxYOffset", "hammerHitboxOffsetX", "stompHitboxScale", "itemWidth", "itemHeight", "itemLandedWidth", "itemLandedHeight"] },
+  { kind: "enemy", title: "🐰 兔子　移動與動畫",
+    keys: ["bunnyRunSpeedMin", "bunnyRunSpeedMax", "bunnyHopVelocity", "bunnyHopGravity", "bunnyHopInterval", "bunnyDirChangeChance"] },
+  { kind: "enemy", title: "🐰 兔子　被打中效果",
+    keys: ["bunnyHitKnockbackVX", "bunnyHitKnockbackVY", "bunnyHitGravity", "bunnyHitDuration"] },
+  { kind: "spawn", title: "🕳️ 生成　節奏與難度",
+    keys: ["bunnyEmergeDuration", "holeOpenDuration", "holeRadiusStart", "holeRadiusMax", "holeOpacity", "spawnTimerInitial", "spawnIntervalStart", "spawnIntervalMin", "spawnIntervalDecayRatio", "maxConcurrentEnemies", "bunnySpawnCountMin", "bunnySpawnCountMax", "bunnySpawnStagger"] },
+  { kind: "spawn", title: "💊 加命道具",
+    keys: ["itemDropIntervalMin", "itemFallSpeed", "itemLandDuration"] },
+  { kind: "sound", title: "🎵 音效檔案名稱 (sound/ 資料夾)",
+    keys: ["sfxFileHurt", "sfxFileSwing", "sfxFileBunnyAppear", "sfxFileGameOver", "sfxFileJump", "sfxFileBunnyHop", "sfxFileHoleOpen", "sfxFileHit", "sfxFileStomp", "sfxFileLifeUp", "sfxFileAngry"] }
+];
+
+/* ============================================================
+   玩家 Skuld
+   ============================================================ */
+const player = {
+  x: 100, y: GAME_PARAMS.floorY,
+  w: GAME_PARAMS.playerWidth, h: GAME_PARAMS.playerHeight,  // 碰撞箱大小
+  vx: 0, vy: 0,
+  facing: 1,              // 1=右, -1=左
+  onGround: true,
+  state: "idle",          // idle, walk, jump, swing, hurt
+  stateTimer: 0,
+  walkFrame: 0,           // 走路動畫目前顯示第幾張（0=player_walk_1.png, 1=player_walk_2.png）
+  walkFrameTimer: 0,      // 走路動畫換幀計時
+  swingHitBunnies: new Set(), // 這次揮槌攻擊判定期間，已經打中過的兔子（避免同一次揮槌重複打中同一隻）
+  hurtTimer: 0,
+  lives: GAME_PARAMS.startingLives,
+  invuln: 0
+};
+
+/* ============================================================
+   輸入
+   ============================================================ */
+const keys = {};
+window.addEventListener("keydown", e=>{
+  if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Space"].includes(e.code)) e.preventDefault();
+  keys[e.code] = true;
+  if(e.code === "Space") tryAttack();
+  if((e.code === "Enter" || e.code === "Space") && (gameState === "title" || gameState === "gameover")) startGame();
+}, {passive:false});
+window.addEventListener("keyup", e=>{ keys[e.code] = false; });
+canvas.addEventListener("pointerdown", ()=>{
+  if(gameState === "title" || gameState === "gameover") startGame();
+});
+
+/* ============================================================
+   洞口與兔子
+   ============================================================ */
+// 畫面中幾個固定的「洞口」出現位置（門窗、家具附近），符合原畫面構圖
+const HOLE_SPOTS = [
+  {x: 120, y: 140},
+  {x: 230, y: 120},
+  {x: 330, y: 150},
+  {x: 430, y: 120},
+  {x: 520, y: 150},
+  {x: 300, y: 230}
+];
+
+let holes = [];      // 正在開啟中／正在生兔子中的洞口特效 {id,x,y,timer,spawned}
+let nextHoleId = 1;  // 洞口的流水號，用來讓排隊中的兔子知道自己是哪個洞口生出來的
+let bunnies = [];    // 場上的兔子
+let spawnQueue = []; // 排隊中，還沒出現的兔子 {x,y,remaining,timer,holeId}，讓同一個洞口的兔子一隻接一隻出現
+let spawnTimer = 60;
+let lifeItems = [];  // 畫面上正在掉落的加命道具 {x,y,vy}
+let itemSpawnTimer = 0;
+let score = 0;
+let spawnInterval = GAME_PARAMS.spawnIntervalStart;
+
+function spawnHole(){
+  const spot = HOLE_SPOTS[Math.floor(Math.random()*HOLE_SPOTS.length)];
+  holes.push({id: nextHoleId++, x: spot.x, y: spot.y, timer: GAME_PARAMS.holeOpenDuration, spawned: false});
+  play("popin");
+}
+
+function spawnBunnyFromHole(h, playSound){
+  bunnies.push({
+    x: h.x + (Math.random()-0.5)*16, // 位置稍微錯開一點，避免整群兔子完全疊在一起
+    y: h.y,
+    vx: 0, vy: 0,
+    dir: (Math.random() < 0.5 ? 1 : -1),
+    state: "emerge",     // emerge -> fall -> run -> hit -> gone
+    frame: 0, frameTimer: 0,
+    stateTimer: 0,
+    scale: 0,             // emerge 狀態時，兔子由小(0)放大到正常(1)的縮放比例
+    hopTimer: Math.floor(Math.random()*20), // 讓每隻兔子的跳躍節奏錯開，看起來更自然
+    hopPrepTimer: 0,     // 起跳前「準備跳」姿勢的倒數計時，>0 時代表正在蓄力準備跳
+    w: GAME_PARAMS.bunnyWidth, h: GAME_PARAMS.bunnyHeight
+  });
+  if(playSound !== false) play("kono");
+}
+
+// 一個洞口一次會生出幾隻兔子（數量在 bunnySpawnCountMin ~ bunnySpawnCountMax 之間隨機），
+// 但不是同時全部冒出來：先出現第一隻，其餘的排進佇列，之後每隔 bunnySpawnStagger 格才出現下一隻。
+// 回傳值：true 表示還有兔子排隊中（洞口要保留），false 表示這隻是最後一隻了（洞口可以立刻關閉）。
+function queueBunniesFromHole(h){
+  const cMin = Math.min(GAME_PARAMS.bunnySpawnCountMin, GAME_PARAMS.bunnySpawnCountMax);
+  const cMax = Math.max(GAME_PARAMS.bunnySpawnCountMin, GAME_PARAMS.bunnySpawnCountMax);
+  const count = Math.round(cMin + Math.random()*(cMax-cMin));
+
+  spawnBunnyFromHole(h, true); // 第一隻立刻出現
+  if(count > 1){
+    spawnQueue.push({ x: h.x, y: h.y, remaining: count - 1, timer: GAME_PARAMS.bunnySpawnStagger, holeId: h.id });
+    return true;
+  }
+  return false;
+}
+
+function updateSpawnQueue(){
+  for(let i = spawnQueue.length - 1; i >= 0; i--){
+    const q = spawnQueue[i];
+    q.timer--;
+    if(q.timer <= 0){
+      spawnBunnyFromHole({ x: q.x, y: q.y }, false); // 陸續出現的兔子不重複播放音效，避免聲音疊爆
+      q.remaining--;
+      q.timer = GAME_PARAMS.bunnySpawnStagger;
+      if(q.remaining <= 0){
+        spawnQueue.splice(i, 1);
+        // 這個洞口排隊的兔子全部跳出來了，這時候洞口才能消失
+        const hIdx = holes.findIndex(function(h){ return h.id === q.holeId; });
+        if(hIdx !== -1) holes.splice(hIdx, 1);
+      }
+    }
+  }
+}
+
+/* ============================================================
+   加命道具：隨機時間從畫面上方掉落，玩家碰到可以加一命
+   ============================================================ */
+function resetItemSpawnTimer(){
+  itemSpawnTimer = GAME_PARAMS.itemDropIntervalMin + Math.random()*CONST.itemDropIntervalRandomExtra;
+}
+
+function spawnLifeItem(){
+  const margin = 30;
+  const left = CONST.stageLeftBound + margin;
+  const right = CONST.stageRightBound - margin;
+  lifeItems.push({
+    x: left + Math.random()*Math.max(1, right-left),
+    y: -20,
+    vy: 0,
+    landed: false,   // 是否已經掉到地上（true 時改顯示落地圖示）
+    landTimer: 0      // 落地後還能停留幾影格
+  });
+}
+
+function updateLifeItems(){
+  for(let i = lifeItems.length-1; i >= 0; i--){
+    const it = lifeItems[i];
+
+    if(it.landed){
+      // 已經掉到地上：改用「落地」圖示，停留一段時間，玩家仍可撿取
+      const lw = GAME_PARAMS.itemLandedWidth, lh = GAME_PARAMS.itemLandedHeight;
+      if(overlap(it.x - lw/2, GAME_PARAMS.floorY - lh, lw, lh,
+                 playerBoxX(), player.y - player.h, player.w, player.h)){
+        player.lives++;
+        play("life");
+        lifeItems.splice(i,1);
+        continue;
+      }
+      it.landTimer--;
+      if(it.landTimer <= 0){
+        lifeItems.splice(i,1);
+      }
+      continue;
+    }
+
+    it.vy += 0; // 等速下落即可，不需要重力加速
+    it.vy = GAME_PARAMS.itemFallSpeed;
+    it.y += it.vy;
+
+    // 玩家在空中接住：加一命
+    if(overlap(it.x - GAME_PARAMS.itemWidth/2, it.y - GAME_PARAMS.itemHeight, GAME_PARAMS.itemWidth, GAME_PARAMS.itemHeight,
+               playerBoxX(), player.y - player.h, player.w, player.h)){
+      player.lives++;
+      play("life");
+      lifeItems.splice(i,1);
+      continue;
+    }
+
+    // 掉到地面：切換成「掉到地上」的圖示，停留片刻讓玩家還能撿，之後才消失
+    if(it.y >= GAME_PARAMS.floorY){
+      it.y = GAME_PARAMS.floorY;
+      it.landed = true;
+      it.landTimer = GAME_PARAMS.itemLandDuration;
+    }
+  }
+
+  itemSpawnTimer--;
+  if(itemSpawnTimer <= 0){
+    spawnLifeItem();
+    resetItemSpawnTimer();
+  }
+}
+
+/* ============================================================
+   遊戲狀態
+   ============================================================ */
+let gameState = "title";  // title, playing, gameover
+let titleBlink = 0;
+let DEBUG_SHOW_HITBOX = false; // 設定面板開啟時會設為 true，畫面上用邊框顯示碰撞範圍方便測試
+
+function startGame(){
+  score = 0;
+  player.lives = GAME_PARAMS.startingLives;
+  player.w = GAME_PARAMS.playerWidth; player.h = GAME_PARAMS.playerHeight;
+  player.x = 100; player.y = GAME_PARAMS.floorY;
+  player.vx = 0; player.vy = 0;
+  player.state = "idle"; player.invuln = GAME_PARAMS.invulnDuration;
+  holes = []; bunnies = []; spawnQueue = [];
+  lifeItems = [];
+  resetItemSpawnTimer();
+  spawnTimer = GAME_PARAMS.spawnTimerInitial;
+  spawnInterval = GAME_PARAMS.spawnIntervalStart;
+  gameState = "playing";
+}
+
+function gameOver(){
+  gameState = "gameover";
+  play("kya");
+}
+
+/* ============================================================
+   碰撞小工具
+   ============================================================ */
+function overlap(ax, ay, aw, ah, bx, by, bw, bh){
+  return ax < bx+bw && ax+aw > bx && ay < by+bh && ay+ah > by;
+}
+
+// 取得玩家碰撞箱左邊界 X 座標（套用左右偏移量，不影響圖像繪製位置）
+function playerBoxX(){
+  return player.x + GAME_PARAMS.playerHitboxOffsetX;
+}
+// 取得兔子碰撞箱左邊界 X 座標（套用左右偏移量，不影響圖像繪製位置）
+function bunnyBoxX(b){
+  return b.x - b.w/2 + GAME_PARAMS.bunnyHitboxOffsetX;
+}
+
+/* ============================================================
+   玩家攻擊
+   ============================================================ */
+function tryAttack(){
+  if(gameState !== "playing") return;
+  if(player.state === "swing" || player.state === "hurt") return;
+  player.state = "swing";
+  player.stateTimer = 0;
+  player.swingHitBunnies.clear();
+  play("ei");
+}
+
+/* ============================================================
+   更新
+   ============================================================ */
+function updatePlayer(){
+  player.w = GAME_PARAMS.playerWidth;
+  player.h = GAME_PARAMS.playerHeight;
+  if(player.invuln > 0) player.invuln--;
+
+  if(player.state === "hurt"){
+    player.hurtTimer++;
+    player.vx *= CONST.hurtKnockbackFriction;
+    player.x += player.vx;
+    if(player.hurtTimer > GAME_PARAMS.hurtDuration){
+      player.state = "idle";
+      player.hurtTimer = 0;
+    }
+  } else {
+    // 左右移動
+    let moving = false;
+    if(player.state !== "swing"){
+      if(keys["ArrowLeft"]){ player.vx = -GAME_PARAMS.playerSpeed; player.facing = -1; moving = true; }
+      else if(keys["ArrowRight"]){ player.vx = GAME_PARAMS.playerSpeed; player.facing = 1; moving = true; }
+      else { player.vx = 0; }
+    } else {
+      player.vx = 0;
+    }
+    player.x += player.vx;
+    player.x = Math.max(CONST.stageLeftBound, Math.min(CONST.stageRightBound - player.w, player.x));
+
+    // 跳躍
+    if(keys["ArrowUp"] && player.onGround){
+      player.vy = GAME_PARAMS.jumpVelocity;
+      player.onGround = false;
+      play("sore");
+    }
+
+    // 重力
+    player.vy += GAME_PARAMS.gravity;
+    player.y += player.vy;
+    if(player.y >= GAME_PARAMS.floorY){
+      player.y = GAME_PARAMS.floorY;
+      player.vy = 0;
+      player.onGround = true;
+    } else {
+      player.onGround = false;
+    }
+
+    // 狀態機
+    if(player.state === "swing"){
+      player.stateTimer++;
+      const hitStart = Math.round(GAME_PARAMS.swingDuration*0.4);
+      const hitEnd = hitStart + GAME_PARAMS.hammerActiveDuration; // 攻擊判定持續 hammerActiveDuration 影格
+      if(player.stateTimer >= hitStart && player.stateTimer < hitEnd){
+        resolveHammerHit();
+      }
+      if(player.stateTimer > GAME_PARAMS.swingDuration){
+        player.state = "idle";
+      }
+    } else if(!player.onGround){
+      player.state = "jump";
+    } else if(moving){
+      player.state = "walk";
+    } else {
+      player.state = "idle";
+    }
+
+    // 走路動畫：走路時每隔 playerWalkFrameInterval 影格切換 player_walk_1 / player_walk_2，
+    // 沒在走路時重置，下次開始走路會從第一張圖重新播放
+    if(player.state === "walk"){
+      player.walkFrameTimer++;
+      if(player.walkFrameTimer >= CONST.playerWalkFrameInterval){
+        player.walkFrameTimer = 0;
+        player.walkFrame = (player.walkFrame + 1) % 2;
+      }
+    } else {
+      player.walkFrameTimer = 0;
+      player.walkFrame = 0;
+    }
+  }
+}
+
+function resolveHammerHit(){
+  const reach = GAME_PARAMS.hammerReach;
+  const hitX = player.x + player.w/2 + player.facing*reach/2 - reach/2 + GAME_PARAMS.hammerHitboxOffsetX;
+  const hh = GAME_PARAMS.hammerHitboxHeight, yOff = GAME_PARAMS.hammerHitboxYOffset;
+  for(const b of bunnies){
+    if(b.state !== "run" && b.state !== "fall") continue;
+    if(player.swingHitBunnies.has(b)) continue;
+    if(overlap(hitX, player.y-yOff, reach, hh, bunnyBoxX(b), b.y - b.h, b.w, b.h)){
+      hitBunny(b);
+      player.swingHitBunnies.add(b);
+    }
+  }
+}
+
+function hitBunny(b, viaStomp){
+  b.state = "hit";
+  b.frame = 0; b.frameTimer = 0; b.stateTimer = 0;
+  b.hitLanded = false;   // 先播放空中彈起的動畫，落地後才切換成地面動畫
+  b.vy = GAME_PARAMS.bunnyHitKnockbackVY;
+  b.vx = (b.x < player.x ? -GAME_PARAMS.bunnyHitKnockbackVX : GAME_PARAMS.bunnyHitKnockbackVX);
+  score += 1;
+  play(viaStomp ? "fumi" : "pon");   // 踩踏用 fumi（Data_8.wav），揮槌用 pon
+}
+
+function stompCheck(){
+  // 踩踏判定：只有玩家正在「從高處往下墜」（vy > 0）的時候才算數，
+  // 而且必須是玩家碰撞箱的底部（腳底）落在兔子踩踏判定區的上緣～下緣之間，
+  // 也就是真的由上往下踩到兔子頭頂，才會判定攻擊有效（往上跳、平移擦過等狀況都不算）。
+  if(!player.onGround && player.vy > 0){
+    const px = playerBoxX(), pBottom = player.y; // 玩家碰撞箱底部＝腳底 Y 座標
+    for(const b of bunnies){
+      if(b.state !== "run" && b.state !== "fall") continue;
+      const bx = bunnyBoxX(b);
+      const stompTop = b.y - b.h;
+      const stompBottom = stompTop + b.h*GAME_PARAMS.stompHitboxScale;
+      const horizontalOverlap = px < bx + b.w && px + player.w > bx;
+      const bottomInStompBand = pBottom >= stompTop && pBottom <= stompBottom;
+      if(horizontalOverlap && bottomInStompBand){
+        hitBunny(b, true);
+        player.vy = GAME_PARAMS.jumpVelocity*0.6;
+      }
+    }
+  }
+}
+
+function playerHurtByBunny(){
+  if(player.invuln > 0 || player.state === "hurt" || player.state === "swing") return;
+  // 設定面板開啟時（DEBUG_SHOW_HITBOX），只播放受傷效果方便測試碰撞箱，不扣命也不會遊戲結束
+  if(!DEBUG_SHOW_HITBOX) player.lives--;
+  player.state = "hurt";
+  player.hurtTimer = 0;
+  player.vx = (player.x < NATIVE_W/2 ? -GAME_PARAMS.hurtKnockbackSpeed : GAME_PARAMS.hurtKnockbackSpeed);
+  player.invuln = GAME_PARAMS.invulnDuration;
+  play("arn");                       // 先播放 Data_4.wav（啊!）
+  setTimeout(function(){ play("kuyashi"); }, 500); // 相隔0.5秒再播放 Data_3.wav（可惡）
+  if(!DEBUG_SHOW_HITBOX && player.lives <= 0){
+    gameOver();
+  }
+}
+
+function updateHoles(){
+  for(let i = holes.length-1; i >= 0; i--){
+    const h = holes[i];
+    if(h.spawned) continue; // 已經開始生兔子的洞口，交給 updateSpawnQueue 判斷何時移除
+    h.timer--;
+    if(h.timer <= 0){
+      h.timer = 0;      // 讓洞口視覺維持在「全開」狀態，直到兔子出完
+      h.spawned = true;
+      const stillQueued = queueBunniesFromHole(h);
+      if(!stillQueued){
+        holes.splice(i,1); // 這個洞口只生一隻兔子、沒有排隊，兔子跳出來後就可以直接關閉
+      }
+    }
+  }
+}
+
+function updateBunnies(){
+  for(let i = bunnies.length-1; i >= 0; i--){
+    const b = bunnies[i];
+    b.frameTimer++;
+
+    if(b.state === "emerge"){
+      // 剛從洞口冒出來：停在洞口位置，用 bunny_run_1.png 從小放大到正常大小，
+      // 放大時間到了之後才切換成 fall 狀態開始往地面掉落
+      b.stateTimer++;
+      b.scale = Math.min(1, b.stateTimer / Math.max(1, GAME_PARAMS.bunnyEmergeDuration));
+      if(b.stateTimer >= GAME_PARAMS.bunnyEmergeDuration){
+        b.scale = 1;
+        b.state = "fall";
+        b.stateTimer = 0;
+      }
+    } else if(b.state === "fall"){
+      b.vy += CONST.bunnyFallGravity;
+      b.y += b.vy;
+      if(b.y >= GAME_PARAMS.floorY - 4){
+        b.y = GAME_PARAMS.floorY - 4;
+        b.vy = 0;
+        b.state = "run";
+        const spMin = Math.min(GAME_PARAMS.bunnyRunSpeedMin, GAME_PARAMS.bunnyRunSpeedMax);
+        const spMax = Math.max(GAME_PARAMS.bunnyRunSpeedMin, GAME_PARAMS.bunnyRunSpeedMax);
+        b.vx = b.dir * (spMin + Math.random()*(spMax-spMin));
+      }
+    } else if(b.state === "run"){
+      b.stateTimer++;
+
+      // 物理跳躍：站在地面上時先靜止蓄力，等時間到了才決定這次要往左還是往右跳、
+      // 並往那個方向跳出去；在空中時套用重力、同時往該方向移動；落地後再次靜止等待。
+      // 注意：判斷「是否在地面」要用垂直速度 vy 而不是單看位置，
+      // 不然起跳那一格 y 座標還沒改變，下一格就會誤判成「還在地上」，把剛給的跳躍速度重設掉。
+      const grounded = (b.vy === 0 && b.y >= GAME_PARAMS.floorY - 4);
+      if(grounded){
+        b.y = GAME_PARAMS.floorY - 4;
+        b.vx = 0; // 落地時先停住，不會用滑的
+
+        if(b.hopPrepTimer > 0){
+          // 「準備跳」姿勢停留中：暫停跑步動畫，固定顯示 bunny_run_6.png
+          b.hopPrepTimer--;
+          b.frame = 5;
+          if(b.hopPrepTimer <= 0){
+            // 準備動作結束，正式起跳
+            if(Math.random() < GAME_PARAMS.bunnyDirChangeChance) b.dir *= -1;
+            // 太靠近舞台邊界時強制往內跳，避免跳出畫面
+            if(b.x < CONST.stageLeftBound + 20) b.dir = 1;
+            if(b.x > CONST.stageRightBound - 20) b.dir = -1;
+
+            const spMin = Math.min(GAME_PARAMS.bunnyRunSpeedMin, GAME_PARAMS.bunnyRunSpeedMax);
+            const spMax = Math.max(GAME_PARAMS.bunnyRunSpeedMin, GAME_PARAMS.bunnyRunSpeedMax);
+            b.vx = b.dir * (spMin + Math.random()*(spMax-spMin));
+            b.vy = GAME_PARAMS.bunnyHopVelocity; // 給一個非 0 的負速度，下一格就會被判定成「在空中」
+            b.hopTimer = 0;
+            play("pyon");
+          }
+        } else {
+          b.hopTimer++;
+          if(b.hopTimer >= GAME_PARAMS.bunnyHopInterval){
+            // 時間到了先進入「準備跳」姿勢，停留一小段時間後才真的起跳
+            b.hopPrepTimer = CONST.bunnyHopPrepDuration;
+            b.frame = 5;
+          } else if(b.frameTimer > CONST.bunnyFrameInterval){
+            // 在地面上的一般狀態：循環 bunny_run_1~5.png
+            b.frame = (b.frame+1) % 5;
+            b.frameTimer = 0;
+          }
+        }
+      } else {
+        b.vy += GAME_PARAMS.bunnyHopGravity;
+        b.y += b.vy;
+        b.x += b.vx;
+        if(b.y >= GAME_PARAMS.floorY - 4){
+          b.y = GAME_PARAMS.floorY - 4;
+          b.vy = 0; // 落地，下一格會被判定成「在地面」
+        }
+
+        // 空中姿勢依垂直速度大小決定：剛離地/快落地時速度快 -> run_7，
+        // 速度中等 -> run_8，接近最高點(速度接近0) -> run_9
+        const vyStart = Math.abs(GAME_PARAMS.bunnyHopVelocity) || 1;
+        const absVy = Math.abs(b.vy);
+        if(absVy >= vyStart * 0.6){
+          b.frame = 6; // bunny_run_7.png 離開地面
+        } else if(absVy >= vyStart * 0.25){
+          b.frame = 7; // bunny_run_8.png 跳到一半
+        } else {
+          b.frame = 8; // bunny_run_9.png 跳到最高處
+        }
+      }
+
+      // 邊界安全夾限（保險，避免極端情況跳出畫面外）
+      if(b.x < CONST.stageLeftBound+10){ b.x = CONST.stageLeftBound+10; b.dir = 1; }
+      if(b.x > CONST.stageRightBound-10){ b.x = CONST.stageRightBound-10; b.dir = -1; }
+
+      // 撞到玩家
+      if(overlap(bunnyBoxX(b), b.y-b.h, b.w, b.h, playerBoxX(), player.y-player.h, player.w, player.h)){
+        playerHurtByBunny();
+        b.vx = (b.x < player.x ? -CONST.bunnyPushApartSpeed : CONST.bunnyPushApartSpeed);
+      }
+    } else if(b.state === "hit"){
+      b.stateTimer++;
+
+      if(!b.hitLanded){
+        // 被打中後、還在空中彈起/掉落的階段：播放 bunny_hit_1~3.png（frame 0~2）
+        b.vy += GAME_PARAMS.bunnyHitGravity;
+        b.x += b.vx;
+        b.y += b.vy;
+        if(b.frameTimer > CONST.bunnyHitFrameInterval){
+          b.frame = Math.min(b.frame+1, 2);
+          b.frameTimer = 0;
+        }
+        if(b.y >= GAME_PARAMS.floorY){
+          // 落地：切換成地面階段，改播放 bunny_hit_4~6.png（frame 3~5）
+          b.y = GAME_PARAMS.floorY;
+          b.vx = 0; b.vy = 0;
+          b.hitLanded = true;
+          b.frame = 3;
+          b.frameTimer = 0;
+        }
+      } else {
+        // 已經落地：停在原地，繼續播放落地後的動畫，播完就停在最後一張
+        if(b.frameTimer > CONST.bunnyHitFrameInterval){
+          b.frame = Math.min(b.frame+1, IMG.bunHit.length-1);
+          b.frameTimer = 0;
+        }
+      }
+
+      if(b.stateTimer > GAME_PARAMS.bunnyHitDuration){
+        bunnies.splice(i,1);
+      }
+    }
+  }
+}
+
+function updateSpawning(){
+  spawnTimer--;
+  const pendingQueued = spawnQueue.reduce(function(sum, q){ return sum + q.remaining; }, 0);
+  // 已經開始生兔子、只是還在等最後一隻跳出來的洞口，不算進場上上限，維持跟以前一樣的生成節奏
+  const openHoles = holes.reduce(function(sum, h){ return sum + (h.spawned ? 0 : 1); }, 0);
+  if(spawnTimer <= 0 && bunnies.length + openHoles + pendingQueued < GAME_PARAMS.maxConcurrentEnemies){
+    spawnHole();
+    // 每生成一個新洞口，下一次的生成間隔就依比例縮短一次（例如 10 秒 → ×0.95 → 9.5 秒 → ×0.95 → 9.025 秒...），
+    // 直到縮到 spawnIntervalMin 這個下限為止，之後就不再繼續縮短。
+    spawnInterval = Math.max(GAME_PARAMS.spawnIntervalMin, spawnInterval * GAME_PARAMS.spawnIntervalDecayRatio);
+    spawnTimer = spawnInterval + Math.random()*CONST.spawnIntervalRandomExtra;
+  }
+}
+
+function update(){
+  if(gameState === "title"){
+    titleBlink++;
+    return;
+  }
+  if(gameState === "gameover"){
+    titleBlink++;
+    return;
+  }
+  updatePlayer();
+  stompCheck();
+  updateHoles();
+  updateSpawnQueue();
+  updateBunnies();
+  updateLifeItems();
+  updateSpawning();
+}
+
+/* ============================================================
+   繪製
+   ============================================================ */
+function drawBG(){
+  if(IMG.bg.complete && IMG.bg.naturalWidth) ctx.drawImage(IMG.bg, 0, 0, NATIVE_W, NATIVE_H);
+  else { ctx.fillStyle = "#c9a86a"; ctx.fillRect(0,0,NATIVE_W,NATIVE_H); }
+}
+
+function drawScore(){
+  // 左上角的「score」標籤圖示，取代原本用文字畫出來的 SCORE 字樣
+  const labelX = 14, labelY = 10;
+  let labelW = 0;
+  if(IMG.scoreLabel.complete && IMG.scoreLabel.naturalWidth){
+    labelW = IMG.scoreLabel.naturalWidth;
+    ctx.drawImage(IMG.scoreLabel, labelX, labelY);
+  }
+
+  // 分數數字：5 位數，前導以小圓圈"0"表示
+  const digits = String(score).padStart(1,"0").slice(-6);
+  const total = 6;
+  const padded = digits.padStart(total, "0");
+  let dx = labelX + labelW + 10;
+  const dy = 14;
+  for(let i = 0; i < padded.length; i++){
+    const ch = padded[i];
+    const isLeadingZero = (ch === "0") && (i < padded.length - String(score).length || score === 0 && i < total-1);
+    if(ch === "0"){
+      // IMG.zero 原生尺寸較小(21x23)，等比放大到跟其他數字差不多的高度，讓字距整齊
+      const zw = 34, zh = 37;
+      if(IMG.zero.complete) ctx.drawImage(IMG.zero, dx, dy, zw, zh);
+      dx += zw + 2;
+    } else {
+      const im = IMG.digit[ch];
+      if(im && im.complete){
+        ctx.drawImage(im, dx, dy);
+        dx += im.width + 2;
+      }
+    }
+  }
+}
+
+function drawLives(){
+  // 依需求，ui_life_icon.png 使用原始尺寸(50x61)繪製，不縮小
+  const iconDrawW = 50, iconDrawH = 61;
+  const iconGap = 5;               // 圖示之間的間距
+  const iconW = iconDrawW + iconGap; // 每個圖示所佔的水平間距
+  const total = Math.max(GAME_PARAMS.startingLives, player.lives);
+  for(let i = 0; i < total; i++){
+    const x = NATIVE_W - 20 - (i+1)*iconW;
+    const y = 6;
+    ctx.globalAlpha = (i < player.lives) ? 1 : 0.25;
+    if(IMG.lifeIcon.complete) ctx.drawImage(IMG.lifeIcon, x, y, iconDrawW, iconDrawH);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawHoles(){
+  for(const h of holes){
+    const s = 1 - h.timer/Math.max(1, GAME_PARAMS.holeOpenDuration);
+    ctx.save();
+    ctx.globalAlpha = GAME_PARAMS.holeOpacity;
+    ctx.fillStyle = "#000000";
+    const r = GAME_PARAMS.holeRadiusStart + s*GAME_PARAMS.holeRadiusMax;
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawBunnies(){
+  for(const b of bunnies){
+    ctx.save();
+    let im, w, h;
+    if(b.state === "emerge"){
+      im = IMG.bunRun[0]; w = im.width; h = im.height; // bunny_run_1.png：從洞口冒出，由小放大
+    } else if(b.state === "fall"){
+      im = IMG.bunRun[7]; w = im.width; h = im.height; // bunny_run_8.png：從洞口掉落到地面
+    } else if(b.state === "run"){
+      im = IMG.bunRun[b.frame]; w = im.width; h = im.height;
+    } else {
+      im = IMG.bunHit[b.frame]; w = im.width; h = im.height;
+    }
+    ctx.translate(b.x, b.y);
+    if(b.state === "run" && b.dir < 0) ctx.scale(-1,1);
+    if(b.state === "emerge"){
+      const s = (typeof b.scale === "number") ? b.scale : 1;
+      ctx.scale(s, s);
+    }
+    if(im && im.complete && im.naturalWidth){
+      ctx.drawImage(im, -w/2, -h, w, h);
+    }
+    ctx.restore();
+  }
+}
+
+function drawLifeItems(){
+  const wFall = GAME_PARAMS.itemWidth, hFall = GAME_PARAMS.itemHeight;
+  const wLand = GAME_PARAMS.itemLandedWidth, hLand = GAME_PARAMS.itemLandedHeight;
+  for(const it of lifeItems){
+    if(it.landed){
+      const im = IMG.lifeItemLanded;
+      if(im && im.complete && im.naturalWidth){
+        ctx.drawImage(im, it.x - wLand/2, GAME_PARAMS.floorY - hLand, wLand, hLand);
+      }
+    } else {
+      const im = IMG.lifeItemFalling;
+      if(im && im.complete && im.naturalWidth){
+        ctx.drawImage(im, it.x - wFall/2, it.y - hFall, wFall, hFall);
+      }
+    }
+  }
+}
+
+function drawPlayer(){
+  ctx.save();
+  if(gameState !== "gameover" && player.invuln > 0 && Math.floor(player.invuln/4)%2===0){
+    ctx.globalAlpha = 0.4;
+  }
+  let im;
+  if(gameState === "gameover"){
+    im = (Math.floor(titleBlink / CONST.playerCryFrameInterval) % 2 === 0) ? IMG.pCry1 : IMG.pCry2;
+  } else {
+    switch(player.state){
+      case "walk": im = (player.walkFrame === 0) ? IMG.pWalk1 : IMG.pWalk2; break;
+      case "jump": im = player.vy < 0 ? IMG.pRise : IMG.pJump; break;
+      case "swing": im = player.stateTimer < GAME_PARAMS.swingDuration*0.5 ? IMG.pSwing1 : IMG.pSwing2; break;
+      case "hurt": im = IMG.pHurt; break;
+      default: im = IMG.pIdle;
+    }
+  }
+  const w = im.width, h = im.height;
+  // 揮槌圖檔常常因為要畫出鐵槌揮出去，圖片內角色的位置跟站立/走路圖檔沒對齊，
+  // 導致置中錨點跑掉、看起來像揮槌時自動後退；用這個位移量微調修正（在鏡像座標系內套用，
+  // 所以朝左朝右都會自動正確翻轉，不用分開設定）。
+  const swingOffsetX = (player.state === "swing") ? GAME_PARAMS.playerSwingDrawOffsetX : 0;
+  ctx.translate(player.x + player.w/2, player.y);
+  if(player.facing < 0) ctx.scale(-1,1);
+  if(im && im.complete && im.naturalWidth){
+    ctx.drawImage(im, -w/2 + swingOffsetX, -h, w, h);
+  } else {
+    ctx.fillStyle = "#e88";
+    ctx.fillRect(-player.w/2, -player.h, player.w, player.h);
+  }
+  ctx.restore();
+}
+
+/* ============================================================
+   【除錯用】碰撞箱邊框顯示：設定面板開啟時呼叫，
+   把目前所有跟碰撞寬度相關的判定範圍畫成彩色邊框，方便對照調整。
+   ============================================================ */
+function drawDebugRect(x, y, w, h, color, dashed, label){
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  if(dashed) ctx.setLineDash([4,3]);
+  ctx.strokeRect(x, y, w, h);
+  if(label){
+    ctx.font = "10px sans-serif";
+    ctx.fillStyle = color;
+    ctx.fillText(label, x + 2, y - 3 < 8 ? y + 10 : y - 3);
+  }
+  ctx.restore();
+}
+
+function drawDebugHitboxes(){
+  if(!DEBUG_SHOW_HITBOX || gameState !== "playing") return;
+
+  // 玩家碰撞箱
+  drawDebugRect(playerBoxX(), player.y - player.h, player.w, player.h, "#39ff6a", false, "player");
+
+  // 兔子碰撞箱 + 踩踏判定區
+  for(const b of bunnies){
+    drawDebugRect(bunnyBoxX(b), b.y - b.h, b.w, b.h, "#ffa539", false, "bunny");
+    const stompH = b.h * GAME_PARAMS.stompHitboxScale;
+    drawDebugRect(bunnyBoxX(b), b.y - b.h, b.w, stompH, "#3c7bff", true, "stomp");
+  }
+
+  // 揮槌攻擊判定區（依目前朝向即時顯示，不需要真的揮槌）
+  const reach = GAME_PARAMS.hammerReach;
+  const hitX = player.x + player.w/2 + player.facing*reach/2 - reach/2 + GAME_PARAMS.hammerHitboxOffsetX;
+  const hh = GAME_PARAMS.hammerHitboxHeight, yOff = GAME_PARAMS.hammerHitboxYOffset;
+  drawDebugRect(hitX, player.y - yOff, reach, hh, "#ff4d6a", true, "hammer");
+
+  // 加命道具碰撞箱（掉落中 / 落地後）
+  for(const it of lifeItems){
+    if(it.landed){
+      const lw = GAME_PARAMS.itemLandedWidth, lh = GAME_PARAMS.itemLandedHeight;
+      drawDebugRect(it.x - lw/2, GAME_PARAMS.floorY - lh, lw, lh, "#3cd8ff", false, "item");
+    } else {
+      const wFall = GAME_PARAMS.itemWidth, hFall = GAME_PARAMS.itemHeight;
+      drawDebugRect(it.x - wFall/2, it.y - hFall, wFall, hFall, "#3cd8ff", false, "item");
+    }
+  }
+}
+
+function drawTitle(){
+  drawBG();
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(0,0,NATIVE_W,NATIVE_H);
+  if(IMG.titleLogo.complete && IMG.titleLogo.naturalWidth){
+    ctx.drawImage(IMG.titleLogo, (NATIVE_W-IMG.titleLogo.width)/2, 60);
+  }
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 26px sans-serif";
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 4;
+  ctx.strokeText("幸運女神打兔子", NATIVE_W/2, 170);
+  ctx.fillText("幸運女神打兔子", NATIVE_W/2, 170);
+
+  if(Math.floor(titleBlink/30)%2===0){
+    ctx.font = "18px sans-serif";
+    ctx.strokeText("按空白鍵 / Enter 開始遊戲", NATIVE_W/2, 300);
+    ctx.fillText("按空白鍵 / Enter 開始遊戲", NATIVE_W/2, 300);
+  }
+  ctx.textAlign = "left";
+}
+
+function drawGameOver(){
+  drawBG();
+  drawScore();
+  drawLives();
+  drawPlayer();
+  drawBunnies();
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0,0,NATIVE_W,NATIVE_H);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ff5050";
+  ctx.font = "bold 40px sans-serif";
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 5;
+  ctx.strokeText("GAME OVER", NATIVE_W/2, 150);
+  ctx.fillText("GAME OVER", NATIVE_W/2, 150);
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px sans-serif";
+  ctx.strokeText("SCORE " + score, NATIVE_W/2, 210);
+  ctx.fillText("SCORE " + score, NATIVE_W/2, 210);
+  if(Math.floor(titleBlink/30)%2===0){
+    ctx.font = "16px sans-serif";
+    ctx.strokeText("按空白鍵 / Enter 重新開始", NATIVE_W/2, 260);
+    ctx.fillText("按空白鍵 / Enter 重新開始", NATIVE_W/2, 260);
+  }
+  ctx.textAlign = "left";
+}
+
+function draw(){
+  ctx.clearRect(0,0,NATIVE_W,NATIVE_H);
+  if(gameState === "title"){
+    drawTitle();
+    return;
+  }
+  if(gameState === "gameover"){
+    drawGameOver();
+    return;
+  }
+  drawBG();
+  drawHoles();
+  drawBunnies();
+  drawLifeItems();
+  drawPlayer();
+  drawScore();
+  drawLives();
+  drawDebugHitboxes();
+}
+
+/* ============================================================
+   【設定面板】把 GAME_PARAMS_META 動態轉成可拖拉的滑桿 + 數字輸入框，
+   並提供「複製目前參數」「套用貼上的參數」「還原預設值」三個功能。
+   ============================================================ */
+(function(){
+  function buildParamPanel(){
+    const container = document.getElementById("paramSliders");
+    if(!container) return;
+    container.innerHTML = "";
+
+    const metaByKey = {};
+    GAME_PARAMS_META.forEach(function(meta){ metaByKey[meta[1]] = meta; });
+
+    function buildRow(meta){
+      const label = meta[0], key = meta[1], min = meta[2], max = meta[3], step = meta[4], type = meta[5];
+
+      const row = document.createElement("div");
+      row.className = "param-row";
+
+      const top = document.createElement("div");
+      top.className = "param-row-top";
+
+      const labelEl = document.createElement("label");
+      labelEl.textContent = label.split(" ")[0];
+      labelEl.title = label;
+
+      if(type === "text"){
+        // 文字型參數（目前用於音效檔案名稱）：只給一個文字輸入框，
+        // 直接輸入 sound/ 資料夾底下的檔名，例如 Data_1.wav
+        labelEl.htmlFor = "param-text-" + key;
+
+        const text = document.createElement("input");
+        text.type = "text";
+        text.id = "param-text-" + key;
+        text.className = "param-text";
+        text.value = GAME_PARAMS[key];
+        text.spellcheck = false;
+        text.placeholder = "例如 Data_1.wav";
+
+        function updateText(v){
+          const val = (v || "").trim();
+          if(!val) return;
+          GAME_PARAMS[key] = val;
+          text.value = val;
+          // 如果這個 key 是音效檔名，換檔後要重新載入該音效
+          const sndKey = FILE_KEY_TO_SND_KEY[key];
+          if(sndKey) reloadSound(sndKey);
+        }
+        text.addEventListener("change", function(){ updateText(text.value); text.blur(); });
+
+        top.appendChild(labelEl);
+        row.appendChild(top);
+        row.appendChild(text);
+
+        const hint = document.createElement("div");
+        hint.className = "param-row-hint";
+        hint.textContent = "檔案需放在 sound/ 資料夾底下";
+        row.appendChild(hint);
+
+        return row;
+      }
+
+      const isSec = (type === "sec");
+      const isFree = (type === "free"); // 碰撞箱尺寸類參數：不設上下限
+      const noLimit = isSec || isFree;
+      labelEl.htmlFor = noLimit ? ("param-num-" + key) : ("param-range-" + key);
+      if(isSec) labelEl.textContent = labelEl.textContent + "（秒）";
+      function toDisplay(frames){ return isSec ? +(frames / FPS).toFixed(3) : frames; }
+      function toStored(display){ return isSec ? Math.round(display * FPS) : display; }
+
+      const num = document.createElement("input");
+      num.type = "number";
+      num.id = "param-num-" + key;
+      if(noLimit){
+        // 時間類 / 碰撞箱尺寸類參數不設上下限，直接輸入數字
+        num.step = step;
+      } else {
+        num.min = min; num.max = max; num.step = step;
+      }
+      num.value = toDisplay(GAME_PARAMS[key]);
+      num.className = "param-num";
+
+      top.appendChild(labelEl);
+      top.appendChild(num);
+
+      let range = null;
+      if(!noLimit){
+        range = document.createElement("input");
+        range.type = "range";
+        range.id = "param-range-" + key;
+        range.min = min; range.max = max; range.step = step;
+        range.value = toDisplay(GAME_PARAMS[key]);
+      }
+
+      function updateValue(v){
+        let val = parseFloat(v);
+        if(isNaN(val)) return;
+        if(!noLimit) val = Math.max(min, Math.min(max, val));
+        GAME_PARAMS[key] = toStored(val);
+        if(range) range.value = val;
+        num.value = val;
+      }
+
+      if(range){
+        range.addEventListener("input", function(){ updateValue(range.value); });
+        range.addEventListener("change", function(){ range.blur(); });
+        range.addEventListener("mouseup", function(){ range.blur(); });
+        range.addEventListener("touchend", function(){ range.blur(); });
+      }
+      num.addEventListener("change", function(){ updateValue(num.value); num.blur(); });
+
+      row.appendChild(top);
+      if(range) row.appendChild(range);
+      return row;
+    }
+
+    PARAM_CATEGORIES.forEach(function(cat){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = cat.kind;
+      details.open = true;
+
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = cat.title;
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = cat.keys.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+
+      cat.keys.forEach(function(key){
+        const meta = metaByKey[key];
+        if(!meta) return;
+        body.appendChild(buildRow(meta));
+      });
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+
+    const categorizedKeys = new Set(PARAM_CATEGORIES.reduce(function(acc,c){ return acc.concat(c.keys); }, []));
+    const leftover = GAME_PARAMS_META.filter(function(meta){ return !categorizedKeys.has(meta[1]); });
+    if(leftover.length){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = "other";
+      details.open = true;
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = "⚙️ 其他";
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = leftover.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+      leftover.forEach(function(meta){ body.appendChild(buildRow(meta)); });
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
+  }
+
+  function refreshParamPanelValues(){
+    GAME_PARAMS_META.forEach(function(meta){
+      const key = meta[1];
+      const type = meta[5];
+      if(type === "text"){
+        const text = document.getElementById("param-text-" + key);
+        if(text) text.value = GAME_PARAMS[key];
+        return;
+      }
+      const range = document.getElementById("param-range-" + key);
+      const num = document.getElementById("param-num-" + key);
+      const displayVal = (type === "sec") ? +(GAME_PARAMS[key] / FPS).toFixed(3) : GAME_PARAMS[key];
+      if(range) range.value = displayVal;
+      if(num) num.value = displayVal;
+    });
+  }
+
+  function showStatus(msg, ms){
+    const statusEl = document.getElementById("paramCopyStatus");
+    if(!statusEl) return;
+    statusEl.textContent = msg;
+    setTimeout(function(){ statusEl.textContent = ""; }, ms || 2500);
+  }
+
+  const settingsBtn = document.getElementById("settingsBtn");
+  const paramPanel = document.getElementById("paramPanel");
+  const closeParamPanel = document.getElementById("closeParamPanel");
+  const paramTextArea = document.getElementById("paramTextArea");
+  const copyParamsBtn = document.getElementById("copyParamsBtn");
+  const applyParamsBtn = document.getElementById("applyParamsBtn");
+  const resetParamsBtn = document.getElementById("resetParamsBtn");
+
+  if(settingsBtn && paramPanel){
+    settingsBtn.addEventListener("click", function(){
+      const willShow = paramPanel.style.display === "none";
+      paramPanel.style.display = willShow ? "flex" : "none";
+      DEBUG_SHOW_HITBOX = willShow;
+      if(willShow) refreshParamPanelValues();
+      settingsBtn.blur();
+    });
+  }
+  if(closeParamPanel && paramPanel){
+    closeParamPanel.addEventListener("click", function(){
+      paramPanel.style.display = "none";
+      DEBUG_SHOW_HITBOX = false;
+      closeParamPanel.blur();
+    });
+  }
+  if(copyParamsBtn && paramTextArea){
+    copyParamsBtn.addEventListener("click", function(){
+      const json = JSON.stringify(GAME_PARAMS, null, 2);
+      paramTextArea.value = json;
+      let copied = false;
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(json);
+          copied = true;
+        }
+      }catch(e){}
+      if(!copied){
+        try{ paramTextArea.select(); document.execCommand("copy"); copied = true; }catch(e){}
+      }
+      showStatus(copied ? "已複製到剪貼簿！可以貼到別的地方保存。" : "已顯示在下方文字框，請手動全選複製。");
+      copyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(applyParamsBtn && paramTextArea){
+    applyParamsBtn.addEventListener("click", function(){
+      try{
+        const parsed = JSON.parse(paramTextArea.value);
+        Object.keys(parsed).forEach(function(key){
+          if(!Object.prototype.hasOwnProperty.call(GAME_PARAMS, key)) return;
+          const incoming = parsed[key];
+          const current = GAME_PARAMS[key];
+          if(typeof incoming === "number" && typeof current === "number"){
+            GAME_PARAMS[key] = incoming;
+          }else if(typeof incoming === "string" && typeof current === "string" && incoming.trim()){
+            GAME_PARAMS[key] = incoming.trim();
+            const sndKey = FILE_KEY_TO_SND_KEY[key];
+            if(sndKey) reloadSound(sndKey);
+          }
+        });
+        refreshParamPanelValues();
+        showStatus("參數已套用！");
+      }catch(e){
+        showStatus("格式錯誤，請確認貼上的是完整的參數 JSON。", 3000);
+      }
+      applyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(resetParamsBtn){
+    resetParamsBtn.addEventListener("click", function(){
+      Object.assign(GAME_PARAMS, JSON.parse(JSON.stringify(GAME_PARAMS_DEFAULTS)));
+      Object.keys(SND_FILE_KEY).forEach(reloadSound);
+      refreshParamPanelValues();
+      showStatus("已還原成預設值。");
+      resetParamsBtn.blur();
+    });
+  }
+
+  buildParamPanel();
+})();
+
+/* ============================================================
+   虛擬搖桿與螢幕按鈕（手機/平板觸控用）
+   ------------------------------------------------------------
+   搖桿：對應 ArrowLeft / ArrowRight / ArrowUp（左右移動、跳躍）
+   按鈕：對應空白鍵，觸發揮槌攻擊 tryAttack()
+   ============================================================ */
+(function(){
+  function updateControlsVisibility(){
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = window.innerWidth <= window.innerHeight;
+    const isMobile = window.innerWidth <= 768;
+    const joystick = document.getElementById("joystick");
+    const screenButtons = document.getElementById("screenButtons");
+    if(joystick && screenButtons){
+      if(isLandscape && window.innerWidth <= 900){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else if(isPortrait && isMobile){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else {
+        joystick.style.display = "none";
+        screenButtons.style.display = "none";
+      }
+      screenButtons.style.zIndex = 2000;
+    }
+  }
+  window.addEventListener("resize", updateControlsVisibility);
+  window.addEventListener("orientationchange", updateControlsVisibility);
+  updateControlsVisibility();
+  window.addEventListener("resize", ()=>setTimeout(updateKnobGeometry, 50));
+  window.addEventListener("orientationchange", ()=>setTimeout(updateKnobGeometry, 50));
+  setTimeout(updateKnobGeometry, 50);
+
+  // 虛擬搖桿控制
+  const joystick = document.getElementById("joystick");
+  const knob = document.getElementById("joystick-knob");
+  const directionIndicators = document.querySelectorAll(".direction-indicator");
+  let dragging = false, startX = 0, startY = 0;
+  let joyDX = 0, joyDY = 0;
+  let activeTouchId = null;
+  let knobCenterOffset = 35; // 動態計算：底座與旋鈕置中所需的位移量
+  let knobMaxDist = 45;      // 動態計算：旋鈕可拖曳的最大距離
+
+  function updateKnobGeometry(){
+    if(!joystick || !knob) return;
+    const baseSize = joystick.offsetWidth;
+    const knobSize = knob.offsetWidth;
+    knobCenterOffset = (baseSize - knobSize) / 2;
+    // 讓旋鈕邊緣最遠可以貼到底座邊緣，並保留一點緩衝
+    knobMaxDist = Math.max(20, baseSize / 2 - knobSize / 4);
+  }
+
+  function updateDirectionIndicators(){
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+    if(Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1){
+      let direction = "";
+      if(joyDY < -0.3) direction += "up";
+      else if(joyDY > 0.3) direction += "down";
+      if(joyDX < -0.3) direction += "-left";
+      else if(joyDX > 0.3) direction += "-right";
+      if(direction){
+        const indicator = document.querySelector(".direction-indicator." + direction);
+        if(indicator) indicator.classList.add("active");
+      }
+    }
+  }
+
+  function resetJoystick(){
+    dragging = false;
+    activeTouchId = null;
+    if(knob){ knob.style.left = knobCenterOffset + "px"; knob.style.top = knobCenterOffset + "px"; }
+    joyDX = 0; joyDY = 0;
+    keys["ArrowLeft"] = keys["ArrowRight"] = keys["ArrowUp"] = keys["ArrowDown"] = false;
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+  }
+
+  function moveKnobTo(clientX, clientY){
+    let dx = clientX - startX;
+    let dy = clientY - startY;
+    const maxDist = knobMaxDist;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist > maxDist){
+      dx = dx * maxDist / dist;
+      dy = dy * maxDist / dist;
+    }
+    knob.style.left = (knobCenterOffset + dx) + "px";
+    knob.style.top = (knobCenterOffset + dy) + "px";
+    joyDX = dx / maxDist;
+    joyDY = dy / maxDist;
+    keys["ArrowLeft"]  = joyDX < -0.2;
+    keys["ArrowRight"] = joyDX > 0.2;
+    keys["ArrowUp"]    = joyDY < -0.2;
+    keys["ArrowDown"]  = joyDY > 0.2;
+    updateDirectionIndicators();
+  }
+
+  if(joystick && knob){
+    // 綁在整個底座（外圈）上，而不是只綁在中間的小旋鈕上，
+    // 這樣玩家點在搖桿範圍內任何地方都能立刻開始拖曳，大幅提升靈敏度
+    joystick.addEventListener("touchstart", function(e){
+      if(dragging) return;
+      dragging = true;
+      updateKnobGeometry();
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+      const baseRect = joystick.getBoundingClientRect();
+      startX = baseRect.left + baseRect.width / 2;
+      startY = baseRect.top + baseRect.height / 2;
+      // 立刻把旋鈕移動到手指按下的位置，減少「按了沒反應」的感覺
+      moveKnobTo(touch.clientX, touch.clientY);
+      if(gameState === "title" || gameState === "gameover") startGame();
+      e.preventDefault();
+      e.stopPropagation();
+    }, {passive:false});
+
+    document.addEventListener("touchmove", function(e){
+      if(!dragging) return;
+      let touch = null;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ touch = t; break; }
+      }
+      if(!touch) return;
+      moveKnobTo(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, {passive:false});
+
+    document.addEventListener("touchend", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+
+    // 補上 touchcancel：觸控常會被系統手勢、多指觸控等中斷而不會觸發 touchend，
+    // 若沒處理這個事件，dragging 會卡在 true，導致搖桿之後完全沒反應
+    document.addEventListener("touchcancel", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+  }
+
+  // 虛擬按鈕控制（揮槌，對應空白鍵 tryAttack）
+  const actionBtn = document.getElementById("actionBtn");
+  if(actionBtn){
+    function triggerSwingAction(e){
+      if(gameState === "title" || gameState === "gameover"){
+        startGame();
+      } else {
+        tryAttack();
+      }
+      if(e){ e.preventDefault(); e.stopPropagation(); }
+    }
+    actionBtn.addEventListener("touchstart", triggerSwingAction, {passive:false});
+    actionBtn.addEventListener("click", triggerSwingAction);
+  }
+})();
+
+/* ============================================================
+   主迴圈（固定時間步 Fixed Timestep）
+   ------------------------------------------------------------
+   問題：requestAnimationFrame 每次畫面刷新就觸發一次，觸發頻率＝
+   螢幕更新率。電腦螢幕常見 120/144/165Hz，手機大多是 60Hz，
+   若每次刷新都直接呼叫一次 update()，電腦上的遊戲邏輯（移動、
+   跳躍、兔子生成…）就會比手機跑得快。
+   解法：用經過的實際時間（delta time）累加，強制 update() 永遠
+   以固定的每秒 60 次頻率執行，跟畫面的實際刷新率脫鉤。這樣不管
+   是 60Hz 手機還是 144Hz 電腦螢幕，遊戲速度都會一致；畫面只是
+   刷新次數不同（更順），邏輯速度不變。
+   ============================================================ */
+const STEP_MS = 1000 / FPS;      // 每一次邏輯更新代表的時間（約 16.67ms）
+const MAX_STEPS_PER_FRAME = 5;   // 分頁切走再切回來時，避免一次補太多步造成瞬間暴衝
+let lastTime = null;
+let accumulator = 0;
+
+function loop(now){
+  if(lastTime === null) lastTime = now;
+  let delta = now - lastTime;
+  lastTime = now;
+
+  // 避免分頁切到背景、裝置卡頓等情況造成的超大時間差
+  if(delta > 250) delta = 250;
+
+  accumulator += delta;
+
+  let steps = 0;
+  while(accumulator >= STEP_MS && steps < MAX_STEPS_PER_FRAME){
+    update();
+    accumulator -= STEP_MS;
+    steps++;
+  }
+  // 極端情況下（例如背景分頁太久才切回來）直接捨棄多餘的累積時間，
+  // 避免補幀補到卡死
+  if(steps === MAX_STEPS_PER_FRAME) accumulator = 0;
+
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
