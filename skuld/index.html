@@ -1608,14 +1608,21 @@ function drawScore(){
   const padded = digits.padStart(total, "0");
   let dx = labelX + labelW + 10;
   const dy = 14;
+  // "0" 的圖片原生尺寸比其他數字矮，統一以其他數字的高度為基準，讓「0」靠下對齊
+  let digitH = 0;
+  for(const k in IMG.digit){
+    const d = IMG.digit[k];
+    if(d && d.complete && d.naturalHeight){ digitH = d.naturalHeight; break; }
+  }
   for(let i = 0; i < padded.length; i++){
     const ch = padded[i];
     const isLeadingZero = (ch === "0") && (i < padded.length - String(displayScore).length || displayScore === 0 && i < total-1);
     if(ch === "0"){
-      // IMG.zero 原生尺寸較小(21x23)，等比放大到跟其他數字差不多的高度，讓字距整齊
-      const zw = 34, zh = 37;
-      if(IMG.zero.complete) ctx.drawImage(IMG.zero, dx, dy, zw, zh);
-      dx += zw + 2;
+      if(IMG.zero.complete){
+        const zeroDy = digitH ? dy + (digitH - IMG.zero.naturalHeight) : dy;
+        ctx.drawImage(IMG.zero, dx, zeroDy);
+        dx += IMG.zero.naturalWidth + 2;
+      }
     } else {
       const im = IMG.digit[ch];
       if(im && im.complete){
