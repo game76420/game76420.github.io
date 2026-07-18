@@ -892,7 +892,10 @@ let LINE_PARAMS = {
   seaSurfaceY: 270,          // 海平面基準高度（Y 座標，越小海平面越靠上、水域範圍越大）
   waveAmplitudeMain: 12,     // 主波浪的起伏幅度（越大波浪越明顯）
   waveAmplitudeSecondary: 4, // 次波浪的起伏幅度（疊加在主波浪上的細碎波紋）
-  waveDisturbAmplitude: 10   // 主角移動時，擾動水面的強度
+  waveDisturbAmplitude: 10,  // 主角移動時，擾動水面的強度
+
+  // --- 新增：碗與水面之間的相差高度（可調） ---
+  bowlWaterOffsetY: 0        // 碗相對於「貼齊水面」位置的額外上下偏移量：負值＝碗浮得比水面高，正值＝碗沉得比水面低（0＝碗中心貼齊水面）
 };
 // 保留一份原始預設值，供調參面板的「還原預設值」使用
 const LINE_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(LINE_PARAMS));
@@ -946,7 +949,8 @@ const LINE_PARAMS_META = [
   ["海-海平面高度 seaSurfaceY", "seaSurfaceY", 50, 500, 5],
   ["海-主波浪幅度 waveAmplitudeMain", "waveAmplitudeMain", 0, 40, 1],
   ["海-次波浪幅度 waveAmplitudeSecondary", "waveAmplitudeSecondary", 0, 20, 1],
-  ["海-移動擾動強度 waveDisturbAmplitude", "waveDisturbAmplitude", 0, 30, 1]
+  ["海-移動擾動強度 waveDisturbAmplitude", "waveDisturbAmplitude", 0, 30, 1],
+  ["碗-與水面相差高度 bowlWaterOffsetY", "bowlWaterOffsetY", -150, 150, 1]
 ];
 
 // 調參面板分類設定：先分「線」「鉤」兩大類，各大類底下再依功能細分小分類，
@@ -991,6 +995,11 @@ const PARAM_CATEGORIES = [
     kind: "sea",
     title: "🌊 海　海平面與波浪",
     keys: ["seaSurfaceY", "waveAmplitudeMain", "waveAmplitudeSecondary", "waveDisturbAmplitude"]
+  },
+  {
+    kind: "bowl",
+    title: "🍲 碗　與水面的相對位置",
+    keys: ["bowlWaterOffsetY"]
   }
 ];
 
@@ -1463,6 +1472,29 @@ function getCatchHalfSize(kind, padScaleX, padScaleY) {
     default: size = { w: 44, h: 32 };
   }
   return { hw: (size.w / 2) * padScaleX, hh: (size.h / 2) * padScaleY };
+}
+
+// 修正「一次釣很多條魚時，明明對到碗裡卻從碗下方掉出去」的問題：
+// 當同時有大量魚／物件在被拉起（例如魚群批次一次出現很多條魚），
+// 畫面每一幀要處理的東西變多，單幀花費的時間變長、幀與幀之間的時間差
+// （deltaTime）容易變大，使得魚在「這一幀」和「下一幀」之間，
+// 一口氣從碗的上方跳到碗的下方，中間完全沒有任何一幀的座標真正落在
+// 碗的高度範圍內（也就是「穿透」/tunneling）。
+// 原本的判斷只檢查「這一幀當下的座標」是否落在碗裡，
+// 所以碰到這種情況就會判定成沒接住、魚從碗底掉出去。
+// 這裡改成檢查「上一幀到這一幀之間，魚實際掃過的整段路徑」
+// 有沒有經過碗的高度範圍，只要有掃到就算數，避免因為單幀跳太快而漏接。
+function isEnteringPotFromAbove(x, y, prevY, boxX, boxY, boxW, boxH) {
+  // 水平方向：用目前位置是否落在碗的寬度範圍內即可（碗左右移動速度較慢）
+  if (x <= boxX || x >= boxX + boxW) return false;
+  // 必須是往下移動，避免從碗下方往上經過也被誤判成釣到
+  if (!(y > prevY + 0.01)) return false;
+  const potTop = boxY;
+  const potBottom = boxY + boxH;
+  // 掃描上一幀到這一幀之間的整段垂直路徑，只要跟碗的高度範圍有重疊就算「有經過碗裡」
+  const segTop = Math.min(prevY, y);
+  const segBottom = Math.max(prevY, y);
+  return segTop < potBottom && segBottom > potTop;
 }
 
 // --- 魷魚/章魚/海參相關 ---
@@ -2629,7 +2661,7 @@ function gameLoop(currentTime) {
     // --- 鍋子隨波浪浮動 ---
     // 鍋蓋正在蓋下來，或已經開始下沉時，鍋子都要停止移動
     if (!bowlSinking && !lidDropping) {
-      let bowlTargetY = getWaveY(bowlX + pot.w/2, wavePhase) - pot.h/2;
+      let bowlTargetY = getWaveY(bowlX + pot.w/2, wavePhase) - pot.h/2 + LINE_PARAMS.bowlWaterOffsetY;
       let spring = 0.18, damp = 0.72;
       if (typeof bowlY !== 'number') bowlY = pot.y;
       // 新增：碗下沉彈跳
@@ -2752,9 +2784,7 @@ function gameLoop(currentTime) {
 
         if (aboveWater) {
           trash.everAboveWater = true;
-          let inPot = trash.x > bowlX && trash.x < bowlX + pot.w &&
-                      trash.y > bowlY && trash.y < bowlY + pot.h &&
-                      movingDownIntoPot;
+          let inPot = isEnteringPotFromAbove(trash.x, trash.y, prevLiftY, bowlX, bowlY, pot.w, pot.h);
           if (inPot) {
             // 只有真的掉進碗裡才會扣元氣
             trash.hit = true;
@@ -2856,9 +2886,7 @@ function gameLoop(currentTime) {
 
       if (aboveWater) {
         specialSeaCreature.everAboveWater = true;
-        let inPot = specialSeaCreature.x > bowlX && specialSeaCreature.x < bowlX + pot.w &&
-                    specialSeaCreature.y > bowlY && specialSeaCreature.y < bowlY + pot.h &&
-                    movingDownIntoPot;
+        let inPot = isEnteringPotFromAbove(specialSeaCreature.x, specialSeaCreature.y, prevLiftY, bowlX, bowlY, pot.w, pot.h);
         if (inPot && timeLeft > 0 && !gameOver) {
           specialSeaCreature.caught = true;
           // 新增：記錄相對於碗的偏移量，讓特殊生物在淡出期間跟著碗一起移動
@@ -2961,9 +2989,7 @@ function gameLoop(currentTime) {
           fish.everAboveWater = true;
           // 已經被拉出水面：貓咪左右移動時，魚會跟著鉤子/線一起移動，
           // 只要目前位置剛好對到碗、且是從上往下經過，就算釣到
-          let inPot = fish.x > bowlX && fish.x < bowlX + pot.w &&
-                      fish.y > bowlY && fish.y < bowlY + pot.h &&
-                      movingDownIntoPot;
+          let inPot = isEnteringPotFromAbove(fish.x, fish.y, prevLiftY, bowlX, bowlY, pot.w, pot.h);
           if (inPot && timeLeft > 0 && !gameOver) {
             fish.caught = true;
             // 新增：記錄相對於碗的偏移量，讓魚在淡出期間跟著碗一起移動，
