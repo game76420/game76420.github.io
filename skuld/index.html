@@ -36,26 +36,26 @@
     position:fixed; top:10px; right:10px; z-index:1300;
     width:40px; height:40px; border-radius:50%;
     border:none; cursor:pointer;
-    background:rgba(20,20,20,0.55);
+    background:transparent;
     color:#fff; font-size:20px;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);
-    transition:background 0.2s, transform 0.2s;
+    box-shadow:none;
+    transition:transform 0.2s;
   }
-  #settingsBtn:hover{ background:rgba(20,20,20,0.85); transform:scale(1.06); }
+  #settingsBtn:hover{ transform:scale(1.06); }
 
   /* ===== 重開遊戲按鈕：固定在設定齒輪下方，設定面板開關都能點，共用同一顆 ===== */
   #restartGameBtn{
     position:fixed; top:56px; right:10px; z-index:1300;
     width:40px; height:40px; border-radius:50%;
     border:none; cursor:pointer;
-    background:rgba(58,168,86,0.85);
+    background:transparent;
     color:#fff; font-size:18px;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);
-    transition:background 0.2s, transform 0.2s;
+    box-shadow:none;
+    transition:transform 0.2s;
   }
-  #restartGameBtn:hover{ background:rgba(47,140,70,0.95); transform:scale(1.06); }
+  #restartGameBtn:hover{ transform:scale(1.06); }
 
   /* ===== 設定面板：靠右側的側邊面板，不會擋住整個遊戲畫面 ===== */
   #paramPanel{
@@ -1239,16 +1239,17 @@ function updatePlayer(){
   } else {
     // 左右移動
     let moving = false;
-    if(player.state !== "swing"){
+    if(player.state === "swing" && player.onGround){
+      // 站在地面上輝槌：停止水平移動，維持原本「揮槌時不能移動」的設計
+      player.vx = 0;
+    } else {
+      // 半空中揮槌（跳躍中按空白鍵攻擊）時，左右方向鍵仍然正常控制水平移動與轉向，
+      // 完全比照沒有攻擊時的跳躍表現，不會被「揮槌」凍結或改變跳躍路徑；
+      // 垂直方向（vy／重力）本來就不受 state 影響，所以攻擊全程不會動到跳躍的垂直軌跡。
       if(keys["ArrowLeft"]){ player.vx = -GAME_PARAMS.playerSpeed; player.facing = -1; moving = true; }
       else if(keys["ArrowRight"]){ player.vx = GAME_PARAMS.playerSpeed; player.facing = 1; moving = true; }
       else { player.vx = 0; }
-    } else if(player.onGround){
-      // 站在地面上輝槌：停止水平移動，維持原本「揮槌時不能移動」的設計
-      player.vx = 0;
     }
-    // 注意：在半空中輝槌時，故意不把 player.vx 歸零，維持原本跳躍的水平動量，
-    // 修復「往前跳到一半揮槌，角色就會瞬間失去前進速度、直直往下掉」的 bug
     player.x += player.vx;
     player.x = Math.max(CONST.stageLeftBound, Math.min(CONST.stageRightBound - player.w, player.x));
 
