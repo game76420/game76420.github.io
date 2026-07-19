@@ -377,10 +377,33 @@ function playSound(a) {
 // 也會分別尊重「音效開關」（控制 pikachu 提示音）與「音樂開關」（控制背景音樂 bgm）。
 function playPikachuThenMusic() {
   let musicTriggered = false;
+  // 手機瀏覽器（尤其某些 App 內建瀏覽器/WebView）對 play() 的要求非常嚴格：
+  // 只有「這次呼叫本身就在使用者手勢事件的呼叫堆疊裡」才會被允許播放，
+  // 就算音訊物件先前已經被「解鎖」過、或只是晚了一個 rAF 影格才呼叫 play()，
+  // 都可能被擋下來，這正是背景音樂在手機上播不出來、但一般音效（緊跟在
+  // 觸控之後立刻呼叫 playSound()）卻沒問題的原因。
+  // 解法：在呼叫這個函式的當下（必須仍在使用者手勢的同一個呼叫堆疊裡），
+  // 立刻用「音量 0（靜音）」把背景音樂 play() 起來——這個 play() 呼叫本身
+  // 就滿足瀏覽器的手勢要求。等 pikachu.wav 播完之後只需要把音量調大，
+  // 不用再重新呼叫一次 play()，就能避開「非同步呼叫 play() 被擋下」的問題。
+  if (GAME_PARAMS.musicEnabled) {
+    try {
+      sounds.bgm.volume = 0;
+      const p = sounds.bgm.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (e) {}
+  }
   function startMusicOnce() {
     if (musicTriggered) return;
     musicTriggered = true;
-    if (GAME_PARAMS.musicEnabled) sounds.bgm.play().catch(() => {});
+    if (GAME_PARAMS.musicEnabled) {
+      sounds.bgm.volume = 0.5;
+      // 保險：如果一開始的靜音播放不知為何沒有真的播放起來（仍被擋下），
+      // 這裡再補呼叫一次 play()；多數情況下不會執行到這裡，因為前面已經播放成功。
+      if (sounds.bgm.paused) sounds.bgm.play().catch(() => {});
+    } else {
+      sounds.bgm.pause();
+    }
   }
   if (!GAME_PARAMS.sfxEnabled) {
     // 音效關掉了，跳過 pikachu 提示音，直接（視音樂開關）開始播放背景音樂
@@ -1298,6 +1321,19 @@ window.addEventListener("keyup", e => {
 canvas.addEventListener("pointerdown", () => {
   keys["Enter"] = true;
   setTimeout(() => { keys["Enter"] = false; }, 100);
+  // 手機上直接在這次觸控的呼叫堆疊裡就把「開始遊戲／重新開始」處理掉，
+  // 不要等到下一個 rAF 影格才由 updateMenu()/updateGameOver() 讀取 keys.Enter，
+  // 這樣裡面呼叫的 sounds.bgm.play() 才確定是在使用者手勢的同一個呼叫堆疊裡，
+  // 避免多等這一格造成部分手機瀏覽器/WebView 認定「已經不算使用者手勢了」。
+  if (game && game.state === GameState.MENU) {
+    game.reset();
+    game.state = GameState.PLAYING;
+    game.enterGame();
+  } else if (game && game.state === GameState.GAME_OVER) {
+    game.reset();
+    game.state = GameState.PLAYING;
+    game.enterGame();
+  }
 });
 
 // ---------- 遊戲狀態機 ----------
