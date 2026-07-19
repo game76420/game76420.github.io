@@ -593,6 +593,47 @@ function reloadSound(key){
 }
 Object.keys(SND_FILE_KEY).forEach(reloadSound);
 
+/* ------------------------------------------------------------
+   手機瀏覽器（尤其 iOS Safari）音訊自動播放限制：
+   .play() 一定要「在使用者手勢事件當下、同一個呼叫堆疊裡」被呼叫，才算數。
+   一般音效之所以在手機上聽得到，是因為 playSound() 幾乎都是緊接在觸控操作
+   之後被觸發；但背景音樂是在 pikachu.wav 播完後的 "ended" 事件裡才呼叫
+   sounds.bgm.play()，這已經不是使用者手勢的同一個呼叫堆疊了，
+   所以手機上會被瀏覽器擋下來，只聽得到音效、聽不到音樂。
+
+   解法：在使用者第一次觸控/點擊/按鍵的當下，同步把每一個音訊物件都
+   play() 一次再立刻 pause()、重置到開頭。這個「解鎖」動作完成之後，
+   之後不管在哪裡（ended 事件、setTimeout…）呼叫同一個音訊物件的 .play()，
+   瀏覽器都會允許正常播放。
+   ------------------------------------------------------------ */
+let audioUnlocked = false;
+function unlockAudioForMobile(){
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  Object.keys(sounds).forEach(function(key){
+    const a = sounds[key];
+    if(!a) return;
+    try{
+      const playPromise = a.play();
+      if(playPromise && typeof playPromise.then === "function"){
+        playPromise.then(function(){
+          a.pause();
+          a.currentTime = 0;
+        }).catch(function(){});
+      } else {
+        a.pause();
+        a.currentTime = 0;
+      }
+    }catch(e){}
+  });
+}
+["touchstart", "pointerdown", "keydown"].forEach(function(evt){
+  // capture:true 讓這個監聽器在「捕獲階段」就先執行，
+  // 這樣就算虛擬搖桿/動作按鈕的觸控事件呼叫了 e.stopPropagation()（它們有呼叫），
+  // 音訊解鎖動作還是會在事件到達目標元素之前就先跑過，不會被擋掉
+  window.addEventListener(evt, unlockAudioForMobile, { once: true, capture: true, passive: true });
+});
+
 // 面板用的參數說明表：[顯示名稱, 參數鍵, 最小值, 最大值, 每格間距, 類型]
 const GAME_PARAMS_META = [
   ["整體遊戲速度倍率 gameSpeedMultiplier", "gameSpeedMultiplier", 0.25, 3, 0.05],
