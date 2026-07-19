@@ -388,11 +388,19 @@ function playPikachuThenMusic() {
     return;
   }
   try {
-    const intro = sounds.pikachu.cloneNode();
-    intro.volume = sounds.pikachu.volume;
-    intro.addEventListener("ended", startMusicOnce);
-    intro.addEventListener("error", startMusicOnce);
+    // 直接用 sounds.pikachu 本人播放，不要 cloneNode()：
+    // 這個元素從頁面載入時就已經帶著 preload="auto" 開始緩衝，直接用它
+    // 才能吃到這段緩衝進度；如果每次都重新複製一個全新的 Audio 元素，
+    // 等於每次都要重新開始抓取/緩衝檔案，在網路較慢、瀏覽器還沒有快取
+    // （例如使用者第一次進入頁面）時容易發生「還沒緩衝好就被跳過」的狀況。
+    const intro = sounds.pikachu;
+    intro.currentTime = 0;
+    intro.addEventListener("ended", startMusicOnce, { once: true });
+    intro.addEventListener("error", startMusicOnce, { once: true });
     intro.play().catch(startMusicOnce);
+    // 保底逾時：萬一音檔載入異常導致 ended/error 都沒觸發，最多等 8 秒
+    // 還是要接著播放背景音樂，不要整個卡住
+    setTimeout(startMusicOnce, 8000);
   } catch (e) {
     startMusicOnce();
   }
@@ -605,12 +613,25 @@ Object.keys(SND_FILE_KEY).forEach(reloadSound);
    play() 一次再立刻 pause()、重置到開頭。這個「解鎖」動作完成之後，
    之後不管在哪裡（ended 事件、setTimeout…）呼叫同一個音訊物件的 .play()，
    瀏覽器都會允許正常播放。
+
+   ⚠️ 但 pikachu.wav 不能放進這個解鎖清單：它會在同一次觸控之後幾乎立刻
+   （下一個 rAF 影格）被 playPikachuThenMusic() 真正播放。解鎖動作的
+   pause()/歸零是等 play() 的 Promise resolve 之後才非同步執行的——
+   如果當下網路較慢、音檔還沒緩衝好（例如第一次進入頁面、還沒有快取），
+   這個非同步的暫停可能會晚於真正的播放呼叫才觸發，結果就是把剛開始播放
+   的 pikachu.wav 攔腰打斷，聽起來就像完全沒播放。重新整理後檔案已經在
+   瀏覽器快取裡，解鎖的播放/暫停幾乎瞬間完成，兩者不會撞在一起，所以才會
+   「重新整理後就正常」。
+   只要用其他音效（hit/jump/score/slam/win/bgm）完成一次解鎖，
+   就能讓整個頁面被瀏覽器視為「已取得播放授權」，pikachu.wav 自己稍後的
+   正式播放呼叫一樣會被允許，不需要把它也放進這個解鎖清單。
    ------------------------------------------------------------ */
 let audioUnlocked = false;
 function unlockAudioForMobile(){
   if (audioUnlocked) return;
   audioUnlocked = true;
   Object.keys(sounds).forEach(function(key){
+    if (key === "pikachu") return; // 交給正式播放流程自己處理，避免跟這裡的解鎖動作互相打架
     const a = sounds[key];
     if(!a) return;
     try{
