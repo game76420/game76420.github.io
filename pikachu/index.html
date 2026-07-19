@@ -442,7 +442,9 @@ function playPikachuThenMusic() {
 
 const images = {
   background: loadImage("img/beach.png"),
-  ball: loadImage("img/ball.png"),
+  // 球的動畫改成 5 張獨立圖檔（ball_1.png ~ ball_5.png），輪流播放但大小維持不變，
+  // 用法跟 pikachuFrames 一樣，陣列索引對應 frame（0~4）。
+  ballFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/ball_${n}.png`)),
   // 平常狀態（idle/run）改成 5 張獨立圖檔，每張都是完整的一格 55x56，
   // 不再用單張雪碧圖橫向切格。陣列索引就對應 frame（0~4 對應 pikachu_1~pikachu_5.png）。
   pikachuFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_${n}.png`)),
@@ -505,6 +507,9 @@ flattenImages().forEach(i => {
   i.addEventListener("error", checkAssetsReady);
 });
 
+// 球的動畫每隔幾個 update tick 換下一張圖（數字越小換得越快；60 = 每秒約換 1 張）
+const BALL_ANIM_FRAME_DURATION = 4;
+
 // ---------- 精靈參數 ----------
 const SPRITE_W = 55;
 const SPRITE_H = 56;
@@ -556,7 +561,8 @@ let GAME_PARAMS = {
   diveInitialVY: -6,         // 飛撲瞬間垂直初速
 
   // --- 擊球判定 ---
-  hitboxWidth: 55,                  // 角色擊球碰撞箱寬度（跟圖片顯示大小分開，只影響判定範圍）
+  hitboxWidthGround: 34,             // 角色「站在地面」時的擊球碰撞箱寬度（跟圖片顯示大小分開，只影響判定範圍）
+  hitboxWidthJump: 55,               // 角色「跳起來」時的擊球碰撞箱寬度
   hitboxHeight: 56,                 // 角色擊球碰撞箱高度（水平置中、垂直以腳底對齊）
   spikeHitboxExtra: 15,             // 跳躍殺球判定專用的碰撞箱，往精靈頭頂上方額外延伸的高度（像素）
   spikeHitboxForward: 15,           // 跳躍殺球判定範圍，往精靈面向的前方（面對球網的方向）額外加寬的距離（像素）
@@ -758,7 +764,8 @@ const GAME_PARAMS_META = [
   ["飛撲維持時間 diveDuration", "diveDuration", 0.08, 1.5, 0.02, "sec"],
   ["飛撲垂直初速 diveInitialVY", "diveInitialVY", -10, 0, 0.5],
 
-  ["擊球碰撞箱寬度 hitboxWidth", "hitboxWidth", 10, 100, 2, "free"],
+  ["擊球碰撞箱寬度(站立時) hitboxWidthGround", "hitboxWidthGround", 10, 100, 2, "free"],
+  ["擊球碰撞箱寬度(跳躍時) hitboxWidthJump", "hitboxWidthJump", 10, 100, 2, "free"],
   ["擊球碰撞箱高度 hitboxHeight", "hitboxHeight", 10, 100, 2, "free"],
   ["跳躍殺球判定範圍加高 spikeHitboxExtra", "spikeHitboxExtra", 0, 60, 2, "free"],
   ["跳躍殺球判定範圍加寬(前方) spikeHitboxForward", "spikeHitboxForward", 0, 60, 2, "free"],
@@ -824,7 +831,7 @@ const PARAM_CATEGORIES = [
   { kind: "player", title: "🤸 飛撲 Dive",
     keys: ["diveDistance", "diveSpeed", "diveDuration", "diveInitialVY"] },
   { kind: "player", title: "🏐 擊球判定",
-    keys: ["hitboxWidth", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "normalHitPower", "normalHitAngleLeftBase", "normalHitAngleRightBase", "normalHitAngleVariance", "jumpSpikePower", "jumpSpikeAngleLeftSide", "jumpSpikeAngleRightSide", "diveHitPower", "diveHitAngleLeftSide", "diveHitAngleRightSide"] },
+    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "normalHitPower", "normalHitAngleLeftBase", "normalHitAngleRightBase", "normalHitAngleVariance", "jumpSpikePower", "jumpSpikeAngleLeftSide", "jumpSpikeAngleRightSide", "diveHitPower", "diveHitAngleLeftSide", "diveHitAngleRightSide"] },
   { kind: "ai", title: "🤖 AI　難度",
     keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier"] },
   { kind: "ball", title: "⚽ 排球物理", 
@@ -915,13 +922,24 @@ class Pikachu {
   }
 
   get rect() {
-    // 擊球碰撞箱大小可另外用 GAME_PARAMS.hitboxWidth / hitboxHeight 調整，
+    // 擊球碰撞箱大小可另外用 GAME_PARAMS.hitboxWidthGround / hitboxWidthJump / hitboxHeight 調整，
     // 跟精靈圖本身的畫面大小（this.width/this.height）分開，改碰撞箱不會影響圖片顯示大小。
-    // 水平置中、垂直以腳底（this.y + this.height）對齊，這樣調高度時角色腳底還是貼在地面上。
-    const w = GAME_PARAMS.hitboxWidth || this.width;
+    // 站在地面時用 hitboxWidthGround（較窄，避免站著不動就穩贏），
+    // 跳起來之後（this.isJumping）改用 hitboxWidthJump（較寬，方便跳躍中判定擊球/殺球）。
+    // 垂直以腳底（this.y + this.height）對齊，這樣調高度時角色腳底還是貼在地面上。
+    // 水平方向不再置中縮減，而是「前方（面向球網那一側）貼齊圖片邊緣、只從背後（面向球場外側那一側）
+    // 縮減」：左側角色面向右邊（球網在右邊），所以縮減的部分從左邊（背後）扣掉；
+    // 右側角色面向左邊，縮減的部分則從右邊（背後）扣掉。這樣站在原地時，
+    // 球只要繞到角色背後就碰不到，不會單純站著不動就穩贏。
+    const w = this.isJumping
+      ? (GAME_PARAMS.hitboxWidthJump || this.width)
+      : (GAME_PARAMS.hitboxWidthGround || this.width);
     const h = GAME_PARAMS.hitboxHeight || this.height;
+    const x = this.side === "left"
+      ? this.x + (this.width - w)   // 左側角色：前方（右邊）貼齊，從左邊（背後）縮減
+      : this.x;                      // 右側角色：前方（左邊）貼齊，從右邊（背後）縮減
     return {
-      x: this.x + (this.width - w) / 2,
+      x,
       y: this.y + (this.height - h),
       w,
       h
@@ -1359,6 +1377,10 @@ class Volleyball {
     this.vy = 0;
     this.sparks = [];
     this.resetTimer = 0;
+    // 球的動畫幀（大小不變，只是輪流換圖）：ballAnimTimer 每次 update 累加，
+    // 每隔 BALL_ANIM_FRAME_DURATION 個 tick 就切到下一張圖，5 張圖循環播放。
+    this.ballAnimTimer = 0;
+    this.ballAnimFrame = 0;
   }
 
   get rect() {
@@ -1390,6 +1412,13 @@ class Volleyball {
     }
 
     this.sparks = this.sparks.filter(s => s.update());
+
+    // 推進球的動畫幀（固定播放速度，跟球飛多快無關，單純輪流換圖）
+    this.ballAnimTimer++;
+    if (this.ballAnimTimer >= BALL_ANIM_FRAME_DURATION) {
+      this.ballAnimTimer = 0;
+      this.ballAnimFrame = (this.ballAnimFrame + 1) % 5;
+    }
   }
 
   hit(power, angleDeg) {
@@ -1415,7 +1444,9 @@ class Volleyball {
 
   draw(ctx) {
     if (assetsReady) {
-      ctx.drawImage(images.ball, this.x, this.y, this.width, this.height);
+      const frameImg = images.ballFrames[this.ballAnimFrame];
+      // 大小永遠用 this.width / this.height（跟球本身邏輯尺寸一致），只換圖不換大小
+      ctx.drawImage(frameImg, this.x, this.y, this.width, this.height);
     }
     this.sparks.forEach(s => s.draw(ctx));
   }
