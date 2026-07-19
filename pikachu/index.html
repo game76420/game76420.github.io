@@ -576,6 +576,17 @@ let GAME_PARAMS = {
   aiSpikeChance: 80,           // AI 只要跳起來、球又在殺球判定範圍內，有百分之幾的機率會殺球（0~100，數字越大 AI 越常殺球）
   aiDiveTriggerDistance: 80,   // 球與 AI 水平距離超過此值時，AI 會嘗試飛撲接球
 
+  // --- AI 球路預測 ---
+  aiPredictionEnabled: true,   // 是否開啟「提前算好球的路徑」：開啟後 AI 會用跟球完全相同的物理公式，
+                               // 模擬球之後的彈跳、落地軌跡，提前移動到預測落點卡位，而不是等球飛到面前才反應
+  aiPredictionAccuracy: 100,   // 預測準確度（0~100）：100 = 完全準確，數字越低，AI 會在預測落點加入越多隨機誤差，
+                               // 模擬「算得不夠準」，避免 AI 變得無法擊敗
+  aiPredictionMaxSteps: 900,   // 模擬球路徑時最多往前推算幾個 tick（避免球反彈係數=1時模擬跑不完，安全上限）
+  aiChaseSpeedMultiplier: 1.4, // AI 追球時的移動速度倍率（乘在 playerSpeed 上，只在「有算出預測落點、正在趕過去卡位」時生效）：
+                               // 就算算得再準，若 AI 走路速度跟玩家一樣、又是等對手擊球那一刻才開始起跑，
+                               // 遇到又快又刁鑽的殺球還是會追不到；這個倍率讓 AI 追球時腳程比平常快一些，
+                               // 用來補足「反應/起跑」天生比人類慢半拍的落差，調到 1 就等於跟玩家一樣快。
+
   // --- 排球物理 ---
   ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球/飛撲）的初速都會乘上這個值，調低就整體變慢
   ballGravity: 0.1,            // 球的重力加速度
@@ -766,6 +777,10 @@ const GAME_PARAMS_META = [
   ["AI 殺球機率(%) aiSpikeChance", "aiSpikeChance", 0, 100, 5],
   ["AI 飛撲觸發距離 aiDiveTriggerDistance", "aiDiveTriggerDistance", 20, 200, 5, "free"],
 
+  ["AI 提前算球路徑開關 aiPredictionEnabled", "aiPredictionEnabled", 0, 0, 0, "bool"],
+  ["AI 預測準確度(%) aiPredictionAccuracy", "aiPredictionAccuracy", 0, 100, 5],
+  ["AI 追球速度倍率 aiChaseSpeedMultiplier", "aiChaseSpeedMultiplier", 1, 2.5, 0.1],
+
   ["球速倍率 ballSpeedMultiplier", "ballSpeedMultiplier", 0.2, 2, 0.05],
   ["球重力 ballGravity", "ballGravity", 0.1, 1.5, 0.05],
   ["球反彈係數 ballBounceRestitution", "ballBounceRestitution", 0.3, 1, 0.05],
@@ -811,7 +826,7 @@ const PARAM_CATEGORIES = [
   { kind: "player", title: "🏐 擊球判定",
     keys: ["hitboxWidth", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "normalHitPower", "normalHitAngleLeftBase", "normalHitAngleRightBase", "normalHitAngleVariance", "jumpSpikePower", "jumpSpikeAngleLeftSide", "jumpSpikeAngleRightSide", "diveHitPower", "diveHitAngleLeftSide", "diveHitAngleRightSide"] },
   { kind: "ai", title: "🤖 AI　難度",
-    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance"] },
+    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier"] },
   { kind: "ball", title: "⚽ 排球物理", 
     keys: ["ballSpeedMultiplier", "ballGravity", "ballBounceRestitution", "ballWidth", "ballHeight"] },
   { kind: "ball", title: "🥅 球網",
@@ -938,19 +953,22 @@ class Pikachu {
     return { x, y: base.y - extraUp, w, h: base.h + extraUp };
   }
 
-  move(direction, net) {
+  move(direction, net, speed) {
     // 飛撲中鎖死方向鍵：一旦開始飛撲，就讓飛撲自己的位移邏輯（divingMovement/diveTargetX）
     // 獨佔控制權，直到飛撲結束、落地站穩為止；玩家或 AI 這時按左右都不會再生效。
     // 這樣飛撲方向（diveDirection，也就是翻面用的依據）從頭到尾只會被設定一次，
     // 不會被中途的移動指令打架，從根本上避免精靈中途轉向、圖案跟移動方向對不上的問題。
     if (this.diveMode) return;
+    // speed 可由呼叫端覆寫（AI 追預測落點時會傳入比 playerSpeed 快一點的速度），
+    // 不傳就沿用原本玩家/AI 共用的 GAME_PARAMS.playerSpeed，玩家操作完全不受影響。
+    const stepSpeed = speed !== undefined ? speed : GAME_PARAMS.playerSpeed;
     const minX = this.side === "left" ? 0 : SCREEN_WIDTH / 2;
     const maxX = this.side === "left" ? SCREEN_WIDTH / 2 : SCREEN_WIDTH;
     if (direction === "left" && this.x > minX) {
-      this.x -= GAME_PARAMS.playerSpeed;
+      this.x -= stepSpeed;
       if (!this.diveMode && !this.isJumping) this.state = "run";
     } else if (direction === "right" && this.x + this.width < maxX) {
-      this.x += GAME_PARAMS.playerSpeed;
+      this.x += stepSpeed;
       if (!this.diveMode && !this.isJumping) this.state = "run";
     } else {
       if (!this.diveMode && !this.isJumping) this.state = "idle";
@@ -1152,6 +1170,63 @@ class Pikachu {
   }
 }
 
+// ---------- 球路徑預測 ----------
+// 用跟 Volleyball.update()「完全相同」的物理公式（重力、邊界反彈、地板反彈、
+// 球網碰撞）把球目前的位置與速度往前模擬很多個 tick，算出球最終會落在哪個 x 座標。
+// 這樣 AI 就能在球還沒飛到面前之前，提前移動到預測落點卡位，而不是每格畫面
+// 只看球「現在」在哪裡才反應。
+// 回傳值：{ x: 預測落點的 x 座標(球中心), path: 取樣後的軌跡點陣列，供除錯畫面畫虛線用 }
+function predictBallTrajectory(ball, netRect) {
+  let x = ball.x, y = ball.y, vx = ball.vx, vy = ball.vy;
+  const w = ball.width, h = ball.height;
+  const gravity = GAME_PARAMS.ballGravity;
+  const restitution = GAME_PARAMS.ballBounceRestitution;
+  const maxSteps = GAME_PARAMS.aiPredictionMaxSteps || 900;
+  const path = [{ x: x + w / 2, y: y + h / 2 }];
+
+  for (let i = 0; i < maxSteps; i++) {
+    vy += gravity;
+    x += vx;
+    y += vy;
+
+    if (x <= 0 || x + w >= SCREEN_WIDTH) {
+      vx *= -restitution;
+      x = Math.max(0, Math.min(x, SCREEN_WIDTH - w));
+    }
+    if (y <= 0) {
+      vy *= -restitution;
+      y = 0;
+    }
+
+    let landed = false;
+    if (y + h >= GROUND_Y) {
+      vy *= -restitution;
+      y = GROUND_Y - h;
+      landed = true; // 模擬到落地，這就是球最終的落點，不用再繼續往下模擬
+    }
+
+    if (netRect) {
+      const ballRect = { x, y, w, h };
+      if (rectsOverlap(ballRect, netRect)) {
+        const netCenterX = netRect.x + netRect.w / 2;
+        if (x + w / 2 < netCenterX) {
+          x = netRect.x - w;
+          vx = -Math.abs(vx);
+        } else {
+          x = netRect.x + w;
+          vx = Math.abs(vx);
+        }
+        vy *= -1;
+      }
+    }
+
+    if (i % 3 === 0 || landed) path.push({ x: x + w / 2, y: y + h / 2 });
+    if (landed) return { x: x + w / 2, path, steps: i + 1 };
+  }
+
+  return { x: x + w / 2, path, steps: maxSteps };
+}
+
 // ---------- AI ----------
 class AIPlayer extends Pikachu {
   constructor(x, y, side) {
@@ -1168,23 +1243,65 @@ class AIPlayer extends Pikachu {
       // 或球的 x 剛好貼著 AI 的 x 附近時，AI 每一格畫面都會左右各移動一次，
       // 變成肉眼可見的異常抖動。改成「差距大於一步才移動」就會穩定停住。
       const tolerance = GAME_PARAMS.playerSpeed;
+      const halfWidth = SCREEN_WIDTH / 2;
+      const readyX = halfWidth / 2 - this.width / 2; // 沒有來球時的預備站位（己方半場中央）
 
-      if (ball.x >= SCREEN_WIDTH / 2) {
-        const targetX = SCREEN_WIDTH / 4 - this.width / 2;
-        const dx = targetX - this.x;
-        if (dx > tolerance) this.move("right", netRect);
-        else if (dx < -tolerance) this.move("left", netRect);
-        else if (!this.diveMode && !this.isJumping) this.state = "idle";
-      } else {
-        const dxBall = ball.x - this.x;
-        if (dxBall < -tolerance && this.x > 0) {
-          this.move("left", netRect);
-        } else if (dxBall > tolerance && this.x < SCREEN_WIDTH / 2 - 50) {
-          this.move("right", netRect);
-        } else if (!this.diveMode && !this.isJumping) {
-          this.state = "idle";
+      // ---- 提前算好球的路徑 ----
+      // 球正朝 AI 這邊飛（vx<0）時，不管球目前實際上是不是已經飛過球網、
+      // 落在 AI 這一半場，都用跟球完全相同的物理公式模擬出最終落點，
+      // 提前往落點移動卡位；球正飛離 AI（剛被 AI 這邊打出去、或還沒發球）時，回到預備位置等待。
+      const incoming = ball.vx < 0;
+      let targetX;
+      let predictedSteps = null; // 預測出的球「還要幾格畫面才會落地」，用來判斷走路來不來得及
+
+      if (incoming && GAME_PARAMS.aiPredictionEnabled) {
+        // 球剛換方向飛過來的那一瞬間才重新骰一次「預測誤差」，同一輪來球全程沿用同一個誤差值，
+        // 避免每一格畫面都重骰誤差，導致 AI 明明在追同一顆球、站位卻肉眼可見地一直抖動。
+        if (!this._wasIncoming) {
+          const accuracy = Math.max(0, Math.min(100, GAME_PARAMS.aiPredictionAccuracy));
+          const maxErrorPx = 90; // 準確度 0% 時，預測落點最多可能偏差的像素數
+          this._predictionErrorPx = (Math.random() * 2 - 1) * maxErrorPx * (1 - accuracy / 100);
         }
+        const predicted = predictBallTrajectory(ball, netRect);
+        this._lastPredictedPath = predicted.path; // 存起來供除錯畫面畫出預測軌跡虛線
+        predictedSteps = predicted.steps;
+        // predicted.x 是「球中心」的預測落點，AI 的碰撞箱又是在精靈寬度(this.width)裡置中，
+        // 所以要對齊兩者的中心，這裡要扣掉的是 AI 自己的半身寬(this.width/2)，
+        // 而不是球的半徑(ball.width/2)，不然兩邊中心會系統性地偏掉一段距離。
+        targetX = predicted.x - this.width / 2 + this._predictionErrorPx;
+        // 預測落點不可能真的落在球網另一側，超出己方半場的部分夾回半場邊界，
+        // 避免 AI 想「穿越球網」卡位卡到一半卡住不動。
+        targetX = Math.max(0, Math.min(targetX, halfWidth - 50));
+      } else if (incoming) {
+        // 關閉預測功能時，退回原本「只看球現在位置」的即時反應行為（同樣要對齊中心）
+        this._lastPredictedPath = null;
+        targetX = ball.x + ball.width / 2 - this.width / 2;
+      } else {
+        this._lastPredictedPath = null;
+        targetX = readyX;
+      }
+      this._wasIncoming = incoming;
 
+      // AI 追預測落點時，腳程比一般移動（playerSpeed）快一點（aiChaseSpeedMultiplier），
+      // 用來補「算得再準、也要先起跑才追得到」這段先天的反應落差；
+      // 回防備位置時仍用一般速度，不會整體變成無腦加速。
+      const chaseSpeed = (incoming && GAME_PARAMS.aiPredictionEnabled)
+        ? GAME_PARAMS.playerSpeed * (GAME_PARAMS.aiChaseSpeedMultiplier || 1)
+        : GAME_PARAMS.playerSpeed;
+
+      const dx = targetX - this.x;
+      if (dx < -tolerance && this.x > 0) {
+        this.move("left", netRect, chaseSpeed);
+      } else if (dx > tolerance && this.x < halfWidth - 50) {
+        this.move("right", netRect, chaseSpeed);
+      } else if (!this.diveMode && !this.isJumping) {
+        this.state = "idle";
+      }
+
+      // 跳躍殺球／飛撲擊球判定，一定要用球「現在」實際的座標來判斷有沒有真的碰到，
+      // 所以這段仍然只在球已經確實飛到 AI 這一側（ball.x < halfWidth）時才會進行，
+      // 跟上面「提前卡位」用的預測落點是分開的兩件事。
+      if (ball.x < halfWidth) {
         if (
           ball.y < this.y &&
           Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance &&
@@ -1203,13 +1320,26 @@ class AIPlayer extends Pikachu {
           this.willSpike = false;
         }
 
-        if (
-          Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance &&
-          !this.diveMode &&
-          !this.isJumping
-        ) {
-          const direction = ball.x < this.x ? "left" : "right";
-          this.dive(direction, netRect);
+        if (!this.diveMode && !this.isJumping) {
+          // 原本的判定：球「現在」跟 AI 距離已經很遠，臨時飛撲搶救。
+          const farByLiveDistance = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance;
+
+          // 新增的判定：就算現在距離還好，但用預測算出來球還剩多少格畫面會落地，
+          // 跟走到預測落點所需的格數一比，發現用走的鐵定來不及，
+          // 與其等球已經飛到很近才臨時撲救（往往已經來不及），不如提前撲過去搶時間。
+          let cannotWalkInTime = false;
+          if (predictedSteps !== null) {
+            const distanceNeeded = Math.abs(targetX - this.x);
+            const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
+            cannotWalkInTime = framesNeeded > predictedSteps + 6; // 留一點安全邊際給起跳/反應時間
+          }
+
+          if (farByLiveDistance || cannotWalkInTime) {
+            // 撲的方向看「要去的地方」（預測落點）而不是球現在的位置，
+            // 這樣提前判斷來不及時，才會撲對方向，而不是撲向球目前還沒到的位置。
+            const direction = targetX < this.x ? "left" : "right";
+            this.dive(direction, netRect);
+          }
         }
       }
     } catch (e) {
@@ -1697,6 +1827,26 @@ class Game {
     const psr = this.player.spikeRect;
     ctx.strokeRect(psr.x, psr.y, psr.w, psr.h);
     ctx.setLineDash([]);
+
+    // 畫出 AI 目前「提前算好」的預測球路徑（只在有來球、且預測功能開啟時才有資料）
+    if (this.ai._lastPredictedPath && this.ai._lastPredictedPath.length > 1) {
+      const path = this.ai._lastPredictedPath;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = "#ffe14a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(path[0].x, path[0].y);
+      for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // 預測落點畫個小圓圈標示出來
+      const last = path[path.length - 1];
+      ctx.fillStyle = "#ffe14a";
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.restore();
   }
 
@@ -1766,7 +1916,12 @@ game = new Game();
       top.className = "param-row-top";
 
       const labelEl = document.createElement("label");
-      labelEl.textContent = label.split(" ")[0];
+      // label 格式是「中文說明(可能含空格) 參數代號」，參數代號一定是最後一個空格分隔的字，
+      // 之前寫成 label.split(" ")[0] 是「只取第一個字」，遇到中文說明裡本身就有空格
+      // （例如「AI 起跳觸發距離 aiJumpTriggerDistance」）就會被攔腰截斷成只剩「AI」。
+      // 改成「去掉最後一個字，其餘原樣保留」才能正確留下完整的中文說明。
+      const labelParts = label.split(" ");
+      labelEl.textContent = labelParts.slice(0, -1).join(" ");
       labelEl.title = label;
 
       if(type === "bool"){
