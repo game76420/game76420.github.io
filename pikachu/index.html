@@ -383,12 +383,20 @@ function playPikachuThenMusic() {
   // 都可能被擋下來，這正是背景音樂在手機上播不出來、但一般音效（緊跟在
   // 觸控之後立刻呼叫 playSound()）卻沒問題的原因。
   // 解法：在呼叫這個函式的當下（必須仍在使用者手勢的同一個呼叫堆疊裡），
-  // 立刻用「音量 0（靜音）」把背景音樂 play() 起來——這個 play() 呼叫本身
-  // 就滿足瀏覽器的手勢要求。等 pikachu.wav 播完之後只需要把音量調大，
-  // 不用再重新呼叫一次 play()，就能避開「非同步呼叫 play() 被擋下」的問題。
+  // 立刻把背景音樂設成「真正的靜音 muted = true」再 play() 起來。
+  // 這裡刻意用 .muted（而不是把 volume 調成 0）：瀏覽器的自動播放限制是
+  // 明確檢查 muted 屬性，「真正 muted 的媒體不管有沒有使用者手勢都一定
+  // 允許播放」，這是瀏覽器保證的例外；只把音量調成 0 並不會被瀏覽器
+  // 判定成 muted，仍然可能被當成一般（有聲）播放而被擋下——這正是先前
+  // 「進入遊戲當下播不出來、但去設定面板把音樂開關關掉再打開（真正的
+  // 使用者點擊事件）就會播」的原因：面板開關是新的、貨真價實的點擊手勢，
+  // 而進入遊戲時的音量 0 播放並沒有被瀏覽器視為受保護的 muted 播放。
+  // 等 pikachu.wav 播完之後只需要把 muted 設回 false，不用再重新呼叫一次
+  // play()——媒體本來就已經在播放中，取消靜音不需要另一次使用者手勢。
   if (GAME_PARAMS.musicEnabled) {
     try {
-      sounds.bgm.volume = 0;
+      sounds.bgm.volume = 0.5;
+      sounds.bgm.muted = true;
       const p = sounds.bgm.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     } catch (e) {}
@@ -397,6 +405,7 @@ function playPikachuThenMusic() {
     if (musicTriggered) return;
     musicTriggered = true;
     if (GAME_PARAMS.musicEnabled) {
+      sounds.bgm.muted = false;
       sounds.bgm.volume = 0.5;
       // 保險：如果一開始的靜音播放不知為何沒有真的播放起來（仍被擋下），
       // 這裡再補呼叫一次 play()；多數情況下不會執行到這裡，因為前面已經播放成功。
@@ -1761,6 +1770,7 @@ game = new Game();
             if(!checkbox.checked){
               if(sounds.bgm && !sounds.bgm.paused) sounds.bgm.pause();
             } else if(game && game.musicStarted){
+              sounds.bgm.muted = false;
               sounds.bgm.play().catch(() => {});
             }
           }
