@@ -1,1 +1,2031 @@
-0
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pikachu Volleyball - 單人版</title>
+<style>
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#222;
+    overflow:hidden;
+    font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+  }
+  #stage-wrap{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#222;
+  }
+  #game{
+    display:block;
+    background:#000;
+    box-shadow:0 0 20px rgba(0,0,0,0.6);
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+  }
+  #hint{
+    position:fixed; left:0; right:0; bottom:6px;
+    text-align:center; color:#ddd; font-size:12px;
+    pointer-events:none; user-select:none;
+    text-shadow:0 1px 2px #000;
+  }
+
+  /* ===== 設定按鈕（左上角）===== */
+  #settingsBtn{
+    position:fixed; top:10px; left:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:transparent;
+    color:#fff; font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:none;
+    transition:transform 0.2s;
+  }
+  #settingsBtn:hover{ transform:scale(1.06); }
+
+  /* ===== 重開遊戲按鈕：固定在設定齒輪下方，設定面板開關都能點，共用同一顆 ===== */
+  #restartGameBtn{
+    position:fixed; top:56px; left:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:transparent;
+    color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:none;
+    transition:transform 0.2s;
+  }
+  #restartGameBtn:hover{ transform:scale(1.06); }
+
+  /* ===== 設定面板：靠左側的側邊面板，不會擋住整個遊戲畫面 ===== */
+  #paramPanel{
+    position:fixed; top:0; left:0; height:100vh; z-index:1200;
+    display:none; /* JS 會切換成 flex */
+    pointer-events:none; /* 面板以外的區域讓滑鼠事件穿透，遊戲仍可正常操作 */
+  }
+  .param-side-panel{
+    pointer-events:auto;
+    position:relative;
+    width:360px; max-width:90vw; height:100%;
+    background:rgba(255,255,255,0.98);
+    box-shadow:6px 0 24px rgba(0,0,0,0.35);
+    border-radius:0 14px 14px 0;
+    padding:22px 18px 16px 18px;
+    overflow-y:auto; box-sizing:border-box;
+    font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+    color:#222;
+  }
+  .param-side-panel h2{
+    margin:0 0 8px 0; font-size:1.2em; color:#0077cc; padding-right:26px;
+  }
+  .param-hint{
+    font-size:0.8em; color:#0a0; background:#eaffea;
+    border:1px solid #bfe8bf; border-radius:6px;
+    padding:8px 10px; margin:0 0 14px 0; line-height:1.5;
+  }
+  .modal-close-x{
+    position:absolute; top:12px; right:12px;
+    width:28px; height:28px; border:none; border-radius:50%;
+    background:#eee; color:#444; font-size:18px; line-height:1;
+    cursor:pointer;
+  }
+  .modal-close-x:hover{ background:#ddd; }
+  .param-group{
+    margin-bottom:10px; border:1px solid #e2e2e2; border-radius:10px;
+    overflow:hidden; background:#fbfbfc;
+  }
+  .param-group[data-kind="player"]{ border-color:#bcdcf7; }
+  .param-group[data-kind="ai"]{ border-color:#f7dcae; }
+  .param-group[data-kind="ball"]{ border-color:#cdeac0; }
+  .param-group[data-kind="sound"]{ border-color:#dcc7f0; }
+  .param-group[data-kind="rule"]{ border-color:#f5b8c4; }
+  .param-group[data-kind="screen"]{ border-color:#a8e0dc; }
+  .param-group summary{
+    list-style:none; cursor:pointer; padding:9px 12px;
+    font-size:0.86em; font-weight:700; display:flex; align-items:center;
+    gap:6px; user-select:none; color:#fff; background:#4a90e2;
+  }
+  .param-group[data-kind="ai"] summary{ background:#e2984a; }
+  .param-group[data-kind="ball"] summary{ background:#5cb85c; }
+  .param-group[data-kind="sound"] summary{ background:#9b59b6; }
+  .param-group[data-kind="rule"] summary{ background:#e0507a; }
+  .param-group[data-kind="screen"] summary{ background:#2ba89b; }
+  .param-group summary::-webkit-details-marker{ display:none; }
+  .param-group summary::before{
+    content:'▶'; font-size:0.7em; transition:transform 0.15s; flex-shrink:0;
+  }
+  .param-group[open] > summary::before{ transform:rotate(90deg); }
+  .param-group summary .param-group-count{
+    margin-left:auto; font-weight:400; font-size:0.85em; opacity:0.85;
+  }
+  .param-group-body{ padding:12px 12px 2px 12px; }
+  .param-row{ margin-bottom:14px; }
+  .param-row-top{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:8px; margin-bottom:4px;
+  }
+  .param-row-top label{ font-size:0.8em; color:#444; flex:1; }
+  .param-num{
+    width:76px; font-size:0.8em; padding:2px 4px;
+    border:1px solid #ccc; border-radius:4px;
+  }
+  .param-row input[type="range"]{ width:100%; }
+  .param-row input.param-text{
+    width:100%; box-sizing:border-box; padding:5px 8px;
+    border:1px solid #ccc; border-radius:6px; font-size:0.85em;
+    font-family:inherit; color:#222;
+  }
+  .param-row input.param-text:focus{ outline:none; border-color:#9b59b6; }
+  .param-row-hint{ font-size:0.72em; color:#999; margin-top:2px; }
+  .param-json-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .param-json-row label{ font-size:0.8em; color:#444; }
+  #paramTextArea{
+    width:100%; font-family:'Consolas','Menlo',monospace; font-size:0.76em;
+    padding:8px; border:1px solid #ccc; border-radius:6px;
+    resize:vertical; box-sizing:border-box;
+  }
+  .param-btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .param-btn-row button{
+    flex:1 1 auto; padding:8px 10px; font-size:0.84em; border:none;
+    border-radius:6px; cursor:pointer; background:#4a90e2; color:#fff;
+    transition:background 0.2s;
+  }
+  .param-btn-row button:hover{ background:#357abd; }
+  #resetParamsBtn{ background:#fff; color:#e11; border:1.5px solid #e11 !important; }
+  #resetParamsBtn:hover{ background:#ffeaea; }
+  .param-status{
+    min-height:1.2em; font-size:0.8em; color:#0a0; margin-top:8px; text-align:center;
+  }
+  @media (max-width:600px){
+    .param-side-panel{ width:92vw; padding:16px 12px 12px 12px; }
+  }
+
+  /* ===== 虛擬搖桿與動作按鈕（觸控裝置用）===== */
+  #joystick{
+    position:fixed; left:32px; bottom:32px;
+    width:140px; height:140px; z-index:2000;
+    touch-action:none; display:none;
+  }
+  #joystick-base{
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    border:3px solid rgba(255,255,255,0.3);
+    border-radius:50%; position:absolute;
+    backdrop-filter:blur(10px);
+  }
+  #joystick-knob{
+    width:70px; height:70px;
+    background:linear-gradient(135deg,#4a90e2,#357abd);
+    border:2px solid rgba(255,255,255,0.5);
+    border-radius:50%; position:absolute;
+    left:35px; top:35px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:left 0.05s, top 0.05s;
+  }
+  #joystick-direction{
+    position:absolute; width:100%; height:100%;
+    border-radius:50%; pointer-events:none; z-index:1;
+  }
+  .direction-indicator{
+    position:absolute; width:20px; height:20px;
+    background:rgba(255,255,255,0.8); border-radius:50%;
+    transform:translate(-50%,-50%);
+    opacity:0; transition:opacity 0.2s;
+  }
+  .direction-indicator.active{
+    opacity:1; background:#4a90e2;
+    box-shadow:0 0 10px rgba(74,144,226,0.6);
+  }
+  .direction-indicator.up{ top:10px; left:50%; }
+  .direction-indicator.down{ bottom:10px; left:50%; }
+  .direction-indicator.left{ left:10px; top:50%; }
+  .direction-indicator.right{ right:10px; top:50%; }
+  .direction-indicator.up-left{ top:15px; left:15px; }
+  .direction-indicator.up-right{ top:15px; right:15px; }
+  .direction-indicator.down-left{ bottom:15px; left:15px; }
+  .direction-indicator.down-right{ bottom:15px; right:15px; }
+
+  #screenButtons{
+    position:fixed; right:32px; bottom:48px; z-index:2000;
+    display:none; flex-direction:column; gap:18px;
+  }
+  #screenButtons button{
+    width:80px; height:80px; border-radius:50%;
+    font-size:1em; background:#e2984a; color:#fff;
+    border:none; box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    font-family:inherit; cursor:pointer;
+  }
+  #screenButtons button:active{ background:#c97f36; transform:scale(0.95); }
+
+  @media (orientation:landscape) and (max-width:900px){
+    #joystick, #screenButtons{ display:block !important; }
+  }
+  @media (orientation:portrait) and (max-width:768px){
+    #joystick{
+      display:block !important;
+      left:30%; bottom:max(36px, env(safe-area-inset-bottom, 0px) + 24px);
+      transform:translateX(-50%);
+      width:130px; height:130px;
+    }
+    #joystick-knob{ width:65px; height:65px; left:32.5px; top:32.5px; }
+    #screenButtons{
+      display:block !important;
+      right:28px; bottom:max(48px, env(safe-area-inset-bottom, 0px) + 36px);
+      gap:12px;
+    }
+    #screenButtons button{
+      width:96px; height:96px; font-size:1.1em; font-weight:700;
+      box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <canvas id="game" width="800" height="600"></canvas>
+</div>
+
+<button id="settingsBtn" title="遊戲參數設定">⚙️</button>
+<button id="restartGameBtn" title="重新開始遊戲">🔄</button>
+
+<!-- 虛擬搖桿：手機/平板上用來控制左右移動與跳躍 -->
+<div id="joystick" style="display:none;">
+  <div id="joystick-base"></div>
+  <div id="joystick-direction">
+    <div class="direction-indicator up"></div>
+    <div class="direction-indicator down"></div>
+    <div class="direction-indicator left"></div>
+    <div class="direction-indicator right"></div>
+    <div class="direction-indicator up-left"></div>
+    <div class="direction-indicator up-right"></div>
+    <div class="direction-indicator down-left"></div>
+    <div class="direction-indicator down-right"></div>
+  </div>
+  <div id="joystick-knob"></div>
+</div>
+<!-- 虛擬按鈕：對應鍵盤的 Enter / Space，觸發飛撲與殺球 -->
+<div id="screenButtons" style="display:none;">
+  <button id="actionBtn">飛撲/殺球</button>
+</div>
+
+<!-- 設定面板：靠左側的側邊面板（不是全螢幕遮罩），開啟時遊戲仍會繼續運作，
+     方便玩家一邊調整一邊實際測試手感 -->
+<div id="paramPanel" style="display:none;">
+  <div class="param-side-panel">
+    <button id="closeParamPanel" class="modal-close-x" title="關閉">×</button>
+    <h2>遊戲參數設定</h2>
+    <p class="param-hint">面板開啟時遊戲照常運作，可以邊調邊玩測試手感。覺得節奏太快，先拉低「玩家移動速度」「AI 反應距離」試試看。<br>面板開啟中，畫面上會用彩色邊框顯示皮卡丘與球的碰撞判定範圍，關閉面板後邊框會自動消失，方便對照調整數值。</p>
+    <div id="paramSliders" class="param-sliders"></div>
+    <div class="param-json-row">
+      <label for="paramTextArea">參數總表（JSON，可複製 / 貼上）：</label>
+      <textarea id="paramTextArea" rows="8" spellcheck="false" placeholder="按「複製目前參數」會把目前數值產生在這裡；下次要套用同一組設定時，把內容貼回這裡，再按「套用貼上的參數」即可。"></textarea>
+    </div>
+    <div class="param-btn-row">
+      <button id="copyParamsBtn">複製目前參數</button>
+      <button id="applyParamsBtn">套用貼上的參數</button>
+      <button id="resetParamsBtn">還原預設值</button>
+    </div>
+    <div id="paramCopyStatus" class="param-status"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+// ---------- 基本設定 / Canvas 等比縮放（兩側留黑）----------
+// 注意：畫面寬高現在可以在設定面板調整，所以改成 let，並在 GAME_PARAMS
+// 定義完成後由 applyScreenSize() 同步成使用者設定的數值
+let SCREEN_WIDTH = 800;
+let SCREEN_HEIGHT = 600;
+// 地板所在的 y 座標（角色腳底、球落地的高度）＝畫面高度 - 地面高度，
+// 由 applyScreenSize() 依 GAME_PARAMS.groundHeight 同步更新
+let GROUND_Y = SCREEN_HEIGHT;
+const FPS = 60;
+// 先宣告好 game（稍後才會賦值成 new Game()），讓 applyScreenSize() 在
+// 遊戲物件建立「之前」被呼叫時，也能安全地用 if(game) 判斷，不會因為
+// const 的暫時性死區（TDZ）而丟出 ReferenceError
+let game = null;
+const WHITE = "#ffffff";
+const BLACK = "#000000";
+const YELLOW = "#ffff00";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+// 關閉影像平滑：pixel-art 風格的角色圖若被瀏覽器做平滑濾波會模糊，
+// 尤其是 ctx.scale(-1,1) 鏡像翻轉的那一側（例如 AI 往右飛撲/轉身時）特別明顯。
+// 注意：canvas.width / canvas.height 一旦被賦值就會重置 context 狀態，
+// 所以 applyScreenSize() 裡改尺寸之後也要重新設定一次。
+ctx.imageSmoothingEnabled = false;
+canvas.width = SCREEN_WIDTH;
+canvas.height = SCREEN_HEIGHT;
+
+function resize(){
+  const scale = Math.min(window.innerWidth / SCREEN_WIDTH, window.innerHeight / SCREEN_HEIGHT);
+  canvas.style.width  = Math.floor(SCREEN_WIDTH * scale) + "px";
+  canvas.style.height = Math.floor(SCREEN_HEIGHT * scale) + "px";
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- 資源載入 ----------
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
+function loadSound(src) {
+  const a = new Audio(src);
+  a.preload = "auto";
+  return a;
+}
+function playSound(a) {
+  try {
+    const clone = a.cloneNode();
+    clone.volume = a.volume;
+    clone.play().catch(() => {});
+  } catch (e) {}
+}
+
+const images = {
+  background: loadImage("img/beach.png"),
+  ball: loadImage("img/ball.png"),
+  // 平常狀態（idle/run）改成 5 張獨立圖檔，每張都是完整的一格 55x56，
+  // 不再用單張雪碧圖橫向切格。陣列索引就對應 frame（0~4 對應 pikachu_1~pikachu_5.png）。
+  pikachuFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_${n}.png`)),
+  // 跳躍狀態專用的 5 張圖檔（pikachu_jmp_1.png ~ pikachu_jmp_5.png），用法跟 pikachuFrames 一樣。
+  pikachuJumpFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_jmp_${n}.png`)),
+  // 擊球瞬間專用的 5 張圖檔（pikachu_hit_1.png ~ pikachu_hit_5.png），59x54，
+  // 在一般（非跳躍殺球/非飛撲）碰到球時短暫播放一次，播完自動回到平常姿勢。
+  pikachuHitFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_hit_${n}.png`)),
+  // 飛撲狀態專用的 3 張圖檔（pikachu_swoop_1.png ~ pikachu_swoop_3.png），63x61，
+  // 用法跟 pikachuJumpFrames/pikachuHitFrames 一樣，不再用單張橫向雪碧圖切格。
+  pikachuSwoopFrames: [1, 2, 3].map(n => loadImage(`img/pikachu_swoop_${n}.png`)),
+  stick: loadImage("img/stick.png"),
+  // 飛撲擊球時產生的火花特效圖
+  spark: loadImage("img/spark.png"),
+  // 開始畫面（主選單）專用的首圖背景
+  mainScreen: loadImage("img/main.png"),
+  // 開始畫面「開始遊戲」按鈕圖
+  startButton: loadImage("img/1p.png"),
+  // 遊戲結束時，贏家/輸家各自的 5 張動畫圖（只播一次，播完停在最後一張）
+  winFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/win_${n}.png`)),
+  loseFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/lose_${n}.png`)),
+};
+
+let assetsReady = false;
+// images 裡有些值是單張圖片、有些（pikachuFrames）是圖片陣列，
+// 這裡統一攤平成一維陣列，才能逐一檢查/監聽每張圖片是否載入完成。
+function flattenImages() {
+  return Object.values(images).flatMap(v => Array.isArray(v) ? v : [v]);
+}
+function checkAssetsReady() {
+  const imgs = flattenImages();
+  assetsReady = imgs.every(i => i.complete && i.naturalWidth !== 0);
+}
+flattenImages().forEach(i => {
+  i.addEventListener("load", checkAssetsReady);
+  i.addEventListener("error", checkAssetsReady);
+});
+
+// ---------- 精靈參數 ----------
+const SPRITE_W = 55;
+const SPRITE_H = 56;
+const SWOOP_W = 63;
+const SWOOP_H = 61;
+const JUMP_W = 59;
+const JUMP_H = 59;
+const HIT_W = 59;
+const HIT_H = 54;
+const WIN_W = 59;
+const WIN_H = 64;
+const LOSE_W = 60;
+const LOSE_H = 63;
+
+/* ============================================================
+   【可調式參數面板】所有影響速度/手感/難度/音效檔名的數值都集中放在這裡，
+   左上角⚙️設定面板會即時讀取/修改，並且能複製成 JSON 文字保存。
+   覺得遊戲太快，可以直接降低 playerSpeed / aiJumpTriggerDistance 等數值。
+   ============================================================ */
+let GAME_PARAMS = {
+  // --- 畫面尺寸 ---
+  screenWidth: 432,          // 遊戲畫面寬度（像素）
+  screenHeight: 304,         // 遊戲畫面高度（像素）
+  groundHeight: 26,          // 地面高度（像素）：地板離畫面底部的距離，角色與球會停在這個高度上
+
+  // --- 玩家移動與跳躍（AI 也共用這組數值）---
+  playerSpeed: 3,            // 左右移動速度
+  jumpVelocity: -15,         // 跳躍瞬間初速（負值，絕對值越大跳越高）
+  gravity: 0.7,              // 重力加速度
+
+  // --- 動畫播放速度 ---
+  spriteAnimInterval: 10,      // 平常狀態（idle/run/jump）多少個 tick 換一張圖，數字越大播放越慢
+  diveAnimInterval: 20,       // 飛撲狀態多少個 tick 換一張圖，數字越大播放越慢
+  hitAnimInterval: 4,         // 擊球瞬間動畫多少個 tick 換一張圖，數字越大播放越慢（共 5 張，播完自動結束）
+  winLoseAnimInterval: 8,     // 遊戲結束時，贏家/輸家動畫多少個 tick 換一張圖（共 5 張，只播一次，播完停在最後一張）
+
+  // --- 飛撲 Dive ---
+  diveDistance: 250,         // 飛撲最遠可移動的水平距離
+  diveSpeed: 6,              // 飛撲時每格移動速度
+  diveDuration: 30,          // 飛撲落地後，維持飛撲姿勢多久才恢復站立
+  diveInitialVY: -6,         // 飛撲瞬間垂直初速
+
+  // --- 擊球判定 ---
+  hitboxWidth: 55,                  // 角色擊球碰撞箱寬度（跟圖片顯示大小分開，只影響判定範圍）
+  hitboxHeight: 56,                 // 角色擊球碰撞箱高度（水平置中、垂直以腳底對齊）
+  spikeHitboxExtra: 15,             // 跳躍殺球判定專用的碰撞箱，往精靈頭頂上方額外延伸的高度（像素）
+  spikeHitboxForward: 15,           // 跳躍殺球判定範圍，往精靈面向的前方（面對球網的方向）額外加寬的距離（像素）
+  normalHitPower: 10,              // 一般（非跳躍/非飛撲）碰到球的擊球力道
+  normalHitAngleLeftBase: -60,     // 左側（AI）一般擊球角度基準（度）
+  normalHitAngleRightBase: -150,   // 右側（玩家）一般擊球角度基準（度）
+  normalHitAngleVariance: 30,      // 一般擊球角度隨機浮動範圍
+  jumpSpikePower: 15,              // 跳躍中殺球的力道
+  jumpSpikeAngleLeftSide: -45,     // 左側跳躍殺球角度
+  jumpSpikeAngleRightSide: -135,   // 右側跳躍殺球角度
+  diveHitPower: 18,                // 飛撲擊球的力道
+  diveHitAngleLeftSide: -45,       // 左側飛撲擊球角度
+  diveHitAngleRightSide: -135,     // 右側飛撲擊球角度
+
+  // --- AI 難度 ---
+  aiJumpTriggerDistance: 50,   // 球與 AI 水平距離小於此值且球在頭頂上方時，AI 才會起跳
+  aiSpikeChance: 80,           // AI 只要跳起來、球又在殺球判定範圍內，有百分之幾的機率會殺球（0~100，數字越大 AI 越常殺球）
+  aiDiveTriggerDistance: 80,   // 球與 AI 水平距離超過此值時，AI 會嘗試飛撲接球
+
+  // --- 排球物理 ---
+  ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球/飛撲）的初速都會乘上這個值，調低就整體變慢
+  ballGravity: 0.1,            // 球的重力加速度
+  ballBounceRestitution: 1,    // 球碰到邊界/地板反彈後的速度保留比例（越小彈得越弱）
+  ballWidth: 40,                // 球的碰撞箱寬度（同時也是繪製寬度）
+  ballHeight: 40,                // 球的碰撞箱高度（同時也是繪製高度）
+
+  // --- 球網 ---
+  netWidth: 5,                // 球網寬度
+  netHeight: 102,              // 球網高度
+
+  // --- 遊戲規則 ---
+  winScore: 15,                // 先得到幾分獲勝
+
+  // --- 分數顯示 ---
+  scoreFontSize: 40,           // 分數文字大小（像素）
+  scoreY: 55,                  // 分數文字的垂直位置（離畫面頂端的距離，像素，數字越大分數越靠下）
+
+  // --- 發球 ---
+  serveOffsetX: 130,           // 發球時球的固定水平位置：以畫面正中央為基準，往發球方那一側偏移的距離（像素）。左右鏡射，AI（左側）與玩家（右側）用同一個距離、方向相反
+  serveDropDelay: 60,          // 得分後，球停在原地多少 tick 才開始掉落（設定面板會換算成秒顯示，60 tick = 1 秒）
+
+  // --- 音樂 / 音效檔案名稱（檔案要放在 sounds/ 資料夾底下）---
+  bgmFile: "sounds/bgm.mp3",       // 背景音樂
+  hitFile: "sounds/hit.wav",       // 一般擊球音效
+  jumpFile: "sounds/jump.wav",     // 跳躍音效
+  scoreFile: "sounds/score.wav",   // 得分音效
+  slamFile: "sounds/Data_2.wav"    // 殺球/飛撲扣殺音效
+};
+// 保留一份原始預設值，供設定面板的「還原預設值」使用
+const GAME_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(GAME_PARAMS));
+
+// 依照 GAME_PARAMS 目前的畫面尺寸設定，同步 SCREEN_WIDTH / SCREEN_HEIGHT、
+// canvas 實際大小，並重置場上物件位置（球網/角色/球都跟畫面尺寸相關，
+// 尺寸一變就必須重新計算位置，否則會卡在畫面外）。
+function applyScreenSize(){
+  SCREEN_WIDTH = GAME_PARAMS.screenWidth;
+  SCREEN_HEIGHT = GAME_PARAMS.screenHeight;
+  GROUND_Y = SCREEN_HEIGHT - GAME_PARAMS.groundHeight;
+  canvas.width = SCREEN_WIDTH;
+  canvas.height = SCREEN_HEIGHT;
+  ctx.imageSmoothingEnabled = false; // 改尺寸會重置 context，要重新關閉平滑避免翻轉角色變模糊
+  if(typeof resize === "function") resize();
+  if(game){
+    game.reset();
+  }
+}
+applyScreenSize();
+
+// 每個音效對應的「檔案名稱」參數名稱（放進 GAME_PARAMS，可在設定面板調整）
+const SND_FILE_KEY = {
+  bgm:   "bgmFile",
+  hit:   "hitFile",
+  jump:  "jumpFile",
+  score: "scoreFile",
+  slam:  "slamFile"
+};
+// 反查表：GAME_PARAMS 的檔名鍵 -> sounds 的音效鍵，設定面板改檔名時用來重新載入該音效
+const FILE_KEY_TO_SND_KEY = {};
+Object.keys(SND_FILE_KEY).forEach(function(k){ FILE_KEY_TO_SND_KEY[SND_FILE_KEY[k]] = k; });
+
+const sounds = {};
+// 依照 GAME_PARAMS 目前指定的檔名，(重新)載入某個音效。
+// GAME_PARAMS 定義完成之後會被呼叫一次做初始載入，
+// 之後設定面板修改檔名時也會呼叫這個函式來換掉音效檔。
+function reloadSound(key){
+  const fileKey = SND_FILE_KEY[key];
+  const filename = (fileKey && GAME_PARAMS[fileKey]) || "";
+  if(!filename) return;
+  const wasPlaying = key === "bgm" && sounds.bgm && !sounds.bgm.paused;
+  sounds[key] = loadSound(filename);
+  if(key === "bgm"){
+    sounds.bgm.loop = true;
+    sounds.bgm.volume = 0.5;
+    if(wasPlaying) sounds.bgm.play().catch(() => {});
+  }
+}
+Object.keys(SND_FILE_KEY).forEach(reloadSound);
+
+// 面板用的參數說明表：[顯示名稱, 參數鍵, 最小值, 最大值, 每格間距, 類型]
+const GAME_PARAMS_META = [
+  ["畫面寬度 screenWidth", "screenWidth", 400, 1600, 20, "free"],
+  ["畫面高度 screenHeight", "screenHeight", 300, 1200, 20, "free"],
+  ["地面高度 groundHeight", "groundHeight", 0, 300, 5, "free"],
+
+  ["移動速度 playerSpeed", "playerSpeed", 1, 10, 0.5],
+  ["跳躍力道 jumpVelocity", "jumpVelocity", -25, -5, 0.5],
+  ["重力 gravity", "gravity", 0.1, 1.5, 0.05],
+
+  ["平常動畫換圖間隔 spriteAnimInterval", "spriteAnimInterval", 1, 30, 1],
+  ["飛撲動畫換圖間隔 diveAnimInterval", "diveAnimInterval", 1, 60, 1],
+  ["擊球動畫換圖間隔 hitAnimInterval", "hitAnimInterval", 1, 30, 1],
+  ["贏家/輸家動畫換圖間隔 winLoseAnimInterval", "winLoseAnimInterval", 1, 30, 1],
+
+  ["飛撲距離 diveDistance", "diveDistance", 50, 300, 10, "free"],
+  ["飛撲速度 diveSpeed", "diveSpeed", 2, 25, 1],
+  ["飛撲維持時間 diveDuration", "diveDuration", 0.08, 1.5, 0.02, "sec"],
+  ["飛撲垂直初速 diveInitialVY", "diveInitialVY", -10, 0, 0.5],
+
+  ["擊球碰撞箱寬度 hitboxWidth", "hitboxWidth", 10, 100, 2, "free"],
+  ["擊球碰撞箱高度 hitboxHeight", "hitboxHeight", 10, 100, 2, "free"],
+  ["跳躍殺球判定範圍加高 spikeHitboxExtra", "spikeHitboxExtra", 0, 60, 2, "free"],
+  ["跳躍殺球判定範圍加寬(前方) spikeHitboxForward", "spikeHitboxForward", 0, 60, 2, "free"],
+  ["一般擊球力道 normalHitPower", "normalHitPower", 2, 25, 1],
+  ["左側一般擊球角度 normalHitAngleLeftBase", "normalHitAngleLeftBase", -120, 0, 5, "free"],
+  ["右側一般擊球角度 normalHitAngleRightBase", "normalHitAngleRightBase", -200, -80, 5, "free"],
+  ["一般擊球角度浮動 normalHitAngleVariance", "normalHitAngleVariance", 0, 60, 5],
+  ["跳躍殺球力道 jumpSpikePower", "jumpSpikePower", 5, 30, 1],
+  ["左側跳躍殺球角度 jumpSpikeAngleLeftSide", "jumpSpikeAngleLeftSide", -180, 0, 5, "free"],
+  ["右側跳躍殺球角度 jumpSpikeAngleRightSide", "jumpSpikeAngleRightSide", -180, 0, 5, "free"],
+  ["飛撲擊球力道 diveHitPower", "diveHitPower", 5, 30, 1],
+  ["左側飛撲擊球角度 diveHitAngleLeftSide", "diveHitAngleLeftSide", -180, 0, 5, "free"],
+  ["右側飛撲擊球角度 diveHitAngleRightSide", "diveHitAngleRightSide", -180, 0, 5, "free"],
+
+  ["AI 起跳觸發距離 aiJumpTriggerDistance", "aiJumpTriggerDistance", 10, 150, 5, "free"],
+  ["AI 殺球機率(%) aiSpikeChance", "aiSpikeChance", 0, 100, 5],
+  ["AI 飛撲觸發距離 aiDiveTriggerDistance", "aiDiveTriggerDistance", 20, 200, 5, "free"],
+
+  ["球速倍率 ballSpeedMultiplier", "ballSpeedMultiplier", 0.2, 2, 0.05],
+  ["球重力 ballGravity", "ballGravity", 0.1, 1.5, 0.05],
+  ["球反彈係數 ballBounceRestitution", "ballBounceRestitution", 0.3, 1, 0.05],
+  ["球碰撞箱寬度 ballWidth", "ballWidth", 10, 80, 2, "free"],
+  ["球碰撞箱高度 ballHeight", "ballHeight", 10, 80, 2, "free"],
+
+  ["球網寬度 netWidth", "netWidth", 2, 40, 1, "free"],
+  ["球網高度 netHeight", "netHeight", 50, 300, 5, "free"],
+
+  ["獲勝分數 winScore", "winScore", 1, 30, 1],
+
+  ["分數文字大小 scoreFontSize", "scoreFontSize", 10, 100, 2, "free"],
+  ["分數垂直位置 scoreY", "scoreY", 10, 200, 2, "free"],
+
+  ["發球水平位置(距中央) serveOffsetX", "serveOffsetX", 0, 200, 5, "free"],
+  ["發球停留時間 serveDropDelay", "serveDropDelay", 0, 3, 0.1, "sec"],
+
+  ["背景音樂檔名 bgmFile", "bgmFile", 0, 0, 0, "text"],
+  ["一般擊球音效檔名 hitFile", "hitFile", 0, 0, 0, "text"],
+  ["跳躍音效檔名 jumpFile", "jumpFile", 0, 0, 0, "text"],
+  ["得分音效檔名 scoreFile", "scoreFile", 0, 0, 0, "text"],
+  ["殺球/飛撲音效檔名 slamFile", "slamFile", 0, 0, 0, "text"]
+];
+
+// 設定面板分類：把參數依用途分組顯示
+const PARAM_CATEGORIES = [
+  { kind: "rule", title: "🏆 遊戲規則",
+    keys: ["winScore"] },
+  { kind: "screen", title: "🖥️ 畫面尺寸",
+    keys: ["screenWidth", "screenHeight", "groundHeight"] },
+  { kind: "player", title: "🕹️ 玩家／AI　移動與跳躍",
+    keys: ["playerSpeed", "jumpVelocity", "gravity"] },
+  { kind: "player", title: "🎞️ 動畫播放速度",
+    keys: ["spriteAnimInterval", "diveAnimInterval", "hitAnimInterval", "winLoseAnimInterval"] },
+  { kind: "player", title: "🤸 飛撲 Dive",
+    keys: ["diveDistance", "diveSpeed", "diveDuration", "diveInitialVY"] },
+  { kind: "player", title: "🏐 擊球判定",
+    keys: ["hitboxWidth", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "normalHitPower", "normalHitAngleLeftBase", "normalHitAngleRightBase", "normalHitAngleVariance", "jumpSpikePower", "jumpSpikeAngleLeftSide", "jumpSpikeAngleRightSide", "diveHitPower", "diveHitAngleLeftSide", "diveHitAngleRightSide"] },
+  { kind: "ai", title: "🤖 AI　難度",
+    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance"] },
+  { kind: "ball", title: "⚽ 排球物理", 
+    keys: ["ballSpeedMultiplier", "ballGravity", "ballBounceRestitution", "ballWidth", "ballHeight"] },
+  { kind: "ball", title: "🥅 球網",
+    keys: ["netWidth", "netHeight"] },
+  { kind: "rule", title: "🔢 分數顯示",
+    keys: ["scoreFontSize", "scoreY"] },
+  { kind: "rule", title: "🏐 發球",
+    keys: ["serveOffsetX", "serveDropDelay"] },
+  { kind: "sound", title: "🎵 音樂／音效檔案名稱 (sounds/ 資料夾)",
+    keys: ["bgmFile", "hitFile", "jumpFile", "scoreFile", "slamFile"] }
+];
+
+// 設定面板開啟時，是否在畫面上顯示碰撞判定範圍（皮卡丘/球）
+let DEBUG_SHOW_HITBOX = false;
+
+// ---------- 特效火花 ----------
+class Spark {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.life = 10;
+    this.maxLife = 10;
+    this.size = 32; // 火花圖顯示大小（正方形），可依 spark.png 的實際比例調整
+  }
+  update() {
+    this.life -= 1;
+    return this.life > 0;
+  }
+  draw(ctx) {
+    const img = images.spark;
+    if (assetsReady && img && img.complete && img.naturalWidth !== 0) {
+      ctx.save();
+      // 隨著生命值遞減淡出，火花消失時不會太突兀
+      ctx.globalAlpha = Math.max(this.life / this.maxLife, 0);
+      ctx.drawImage(img, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+      ctx.restore();
+    } else {
+      // spark.png 還沒載入完成時的備用畫法，避免畫面上完全沒有回饋
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ---------- 皮卡丘角色 ----------
+class Pikachu {
+  constructor(x, y, side) {
+    this.x = x;
+    this.y = y;
+    this.side = side; // 'left' or 'right'
+    this.width = SPRITE_W;
+    this.height = SPRITE_H;
+
+    this.state = "idle"; // idle, run, jump, dive
+    this.frame = 0;
+    this.animTimer = 0;
+    // 動畫換圖速度改成從 GAME_PARAMS 即時讀取（見 update() 裡的 threshold），
+    // 這樣設定面板調整後不用重開就會生效，這裡不用再存固定值。
+
+    this.vy = 0;
+    this.isJumping = false;
+    this.score = 0;
+
+    this.diveMode = false;
+    this.diveTimer = 0;
+    this.diveTargetX = 0;
+    this.divingMovement = false;
+    this.diveDirection = null;
+
+    // 擊球瞬間短暫播放的動畫（跟 this.state 分開，不影響移動/跳躍/飛撲的狀態機，
+    // 純粹是畫面上蓋一層擊球姿勢，播完 5 張圖就自動關閉，回到平常的圖）
+    this.hitAnimActive = false;
+    this.hitAnimFrame = 0;
+    this.hitAnimTimer = 0;
+
+    this.flip = side === "right";
+  }
+
+  // 一般（非跳躍殺球/非飛撲）碰到球時呼叫：播一次 pikachu_hit_1~5.png
+  playHitAnim() {
+    this.hitAnimActive = true;
+    this.hitAnimFrame = 0;
+    this.hitAnimTimer = 0;
+  }
+
+  get rect() {
+    // 擊球碰撞箱大小可另外用 GAME_PARAMS.hitboxWidth / hitboxHeight 調整，
+    // 跟精靈圖本身的畫面大小（this.width/this.height）分開，改碰撞箱不會影響圖片顯示大小。
+    // 水平置中、垂直以腳底（this.y + this.height）對齊，這樣調高度時角色腳底還是貼在地面上。
+    const w = GAME_PARAMS.hitboxWidth || this.width;
+    const h = GAME_PARAMS.hitboxHeight || this.height;
+    return {
+      x: this.x + (this.width - w) / 2,
+      y: this.y + (this.height - h),
+      w,
+      h
+    };
+  }
+
+  // 專門給「跳躍殺球」判定用的碰撞箱：在基本碰撞箱（this.rect）上，
+  // 往上額外延伸一段距離（GAME_PARAMS.spikeHitboxExtra），讓球還沒完全貼到角色本體、
+  // 只是掠過頭頂上方時，跳躍中也能判定成殺球；
+  // 另外還往「精靈面向的前方」（左側角色朝右、右側角色朝左，也就是面對球網的方向）
+  // 加寬一段距離（GAME_PARAMS.spikeHitboxForward），方便殺一顆稍微在前面一點的球。
+  // 一般的落地碰球（normalHitPower）仍然用原本的 rect，不會被放大。
+  get spikeRect() {
+    const base = this.rect;
+    const extraUp = GAME_PARAMS.spikeHitboxExtra || 0;
+    const extraForward = GAME_PARAMS.spikeHitboxForward || 0;
+    let x = base.x;
+    let w = base.w;
+    if (extraForward) {
+      if (this.side === "left") {
+        // 左側角色面向右邊，往右（x 增加的方向）加寬
+        w += extraForward;
+      } else {
+        // 右側角色面向左邊，往左（x 減少的方向）加寬
+        x -= extraForward;
+        w += extraForward;
+      }
+    }
+    return { x, y: base.y - extraUp, w, h: base.h + extraUp };
+  }
+
+  move(direction, net) {
+    // 飛撲中鎖死方向鍵：一旦開始飛撲，就讓飛撲自己的位移邏輯（divingMovement/diveTargetX）
+    // 獨佔控制權，直到飛撲結束、落地站穩為止；玩家或 AI 這時按左右都不會再生效。
+    // 這樣飛撲方向（diveDirection，也就是翻面用的依據）從頭到尾只會被設定一次，
+    // 不會被中途的移動指令打架，從根本上避免精靈中途轉向、圖案跟移動方向對不上的問題。
+    if (this.diveMode) return;
+    const minX = this.side === "left" ? 0 : SCREEN_WIDTH / 2;
+    const maxX = this.side === "left" ? SCREEN_WIDTH / 2 : SCREEN_WIDTH;
+    if (direction === "left" && this.x > minX) {
+      this.x -= GAME_PARAMS.playerSpeed;
+      if (!this.diveMode && !this.isJumping) this.state = "run";
+    } else if (direction === "right" && this.x + this.width < maxX) {
+      this.x += GAME_PARAMS.playerSpeed;
+      if (!this.diveMode && !this.isJumping) this.state = "run";
+    } else {
+      if (!this.diveMode && !this.isJumping) this.state = "idle";
+    }
+  }
+
+  jump() {
+    if (!this.isJumping && !this.diveMode) {
+      this.isJumping = true;
+      this.vy = GAME_PARAMS.jumpVelocity;
+      this.state = "jump";
+      this.frame = 0;
+      this.animTimer = 0;
+      playSound(sounds.jump);
+    }
+  }
+
+  dive(direction, netRect) {
+    if (!this.isJumping && !this.diveMode) {
+      this.diveMode = true;
+      this.state = "dive";
+      this.frame = 0;
+      this.animTimer = 0;
+      this.diveTimer = 0;
+      this.vy = GAME_PARAMS.diveInitialVY;
+      const diveDistance = GAME_PARAMS.diveDistance;
+      this.diveDirection = direction;
+
+      if (direction === "left") {
+        const limit = this.side === "left" ? 0 : netRect.x + netRect.w;
+        this.diveTargetX = Math.max(this.x - diveDistance, limit);
+      } else {
+        const limit = this.side === "left" ? netRect.x - this.width : SCREEN_WIDTH - this.width;
+        this.diveTargetX = Math.min(this.x + diveDistance, limit);
+      }
+      this.divingMovement = true;
+    }
+  }
+
+  update(ball) {
+    // 動畫：換圖間隔改由 GAME_PARAMS 控制，數字越大換圖越慢（撥放速度越慢）
+    this.animTimer++;
+    const threshold = this.state === "dive" ? GAME_PARAMS.diveAnimInterval : GAME_PARAMS.spriteAnimInterval;
+    if (this.animTimer >= threshold) {
+      if (this.diveMode) {
+        if (this.y + this.height < GROUND_Y) {
+          this.frame = Math.min(1, this.frame + 1);
+        } else {
+          this.frame = 2;
+        }
+      } else {
+        const frameCount = this.state === "dive" ? 3 : 5;
+        this.frame = (this.frame + 1) % frameCount;
+      }
+      this.animTimer = 0;
+    }
+
+    // 擊球瞬間動畫：跟上面的 this.frame 完全分開計算，播完 5 張（0~4）就自動關閉
+    if (this.hitAnimActive) {
+      this.hitAnimTimer++;
+      if (this.hitAnimTimer >= GAME_PARAMS.hitAnimInterval) {
+        this.hitAnimTimer = 0;
+        this.hitAnimFrame++;
+        if (this.hitAnimFrame >= 5) {
+          this.hitAnimActive = false;
+          this.hitAnimFrame = 0;
+        }
+      }
+    }
+
+    // 移動狀態下的水平飛撲位移
+    if (this.divingMovement && this.diveMode) {
+      const diveSpeed = GAME_PARAMS.diveSpeed;
+      if (Math.abs(this.x - this.diveTargetX) <= diveSpeed) {
+        this.x = this.diveTargetX;
+        this.divingMovement = false;
+      } else if (this.x < this.diveTargetX) {
+        this.x += diveSpeed;
+      } else {
+        this.x -= diveSpeed;
+      }
+    }
+
+    // 重力 / 跳躍 / 飛撲垂直運動
+    if (this.isJumping || this.diveMode) {
+      this.y += this.vy;
+      this.vy += GAME_PARAMS.gravity;
+
+      if (this.diveMode) this.diveTimer++;
+
+      if (this.y + this.height >= GROUND_Y) {
+        this.y = GROUND_Y - this.height;
+        this.isJumping = false;
+
+        if (this.diveMode && this.diveTimer >= GAME_PARAMS.diveDuration) {
+          this.diveMode = false;
+          this.state = "idle";
+          this.frame = 0;
+          this.diveTimer = 0;
+        }
+        this.vy = 0;
+      }
+    }
+
+    // 飛撲中撞球
+    if (this.diveMode && ball && rectsOverlap(this.rect, ball.rect)) {
+      if (this.side === "left") {
+        ball.hit(GAME_PARAMS.diveHitPower, GAME_PARAMS.diveHitAngleLeftSide);
+      } else {
+        ball.hit(GAME_PARAMS.diveHitPower, GAME_PARAMS.diveHitAngleRightSide);
+      }
+      ball.addSparks();
+      playSound(sounds.slam);
+    }
+  }
+
+  draw(ctx) {
+    if (!assetsReady) return;
+    let sheet, sx, sy, sw, sh, drawW, drawH, drawY;
+    if (this.state === "dive") {
+      // 飛撲改用 3 張獨立圖檔（pikachu_swoop_1.png ~ pikachu_swoop_3.png），
+      // this.frame（0~2）直接對應陣列索引，不用再切格（sx/sy 都是 0）。
+      sheet = images.pikachuSwoopFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = SWOOP_W;
+      sh = SWOOP_H;
+      drawW = SWOOP_W;
+      drawH = SWOOP_H;
+      drawY = this.y - (SWOOP_H - SPRITE_H);
+    } else if (this.hitAnimActive) {
+      // 擊球瞬間動畫（pikachu_hit_1.png ~ pikachu_hit_5.png），59x54，
+      // 只在一般碰球（非跳躍殺球/非飛撲）時短暫蓋在平常姿勢上面播一次。
+      sheet = images.pikachuHitFrames[this.hitAnimFrame];
+      sx = 0;
+      sy = 0;
+      sw = HIT_W;
+      sh = HIT_H;
+      drawW = HIT_W;
+      drawH = HIT_H;
+      // 垂直：讓腳底對齊跟平常站立時一樣的地面高度（圖比平常矮，所以往下修正）
+      drawY = this.y - (HIT_H - SPRITE_H);
+    } else if (this.state === "jump") {
+      // 跳躍狀態改用專用的 5 張圖檔（pikachu_jmp_1.png ~ pikachu_jmp_5.png），
+      // 圖檔實際尺寸是 59x59（比平常的 55x56 稍大），所以照原始大小畫出來，
+      // 不硬壓縮成 55x56，避免變形。
+      sheet = images.pikachuJumpFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = JUMP_W;
+      sh = JUMP_H;
+      drawW = JUMP_W;
+      drawH = JUMP_H;
+      // 垂直：讓腳底對齊跟平常站立時一樣的地面高度（跟 dive/swoop 的做法相同）
+      drawY = this.y - (JUMP_H - SPRITE_H);
+    } else {
+      // 平常狀態（idle/run）改用 5 張獨立圖檔（pikachu_1.png ~ pikachu_5.png），
+      // this.frame（0~4）直接對應陣列索引，取的是整張圖，不用再切格（sx/sy 都是 0）。
+      sheet = images.pikachuFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = SPRITE_W;
+      sh = SPRITE_H;
+      drawW = SPRITE_W;
+      drawH = SPRITE_H;
+      drawY = this.y;
+    }
+
+    let shouldFlip;
+    if (this.state === "dive") {
+      // 飛撲圖檔（pikachu_swoop_1~3.png）本身就是「朝右撲」的畫面，
+      // 跟平常站立圖（pikachu_1~5.png）同一套朝右的預設方向一致，
+      // 所以只要看「飛撲方向」本身：往右撲不用翻，往左撲才翻。
+      // 這裡不該再看 this.side，不然像左側玩家退到底、往前（右）飛撲時，
+      // 反而會被判定成要翻面，變成精靈臉朝後倒退撲過去的怪異畫面。
+      shouldFlip = this.diveDirection === "left";
+    } else {
+      shouldFlip = this.side === "right";
+    }
+
+    // 座標一律取整數再拿去畫：鏡像側（scale(-1,1)）如果用到小數座標，
+    // 在關閉平滑（imageSmoothingEnabled=false）的情況下很容易被裁掉邊緣 1px，
+    // 之前玩家側鼻子不見就是這個原因，所以畫之前先四捨五入成整數像素。
+    // 跳躍圖／擊球圖都比碰撞箱寬（55），水平置中對齊，兩側鏡射時才不會歪一邊
+    // （飛撲 swoop 維持原本不置中的做法，因為那是有方向性的撲球動作，不需要置中）。
+    const centerOffsetX = (this.state === "jump" || this.hitAnimActive) ? (SPRITE_W - drawW) / 2 : 0;
+    const drawX = Math.round(this.x + centerOffsetX);
+    drawY = Math.round(drawY);
+
+    ctx.save();
+    if (shouldFlip) {
+      ctx.translate(drawX + drawW, drawY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sheet, sx, sy, sw, sh, 0, 0, drawW, drawH);
+    } else {
+      ctx.drawImage(sheet, sx, sy, sw, sh, drawX, drawY, drawW, drawH);
+    }
+    ctx.restore();
+  }
+}
+
+// ---------- AI ----------
+class AIPlayer extends Pikachu {
+  constructor(x, y, side) {
+    super(x, y, side);
+    // 本次跳躍是否會殺球：跳起的當下就依 aiSpikeChance 機率決定一次，
+    // 不是每一格畫面都重骰（不然骰個幾格畫面下來幾乎一定會中）。
+    this.willSpike = false;
+  }
+
+  makeDecision(ball, netRect) {
+    try {
+      // 移動判斷都加一個「容許誤差」(等於一步移動速度)：
+      // 原本用 < / > 直接跟目標值比較，當目標值剛好卡在兩個像素中間、
+      // 或球的 x 剛好貼著 AI 的 x 附近時，AI 每一格畫面都會左右各移動一次，
+      // 變成肉眼可見的異常抖動。改成「差距大於一步才移動」就會穩定停住。
+      const tolerance = GAME_PARAMS.playerSpeed;
+
+      if (ball.x >= SCREEN_WIDTH / 2) {
+        const targetX = SCREEN_WIDTH / 4 - this.width / 2;
+        const dx = targetX - this.x;
+        if (dx > tolerance) this.move("right", netRect);
+        else if (dx < -tolerance) this.move("left", netRect);
+        else if (!this.diveMode && !this.isJumping) this.state = "idle";
+      } else {
+        const dxBall = ball.x - this.x;
+        if (dxBall < -tolerance && this.x > 0) {
+          this.move("left", netRect);
+        } else if (dxBall > tolerance && this.x < SCREEN_WIDTH / 2 - 50) {
+          this.move("right", netRect);
+        } else if (!this.diveMode && !this.isJumping) {
+          this.state = "idle";
+        }
+
+        if (
+          ball.y < this.y &&
+          Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance &&
+          !this.isJumping
+        ) {
+          this.jump();
+          // 這一次跳躍是否會殺球，跳起的瞬間就骰一次，不會因為球在判定範圍內待了很多格畫面而變成穩中
+          this.willSpike = Math.random() * 100 < GAME_PARAMS.aiSpikeChance;
+        }
+
+        if (this.willSpike && rectsOverlap(this.spikeRect, ball.rect)) {
+          if (this.side === "left") ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleLeftSide);
+          else ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleRightSide);
+          ball.addSparks();
+          playSound(sounds.slam);
+          this.willSpike = false;
+        }
+
+        if (
+          Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance &&
+          !this.diveMode &&
+          !this.isJumping
+        ) {
+          const direction = ball.x < this.x ? "left" : "right";
+          this.dive(direction, netRect);
+        }
+      }
+    } catch (e) {
+      console.error("AI Error:", e);
+    }
+  }
+}
+
+// ---------- 排球 ----------
+class Volleyball {
+  constructor() {
+    this.width = GAME_PARAMS.ballWidth;
+    this.height = GAME_PARAMS.ballHeight;
+    this.x = SCREEN_WIDTH / 2 - this.width / 2;
+    this.y = SCREEN_HEIGHT / 2 - this.height / 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.sparks = [];
+    this.resetTimer = 0;
+  }
+
+  get rect() {
+    return { x: this.x, y: this.y, w: this.width, h: this.height };
+  }
+
+  update() {
+    if (this.resetTimer > 0) {
+      this.resetTimer -= 1;
+      return;
+    }
+
+    this.vy += GAME_PARAMS.ballGravity;
+    this.x += this.vx;
+    this.y += this.vy;
+
+    const restitution = GAME_PARAMS.ballBounceRestitution;
+    if (this.x <= 0 || this.x + this.width >= SCREEN_WIDTH) {
+      this.vx *= -restitution;
+      this.x = Math.max(0, Math.min(this.x, SCREEN_WIDTH - this.width));
+    }
+    if (this.y <= 0) {
+      this.vy *= -restitution;
+      this.y = 0;
+    }
+    if (this.y + this.height >= GROUND_Y) {
+      this.vy *= -restitution;
+      this.y = GROUND_Y - this.height;
+    }
+
+    this.sparks = this.sparks.filter(s => s.update());
+  }
+
+  hit(power, angleDeg) {
+    const scaledPower = power * GAME_PARAMS.ballSpeedMultiplier;
+    const rad = (angleDeg * Math.PI) / 180;
+    this.vx = scaledPower * Math.cos(rad);
+    this.vy = scaledPower * Math.sin(rad);
+  }
+
+  checkNetCollision(netRect) {
+    if (rectsOverlap(this.rect, netRect)) {
+      const netCenterX = netRect.x + netRect.w / 2;
+      if (this.x + this.width / 2 < netCenterX) {
+        this.x = netRect.x - this.width;
+        this.vx = -Math.abs(this.vx);
+      } else {
+        this.x = netRect.x + netRect.w;
+        this.vx = Math.abs(this.vx);
+      }
+      this.vy *= -1;
+    }
+  }
+
+  draw(ctx) {
+    if (assetsReady) {
+      ctx.drawImage(images.ball, this.x, this.y, this.width, this.height);
+    }
+    this.sparks.forEach(s => s.draw(ctx));
+  }
+
+  addSparks() {
+    for (let i = 0; i < 10; i++) {
+      this.sparks.push(new Spark(this.x + this.width / 2, this.y + this.height));
+    }
+  }
+
+  resetPosition(side) {
+    this.width = GAME_PARAMS.ballWidth;
+    this.height = GAME_PARAMS.ballHeight;
+    this.y = 0;
+    const centerX = SCREEN_WIDTH / 2;
+    if (side === "left") {
+      // 固定發球位置：以畫面正中央為基準，往左側偏移 serveOffsetX
+      this.x = Math.max(0, Math.min(centerX - GAME_PARAMS.serveOffsetX - this.width / 2, SCREEN_WIDTH - this.width));
+    } else if (side === "right") {
+      // 左右鏡射：往右側偏移相同距離
+      this.x = Math.max(0, Math.min(centerX + GAME_PARAMS.serveOffsetX - this.width / 2, SCREEN_WIDTH - this.width));
+    } else {
+      this.x = centerX - this.width / 2;
+      this.y = SCREEN_HEIGHT / 2 - this.height / 2;
+    }
+    this.vx = 0; // 沒有水平初速，直直落下
+    this.vy = 0; // 靜止開始，靠重力自然加速掉落
+  }
+
+  startResetTimer() {
+    this.resetTimer = GAME_PARAMS.serveDropDelay;
+  }
+}
+
+// ---------- 球網 ----------
+class Net {
+  constructor() {
+    this.w = GAME_PARAMS.netWidth;
+    this.h = GAME_PARAMS.netHeight;
+    this.x = SCREEN_WIDTH / 2 - this.w / 2;
+    this.y = GROUND_Y - this.h;
+  }
+  get rect() {
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+  draw(ctx) {
+    if (assetsReady) {
+      ctx.drawImage(images.stick, this.x, this.y, this.w, this.h);
+    } else {
+      ctx.fillStyle = "#8b5a2b";
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+  }
+}
+
+// ---------- 工具函式 ----------
+function rectsOverlap(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+// ---------- 輸入處理 ----------
+const keys = {};
+window.addEventListener("keydown", e => {
+  keys[e.code] = true;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Enter"].includes(e.code)) {
+    e.preventDefault();
+  }
+});
+window.addEventListener("keyup", e => {
+  keys[e.code] = false;
+});
+canvas.addEventListener("pointerdown", () => {
+  keys["Enter"] = true;
+  setTimeout(() => { keys["Enter"] = false; }, 100);
+});
+
+// ---------- 遊戲狀態機 ----------
+const GameState = { MENU: 0, PLAYING: 1, GAME_OVER: 2 };
+
+class Game {
+  constructor() {
+    this.state = GameState.MENU;
+    this.menuIndex = 0;
+    this.menuItems = ["開始遊戲"];
+    this.reset();
+    this.musicStarted = false;
+
+    this.prevUp = false;
+    this.prevDown = false;
+    this.prevEnter = false;
+    this.prevAction = false;
+
+    this.actionHeld = { player: false };
+
+    // 遊戲結束畫面用：贏家/輸家動畫播放進度，只播一次（不循環）
+    this.gameWinnerSide = null;
+    this.winLoseFrame = 0;
+    this.winLoseTimer = 0;
+  }
+
+  // 依 serveOffsetX 算出「站在球正下方」所需的角色 x 座標：
+  // 跟 Volleyball.resetPosition() 用同一個基準點（畫面中央 ± serveOffsetX），
+  // 只是換算成角色（精靈）自己的寬度，讓角色中心對齊球中心。
+  getHomeX(side) {
+    const centerX = SCREEN_WIDTH / 2;
+    const cx = side === "left" ? centerX - GAME_PARAMS.serveOffsetX : centerX + GAME_PARAMS.serveOffsetX;
+    return Math.round(Math.max(0, Math.min(cx - SPRITE_W / 2, SCREEN_WIDTH - SPRITE_W)));
+  }
+
+  reset() {
+    this.ai = new AIPlayer(this.getHomeX("left"), GROUND_Y - SPRITE_H, "left");
+    this.player = new Pikachu(this.getHomeX("right"), GROUND_Y - SPRITE_H, "right");
+    this.ball = new Volleyball();
+    // 開局第一球固定由左側（AI）發球，球在角色正上方停留 serveDropDelay 之後才開始掉落
+    this.ball.resetPosition("left");
+    this.ball.startResetTimer();
+    this.net = new Net();
+    this.scoreLeft = 0;
+    this.scoreRight = 0;
+  }
+
+  // 每一場（得分之後、下一球開始前）呼叫：把兩邊角色都收回各自的發球位置（站在球正下方），
+  // 並清掉跳躍/飛撲等狀態，避免上一球結束時卡在飛撲或半空中的姿勢。
+  resetPlayerPositions() {
+    const homeX = { left: this.getHomeX("left"), right: this.getHomeX("right") };
+    [this.ai, this.player].forEach(entity => {
+      entity.x = homeX[entity.side];
+      entity.y = GROUND_Y - SPRITE_H;
+      entity.vy = 0;
+      entity.isJumping = false;
+      entity.diveMode = false;
+      entity.divingMovement = false;
+      entity.diveTimer = 0;
+      entity.state = "idle";
+      entity.frame = 0;
+      entity.animTimer = 0;
+      entity.hitAnimActive = false;
+      entity.hitAnimFrame = 0;
+      entity.hitAnimTimer = 0;
+    });
+    this.ai.willSpike = false;
+  }
+
+  startMusic() {
+    if (!this.musicStarted) {
+      sounds.bgm.play().catch(() => {});
+      this.musicStarted = true;
+    }
+  }
+
+  update() {
+    if (this.state === GameState.MENU) this.updateMenu();
+    else if (this.state === GameState.PLAYING) this.updatePlaying();
+    else if (this.state === GameState.GAME_OVER) this.updateGameOver();
+  }
+
+  updateMenu() {
+    const upNow = !!keys["ArrowUp"];
+    const downNow = !!keys["ArrowDown"];
+    const enterNow = !!(keys["Enter"] || keys["Space"]);
+
+    if (upNow && !this.prevUp) {
+      this.menuIndex = (this.menuIndex - 1 + this.menuItems.length) % this.menuItems.length;
+    }
+    if (downNow && !this.prevDown) {
+      this.menuIndex = (this.menuIndex + 1) % this.menuItems.length;
+    }
+    if (enterNow && !this.prevEnter) {
+      if (this.menuItems[this.menuIndex] === "開始遊戲") {
+        this.reset();
+        this.state = GameState.PLAYING;
+        this.startMusic();
+      }
+    }
+    this.prevUp = upNow;
+    this.prevDown = downNow;
+    this.prevEnter = enterNow;
+  }
+
+  updatePlaying() {
+    const p = this.player;
+    const netRect = this.net.rect;
+    // 得分後球停在原地等待掉落的期間（serveDropDelay），雙方都不能操控，
+    // 等球真的開始動了才能移動／跳躍／殺球／飛撲
+    const ballLocked = this.ball.resetTimer > 0;
+
+    // 玩家操作
+    if (!ballLocked) {
+      if (keys["ArrowLeft"]) p.move("left", netRect);
+      else if (keys["ArrowRight"]) p.move("right", netRect);
+      else if (!p.isJumping && !p.diveMode) p.state = "idle";
+
+      if (keys["ArrowUp"]) p.jump();
+
+      const actionNow = !!(keys["Enter"] || keys["Space"]);
+      if (actionNow && !this.actionHeld.player) {
+        // 剛按下瞬間：跳躍中觸球則殺球
+        if (p.isJumping && rectsOverlap(p.spikeRect, this.ball.rect)) {
+          this.ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleRightSide);
+          this.ball.addSparks();
+          playSound(sounds.slam);
+        }
+      }
+      if (actionNow) {
+        if (keys["ArrowLeft"]) p.dive("left", netRect);
+        else if (keys["ArrowRight"]) p.dive("right", netRect);
+      }
+      this.actionHeld.player = actionNow;
+
+      // AI 決策
+      this.ai.makeDecision(this.ball, netRect);
+    } else {
+      if (!p.isJumping && !p.diveMode) p.state = "idle";
+      this.actionHeld.player = !!(keys["Enter"] || keys["Space"]);
+    }
+
+    // 更新角色 / 球
+    this.ai.update(this.ball);
+    p.update(this.ball);
+    this.ball.update();
+    this.ball.checkNetCollision(netRect);
+
+    // 一般跳躍碰撞（非飛撲）
+    if (!this.ai.diveMode && rectsOverlap(this.ball.rect, this.ai.rect)) {
+      this.ball.hit(GAME_PARAMS.normalHitPower, GAME_PARAMS.normalHitAngleLeftBase + Math.random() * GAME_PARAMS.normalHitAngleVariance);
+      playSound(sounds.hit);
+      // 在地上的一般碰球才播擊球動畫；跳躍中已經有專屬的跳躍圖，不疊加
+      if (!this.ai.isJumping) this.ai.playHitAnim();
+    }
+    if (!p.diveMode && rectsOverlap(this.ball.rect, p.rect)) {
+      this.ball.hit(GAME_PARAMS.normalHitPower, GAME_PARAMS.normalHitAngleRightBase + Math.random() * GAME_PARAMS.normalHitAngleVariance);
+      playSound(sounds.hit);
+      if (!p.isJumping) p.playHitAnim();
+    }
+
+    // 得分判定
+    if (this.ball.y + this.ball.height >= GROUND_Y) {
+      let winnerSide;
+      if (this.ball.x + this.ball.width / 2 < SCREEN_WIDTH / 2) {
+        this.scoreRight += 1;
+        winnerSide = "right";
+      } else {
+        this.scoreLeft += 1;
+        winnerSide = "left";
+      }
+
+      // 雙方都先收回最後方起始位置，再由上一球的勝方發球，
+      // 球固定從畫面中央鏡射出去的位置直直落下（沒有水平初速），位置與角色實際站位無關，可在設定面板調整
+      this.resetPlayerPositions();
+      this.ball.resetPosition(winnerSide);
+      this.ball.startResetTimer();
+      playSound(sounds.score);
+
+      if (this.scoreLeft >= GAME_PARAMS.winScore || this.scoreRight >= GAME_PARAMS.winScore) {
+        this.state = GameState.GAME_OVER;
+        this.gameWinnerSide = winnerSide;
+        this.winLoseFrame = 0;
+        this.winLoseTimer = 0;
+      }
+    }
+  }
+
+  updateGameOver() {
+    // 贏家/輸家動畫：只播一次，播到最後一張（frame 4）就停住，不會循環重播
+    this.winLoseTimer++;
+    if (this.winLoseTimer >= GAME_PARAMS.winLoseAnimInterval) {
+      this.winLoseTimer = 0;
+      this.winLoseFrame = Math.min(this.winLoseFrame + 1, 4);
+    }
+
+    const enterNow = !!(keys["Enter"] || keys["Space"]);
+    const escNow = !!keys["Escape"];
+    if (enterNow && !this.prevEnter) {
+      this.reset();
+      this.state = GameState.PLAYING;
+    }
+    if (escNow) {
+      this.state = GameState.MENU;
+    }
+    this.prevEnter = enterNow;
+  }
+
+  draw() {
+    if (this.state === GameState.MENU) this.drawMenu();
+    else if (this.state === GameState.PLAYING) this.drawPlaying();
+    else if (this.state === GameState.GAME_OVER) this.drawGameOver();
+  }
+
+  drawBackground() {
+    if (assetsReady) {
+      ctx.drawImage(images.background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else {
+      ctx.fillStyle = "#4aa3df";
+      ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+      ctx.fillStyle = "#e0c88a";
+      const bandHeight = Math.max(GAME_PARAMS.groundHeight, 30);
+      ctx.fillRect(0, SCREEN_HEIGHT - bandHeight, SCREEN_WIDTH, bandHeight);
+      if (GAME_PARAMS.groundHeight > 0) {
+        ctx.strokeStyle = "#b89b5e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(SCREEN_WIDTH, GROUND_Y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  drawMenu() {
+    // 開始畫面首圖：改用 main.png，不再套用遊戲內的沙灘背景
+    if (assetsReady && images.mainScreen && images.mainScreen.naturalWidth) {
+      ctx.drawImage(images.mainScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else {
+      this.drawBackground();
+    }
+
+    // 「開始遊戲」改用 1p.png 圖片按鈕，不再顯示文字
+    const startImg = images.startButton;
+    if (assetsReady && startImg && startImg.naturalWidth) {
+      const w = startImg.naturalWidth;
+      const h = startImg.naturalHeight;
+      ctx.drawImage(startImg, SCREEN_WIDTH / 2 - w / 2, 220, w, h);
+    } else {
+      // 圖片還沒載入完成時的備用文字，避免完全看不到按鈕在哪
+      ctx.fillStyle = YELLOW;
+      ctx.font = "28px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("開始遊戲", SCREEN_WIDTH / 2, 240);
+    }
+  }
+
+  // 分數顯示：左右分開、紅色斜體粗字加黑色外框，仿經典皮卡丘排球的記分牌風格
+  // 抽成共用方法，遊戲進行中跟遊戲結束畫面都會呼叫，確保比分一直顯示、不會被隱藏。
+  drawScore() {
+    ctx.save();
+    ctx.textBaseline = "alphabetic";
+    const scoreFontSize = GAME_PARAMS.scoreFontSize;
+    const scoreY = GAME_PARAMS.scoreY;
+    ctx.font = `italic bold ${scoreFontSize}px 'Arial Black', Arial, sans-serif`;
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = BLACK;
+    ctx.fillStyle = "#e30613";
+
+    ctx.textAlign = "left";
+    ctx.strokeText(`${this.scoreLeft}`, 20, scoreY);
+    ctx.fillText(`${this.scoreLeft}`, 20, scoreY);
+
+    ctx.textAlign = "right";
+    ctx.strokeText(`${this.scoreRight}`, SCREEN_WIDTH - 20, scoreY);
+    ctx.fillText(`${this.scoreRight}`, SCREEN_WIDTH - 20, scoreY);
+    ctx.restore();
+  }
+
+  drawPlaying() {
+    this.drawBackground();
+    this.ai.draw(ctx);
+    this.player.draw(ctx);
+    this.ball.draw(ctx);
+    this.net.draw(ctx);
+
+    this.drawScore();
+
+    if (DEBUG_SHOW_HITBOX) this.drawDebugHitboxes();
+  }
+
+  drawDebugHitboxes() {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#4a90e2";
+    const ar = this.ai.rect;
+    ctx.strokeRect(ar.x, ar.y, ar.w, ar.h);
+    ctx.strokeStyle = "#e2984a";
+    const pr = this.player.rect;
+    ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
+    ctx.strokeStyle = "#e0507a";
+    const br = this.ball.rect;
+    ctx.strokeRect(br.x, br.y, br.w, br.h);
+    ctx.strokeStyle = "#5cb85c";
+    const nr = this.net.rect;
+    ctx.strokeRect(nr.x, nr.y, nr.w, nr.h);
+
+    // 跳躍殺球的加高判定範圍（虛線），方便邊調 spikeHitboxExtra 邊看效果
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = "#4a90e2";
+    const asr = this.ai.spikeRect;
+    ctx.strokeRect(asr.x, asr.y, asr.w, asr.h);
+    ctx.strokeStyle = "#e2984a";
+    const psr = this.player.spikeRect;
+    ctx.strokeRect(psr.x, psr.y, psr.w, psr.h);
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // 遊戲結束畫面用：把單一角色畫成贏家/輸家動畫的某一張圖，
+  // 面向、腳底對齊地面的算法都跟平常站立姿勢一致（同一個 SPRITE_W/H 基準），
+  // 圖片還沒載入完成時，直接退回該角色原本的站立姿勢，避免畫面空白。
+  drawWinLoseSprite(entity, img, w, h) {
+    if (!assetsReady || !img || !img.naturalWidth) {
+      entity.draw(ctx);
+      return;
+    }
+    const centerOffsetX = (SPRITE_W - w) / 2;
+    const drawX = Math.round(entity.x + centerOffsetX);
+    const drawY = Math.round(entity.y - (h - SPRITE_H));
+    const shouldFlip = entity.side === "right";
+    ctx.save();
+    if (shouldFlip) {
+      ctx.translate(drawX + w, drawY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, w, h);
+    } else {
+      ctx.drawImage(img, drawX, drawY, w, h);
+    }
+    ctx.restore();
+  }
+
+  drawGameOver() {
+    this.drawBackground();
+    this.net.draw(ctx);
+
+    const winnerIsLeft = this.gameWinnerSide === "left";
+    const winnerEntity = winnerIsLeft ? this.ai : this.player;
+    const loserEntity = winnerIsLeft ? this.player : this.ai;
+    const winImg = images.winFrames[this.winLoseFrame];
+    const loseImg = images.loseFrames[this.winLoseFrame];
+    this.drawWinLoseSprite(winnerEntity, winImg, WIN_W, WIN_H);
+    this.drawWinLoseSprite(loserEntity, loseImg, LOSE_W, LOSE_H);
+
+    this.ball.draw(ctx);
+    this.drawScore();
+  }
+}
+
+game = new Game();
+
+/* ============================================================
+   【設定面板】把 GAME_PARAMS_META 動態轉成可拖拉的滑桿 + 數字輸入框，
+   並提供「複製目前參數」「套用貼上的參數」「還原預設值」三個功能。
+   完全比照 skuld.html 的做法。
+   ============================================================ */
+(function(){
+  function buildParamPanel(){
+    const container = document.getElementById("paramSliders");
+    if(!container) return;
+    container.innerHTML = "";
+
+    const metaByKey = {};
+    GAME_PARAMS_META.forEach(function(meta){ metaByKey[meta[1]] = meta; });
+
+    function buildRow(meta){
+      const label = meta[0], key = meta[1], min = meta[2], max = meta[3], step = meta[4], type = meta[5];
+
+      const row = document.createElement("div");
+      row.className = "param-row";
+
+      const top = document.createElement("div");
+      top.className = "param-row-top";
+
+      const labelEl = document.createElement("label");
+      labelEl.textContent = label.split(" ")[0];
+      labelEl.title = label;
+
+      if(type === "text"){
+        // 文字型參數（目前用於音樂/音效檔案名稱）：只給一個文字輸入框，
+        // 直接輸入 sounds/ 資料夾底下的檔名，例如 sounds/hit.wav
+        labelEl.htmlFor = "param-text-" + key;
+
+        const text = document.createElement("input");
+        text.type = "text";
+        text.id = "param-text-" + key;
+        text.className = "param-text";
+        text.value = GAME_PARAMS[key];
+        text.spellcheck = false;
+        text.placeholder = "例如 sounds/hit.wav";
+
+        function updateText(v){
+          const val = (v || "").trim();
+          if(!val) return;
+          GAME_PARAMS[key] = val;
+          text.value = val;
+          // 如果這個 key 是音效檔名，換檔後要重新載入該音效
+          const sndKey = FILE_KEY_TO_SND_KEY[key];
+          if(sndKey) reloadSound(sndKey);
+        }
+        text.addEventListener("change", function(){ updateText(text.value); text.blur(); });
+
+        top.appendChild(labelEl);
+        row.appendChild(top);
+        row.appendChild(text);
+
+        const hint = document.createElement("div");
+        hint.className = "param-row-hint";
+        hint.textContent = "檔案需放在 sounds/ 資料夾底下";
+        row.appendChild(hint);
+
+        return row;
+      }
+
+      const isSec = (type === "sec");
+      const isFree = (type === "free"); // 不設上下限的參數
+      const noLimit = isSec || isFree;
+      labelEl.htmlFor = noLimit ? ("param-num-" + key) : ("param-range-" + key);
+      if(isSec) labelEl.textContent = labelEl.textContent + "（秒）";
+      function toDisplay(frames){ return isSec ? +(frames / FPS).toFixed(3) : frames; }
+      function toStored(display){ return isSec ? Math.round(display * FPS) : display; }
+
+      const num = document.createElement("input");
+      num.type = "number";
+      num.id = "param-num-" + key;
+      if(noLimit){
+        num.step = step;
+      } else {
+        num.min = min; num.max = max; num.step = step;
+      }
+      num.value = toDisplay(GAME_PARAMS[key]);
+      num.className = "param-num";
+
+      top.appendChild(labelEl);
+      top.appendChild(num);
+
+      let range = null;
+      if(!noLimit){
+        range = document.createElement("input");
+        range.type = "range";
+        range.id = "param-range-" + key;
+        range.min = min; range.max = max; range.step = step;
+        range.value = toDisplay(GAME_PARAMS[key]);
+      }
+
+      function updateValue(v){
+        let val = parseFloat(v);
+        if(isNaN(val)) return;
+        if(!noLimit) val = Math.max(min, Math.min(max, val));
+        GAME_PARAMS[key] = toStored(val);
+        if(range) range.value = val;
+        num.value = val;
+        // 畫面寬高／地面高度比較特殊：改變後要重新調整 canvas 大小（或地板位置）
+        // 並重置場上物件位置，不能只是單純更新數字
+        if(key === "screenWidth" || key === "screenHeight" || key === "groundHeight") applyScreenSize();
+      }
+
+      if(range){
+        range.addEventListener("input", function(){ updateValue(range.value); });
+        range.addEventListener("change", function(){ range.blur(); });
+        range.addEventListener("mouseup", function(){ range.blur(); });
+        range.addEventListener("touchend", function(){ range.blur(); });
+      }
+      num.addEventListener("change", function(){ updateValue(num.value); num.blur(); });
+
+      row.appendChild(top);
+      if(range) row.appendChild(range);
+      return row;
+    }
+
+    PARAM_CATEGORIES.forEach(function(cat){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = cat.kind;
+      details.open = true;
+
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = cat.title;
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = cat.keys.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+
+      cat.keys.forEach(function(key){
+        const meta = metaByKey[key];
+        if(!meta) return;
+        body.appendChild(buildRow(meta));
+      });
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+
+    const categorizedKeys = new Set(PARAM_CATEGORIES.reduce(function(acc,c){ return acc.concat(c.keys); }, []));
+    const leftover = GAME_PARAMS_META.filter(function(meta){ return !categorizedKeys.has(meta[1]); });
+    if(leftover.length){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = "other";
+      details.open = true;
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = "⚙️ 其他";
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = leftover.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+      leftover.forEach(function(meta){ body.appendChild(buildRow(meta)); });
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
+  }
+
+  function refreshParamPanelValues(){
+    GAME_PARAMS_META.forEach(function(meta){
+      const key = meta[1];
+      const type = meta[5];
+      if(type === "text"){
+        const text = document.getElementById("param-text-" + key);
+        if(text) text.value = GAME_PARAMS[key];
+        return;
+      }
+      const range = document.getElementById("param-range-" + key);
+      const num = document.getElementById("param-num-" + key);
+      const displayVal = (type === "sec") ? +(GAME_PARAMS[key] / FPS).toFixed(3) : GAME_PARAMS[key];
+      if(range) range.value = displayVal;
+      if(num) num.value = displayVal;
+    });
+  }
+
+  function showStatus(msg, ms){
+    const statusEl = document.getElementById("paramCopyStatus");
+    if(!statusEl) return;
+    statusEl.textContent = msg;
+    setTimeout(function(){ statusEl.textContent = ""; }, ms || 2500);
+  }
+
+  const settingsBtn = document.getElementById("settingsBtn");
+  const paramPanel = document.getElementById("paramPanel");
+  const closeParamPanel = document.getElementById("closeParamPanel");
+  const paramTextArea = document.getElementById("paramTextArea");
+  const copyParamsBtn = document.getElementById("copyParamsBtn");
+  const applyParamsBtn = document.getElementById("applyParamsBtn");
+  const resetParamsBtn = document.getElementById("resetParamsBtn");
+  const restartGameBtn = document.getElementById("restartGameBtn");
+
+  if(settingsBtn && paramPanel){
+    settingsBtn.addEventListener("click", function(){
+      const willShow = paramPanel.style.display === "none";
+      paramPanel.style.display = willShow ? "flex" : "none";
+      DEBUG_SHOW_HITBOX = willShow;
+      if(willShow) refreshParamPanelValues();
+      settingsBtn.blur();
+    });
+  }
+  if(closeParamPanel && paramPanel){
+    closeParamPanel.addEventListener("click", function(){
+      paramPanel.style.display = "none";
+      DEBUG_SHOW_HITBOX = false;
+      closeParamPanel.blur();
+    });
+  }
+  if(copyParamsBtn && paramTextArea){
+    copyParamsBtn.addEventListener("click", function(){
+      const json = JSON.stringify(GAME_PARAMS, null, 2);
+      paramTextArea.value = json;
+      let copied = false;
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(json);
+          copied = true;
+        }
+      }catch(e){}
+      if(!copied){
+        try{ paramTextArea.select(); document.execCommand("copy"); copied = true; }catch(e){}
+      }
+      showStatus(copied ? "已複製到剪貼簿！可以貼到別的地方保存。" : "已顯示在下方文字框，請手動全選複製。");
+      copyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(applyParamsBtn && paramTextArea){
+    applyParamsBtn.addEventListener("click", function(){
+      try{
+        const parsed = JSON.parse(paramTextArea.value);
+        let sizeChanged = false;
+        Object.keys(parsed).forEach(function(key){
+          if(!Object.prototype.hasOwnProperty.call(GAME_PARAMS, key)) return;
+          const incoming = parsed[key];
+          const current = GAME_PARAMS[key];
+          if(typeof incoming === "number" && typeof current === "number"){
+            if((key === "screenWidth" || key === "screenHeight" || key === "groundHeight") && incoming !== current) sizeChanged = true;
+            GAME_PARAMS[key] = incoming;
+          }else if(typeof incoming === "string" && typeof current === "string" && incoming.trim()){
+            GAME_PARAMS[key] = incoming.trim();
+            const sndKey = FILE_KEY_TO_SND_KEY[key];
+            if(sndKey) reloadSound(sndKey);
+          }
+        });
+        if(sizeChanged) applyScreenSize();
+        refreshParamPanelValues();
+        showStatus("參數已套用！");
+      }catch(e){
+        showStatus("格式錯誤，請確認貼上的是完整的參數 JSON。", 3000);
+      }
+      applyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(resetParamsBtn){
+    resetParamsBtn.addEventListener("click", function(){
+      GAME_PARAMS = JSON.parse(JSON.stringify(GAME_PARAMS_DEFAULTS));
+      Object.keys(SND_FILE_KEY).forEach(reloadSound);
+      applyScreenSize();
+      refreshParamPanelValues();
+      showStatus("已還原成預設值。");
+      resetParamsBtn.blur();
+    });
+  }
+
+  if(restartGameBtn){
+    restartGameBtn.addEventListener("click", function(){
+      // 獨立按鈕，跟設定齒輪並排固定在畫面上，不管設定面板有沒有打開都能點來重開一局，
+      // 點下去也不會去動 paramPanel 的顯示狀態。
+      game.reset();
+      game.state = GameState.PLAYING;
+      game.startMusic();
+      showStatus("遊戲已重新開始！");
+      restartGameBtn.blur();
+    });
+  }
+
+  buildParamPanel();
+})();
+
+/* ============================================================
+   虛擬搖桿與螢幕按鈕（手機/平板觸控用）
+   ------------------------------------------------------------
+   搖桿：對應 ArrowLeft / ArrowRight / ArrowUp（左右移動、跳躍）
+   按鈕：對應 Enter / Space，觸發飛撲與殺球
+   完全比照 skuld.html 的做法。
+   ============================================================ */
+(function(){
+  function updateControlsVisibility(){
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = window.innerWidth <= window.innerHeight;
+    const isMobile = window.innerWidth <= 768;
+    const joystick = document.getElementById("joystick");
+    const screenButtons = document.getElementById("screenButtons");
+    if(joystick && screenButtons){
+      if(isLandscape && window.innerWidth <= 900){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else if(isPortrait && isMobile){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else {
+        joystick.style.display = "none";
+        screenButtons.style.display = "none";
+      }
+      screenButtons.style.zIndex = 2000;
+    }
+  }
+  window.addEventListener("resize", updateControlsVisibility);
+  window.addEventListener("orientationchange", updateControlsVisibility);
+  updateControlsVisibility();
+  window.addEventListener("resize", ()=>setTimeout(updateKnobGeometry, 50));
+  window.addEventListener("orientationchange", ()=>setTimeout(updateKnobGeometry, 50));
+  setTimeout(updateKnobGeometry, 50);
+
+  // 虛擬搖桿控制
+  const joystick = document.getElementById("joystick");
+  const knob = document.getElementById("joystick-knob");
+  const directionIndicators = document.querySelectorAll(".direction-indicator");
+  let dragging = false, startX = 0, startY = 0;
+  let joyDX = 0, joyDY = 0;
+  let activeTouchId = null;
+  let knobCenterOffset = 35; // 動態計算：底座與旋鈕置中所需的位移量
+  let knobMaxDist = 45;      // 動態計算：旋鈕可拖曳的最大距離
+
+  function updateKnobGeometry(){
+    if(!joystick || !knob) return;
+    const baseSize = joystick.offsetWidth;
+    const knobSize = knob.offsetWidth;
+    knobCenterOffset = (baseSize - knobSize) / 2;
+    // 讓旋鈕邊緣最遠可以貼到底座邊緣，並保留一點緩衝
+    knobMaxDist = Math.max(20, baseSize / 2 - knobSize / 4);
+  }
+
+  function updateDirectionIndicators(){
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+    if(Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1){
+      let direction = "";
+      if(joyDY < -0.3) direction += "up";
+      else if(joyDY > 0.3) direction += "down";
+      if(joyDX < -0.3) direction += "-left";
+      else if(joyDX > 0.3) direction += "-right";
+      if(direction){
+        const indicator = document.querySelector(".direction-indicator." + direction);
+        if(indicator) indicator.classList.add("active");
+      }
+    }
+  }
+
+  function resetJoystick(){
+    dragging = false;
+    activeTouchId = null;
+    if(knob){ knob.style.left = knobCenterOffset + "px"; knob.style.top = knobCenterOffset + "px"; }
+    joyDX = 0; joyDY = 0;
+    keys["ArrowLeft"] = keys["ArrowRight"] = keys["ArrowUp"] = keys["ArrowDown"] = false;
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+  }
+
+  function moveKnobTo(clientX, clientY){
+    let dx = clientX - startX;
+    let dy = clientY - startY;
+    const maxDist = knobMaxDist;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist > maxDist){
+      dx = dx * maxDist / dist;
+      dy = dy * maxDist / dist;
+    }
+    knob.style.left = (knobCenterOffset + dx) + "px";
+    knob.style.top = (knobCenterOffset + dy) + "px";
+    joyDX = dx / maxDist;
+    joyDY = dy / maxDist;
+    keys["ArrowLeft"]  = joyDX < -0.2;
+    keys["ArrowRight"] = joyDX > 0.2;
+    keys["ArrowUp"]    = joyDY < -0.2;
+    keys["ArrowDown"]  = joyDY > 0.2;
+    updateDirectionIndicators();
+  }
+
+  if(joystick && knob){
+    // 綁在整個底座（外圈）上，而不是只綁在中間的小旋鈕上，
+    // 這樣玩家點在搖桿範圍內任何地方都能立刻開始拖曳，大幅提升靈敏度
+    joystick.addEventListener("touchstart", function(e){
+      if(dragging) return;
+      dragging = true;
+      updateKnobGeometry();
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+      const baseRect = joystick.getBoundingClientRect();
+      startX = baseRect.left + baseRect.width / 2;
+      startY = baseRect.top + baseRect.height / 2;
+      // 立刻把旋鈕移動到手指按下的位置，減少「按了沒反應」的感覺
+      moveKnobTo(touch.clientX, touch.clientY);
+      if(game.state === GameState.MENU || game.state === GameState.GAME_OVER){
+        keys["Enter"] = true;
+        setTimeout(()=>{ keys["Enter"] = false; }, 100);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }, {passive:false});
+
+    document.addEventListener("touchmove", function(e){
+      if(!dragging) return;
+      let touch = null;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ touch = t; break; }
+      }
+      if(!touch) return;
+      moveKnobTo(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, {passive:false});
+
+    document.addEventListener("touchend", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+
+    // 補上 touchcancel：觸控常會被系統手勢、多指觸控等中斷而不會觸發 touchend，
+    // 若沒處理這個事件，dragging 會卡在 true，導致搖桿之後完全沒反應
+    document.addEventListener("touchcancel", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+  }
+
+  // 虛擬按鈕控制（飛撲/殺球，對應 Enter / Space）
+  const actionBtn = document.getElementById("actionBtn");
+  if(actionBtn){
+    function pressAction(e){
+      keys["Enter"] = true;
+      if(e){ e.preventDefault(); e.stopPropagation(); }
+    }
+    function releaseAction(e){
+      keys["Enter"] = false;
+      if(e){ e.preventDefault(); }
+    }
+    actionBtn.addEventListener("touchstart", pressAction, {passive:false});
+    actionBtn.addEventListener("touchend", releaseAction, {passive:false});
+    actionBtn.addEventListener("touchcancel", releaseAction, {passive:false});
+    actionBtn.addEventListener("mousedown", pressAction);
+    actionBtn.addEventListener("mouseup", releaseAction);
+    actionBtn.addEventListener("mouseleave", releaseAction);
+  }
+})();
+
+/* ============================================================
+   主迴圈（固定時間步 Fixed Timestep，確保不同裝置/螢幕更新率速度一致）
+   ============================================================ */
+const FRAME_TIME = 1000 / FPS; // 每次遊戲邏輯更新間隔（毫秒），固定為 1/60 秒
+const MAX_UPDATES_PER_FRAME = 5; // 避免分頁切換回來後瞬間補跑太多次造成暴衝
+
+let lastTime = null;
+let accumulator = 0;
+
+function loop(currentTime) {
+  if (lastTime === null) {
+    lastTime = currentTime;
+  }
+  let delta = currentTime - lastTime;
+  lastTime = currentTime;
+
+  if (delta > 250) delta = 250;
+
+  accumulator += delta;
+
+  let updates = 0;
+  while (accumulator >= FRAME_TIME && updates < MAX_UPDATES_PER_FRAME) {
+    game.update();
+    accumulator -= FRAME_TIME;
+    updates++;
+  }
+
+  game.draw();
+  requestAnimationFrame(loop);
+}
+
+checkAssetsReady();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
