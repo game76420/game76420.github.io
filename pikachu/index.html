@@ -377,26 +377,29 @@ function playSound(a) {
 // 也會分別尊重「音效開關」（控制 pikachu 提示音）與「音樂開關」（控制背景音樂 bgm）。
 function playPikachuThenMusic() {
   let musicTriggered = false;
-  // 手機瀏覽器（尤其某些 App 內建瀏覽器/WebView）對 play() 的要求非常嚴格：
+  // 手機瀏覽器（尤其某些 App 內建瀏覽器/WebView）對「有聲播放」的要求非常嚴格：
   // 只有「這次呼叫本身就在使用者手勢事件的呼叫堆疊裡」才會被允許播放，
   // 就算音訊物件先前已經被「解鎖」過、或只是晚了一個 rAF 影格才呼叫 play()，
   // 都可能被擋下來，這正是背景音樂在手機上播不出來、但一般音效（緊跟在
   // 觸控之後立刻呼叫 playSound()）卻沒問題的原因。
-  // 解法：在呼叫這個函式的當下（必須仍在使用者手勢的同一個呼叫堆疊裡），
-  // 立刻把背景音樂設成「真正的靜音 muted = true」再 play() 起來。
-  // 這裡刻意用 .muted（而不是把 volume 調成 0）：瀏覽器的自動播放限制是
-  // 明確檢查 muted 屬性，「真正 muted 的媒體不管有沒有使用者手勢都一定
-  // 允許播放」，這是瀏覽器保證的例外；只把音量調成 0 並不會被瀏覽器
-  // 判定成 muted，仍然可能被當成一般（有聲）播放而被擋下——這正是先前
-  // 「進入遊戲當下播不出來、但去設定面板把音樂開關關掉再打開（真正的
-  // 使用者點擊事件）就會播」的原因：面板開關是新的、貨真價實的點擊手勢，
-  // 而進入遊戲時的音量 0 播放並沒有被瀏覽器視為受保護的 muted 播放。
-  // 等 pikachu.wav 播完之後只需要把 muted 設回 false，不用再重新呼叫一次
-  // play()——媒體本來就已經在播放中，取消靜音不需要另一次使用者手勢。
+  //
+  // 這裡曾經試過「先用 muted = true 播放，pikachu.wav 播完再把 muted 設回
+  // false」，理論上 muted 播放一定會被允許；但實測發現部分手機瀏覽器
+  // （例如 iOS Safari）把「之後用程式把 muted 改回 false」視為跟直接呼叫
+  // play() 一樣，同樣必須發生在使用者手勢的呼叫堆疊裡才會生效——不在手勢
+  // 堆疊裡的話，muted 會被瀏覽器悄悄擋下來、繼續維持靜音，聽起來就像
+  // 「背景音樂完全沒播放」，只有真正點擊設定面板的音樂開關（貨真價實的
+  // 使用者點擊事件）才能讓它生效。
+  //
+  // 正確解法：一開始就用「沒有 muted、但音量 0」的方式呼叫 play()——
+  // 這是一次貨真價實的「有聲播放」呼叫，只要它確實發生在使用者手勢的
+  // 呼叫堆疊裡（呼叫這個函式的當下），瀏覽器就會允許。之後只需要把
+  // volume 從 0 調高，這只是單純調整音量、不是重新播放也不是取消靜音，
+  // 不會被自動播放限制擋下，不需要另一次使用者手勢。
   if (GAME_PARAMS.musicEnabled) {
     try {
-      sounds.bgm.volume = 0.5;
-      sounds.bgm.muted = true;
+      sounds.bgm.muted = false;
+      sounds.bgm.volume = 0;
       const p = sounds.bgm.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     } catch (e) {}
@@ -405,9 +408,8 @@ function playPikachuThenMusic() {
     if (musicTriggered) return;
     musicTriggered = true;
     if (GAME_PARAMS.musicEnabled) {
-      sounds.bgm.muted = false;
       sounds.bgm.volume = 0.5;
-      // 保險：如果一開始的靜音播放不知為何沒有真的播放起來（仍被擋下），
+      // 保險：如果一開始的播放不知為何沒有真的播放起來（仍被擋下），
       // 這裡再補呼叫一次 play()；多數情況下不會執行到這裡，因為前面已經播放成功。
       if (sounds.bgm.paused) sounds.bgm.play().catch(() => {});
     } else {
@@ -658,8 +660,8 @@ Object.keys(SND_FILE_KEY).forEach(reloadSound);
    就能讓整個頁面被瀏覽器視為「已取得播放授權」，pikachu.wav 自己稍後的
    正式播放呼叫一樣會被允許，不需要把它也放進這個解鎖清單。
    bgm 也一樣不放進這個清單：背景音樂改由 playPikachuThenMusic() 在進入遊戲
-   當下自己用「muted 播放」處理（見該函式內註解），跟這裡的解鎖動作分開，
-   避免兩邊同時操作同一個 sounds.bgm 互相打架。
+   當下自己直接呼叫一次「音量 0」的 play() 處理（見該函式內註解），跟這裡的
+   解鎖動作分開，避免兩邊同時操作同一個 sounds.bgm 互相打架。
    ------------------------------------------------------------ */
 let audioUnlocked = false;
 function unlockAudioForMobile(){
