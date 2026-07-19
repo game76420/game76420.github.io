@@ -654,9 +654,12 @@ Object.keys(SND_FILE_KEY).forEach(reloadSound);
    的 pikachu.wav 攔腰打斷，聽起來就像完全沒播放。重新整理後檔案已經在
    瀏覽器快取裡，解鎖的播放/暫停幾乎瞬間完成，兩者不會撞在一起，所以才會
    「重新整理後就正常」。
-   只要用其他音效（hit/jump/score/slam/win/bgm）完成一次解鎖，
+   只要用其他音效（hit/jump/score/slam/win）完成一次解鎖，
    就能讓整個頁面被瀏覽器視為「已取得播放授權」，pikachu.wav 自己稍後的
    正式播放呼叫一樣會被允許，不需要把它也放進這個解鎖清單。
+   bgm 也一樣不放進這個清單：背景音樂改由 playPikachuThenMusic() 在進入遊戲
+   當下自己用「muted 播放」處理（見該函式內註解），跟這裡的解鎖動作分開，
+   避免兩邊同時操作同一個 sounds.bgm 互相打架。
    ------------------------------------------------------------ */
 let audioUnlocked = false;
 function unlockAudioForMobile(){
@@ -664,6 +667,12 @@ function unlockAudioForMobile(){
   audioUnlocked = true;
   Object.keys(sounds).forEach(function(key){
     if (key === "pikachu") return; // 交給正式播放流程自己處理，避免跟這裡的解鎖動作互相打架
+    if (key === "bgm") return; // 背景音樂也交給 playPikachuThenMusic() 自己的 muted play() 處理；
+    // 這裡的「play() 完馬上 pause()+歸零」是非同步的，如果跟進入遊戲那次同一個觸控
+    // 觸發的正式背景音樂播放「撞在一起」，這裡延遲執行的 pause()/歸零可能會晚於
+    // 正式播放才發生，結果把剛播起來的背景音樂攔腰打斷、歸零，導致後面只能靠
+    // 「ended」事件裡再重新呼叫一次 play() 來補救——但那次呼叫已經不在使用者手勢
+    // 的呼叫堆疊裡了，在手機瀏覽器上會被擋下（電腦版限制較鬆所以不會發現這個問題）。
     const a = sounds[key];
     if(!a) return;
     try{
