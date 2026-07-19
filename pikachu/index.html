@@ -464,9 +464,33 @@ const images = {
   // 遊戲結束時，贏家/輸家各自的 5 張動畫圖（只播一次，播完停在最後一張）
   winFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/win_${n}.png`)),
   loseFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/lose_${n}.png`)),
+  // 分數用的數字圖檔：橫向排列的 0~9 雪碧圖，總寬 320、高 32，每個數字固定佔 32x32。
+  scoreDigits: loadImage("img/no.png"),
 };
 
 let assetsReady = false;
+// no.png 雪碧圖裡每個數字原始格子的寬高（來源圖總寬 320、高 32，共 10 格 0~9）。
+const SCORE_DIGIT_SRC = 32;
+// 把一個非負整數用 no.png 的數字圖示畫出來（可以是多位數，例如比分到 10 分以上）。
+// x/y：對齊基準點；align="left" 時 x 是最左邊數字的左邊界，align="right" 時 x 是最右邊數字的右邊界。
+// digitSize：每個數字圖示畫出來的寬高（正方形，會等比縮放原始 32x32 的格子）。
+function drawScoreNumber(num, x, y, align, digitSize) {
+  const img = images.scoreDigits;
+  if (!img || !img.naturalWidth) return;
+  const str = String(Math.max(0, Math.floor(num)));
+  const totalW = str.length * digitSize;
+  const startX = align === "left" ? x : x - totalW;
+  for (let i = 0; i < str.length; i++) {
+    const d = str.charCodeAt(i) - 48; // '0' 的 charCode 是 48
+    if (d < 0 || d > 9) continue;
+    ctx.drawImage(
+      img,
+      d * SCORE_DIGIT_SRC, 0, SCORE_DIGIT_SRC, SCORE_DIGIT_SRC,
+      startX + i * digitSize, y, digitSize, digitSize
+    );
+  }
+}
+
 // images 裡有些值是單張圖片、有些（pikachuFrames）是圖片陣列，
 // 這裡統一攤平成一維陣列，才能逐一檢查/監聽每張圖片是否載入完成。
 function flattenImages() {
@@ -567,8 +591,8 @@ let GAME_PARAMS = {
   winScore: 15,                // 先得到幾分獲勝
 
   // --- 分數顯示 ---
-  scoreFontSize: 40,           // 分數文字大小（像素）
-  scoreY: 55,                  // 分數文字的垂直位置（離畫面頂端的距離，像素，數字越大分數越靠下）
+  scoreFontSize: 32,           // 分數數字圖示的顯示大小（像素，正方形，會等比縮放 no.png 裡 32x32 的格子）
+  scoreY: 8,                  // 分數數字圖示的頂端 y 座標（離畫面頂端的距離，像素，數字越大分數越靠下）
 
   // --- 發球 ---
   serveOffsetX: 130,           // 發球時球的固定水平位置：以畫面正中央為基準，往發球方那一側偏移的距離（像素）。左右鏡射，AI（左側）與玩家（右側）用同一個距離、方向相反
@@ -753,8 +777,8 @@ const GAME_PARAMS_META = [
 
   ["獲勝分數 winScore", "winScore", 1, 30, 1],
 
-  ["分數文字大小 scoreFontSize", "scoreFontSize", 10, 100, 2, "free"],
-  ["分數垂直位置 scoreY", "scoreY", 10, 200, 2, "free"],
+  ["分數圖示大小 scoreFontSize", "scoreFontSize", 10, 100, 2, "free"],
+  ["分數圖示頂端位置 scoreY", "scoreY", 0, 200, 2, "free"],
 
   ["發球水平位置(距中央) serveOffsetX", "serveOffsetX", 0, 200, 5, "free"],
   ["發球停留時間 serveDropDelay", "serveDropDelay", 0, 3, 0.1, "sec"],
@@ -1624,26 +1648,16 @@ class Game {
     }
   }
 
-  // 分數顯示：左右分開、紅色斜體粗字加黑色外框，仿經典皮卡丘排球的記分牌風格
-  // 抽成共用方法，遊戲進行中跟遊戲結束畫面都會呼叫，確保比分一直顯示、不會被隱藏。
+  // 分數顯示：改用 no.png 這張數字雪碧圖（橫向 0~9，每格 32x32），
+  // 不再用 canvas 文字＋外框描邊繪製，直接把對應數字的那一格圖片畫出來，
+  // 風格由圖檔本身決定。抽成共用方法，遊戲進行中跟遊戲結束畫面都會呼叫，
+  // 確保比分一直顯示、不會被隱藏。
   drawScore() {
-    ctx.save();
-    ctx.textBaseline = "alphabetic";
-    const scoreFontSize = GAME_PARAMS.scoreFontSize;
-    const scoreY = GAME_PARAMS.scoreY;
-    ctx.font = `italic bold ${scoreFontSize}px 'Arial Black', Arial, sans-serif`;
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = BLACK;
-    ctx.fillStyle = "#e30613";
-
-    ctx.textAlign = "left";
-    ctx.strokeText(`${this.scoreLeft}`, 20, scoreY);
-    ctx.fillText(`${this.scoreLeft}`, 20, scoreY);
-
-    ctx.textAlign = "right";
-    ctx.strokeText(`${this.scoreRight}`, SCREEN_WIDTH - 20, scoreY);
-    ctx.fillText(`${this.scoreRight}`, SCREEN_WIDTH - 20, scoreY);
-    ctx.restore();
+    if (!assetsReady) return;
+    const digitSize = GAME_PARAMS.scoreFontSize; // 每個數字圖示的顯示大小（寬高相同，正方形格子）
+    const y = GAME_PARAMS.scoreY; // 數字圖示的頂端 y 座標
+    drawScoreNumber(this.scoreLeft, 20, y, "left", digitSize);
+    drawScoreNumber(this.scoreRight, SCREEN_WIDTH - 20, y, "right", digitSize);
   }
 
   drawPlaying() {
