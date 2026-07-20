@@ -378,10 +378,15 @@
             box-shadow: var(--shadow-hover);
         }
 
-        .game-card i {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+        .game-card img.game-icon {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            margin: 0 auto 1rem auto;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(230,0,18,0.25));
             animation: pulse 2s infinite;
+            image-rendering: -webkit-optimize-contrast;
         }
 
         .game-card h3 {
@@ -840,10 +845,10 @@
         <button class="nav-toggle" id="navToggle" aria-label="展開選單">≡</button>
         <div class="nav-overlay" id="navOverlay"></div>
         <ul id="navMenu">
+            <li><a href="#games">自製遊戲</a></li>
             <li><a href="#about">關於我</a></li>
             <li><a href="#services">我的服務</a></li>
             <li><a href="#portfolio">作品集</a></li>
-            <li><a href="#games">自製遊戲</a></li>
             <li><a href="#testimonials">客戶推薦</a></li>
             <li><a href="#blog">部落格</a></li>
             <li><a href="#contact">聯繫我</a></li>
@@ -851,6 +856,96 @@
     </nav>
 
     <main>
+        <!-- 自製遊戲區（已移至最上方） -->
+        <section id="games" class="games-section fade-in">
+            <h2><i class="fas fa-gamepad"></i> 自製遊戲區</h2>
+            <p style="font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.9;">
+                歡迎來到我的遊戲世界！這裡有各種有趣的遊戲，讓您在忙碌之餘放鬆心情。
+            </p>
+            <div class="games-grid">
+                <div class="game-card" onclick="openPikachu()">
+                    <img class="game-icon" src="icon/pikachu.png" alt="皮卡丘打排球">
+                    <h3>皮卡丘打排球</h3>
+                    <p>可愛的皮卡丘沙灘排球對戰遊戲，單一 HTML5 檔案、支援 RWD 響應式排版！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openDownGame()">
+                    <img class="game-icon" src="icon/down.gif" alt="小朋友下樓梯">
+                    <h3>小朋友下樓梯</h3>
+                    <p>經典的下樓梯遊戲，控制角色躲避障礙物，挑戰您的反應速度！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openUpGame()">
+                    <img class="game-icon" src="icon/up.gif" alt="小朋友上樓梯">
+                    <h3>小朋友上樓梯</h3>
+                    <p>全新挑戰！控制角色往上爬樓梯，考驗您的反應與技巧。</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openFlappyBird()">
+                    <img class="game-icon" src="icon/flappybird.png" alt="Flappy Bird">
+                    <h3>Flappy Bird</h3>
+                    <p>經典的 Flappy Bird 遊戲，控制小鳥穿越管道，挑戰最高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openBingo()">
+                    <img class="game-icon" src="icon/bingo.png" alt="Bingo 遊戲">
+                    <h3>Bingo 遊戲</h3>
+                    <p>與電腦對戰的 Bingo 遊戲，連成一線即可獲勝！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openSameGame()">
+                    <img class="game-icon" src="icon/samegame.png" alt="Same Game">
+                    <h3>Same Game</h3>
+                    <p>經典消除遊戲，點擊相同顏色方塊消除，挑戰高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openFishing()">
+                    <img class="game-icon" src="icon/fishing.png" alt="釣魚遊戲">
+                    <h3>釣魚遊戲</h3>
+                    <p>經典釣魚遊戲，控制魚鉤釣魚，挑戰高分排行榜！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openSnowcraft()">
+                    <img class="game-icon" src="icon/snowcraft.png" alt="雪球大戰">
+                    <h3>雪球大戰</h3>
+                    <p>刺激的雪球大戰遊戲，控制角色投擲雪球，與敵人展開激烈對戰！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openCandyCrush()">
+                    <img class="game-icon" src="icon/candy.png" alt="糖果傳奇">
+                    <h3>糖果傳奇</h3>
+                    <p>經典三消遊戲，消除糖果挑戰高分！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openHexxagon()">
+                    <img class="game-icon" src="icon/hexxagon.png" alt="Hexxagon">
+                    <h3>Hexxagon</h3>
+                    <p>經典六角棋盤策略遊戲，擴張領地並吃掉對手棋子，挑戰你的戰術思維！</p>
+                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+            </div>
+        </section>
+
         <section id="about" class="fade-in">
             <h2><i class="fas fa-user-circle"></i> 關於我</h2>
             <p style="font-size: 1.1rem; line-height: 1.8; text-align: center; max-width: 800px; margin: 0 auto;">
@@ -954,88 +1049,6 @@
                     <h3><i class="fas fa-th"></i> Bingo 遊戲</h3>
                     <p>用 JavaScript 和 HTML 開發的 Bingo 遊戲，您可以與電腦對戰，體驗趣味十足的遊戲體驗。</p>
                     <button onclick="openBingo()"><i class="fas fa-external-link-alt"></i> 開啟 Bingo 遊戲</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 新增自製遊戲區 -->
-        <section id="games" class="games-section fade-in">
-            <h2><i class="fas fa-gamepad"></i> 自製遊戲區</h2>
-            <p style="font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.9;">
-                歡迎來到我的遊戲世界！這裡有各種有趣的遊戲，讓您在忙碌之餘放鬆心情。
-            </p>
-            <div class="games-grid">
-                <div class="game-card" onclick="openDownGame()">
-                    <i class="fas fa-arrow-down"></i>
-                    <h3>小朋友下樓梯</h3>
-                    <p>經典的下樓梯遊戲，控制角色躲避障礙物，挑戰您的反應速度！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openUpGame()">
-                    <i class="fas fa-arrow-up"></i>
-                    <h3>小朋友上樓梯</h3>
-                    <p>全新挑戰！控制角色往上爬樓梯，考驗您的反應與技巧。</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openFlappyBird()">
-                    <i class="fas fa-bird"></i>
-                    <h3>Flappy Bird</h3>
-                    <p>經典的 Flappy Bird 遊戲，控制小鳥穿越管道，挑戰最高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openBingo()">
-                    <i class="fas fa-th"></i>
-                    <h3>Bingo 遊戲</h3>
-                    <p>與電腦對戰的 Bingo 遊戲，連成一線即可獲勝！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openSameGame()">
-                    <i class="fas fa-th-large"></i>
-                    <h3>Same Game</h3>
-                    <p>經典消除遊戲，點擊相同顏色方塊消除，挑戰高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openFishing()">
-                    <i class="fas fa-fish"></i>
-                    <h3>釣魚遊戲</h3>
-                    <p>經典釣魚遊戲，控制魚鉤釣魚，挑戰高分排行榜！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openSnowcraft()">
-                    <i class="fas fa-snowflake"></i>
-                    <h3>雪球大戰</h3>
-                    <p>刺激的雪球大戰遊戲，控制角色投擲雪球，與敵人展開激烈對戰！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openCandyCrush()">
-                    <i class="fas fa-candy-cane"></i>
-                    <h3>糖果傳奇</h3>
-                    <p>經典三消遊戲，消除糖果挑戰高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
-                </div>
-                <div class="game-card" onclick="openHexxagon()">
-                    <i class="fas fa-chess-board"></i>
-                    <h3>Hexxagon</h3>
-                    <p>經典六角棋盤策略遊戲，擴張領地並吃掉對手棋子，挑戰你的戰術思維！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
-                        <i class="fas fa-play"></i> 開始遊戲
-                    </button>
                 </div>
             </div>
         </section>
@@ -1201,6 +1214,11 @@
         // Hexxagon 遊戲
         function openHexxagon() {
             window.open("hexxagon.html", "_blank");
+        }
+
+        // 皮卡丘打排球遊戲
+        function openPikachu() {
+            window.open("https://game76420.github.io/pikachu/", "_blank");
         }
 
         // 導航列高亮
