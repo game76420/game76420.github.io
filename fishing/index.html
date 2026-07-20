@@ -770,6 +770,12 @@ let hookAutoSinking = false;
 // 控制狀態
 let keyState = { left: false, right: false, up: false, down: false };
 
+// 新增：精靈（貓咪）移動動畫的影格控制——持續移動時才會一直換圖，停下來就凍結在目前影格
+let catAnimFrame = 0;          // 目前顯示第幾張移動圖（0~3，對應 cat_1.png ~ cat_4.png）
+let catAnimTimer = 0;          // 累計經過的時間（ms），用來控制多久換一次圖
+let catWasMoving = false;      // 上一幀是否正在移動，用來偵測「剛開始移動」的那一瞬間
+const CAT_ANIM_FRAME_MS = 60;  // 每張圖顯示的時間（ms），數字越小換圖越快
+
 // 物理魚線點數
 const LINE_POINTS = 20;
 let linePoints = [];
@@ -1387,6 +1393,13 @@ catImg.src = 'img/cat.png';
 const catImg2 = new Image();
 catImg2.src = 'img/cat2.png';
 
+// 新增：預載精靈移動動畫用的四張圖片（左右移動時依序輪播，停下來就凍結在目前這張）
+const catMoveImgs = [1, 2, 3, 4].map(function(i) {
+  const img = new Image();
+  img.src = 'img/cat_' + i + '.png';
+  return img;
+});
+
 // 新增：預載火鍋（鍋身，開蓋狀態）圖片
 const hotpotImg = new Image();
 hotpotImg.src = 'img/hotpot.png';
@@ -1428,6 +1441,24 @@ seaCucumberImg2.onerror = function() {
 seaCucumberImg2.onload = function() {
   console.log('海參圖片2載入成功');
 };
+
+// 新增：元氣量表填色用的圖片（はらへり條紋圖，取代原本的紅橘漸層）
+const energyGaugeImg = new Image();
+energyGaugeImg.src = 'img/energy.png';
+
+// 新增：分數數字用的圖片（0~9，取代原本用文字畫的分數數字）
+const scoreDigitImgs = [];
+for (let d = 0; d <= 9; d++) {
+  const img = new Image();
+  img.src = 'img/digit_' + d + '.png';
+  scoreDigitImgs.push(img);
+}
+
+
+const scoreLabelImg = new Image();
+scoreLabelImg.src = 'img/ui_1.png';
+const energyLabelImg = new Image();
+energyLabelImg.src = 'img/ui_2.png';
 
 // --- 新增：各素材的實際圖片尺寸（px），圖片還沒載入完成、或載入失敗時，
 // 佔位圖形與碰撞判定範圍都會改用這裡的尺寸，確保跟正式圖片大小一致 ---
@@ -1983,12 +2014,12 @@ function drawPlayer() {
     const potDrawH = hotpotImg.naturalHeight * potScale;
     ctx.drawImage(hotpotImg, drawPotX, drawPotY, potDrawW, potDrawH);
     // 遊戲結束時，把 hotpot_cup.png（鍋蓋）疊在鍋身「上面」，組合成完整鍋子的樣子
-    // 偏移量 17 / -40 是依照鍋身與鍋蓋原始素材（201x116 與 167x102）對齊組合圖算出來的比例
+    // 鍋蓋直接用原始尺寸繪製（不隨鍋身縮放）；偏移量已依實際素材尺寸（131x78）等比例校正過
     if (gameOver && hotpotCupImg.complete && hotpotCupImg.naturalWidth > 0) {
-      const lidDrawW = hotpotCupImg.naturalWidth * potScale;
-      const lidDrawH = hotpotCupImg.naturalHeight * potScale;
-      const lidX = drawPotX + 17 * potScale;
-      const lidY = drawPotY - 40 * potScale + lidDropOffset;
+      const lidDrawW = hotpotCupImg.naturalWidth;
+      const lidDrawH = hotpotCupImg.naturalHeight;
+      const lidX = drawPotX + 13;
+      const lidY = drawPotY - 31 + lidDropOffset;
       ctx.drawImage(hotpotCupImg, lidX, lidY, lidDrawW, lidDrawH);
     }
   } else {
@@ -2009,12 +2040,19 @@ function drawPlayer() {
   }
   ctx.restore();
   // 已移除大魚繪製
-  // 主角（貓咪圖片）：按下釣魚鍵、拉竿甩線時換成 cat2.png（拉竿姿勢），其餘時間用一般站姿 cat.png
+  // 主角（貓咪圖片）：按下釣魚鍵、拉竿甩線時換成 cat2.png（拉竿姿勢）；
+  // 其餘時間改用 cat_1~cat_4.png 依移動動畫輪播，停下來就凍結在目前這張
   ctx.save();
   ctx.translate(bigFish.x, bigFish.y - 40);
   ctx.scale(playerDir, 1);
   const pulling = isPullingPose();
-  const activeCatImg = (pulling && catImg2.complete && catImg2.naturalWidth > 0) ? catImg2 : catImg;
+  let activeCatImg;
+  if (pulling && catImg2.complete && catImg2.naturalWidth > 0) {
+    activeCatImg = catImg2;
+  } else {
+    const moveImg = catMoveImgs[catAnimFrame];
+    activeCatImg = (moveImg && moveImg.complete && moveImg.naturalWidth > 0) ? moveImg : catImg;
+  }
   if (activeCatImg.complete && activeCatImg.naturalWidth > 0) {
     ctx.drawImage(
       activeCatImg,
@@ -2327,49 +2365,93 @@ function drawScoreAndEnergyHUD() {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  // 第一排：分數（白字＋藍色文字外框，不是實心方框）
+  // 第一排：分數（改用 ui_1.png 圖片標籤，取代原本的文字＋外框畫法）
   const scoreLabelX = 20, scoreLabelY = 42;
-  ctx.font = "bold 30px Arial";
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = "#1a6dff";
-  ctx.fillStyle = "#fff";
-  ctx.strokeText("分數", scoreLabelX, scoreLabelY);
-  ctx.fillText("分數", scoreLabelX, scoreLabelY);
+  const scoreLabelW = scoreLabelImg.naturalWidth || 98;
+  const scoreLabelH = scoreLabelImg.naturalHeight || 28;
+  const scoreLabelImgY = scoreLabelY - scoreLabelH + 4;
+  if (scoreLabelImg.complete && scoreLabelImg.naturalWidth > 0) {
+    ctx.drawImage(scoreLabelImg, scoreLabelX, scoreLabelImgY, scoreLabelW, scoreLabelH);
+  } else {
+    // 圖片還沒載入完成時的備用畫法（白字＋藍色文字外框）
+    ctx.font = "bold 30px Arial";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#1a6dff";
+    ctx.fillStyle = "#fff";
+    ctx.strokeText("分數", scoreLabelX, scoreLabelY);
+    ctx.fillText("分數", scoreLabelX, scoreLabelY);
+  }
 
-  // 分數數字：白字＋綠色文字外框，粗體，不套方框
+  // 分數數字：改用 0~9 數字圖片依序拼接繪製，取代原本的文字＋外框畫法
   const scoreText = String(score);
-  ctx.font = "bold 30px Arial";
-  const scoreNumX = scoreLabelX + 92;
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = "#2ecc40";
-  ctx.fillStyle = "#fff";
-  ctx.strokeText(scoreText, scoreNumX, scoreLabelY);
-  ctx.fillText(scoreText, scoreNumX, scoreLabelY);
+  const scoreNumX = scoreLabelX + scoreLabelW + 10;
+  const allDigitsLoaded = scoreDigitImgs.every(function(img) { return img.complete && img.naturalWidth > 0; });
+  if (allDigitsLoaded) {
+    const digitH = 33;
+    const digitY = scoreLabelY - digitH + 4;
+    let dx = scoreNumX;
+    for (let i = 0; i < scoreText.length; i++) {
+      const d = parseInt(scoreText[i], 10);
+      const img = scoreDigitImgs[d];
+      const dw = img.naturalWidth;
+      ctx.drawImage(img, dx, digitY, dw, digitH);
+      dx += dw + 1; // 數字間留 1px 小間距
+    }
+  } else {
+    // 圖片還沒載入完成時的備用畫法（白字＋綠色文字外框）
+    ctx.font = "bold 30px Arial";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#2ecc40";
+    ctx.fillStyle = "#fff";
+    ctx.strokeText(scoreText, scoreNumX, scoreLabelY);
+    ctx.fillText(scoreText, scoreNumX, scoreLabelY);
+  }
 
-  // 第二排：元氣量表（白字＋橘色文字外框，不是實心方框；紅橘黃漸層長條，方角不倒圓角）
+  // 第二排：元氣（改用 ui_2.png 圖片標籤，取代原本的文字＋外框畫法）
   const gaugeLabelX = 20, gaugeLabelY = 88;
-  ctx.font = "bold 26px Arial";
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = "#ff8c1a";
-  ctx.fillStyle = "#fff";
-  ctx.strokeText("元氣", gaugeLabelX, gaugeLabelY);
-  ctx.fillText("元氣", gaugeLabelX, gaugeLabelY);
+  const gaugeLabelW = energyLabelImg.naturalWidth || 217;
+  const gaugeLabelH = energyLabelImg.naturalHeight || 26;
+  const gaugeLabelImgY = gaugeLabelY - gaugeLabelH + 4;
+  if (energyLabelImg.complete && energyLabelImg.naturalWidth > 0) {
+    ctx.drawImage(energyLabelImg, gaugeLabelX, gaugeLabelImgY, gaugeLabelW, gaugeLabelH);
+  } else {
+    // 圖片還沒載入完成時的備用畫法（白字＋橘色文字外框）
+    ctx.font = "bold 26px Arial";
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#ff8c1a";
+    ctx.fillStyle = "#fff";
+    ctx.strokeText("元氣", gaugeLabelX, gaugeLabelY);
+    ctx.fillText("元氣", gaugeLabelX, gaugeLabelY);
+  }
 
-  const barX = gaugeLabelX + 82, barY = 68, barH = 26;
-  const barW = Math.max(40, canvas.width - barX - 20);
+  const barX = gaugeLabelX + gaugeLabelW + 10, barY = 68;
+  // 量表大小直接採用圖片本身的原始尺寸，不做拉伸變形（圖片還沒載入完成時先用預設 398x22 頂著）
+  const barW = energyGaugeImg.naturalWidth || 398;
+  const barH = energyGaugeImg.naturalHeight || 22;
   // 底色（量表沒有量的部分，深紅棕色，貼近原版量表底色）
   ctx.fillStyle = '#7a2b12';
   ctx.fillRect(barX, barY, barW, barH);
-  // 進度（紅-橙-黃漸層，跟隨 displayTimeLeft 補間動畫）
+  // 進度（改用 energy.png 圖片鋪滿量表，跟隨 displayTimeLeft 補間動畫）
   let percent = Math.max(0, Math.min(1, displayTimeLeft / GAME_TIME));
   let fillW = Math.max(0, barW * percent);
-  let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
-  grad.addColorStop(0, '#f00');
-  grad.addColorStop(0.25, '#ff8000');
-  grad.addColorStop(0.6, '#ffe600');
-  grad.addColorStop(1, '#ffe600');
-  ctx.fillStyle = grad;
-  ctx.fillRect(barX, barY, fillW, barH);
+  if (fillW > 0 && energyGaugeImg.complete && energyGaugeImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(barX, barY, fillW, barH);
+    ctx.clip();
+    // 圖片以原始大小繪製，不拉伸不變形，只用裁切露出目前元氣比例的寬度
+    ctx.drawImage(energyGaugeImg, barX, barY, barW, barH);
+    ctx.restore();
+  } else {
+    // 圖片還沒載入完成時的備用畫法（紅-橙-黃漸層）
+    let grad = ctx.createLinearGradient(barX, barY, barX + barW, barY);
+    grad.addColorStop(0, '#f00');
+    grad.addColorStop(0.25, '#ff8000');
+    grad.addColorStop(0.6, '#ffe600');
+    grad.addColorStop(1, '#ffe600');
+    ctx.fillStyle = grad;
+    ctx.fillRect(barX, barY, fillW, barH);
+  }
   // 外框（改細一點，不要太粗）
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = '#000';
@@ -2493,6 +2575,24 @@ function gameLoop(currentTime) {
     }
     if (bigFish.x < bigFish.w/2) bigFish.x = bigFish.w/2;
     if (bigFish.x > canvas.width - bigFish.w/2) bigFish.x = canvas.width - bigFish.w/2;
+    // 精靈移動動畫：左右鍵（或搖桿）持續按著移動時才會一直換圖，放開/停下來就凍結在目前影格
+    const catIsMoving = keyState.left || keyState.right;
+    if (catIsMoving) {
+      if (!catWasMoving) {
+        // 剛開始移動的第一幀就立刻換下一張圖，不用等滿一個間隔才反應，這樣輕點一下也看得出換圖
+        catAnimFrame = (catAnimFrame + 1) % catMoveImgs.length;
+        catAnimTimer = 0;
+      } else {
+        catAnimTimer += deltaTime;
+        if (catAnimTimer >= CAT_ANIM_FRAME_MS) {
+          catAnimTimer -= CAT_ANIM_FRAME_MS;
+          catAnimFrame = (catAnimFrame + 1) % catMoveImgs.length;
+        }
+      }
+    } else {
+      catAnimTimer = 0; // 停下來時重置計時，下次移動時動畫節奏能重新從整數間隔算起
+    }
+    catWasMoving = catIsMoving;
     // 精靈（角色）的高度跟著海平面高度參數走，海平面調高/調低時，角色也會跟著往下/往上移動
     bigFish.y = LINE_PARAMS.seaSurfaceY + 20;
     // 釣魚線起點、鉤子都跟著 bigFish.x
@@ -3864,6 +3964,9 @@ bowlY_vel = 0;
 bowlImpulseY = 0; // 重置碗下沉衝擊
 lidDropping = false;
 lidDropOffset = 0;
+catAnimFrame = 0; // 重置精靈移動動畫影格
+catAnimTimer = 0;
+catWasMoving = false;
 animationId = requestAnimationFrame(gameLoop);
 
 // 新增：拉起釣竿音效
