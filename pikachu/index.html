@@ -544,9 +544,12 @@ let GAME_PARAMS = {
   groundHeight: 26,          // 地面高度（像素）：地板離畫面底部的距離，角色與球會停在這個高度上
 
   // --- 玩家移動與跳躍（AI 也共用這組數值）---
-  playerSpeed: 3,            // 左右移動速度
-  jumpVelocity: -15,         // 跳躍瞬間初速（負值，絕對值越大跳越高）
-  gravity: 0.7,              // 重力加速度
+  // 下面三個數值改成跟原版 physics.js 完全一樣（原版是逐格 +1 的「整數重力」，
+  // 不是連續的小數重力，所以這裡的 gravity 預設值也改回整數 1，
+  // 跳躍初速 -16、水平移動 6 都是原版 FUN_00401fc0 裡的原始數值）。
+  playerSpeed: 6,            // 左右移動速度（原版：xDirection * 6）
+  jumpVelocity: -16,         // 跳躍瞬間初速（原版：固定 -16）
+  gravity: 1,                // 重力加速度（原版：每格 tick 固定 +1，是整數階梯式重力，不是連續加速度）
 
   // --- 動畫播放速度 ---
   spriteAnimInterval: 10,      // 平常狀態（idle/run/jump）多少個 tick 換一張圖，數字越大播放越慢
@@ -555,10 +558,14 @@ let GAME_PARAMS = {
   winLoseAnimInterval: 8,     // 遊戲結束時，贏家/輸家動畫多少個 tick 換一張圖（共 5 張，只播一次，播完停在最後一張）
 
   // --- 飛撲 Dive ---
-  diveDistance: 250,         // 飛撲最遠可移動的水平距離
-  diveSpeed: 6,              // 飛撲時每格移動速度
-  diveDuration: 30,          // 飛撲落地後，維持飛撲姿勢多久才恢復站立
-  diveInitialVY: -6,         // 飛撲瞬間垂直初速
+  diveDistance: 250,         // 飛撲最遠可移動的水平距離（原版沒有這個上限概念，這裡保留給您微調用）
+  diveSpeed: 8,              // 飛撲時每格移動速度（原版：divingDirection * 8）
+  diveDuration: 5,           // 飛撲落地後「躺地」幾個 tick 才恢復站立。
+                              // 原版變數初始值是 3，但因為判斷式是「每格 -1，減到 -2 才恢復」，
+                              // 實際算下來落地後會僵直 5 個 tick，換算成這裡「從落地那刻累加到達這個數字」的寫法，5 才是對的值。
+                              // 舊版預設是 30（而且還從按下飛撲鍵、人還在空中飛的時候就開始倒數），
+                              // 兩個因素疊加起來，等於飛撲後的僵直時間被拉長到原版好幾倍，這是手感差異的一大來源之一。
+  diveInitialVY: -5,         // 飛撲瞬間垂直初速（原版：固定 -5）
 
   // --- 擊球判定 ---
   hitboxWidthGround: 34,             // 角色「站在地面」時的擊球碰撞箱寬度（跟圖片顯示大小分開，只影響判定範圍）
@@ -566,21 +573,23 @@ let GAME_PARAMS = {
   hitboxHeight: 56,                 // 角色擊球碰撞箱高度（水平置中、垂直以腳底對齊）
   spikeHitboxExtra: 15,             // 跳躍殺球判定專用的碰撞箱，往精靈頭頂上方額外延伸的高度（像素）
   spikeHitboxForward: 15,           // 跳躍殺球判定範圍，往精靈面向的前方（面對球網的方向）額外加寬的距離（像素）
-  normalHitPower: 10,              // 一般（非跳躍/非飛撲）碰到球的擊球力道
-  normalHitAngleLeftBase: -60,     // 左側（AI）一般擊球角度基準（度）
-  normalHitAngleRightBase: -150,   // 右側（玩家）一般擊球角度基準（度）
-  normalHitAngleVariance: 30,      // 一般擊球角度隨機浮動範圍
-  jumpSpikePower: 15,              // 跳躍中殺球的力道
-  jumpSpikeAngleLeftSide: -45,     // 左側跳躍殺球角度
-  jumpSpikeAngleRightSide: -135,   // 右側跳躍殺球角度
-  diveHitPower: 18,                // 飛撲擊球的力道
-  diveHitAngleLeftSide: -45,       // 左側飛撲擊球角度
-  diveHitAngleRightSide: -135,     // 右側飛撲擊球角度
+  // 下面這段「擊球判定」已改成跟原版 physics.js 一樣的公式（見 resolveBallHit() 函式），
+  // 不再是「固定力道 + 固定角度 + 隨機浮動」的系統。原版擊球方向其實不是隨機決定的，
+  // 而是「球跟角色的水平距離」決定球被打飛的方向與強弱：
+  //   球速 x = (球與角色的水平距離 / hitXDivisor)，球在角色左邊就往左飛，右邊就往右飛
+  //   球速 y = 固定往上彈，且強度至少有 hitMinUpSpeed（原版是 15）
+  // 只有「跳躍中 + 按下擊球鍵」（也就是殺球/smash）才會用另一套固定的強力公式；
+  // 單純的「飛撲中碰到球」在原版裡其實不是殺球，只是很普通地把球頂回去（弱），
+  // 這跟很多人對原版的印象不同，但這是照原始遊戲機器碼逆向出來的實際行為。
+  hitXDivisor: 3,                   // 一般擊球：水平距離要除以這個值才是球的水平初速（原版固定 3，越小球飛越快）
+  hitMinUpSpeed: 15,                 // 一般擊球：往上彈的最低速度（原版固定 15，絕對值越大球彈越高）
+  jumpSpikePower: 10,               // 跳躍殺球（jump + 擊球鍵）水平初速的基礎值（原版固定 10，殺球永遠是這個值的 1~2 倍，見下方公式）
+  jumpSpikeUpMultiplier: 2,          // 跳躍殺球垂直初速 = 原本球速絕對值 * 這個倍率 * 方向鍵（原版固定 2）
 
   // --- AI 難度 ---
-  aiJumpTriggerDistance: 50,   // 球與 AI 水平距離小於此值且球在頭頂上方時，AI 才會起跳
-  aiSpikeChance: 80,           // AI 只要跳起來、球又在殺球判定範圍內，有百分之幾的機率會殺球（0~100，數字越大 AI 越常殺球）
-  aiDiveTriggerDistance: 80,   // 球與 AI 水平距離超過此值時，AI 會嘗試飛撲接球
+  aiJumpTriggerDistance: 80,   // 球與 AI 水平距離小於此值且球在頭頂上方時，AI 才會起跳（調高：原本 50 太小，AI 常常球都快到頭上了才彈跳，慢半拍）
+  aiSpikeChance: 95,           // AI 只要跳起來、球又在殺球判定範圍內，有百分之幾的機率會殺球（0~100，數字越大 AI 越常殺球）（調高：原本 80，讓 AI 更常主動殺球攻擊，不會老是軟軟地把球撥回去）
+  aiDiveTriggerDistance: 60,   // 球與 AI 水平距離超過此值時，AI 會嘗試飛撲接球（調低：原本 80，讓 AI 更早飛撲搶救，減少明明有機會卻站著看球落地的情況）
 
   // --- AI 球路預測 ---
   aiPredictionEnabled: true,   // 是否開啟「提前算好球的路徑」：開啟後 AI 會用跟球完全相同的物理公式，
@@ -588,21 +597,37 @@ let GAME_PARAMS = {
   aiPredictionAccuracy: 100,   // 預測準確度（0~100）：100 = 完全準確，數字越低，AI 會在預測落點加入越多隨機誤差，
                                // 模擬「算得不夠準」，避免 AI 變得無法擊敗
   aiPredictionMaxSteps: 900,   // 模擬球路徑時最多往前推算幾個 tick（避免球反彈係數=1時模擬跑不完，安全上限）
-  aiChaseSpeedMultiplier: 1.4, // AI 追球時的移動速度倍率（乘在 playerSpeed 上，只在「有算出預測落點、正在趕過去卡位」時生效）：
+  aiChaseSpeedMultiplier: 1.8, // AI 追球時的移動速度倍率（乘在 playerSpeed 上，只在「有算出預測落點、正在趕過去卡位」時生效）：
                                // 就算算得再準，若 AI 走路速度跟玩家一樣、又是等對手擊球那一刻才開始起跑，
                                // 遇到又快又刁鑽的殺球還是會追不到；這個倍率讓 AI 追球時腳程比平常快一些，
-                               // 用來補足「反應/起跑」天生比人類慢半拍的落差，調到 1 就等於跟玩家一樣快。
+                               // 用來補足「反應/起跑」天生比人類慢半拍的落差，調到 1 就等於跟玩家一樣快。（調高：原本 1.4，AI 卡位會明顯變積極、變快）
+
+  // --- AI 託管／自動連續對戰 ---
+  aiTakeoverEnabled: false,    // AI 託管開關：開啟後，右側玩家改由 AI 自動操作（跟左側 AI 用同一套決策邏輯），
+                                // 等於「AI 對 AI 互打」，人類不用操作，可當成自動展示/測試模式
+  autoRestartEnabled: false,   // 自動開新局開關：開啟後，遊戲結束畫面停留一段時間後會自動重新開始一局，
+                                // 不需要手動按 Enter，通常會搭配上面的 AI 託管一起用，讓 AI 無限自打下去
+  autoRestartDelay: 180,       // 自動開新局要等待多久才開始下一局（tick，設定面板會換算成秒顯示，180 tick = 3 秒）
+
+  // --- 除錯顯示 ---
+  showBallPath: false,         // 是否在畫面上顯示 AI 提前算好的球路徑虛線與預測落點（僅供除錯/觀察用，預設關閉，跟設定面板開關無關，獨立控制）
 
   // --- 排球物理 ---
-  ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球/飛撲）的初速都會乘上這個值，調低就整體變慢
-  ballGravity: 0.1,            // 球的重力加速度
-  ballBounceRestitution: 1,    // 球碰到邊界/地板反彈後的速度保留比例（越小彈得越弱）
+  ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球）的初速都會乘上這個值，調低就整體變慢
+  ballGravity: 1,               // 球的重力加速度（原版固定每格 tick +1，是整數階梯式，不是 0.1 這種連續小數；
+                                 // 這是「球感覺飄／落下太慢」最主要的原因，改成 1 之後球的拋物線會明顯變陡、變快）
+  ballBounceRestitution: 1,    // 球碰到邊界/地板反彈後的速度保留比例（原版是完全反彈=1，不會耗損）
   ballWidth: 40,                // 球的碰撞箱寬度（同時也是繪製寬度）
   ballHeight: 40,                // 球的碰撞箱高度（同時也是繪製高度）
 
   // --- 球網 ---
-  netWidth: 5,                // 球網寬度
+  netWidth: 5,                // 球網「畫面顯示」寬度
   netHeight: 102,              // 球網高度
+  netCollisionHalfWidth: 25,  // 球網「碰撞判定」的半寬（原版固定 25，比畫面上看到的網柱寬很多，
+                               // 這樣球不用真的貼到網柱圖案才會反彈，判定比較寬鬆／符合原版手感）
+  netTopCapHeight: 16,          // 球網頂端「圓帽」的判定高度（原版固定 16）：
+                               // 球打到網子最頂端這一小段圓帽範圍時只會往下彈（y 方向反彈），
+                               // 打到網子側面（圓帽以下）則是往旁邊彈開（x 方向反彈），這是原版網子判定的關鍵細節
 
   // --- 遊戲規則 ---
   winScore: 15,                // 先得到幾分獲勝
@@ -752,7 +777,7 @@ const GAME_PARAMS_META = [
 
   ["移動速度 playerSpeed", "playerSpeed", 1, 10, 0.5],
   ["跳躍力道 jumpVelocity", "jumpVelocity", -25, -5, 0.5],
-  ["重力 gravity", "gravity", 0.1, 1.5, 0.05],
+  ["重力 gravity", "gravity", 0.2, 3, 0.1],
 
   ["平常動畫換圖間隔 spriteAnimInterval", "spriteAnimInterval", 1, 30, 1],
   ["飛撲動畫換圖間隔 diveAnimInterval", "diveAnimInterval", 1, 60, 1],
@@ -761,7 +786,7 @@ const GAME_PARAMS_META = [
 
   ["飛撲距離 diveDistance", "diveDistance", 50, 300, 10, "free"],
   ["飛撲速度 diveSpeed", "diveSpeed", 2, 25, 1],
-  ["飛撲維持時間 diveDuration", "diveDuration", 0.08, 1.5, 0.02, "sec"],
+  ["飛撲維持時間 diveDuration", "diveDuration", 0.02, 1.5, 0.02, "sec"],
   ["飛撲垂直初速 diveInitialVY", "diveInitialVY", -10, 0, 0.5],
 
   ["擊球碰撞箱寬度(站立時) hitboxWidthGround", "hitboxWidthGround", 10, 100, 2, "free"],
@@ -769,16 +794,10 @@ const GAME_PARAMS_META = [
   ["擊球碰撞箱高度 hitboxHeight", "hitboxHeight", 10, 100, 2, "free"],
   ["跳躍殺球判定範圍加高 spikeHitboxExtra", "spikeHitboxExtra", 0, 60, 2, "free"],
   ["跳躍殺球判定範圍加寬(前方) spikeHitboxForward", "spikeHitboxForward", 0, 60, 2, "free"],
-  ["一般擊球力道 normalHitPower", "normalHitPower", 2, 25, 1],
-  ["左側一般擊球角度 normalHitAngleLeftBase", "normalHitAngleLeftBase", -120, 0, 5, "free"],
-  ["右側一般擊球角度 normalHitAngleRightBase", "normalHitAngleRightBase", -200, -80, 5, "free"],
-  ["一般擊球角度浮動 normalHitAngleVariance", "normalHitAngleVariance", 0, 60, 5],
-  ["跳躍殺球力道 jumpSpikePower", "jumpSpikePower", 5, 30, 1],
-  ["左側跳躍殺球角度 jumpSpikeAngleLeftSide", "jumpSpikeAngleLeftSide", -180, 0, 5, "free"],
-  ["右側跳躍殺球角度 jumpSpikeAngleRightSide", "jumpSpikeAngleRightSide", -180, 0, 5, "free"],
-  ["飛撲擊球力道 diveHitPower", "diveHitPower", 5, 30, 1],
-  ["左側飛撲擊球角度 diveHitAngleLeftSide", "diveHitAngleLeftSide", -180, 0, 5, "free"],
-  ["右側飛撲擊球角度 diveHitAngleRightSide", "diveHitAngleRightSide", -180, 0, 5, "free"],
+  ["一般擊球水平除數 hitXDivisor", "hitXDivisor", 1, 8, 0.5],
+  ["一般擊球最低上彈速度 hitMinUpSpeed", "hitMinUpSpeed", 5, 30, 1],
+  ["跳躍殺球水平基礎值 jumpSpikePower", "jumpSpikePower", 5, 30, 1],
+  ["跳躍殺球垂直倍率 jumpSpikeUpMultiplier", "jumpSpikeUpMultiplier", 1, 4, 0.2],
 
   ["AI 起跳觸發距離 aiJumpTriggerDistance", "aiJumpTriggerDistance", 10, 150, 5, "free"],
   ["AI 殺球機率(%) aiSpikeChance", "aiSpikeChance", 0, 100, 5],
@@ -788,14 +807,22 @@ const GAME_PARAMS_META = [
   ["AI 預測準確度(%) aiPredictionAccuracy", "aiPredictionAccuracy", 0, 100, 5],
   ["AI 追球速度倍率 aiChaseSpeedMultiplier", "aiChaseSpeedMultiplier", 1, 2.5, 0.1],
 
+  ["AI 託管玩家(AI對AI互打) aiTakeoverEnabled", "aiTakeoverEnabled", 0, 0, 0, "bool"],
+  ["自動開新局開關 autoRestartEnabled", "autoRestartEnabled", 0, 0, 0, "bool"],
+  ["自動開新局等待時間 autoRestartDelay", "autoRestartDelay", 0.5, 15, 0.5, "sec"],
+
+  ["球的路徑顯示 showBallPath", "showBallPath", 0, 0, 0, "bool"],
+
   ["球速倍率 ballSpeedMultiplier", "ballSpeedMultiplier", 0.2, 2, 0.05],
-  ["球重力 ballGravity", "ballGravity", 0.1, 1.5, 0.05],
+  ["球重力 ballGravity", "ballGravity", 0.2, 3, 0.1],
   ["球反彈係數 ballBounceRestitution", "ballBounceRestitution", 0.3, 1, 0.05],
   ["球碰撞箱寬度 ballWidth", "ballWidth", 10, 80, 2, "free"],
   ["球碰撞箱高度 ballHeight", "ballHeight", 10, 80, 2, "free"],
 
-  ["球網寬度 netWidth", "netWidth", 2, 40, 1, "free"],
+  ["球網寬度(顯示) netWidth", "netWidth", 2, 40, 1, "free"],
   ["球網高度 netHeight", "netHeight", 50, 300, 5, "free"],
+  ["球網碰撞半寬 netCollisionHalfWidth", "netCollisionHalfWidth", 5, 60, 1, "free"],
+  ["球網頂端圓帽判定高度 netTopCapHeight", "netTopCapHeight", 0, 60, 1, "free"],
 
   ["獲勝分數 winScore", "winScore", 1, 30, 1],
 
@@ -830,14 +857,18 @@ const PARAM_CATEGORIES = [
     keys: ["spriteAnimInterval", "diveAnimInterval", "hitAnimInterval", "winLoseAnimInterval"] },
   { kind: "player", title: "🤸 飛撲 Dive",
     keys: ["diveDistance", "diveSpeed", "diveDuration", "diveInitialVY"] },
-  { kind: "player", title: "🏐 擊球判定",
-    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "normalHitPower", "normalHitAngleLeftBase", "normalHitAngleRightBase", "normalHitAngleVariance", "jumpSpikePower", "jumpSpikeAngleLeftSide", "jumpSpikeAngleRightSide", "diveHitPower", "diveHitAngleLeftSide", "diveHitAngleRightSide"] },
+  { kind: "player", title: "🏐 擊球判定（原版公式，見 resolveBallHit）",
+    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "hitXDivisor", "hitMinUpSpeed", "jumpSpikePower", "jumpSpikeUpMultiplier"] },
   { kind: "ai", title: "🤖 AI　難度",
     keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier"] },
+  { kind: "toggle", title: "🎮 AI 託管／自動連續對戰",
+    keys: ["aiTakeoverEnabled", "autoRestartEnabled", "autoRestartDelay"] },
+  { kind: "toggle", title: "🐛 除錯顯示",
+    keys: ["showBallPath"] },
   { kind: "ball", title: "⚽ 排球物理", 
     keys: ["ballSpeedMultiplier", "ballGravity", "ballBounceRestitution", "ballWidth", "ballHeight"] },
   { kind: "ball", title: "🥅 球網",
-    keys: ["netWidth", "netHeight"] },
+    keys: ["netWidth", "netHeight", "netCollisionHalfWidth", "netTopCapHeight"] },
   { kind: "rule", title: "🔢 分數顯示",
     keys: ["scoreFontSize", "scoreY"] },
   { kind: "rule", title: "🏐 發球",
@@ -901,9 +932,15 @@ class Pikachu {
 
     this.diveMode = false;
     this.diveTimer = 0;
+    this.diveLanded = false; // 是否已經落地進入「躺地」僵直階段（原版：state===4 lying_down）
     this.diveTargetX = 0;
     this.divingMovement = false;
     this.diveDirection = null;
+
+    // 殺球容錯視窗：玩家按下殺球鍵那一刻（且當時正在跳躍），先把這個旗標打開，
+    // 之後每一格畫面都持續檢查球有沒有撞到，直到真的撞到、或落地為止才關閉，
+    // 不再要求「按下的那一格畫面」剛好跟球重疊，跟 AI 的 willSpike 邏輯一致。
+    this.spikeArmed = false;
 
     // 擊球瞬間短暫播放的動畫（跟 this.state 分開，不影響移動/跳躍/飛撲的狀態機，
     // 純粹是畫面上蓋一層擊球姿勢，播完 5 張圖就自動關閉，回到平常的圖）
@@ -951,7 +988,7 @@ class Pikachu {
   // 只是掠過頭頂上方時，跳躍中也能判定成殺球；
   // 另外還往「精靈面向的前方」（左側角色朝右、右側角色朝左，也就是面對球網的方向）
   // 加寬一段距離（GAME_PARAMS.spikeHitboxForward），方便殺一顆稍微在前面一點的球。
-  // 一般的落地碰球（normalHitPower）仍然用原本的 rect，不會被放大。
+  // 一般的落地碰球仍然用原本的 rect，不會被放大。
   get spikeRect() {
     const base = this.rect;
     const extraUp = GAME_PARAMS.spikeHitboxExtra || 0;
@@ -1071,33 +1108,52 @@ class Pikachu {
     }
 
     // 重力 / 跳躍 / 飛撲垂直運動
-    if (this.isJumping || this.diveMode) {
-      this.y += this.vy;
-      this.vy += GAME_PARAMS.gravity;
-
-      if (this.diveMode) this.diveTimer++;
-
-      if (this.y + this.height >= GROUND_Y) {
-        this.y = GROUND_Y - this.height;
+    // 改成跟原版 physics.js（FUN_00401fc0）一樣的離散公式：
+    // 「先用『這一格』的速度移動位置，移動完之後才把重力加進『下一格』要用的速度」，
+    // 而且是否要繼續加重力，要看「移動完之後有沒有超過地面」才決定，
+    // 不是像連續物理那樣每格都無條件加重力。
+    if (this.isJumping || (this.diveMode && !this.diveLanded)) {
+      const touchY = GROUND_Y - this.height; // 相當於原版的 PLAYER_TOUCHING_GROUND_Y_COORD
+      const futureY = this.y + this.vy;
+      this.y = futureY;
+      if (futureY < touchY) {
+        // 還在空中，才繼續加重力（原版：yVelocity += 1）
+        this.vy += GAME_PARAMS.gravity;
+      } else if (futureY > touchY) {
+        // 落地：直接吸附在地面上，速度歸零（原版是硬吸附，不是慢慢停下來）
+        this.y = touchY;
+        this.vy = 0;
         this.isJumping = false;
-
-        if (this.diveMode && this.diveTimer >= GAME_PARAMS.diveDuration) {
-          this.diveMode = false;
-          this.state = "idle";
-          this.frame = 0;
+        this.spikeArmed = false; // 落地代表這次跳躍結束，殺球容錯視窗一併關閉
+        if (this.diveMode) {
+          // 原版：飛撲落地那一刻才切換成「躺地」狀態，並從這一刻才開始倒數，
+          // 飛撲過程中在空中飛的那段時間不算在僵直時間內（這跟舊版直接從按下飛撲鍵就開始倒數不同）。
+          this.diveLanded = true;
           this.diveTimer = 0;
         }
-        this.vy = 0;
+      }
+      // futureY === touchY 這種剛好對齊的情況（浮點數下極少發生）：原版兩個分支都不進，
+      // 位置/速度維持原樣，這裡自然也是同樣行為，不用特別處理。
+    }
+
+    // 飛撲落地後的「躺地」僵直：原版在這段期間完全不處理任何 x/y 移動，玩家操作也無效
+    // （Pikachu.move() 開頭已經用 this.diveMode 擋掉移動輸入，這裡只需負責倒數與恢復站立）。
+    if (this.diveMode && this.diveLanded) {
+      this.diveTimer++;
+      if (this.diveTimer >= GAME_PARAMS.diveDuration) {
+        this.diveMode = false;
+        this.diveLanded = false;
+        this.state = "idle";
+        this.frame = 0;
+        this.diveTimer = 0;
       }
     }
 
-    // 飛撲中撞球
+    // 飛撲中撞球：原版裡「飛撲」跟「跳躍中按擊球鍵殺球」是兩種不同的碰撞情境，
+    // 飛撲本身沒有專屬的強力公式，飛撲觸球用的是跟一般站立碰球「完全相同」的弱擊球公式
+    // （球會被頂回去，但不會像殺球那麼兇狠——這是原版刻意的設計：飛撲是救球，不是攻擊）。
     if (this.diveMode && ball && rectsOverlap(this.rect, ball.rect)) {
-      if (this.side === "left") {
-        ball.hit(GAME_PARAMS.diveHitPower, GAME_PARAMS.diveHitAngleLeftSide);
-      } else {
-        ball.hit(GAME_PARAMS.diveHitPower, GAME_PARAMS.diveHitAngleRightSide);
-      }
+      resolveBallHit(ball, this, /* isPowerHit */ false, 0, 0);
       ball.addSparks();
       playSound(sounds.slam);
     }
@@ -1201,48 +1257,128 @@ function predictBallTrajectory(ball, netRect) {
   const restitution = GAME_PARAMS.ballBounceRestitution;
   const maxSteps = GAME_PARAMS.aiPredictionMaxSteps || 900;
   const path = [{ x: x + w / 2, y: y + h / 2 }];
+  // fullPath：每一格畫面都記錄一次（不像 path 是每 3 格取樣一次，只給除錯畫面畫虛線用），
+  // 這樣 AI 才能精準查出「再過 N 格畫面，球會在哪個座標」，用來抓準起跳時機，
+  // 而不必等球「現在」飛到夠近才反應。
+  // 額外記錄每一格畫面的 vy（不只 x/y），這樣之後模擬「如果在這一格畫面打這顆球」時，
+  // 才能用跟球當下真正一致的垂直速度去算擊球公式，而不是用一個猜測值。
+  const fullPath = [{ x: x + w / 2, y: y + h / 2, vy: vy }];
 
+  // 這裡的每一步都跟 Volleyball.update() 用完全一樣的判斷順序/公式，
+  // AI 才能準確預測出球實際會落在哪裡（不然預測跟實際物理兜不起來，AI 會卡位卡錯地方）。
   for (let i = 0; i < maxSteps; i++) {
-    vy += gravity;
-    x += vx;
-    y += vy;
-
-    if (x <= 0 || x + w >= SCREEN_WIDTH) {
-      vx *= -restitution;
-      x = Math.max(0, Math.min(x, SCREEN_WIDTH - w));
-    }
-    if (y <= 0) {
-      vy *= -restitution;
-      y = 0;
+    const futureX = x + vx;
+    if (futureX < 0 || futureX > SCREEN_WIDTH - w) {
+      vx = -vx * restitution;
     }
 
-    let landed = false;
-    if (y + h >= GROUND_Y) {
-      vy *= -restitution;
-      y = GROUND_Y - h;
-      landed = true; // 模擬到落地，這就是球最終的落點，不用再繼續往下模擬
+    if (y + vy < 0) {
+      vy = 1;
     }
 
     if (netRect) {
-      const ballRect = { x, y, w, h };
-      if (rectsOverlap(ballRect, netRect)) {
-        const netCenterX = netRect.x + netRect.w / 2;
-        if (x + w / 2 < netCenterX) {
-          x = netRect.x - w;
-          vx = -Math.abs(vx);
+      const netCenterX = netRect.x + netRect.w / 2;
+      const ballCenterX = x + w / 2;
+      const netTopY = netRect.y;
+      const netCapBottomY = netRect.y + GAME_PARAMS.netTopCapHeight;
+      if (Math.abs(ballCenterX - netCenterX) < GAME_PARAMS.netCollisionHalfWidth && y > netTopY) {
+        if (y <= netCapBottomY) {
+          if (vy > 0) vy = -vy * restitution;
         } else {
-          x = netRect.x + w;
-          vx = Math.abs(vx);
+          if (x < netCenterX) vx = -Math.abs(vx) * restitution;
+          else vx = Math.abs(vx) * restitution;
         }
-        vy *= -1;
       }
     }
 
+    let landed = false;
+    const futureY = y + vy;
+    if (futureY + h >= GROUND_Y) {
+      vy = -vy * restitution;
+      y = GROUND_Y - h;
+      landed = true; // 模擬到落地，這就是球最終的落點，不用再繼續往下模擬
+    } else {
+      y = futureY;
+      x = x + vx;
+      vy += gravity;
+    }
+
     if (i % 3 === 0 || landed) path.push({ x: x + w / 2, y: y + h / 2 });
-    if (landed) return { x: x + w / 2, path, steps: i + 1 };
+    fullPath.push({ x: x + w / 2, y: y + h / 2, vy: vy });
+    if (landed) return { x: x + w / 2, path, fullPath, steps: i + 1 };
   }
 
-  return { x: x + w / 2, path, steps: maxSteps };
+  return { x: x + w / 2, path, fullPath, steps: maxSteps };
+}
+
+// 模擬「如果我在 (hitX, hitY) 這個位置，用 (hitVx, hitVy) 這個初速把球打出去」，
+// 球最後的完整落點資訊——直接借用跟 predictBallTrajectory 完全相同的物理公式
+// （重力、地板、球網頂端圓帽/側面反彈、左右邊界反彈），確保模擬出來的結果
+// 跟球實際飛行的結果一致，不是另外寫一套簡化公式亂猜。
+function simulatePostHit(hitX, hitY, hitVx, hitVy, netRect) {
+  const fakeBall = {
+    x: hitX - GAME_PARAMS.ballWidth / 2,
+    y: hitY - GAME_PARAMS.ballHeight / 2,
+    vx: hitVx,
+    vy: hitVy,
+    width: GAME_PARAMS.ballWidth,
+    height: GAME_PARAMS.ballHeight,
+  };
+  return predictBallTrajectory(fakeBall, netRect); // { x: 落地時球中心x, steps: 落地要花幾格畫面, ... }
+}
+
+// 判斷「這一下打出去，最後會不會反而讓自己這邊丟分（自殺球）」。
+// 最常見的成因是：殺球打得太用力、太靠近網子，球撞到網子彈回來，
+// 又飛回自己這一側落地——原本想攻擊對面，結果球網幫對面把球擋回來、自己反而丟分。
+// isLeftSide：這顆球是哪一側的角色打出去的（true=左側/AI，false=右側/玩家）。
+function willHitSelfDestruct(hitX, hitY, hitVx, hitVy, netRect, isLeftSide) {
+  const landingX = simulatePostHit(hitX, hitY, hitVx, hitVy, netRect).x;
+  const netCenterX = SCREEN_WIDTH / 2;
+  // 落點還在自己這一側 = 這一球等於是自己把球送回自己家門口，判定為「自殺球」
+  return isLeftSide ? landingX < netCenterX : landingX > netCenterX;
+}
+
+// ---- 原版特有的「瞄準弱點」邏輯 ----
+// 原版按鍵殺球時，左右鍵決定力道是否加倍、上/放開/下鍵決定球是「高吊」「平擊」還是「重扣」，
+// 組合起來會落在球場上不同的位置。這裡讓 AI 在真正出手前，把每一種組合都「先在腦內打一次」，
+// 模擬出每種打法最後的落點，再比對對手目前站的位置跟腳程，挑一個對手最沒把握救到的組合出手，
+// 而不是像過去那樣每次都死板地固定用「前+下」硬扣。
+// 回傳 { xDir, yDir, landingX, steps, margin }（margin 越大代表對手越沒機會救到）；
+// 如果每一種組合都會自殺（例如卡在網邊很尷尬的位置），回傳 null。
+function chooseBestSpikeDirection(contactPoint, netRect, opponent, isLeftSide) {
+  const netCenterX = SCREEN_WIDTH / 2;
+  const xDirChoices = [0, 1]; // 原版：左右鍵只影響力道是否加倍，不影響球飛的方向（方向永遠是往對面）
+  const yDirChoices = [-1, 0, 1]; // 上（高吊）／放開（平擊）／下（重扣）
+  let best = null;
+
+  for (const xDir of xDirChoices) {
+    for (const yDir of yDirChoices) {
+      const magnitude = GAME_PARAMS.jumpSpikePower * (Math.abs(xDir) + 1);
+      const simVx = (contactPoint.x < netCenterX ? magnitude : -magnitude) * GAME_PARAMS.ballSpeedMultiplier;
+      const simVy = Math.abs(contactPoint.vy) * yDir * GAME_PARAMS.jumpSpikeUpMultiplier * GAME_PARAMS.ballSpeedMultiplier;
+
+      const result = simulatePostHit(contactPoint.x, contactPoint.y, simVx, simVy, netRect);
+      const landingX = result.x;
+
+      // 自殺球直接淘汰，不列入考慮
+      const selfDestruct = isLeftSide ? landingX < netCenterX : landingX > netCenterX;
+      if (selfDestruct) continue;
+
+      // 估計對手要走多遠、來不來得及：對手目前位置到預測落點的距離，
+      // 除以「一般移動速度」（不套用 AI 專屬的追球加速倍率，這樣才是公平地站在對手角度算，
+      // 不會因為套用了 AI 自己的加速倍率而高估對手的反應能力，導致 AI 反而不敢打刁鑽角度）。
+      // margin 是正數，代表就算對手看到球立刻起跑，也還差這麼多格畫面才追得到；
+      // 數字越大，代表這球對對手來說越難救。
+      const opponentCenterX = opponent.x + opponent.width / 2;
+      const distanceNeeded = Math.abs(landingX - opponentCenterX);
+      const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
+      const margin = framesNeeded - result.steps;
+
+      const candidate = { xDir, yDir, landingX, steps: result.steps, margin, path: result.path };
+      if (!best || candidate.margin > best.margin) best = candidate;
+    }
+  }
+  return best;
 }
 
 // ---------- AI ----------
@@ -1252,9 +1388,75 @@ class AIPlayer extends Pikachu {
     // 本次跳躍是否會殺球：跳起的當下就依 aiSpikeChance 機率決定一次，
     // 不是每一格畫面都重骰（不然骰個幾格畫面下來幾乎一定會中）。
     this.willSpike = false;
+    // 這一次殺球要用哪一組方向鍵組合出手（由 chooseBestSpikeDirection 決定），
+    // 預設先給原本「前+下」的固定重扣，避免還沒算過的第一格畫面沒有值可用。
+    this.spikeXDir = 1;
+    this.spikeYDir = 1;
+    // 這次挑中的打法模擬出來的完整路徑點陣列，只給除錯畫面畫「打法路徑」用，跟遊戲邏輯無關
+    this.spikePlannedPath = null;
   }
 
-  makeDecision(ball, netRect) {
+  // 判斷「如果我現在跳下去，這一整段跳躍過程（起跳到落地）有沒有哪一格畫面真的會碰到球」。
+  // 跟原本「只看跳到最高點那一刻」的單點判斷不同：這裡完整模擬跳躍中每一格畫面的垂直位置
+  // （公式跟 Pikachu.update() 的跳躍重力完全一致），同時假設 AI 會持續往預測站位（targetX）移動
+  // （水平速度上限是 chaseSpeed，跟平常走位邏輯一致），再用跟 spikeRect getter 相同的公式
+  // 算出每一格畫面的殺球判定框，逐格跟球的預測路徑（predictedFullPath）比對有沒有重疊。
+  // 只要整段跳躍完全沒有任何一格畫面碰得到球，就回傳 -1——代表「這球用跳的攔不到」，
+  // 這種情況就不該跳，跳了也是白跳（原地起跳、球從旁邊飛過），該做的是繼續走位或放棄這球。
+  // 有碰到球的話，回傳「第幾格畫面碰到」（>=0），方便呼叫端查出當時球的位置/垂直速度，
+  // 進一步模擬「打這一下之後，球最後會落在哪」（見 willHitSelfDestruct）。
+  canReachBallByJumping(targetX, chaseSpeed, predictedFullPath) {
+    const touchY = GROUND_Y - this.height;
+    let simY = touchY;
+    let simVy = GAME_PARAMS.jumpVelocity;
+    let simX = this.x;
+    const gravity = GAME_PARAMS.gravity;
+    const w = GAME_PARAMS.hitboxWidthJump || this.width;
+    const h = GAME_PARAMS.hitboxHeight || this.height;
+    const extraUp = GAME_PARAMS.spikeHitboxExtra || 0;
+    const extraForward = GAME_PARAMS.spikeHitboxForward || 0;
+    const bw = GAME_PARAMS.ballWidth || 24;
+    const bh = GAME_PARAMS.ballHeight || 24;
+    const maxFrames = predictedFullPath.length - 1;
+
+    for (let t = 0; t <= maxFrames; t++) {
+      // 垂直：跳躍物理，跟 Pikachu.update() 完全同一套離散公式
+      const futureY = simY + simVy;
+      if (futureY < touchY) {
+        simY = futureY;
+        simVy += gravity;
+      } else {
+        // 落地，跳躍結束，之後的畫面已經不是「跳躍中」，不用再模擬
+        break;
+      }
+
+      // 水平：假設持續往預測站位移動，速度上限跟目前使用的追球速度一致
+      const dx = targetX - simX;
+      if (Math.abs(dx) > chaseSpeed) simX += Math.sign(dx) * chaseSpeed;
+      else simX = targetX;
+
+      // 用跟 spikeRect getter 相同的公式，算出這一格畫面（模擬出來的 simX/simY）的殺球判定框
+      let rx = this.side === "left" ? simX + (this.width - w) : simX;
+      let rw = w;
+      if (extraForward) {
+        if (this.side === "left") rw += extraForward;
+        else { rx -= extraForward; rw += extraForward; }
+      }
+      const ry = simY + (this.height - h) - extraUp;
+      const rh = h + extraUp;
+
+      const ballPt = predictedFullPath[t];
+      if (!ballPt) break;
+      const bx = ballPt.x - bw / 2, by = ballPt.y - bh / 2;
+
+      if (rectsOverlap({ x: rx, y: ry, w: rw, h: rh }, { x: bx, y: by, w: bw, h: bh })) {
+        return t;
+      }
+    }
+    return -1;
+  }
+
+  makeDecision(ball, netRect, opponent) {
     try {
       // 移動判斷都加一個「容許誤差」(等於一步移動速度)：
       // 原本用 < / > 直接跟目標值比較，當目標值剛好卡在兩個像素中間、
@@ -1262,15 +1464,24 @@ class AIPlayer extends Pikachu {
       // 變成肉眼可見的異常抖動。改成「差距大於一步才移動」就會穩定停住。
       const tolerance = GAME_PARAMS.playerSpeed;
       const halfWidth = SCREEN_WIDTH / 2;
-      const readyX = halfWidth / 2 - this.width / 2; // 沒有來球時的預備站位（己方半場中央）
+      // 這套決策邏輯原本是寫死給左側 AI 用的，現在改成依 this.side 判斷，
+      // 這樣同一套 makeDecision 也能給右側（玩家 AI 託管）使用，達成「AI 對 AI 互打」。
+      const isLeft = this.side === "left";
+      const nearNetLimit = 50; // 站位不會硬走到貼著網子，留一點緩衝（跟原本左側數值一致）
+      const zoneMinX = isLeft ? 0 : halfWidth + nearNetLimit;
+      const zoneMaxX = isLeft ? halfWidth - nearNetLimit : SCREEN_WIDTH;
+      const readyX = isLeft
+        ? (halfWidth / 2 - this.width / 2)                    // 左側：己方（左半場）中央
+        : (halfWidth + halfWidth / 2 - this.width / 2);        // 右側：己方（右半場）中央
 
       // ---- 提前算好球的路徑 ----
-      // 球正朝 AI 這邊飛（vx<0）時，不管球目前實際上是不是已經飛過球網、
-      // 落在 AI 這一半場，都用跟球完全相同的物理公式模擬出最終落點，
-      // 提前往落點移動卡位；球正飛離 AI（剛被 AI 這邊打出去、或還沒發球）時，回到預備位置等待。
-      const incoming = ball.vx < 0;
+      // 球正朝這一側飛過來時，不管球目前實際上是不是已經飛過球網、
+      // 落在這一側半場，都用跟球完全相同的物理公式模擬出最終落點，
+      // 提前往落點移動卡位；球正飛離這一側（剛被這一側打出去、或還沒發球）時，回到預備位置等待。
+      const incoming = isLeft ? (ball.vx < 0) : (ball.vx > 0);
       let targetX;
       let predictedSteps = null; // 預測出的球「還要幾格畫面才會落地」，用來判斷走路來不來得及
+      let predictedFullPath = null; // 球「每一格畫面」的完整預測路徑，用來精準抓起跳時機（不看球現在位置）
 
       if (incoming && GAME_PARAMS.aiPredictionEnabled) {
         // 球剛換方向飛過來的那一瞬間才重新骰一次「預測誤差」，同一輪來球全程沿用同一個誤差值，
@@ -1283,13 +1494,14 @@ class AIPlayer extends Pikachu {
         const predicted = predictBallTrajectory(ball, netRect);
         this._lastPredictedPath = predicted.path; // 存起來供除錯畫面畫出預測軌跡虛線
         predictedSteps = predicted.steps;
+        predictedFullPath = predicted.fullPath;
         // predicted.x 是「球中心」的預測落點，AI 的碰撞箱又是在精靈寬度(this.width)裡置中，
         // 所以要對齊兩者的中心，這裡要扣掉的是 AI 自己的半身寬(this.width/2)，
         // 而不是球的半徑(ball.width/2)，不然兩邊中心會系統性地偏掉一段距離。
         targetX = predicted.x - this.width / 2 + this._predictionErrorPx;
         // 預測落點不可能真的落在球網另一側，超出己方半場的部分夾回半場邊界，
         // 避免 AI 想「穿越球網」卡位卡到一半卡住不動。
-        targetX = Math.max(0, Math.min(targetX, halfWidth - 50));
+        targetX = Math.max(zoneMinX, Math.min(targetX, zoneMaxX));
       } else if (incoming) {
         // 關閉預測功能時，退回原本「只看球現在位置」的即時反應行為（同樣要對齊中心）
         this._lastPredictedPath = null;
@@ -1308,51 +1520,86 @@ class AIPlayer extends Pikachu {
         : GAME_PARAMS.playerSpeed;
 
       const dx = targetX - this.x;
-      if (dx < -tolerance && this.x > 0) {
+      if (dx < -tolerance && this.x > zoneMinX) {
         this.move("left", netRect, chaseSpeed);
-      } else if (dx > tolerance && this.x < halfWidth - 50) {
+      } else if (dx > tolerance && this.x < zoneMaxX) {
         this.move("right", netRect, chaseSpeed);
       } else if (!this.diveMode && !this.isJumping) {
         this.state = "idle";
       }
 
-      // 跳躍殺球／飛撲擊球判定，一定要用球「現在」實際的座標來判斷有沒有真的碰到，
-      // 所以這段仍然只在球已經確實飛到 AI 這一側（ball.x < halfWidth）時才會進行，
-      // 跟上面「提前卡位」用的預測落點是分開的兩件事。
-      if (ball.x < halfWidth) {
-        if (
-          ball.y < this.y &&
-          Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance &&
-          !this.isJumping
-        ) {
-          this.jump();
-          // 這一次跳躍是否會殺球，跳起的瞬間就骰一次，不會因為球在判定範圍內待了很多格畫面而變成穩中
-          this.willSpike = Math.random() * 100 < GAME_PARAMS.aiSpikeChance;
+      // 起跳／殺球／飛撲：現在改成完全依賴「預測路徑」來決定時機，不再看球現在實際飛到哪裡。
+      // 做法：既然已經精準模擬出球每一格畫面會在哪，就完整模擬「如果我現在跳下去」整段跳躍
+      // 過程中，殺球判定框會不會在某一格畫面真的碰到球——不是只看跳到最高點那一刻，
+      // 這樣才能正確判斷「這球跳了也碰不到」的情況（例如玩家殺出又快又刁鑽的球，
+      // AI 根本來不及卡到正確位置），碰不到就不跳，留在原地繼續走位，而不是白白跳一個空。
+      // （只有開啟 aiPredictionEnabled 且球正朝這邊飛時才能這樣算；
+      // 沒開預測、或球還沒轉向飛過來時，沒有路徑可用，退回原本「看現在位置」的即時反應寫法。）
+      const ballOnMySide = isLeft ? (ball.x < halfWidth) : (ball.x >= halfWidth);
+      if (ballOnMySide) {
+        if (!this.isJumping) {
+          if (predictedFullPath) {
+            const contactTick = this.canReachBallByJumping(targetX, chaseSpeed, predictedFullPath);
+            if (contactTick >= 0) {
+              this.jump();
+              // 原版特有的「瞄準弱點」邏輯：不是死板地固定用「前+下」硬扣，
+              // 而是把左右鍵（力道加倍與否）跟上/放開/下鍵（高吊/平擊/重扣）的
+              // 每一種組合都先在腦內模擬一次打出去的落點，再比對對手目前站的位置跟腳程，
+              // 挑一個對手最沒把握救到的組合出手（同時已經排除掉會撞網自殺的組合）。
+              const contactPoint = predictedFullPath[contactTick];
+              const best = chooseBestSpikeDirection(contactPoint, netRect, opponent, this.side === "left");
+              if (best) {
+                this.willSpike = true;
+                this.spikeXDir = best.xDir;
+                this.spikeYDir = best.yDir;
+                this.willSelfDestructIfSpike = false;
+                // 存下這次挑中的打法完整模擬路徑，供除錯畫面畫出「AI 算出的打法路徑」
+                this.spikePlannedPath = best.path;
+              } else {
+                // 找不到任何一種組合是安全的（例如剛好卡在網邊很尷尬的位置，怎麼打都會自殺），
+                // 放棄這次強力殺球，人還是照跳（卡住位置），球碰到時會落到下面 updatePlaying()
+                // 的一般碰球判定，用比較保守、原版的「弱擊球」公式把球安全地頂回去。
+                this.willSpike = false;
+                this.willSelfDestructIfSpike = true;
+              }
+            }
+            // 否則：跳了也碰不到，就不跳，維持原本的走位邏輯（上面已經算好的 targetX 會讓
+            // AI 自然而然往正確方向移動／後退卡位，不需要在這裡另外處理「後退」）
+          } else if (ball.y < this.y && Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance) {
+            // 沒有預測路徑可用時的退路：退回原本看「球現在位置」的即時反應，
+            // 這種情況沒有預測路徑可以模擬各種方向的落點，沒辦法挑弱點，維持原本固定的前+下重扣。
+            this.jump();
+            this.willSpike = Math.random() * 100 < GAME_PARAMS.aiSpikeChance;
+            this.spikeXDir = 1;
+            this.spikeYDir = 1;
+          }
         }
 
         if (this.willSpike && rectsOverlap(this.spikeRect, ball.rect)) {
-          if (this.side === "left") ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleLeftSide);
-          else ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleRightSide);
+          // 原版的擊球方向（xDirection/yDirection）是玩家當下按住的方向鍵，
+          // AI 沒有真的在「按鍵」，這裡改用 chooseBestSpikeDirection() 事先試打過
+          // 各種方向組合、挑出來「對手最沒把握救到」的那一組（this.spikeXDir/spikeYDir），
+          // 不再像過去那樣每次都寫死用「前+下」。
+          resolveBallHit(ball, this, /* isPowerHit */ true, this.spikeXDir, this.spikeYDir);
           ball.addSparks();
           playSound(sounds.slam);
           this.willSpike = false;
         }
 
         if (!this.diveMode && !this.isJumping) {
-          // 原本的判定：球「現在」跟 AI 距離已經很遠，臨時飛撲搶救。
-          const farByLiveDistance = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance;
-
-          // 新增的判定：就算現在距離還好，但用預測算出來球還剩多少格畫面會落地，
-          // 跟走到預測落點所需的格數一比，發現用走的鐵定來不及，
-          // 與其等球已經飛到很近才臨時撲救（往往已經來不及），不如提前撲過去搶時間。
+          // 飛撲一樣改成完全用「走到預測落點需要幾格畫面」跟「球還剩幾格畫面會落地」比較，
+          // 算出用走的鐵定來不及才飛撲搶救，不再額外看球現在的即時距離。
           let cannotWalkInTime = false;
           if (predictedSteps !== null) {
             const distanceNeeded = Math.abs(targetX - this.x);
             const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
             cannotWalkInTime = framesNeeded > predictedSteps + 6; // 留一點安全邊際給起跳/反應時間
+          } else {
+            // 沒有預測路徑可用時的退路：退回原本看球現在距離的即時反應
+            cannotWalkInTime = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance;
           }
 
-          if (farByLiveDistance || cannotWalkInTime) {
+          if (cannotWalkInTime) {
             // 撲的方向看「要去的地方」（預測落點）而不是球現在的位置，
             // 這樣提前判斷來不及時，才會撲對方向，而不是撲向球目前還沒到的位置。
             const direction = targetX < this.x ? "left" : "right";
@@ -1364,6 +1611,50 @@ class AIPlayer extends Pikachu {
       console.error("AI Error:", e);
     }
   }
+}
+
+// ---------- 擊球公式（照搬原版 physics.js 的 processCollisionBetweenBallAndPlayer） ----------
+// 原版重點：擊球方向/力道不是「固定角度 + 隨機浮動」，而是由「球跟角色的水平距離」決定：
+//   - 距離越遠，球被打飛的水平速度越快；球在角色左邊就往左飛，右邊就往右飛
+//   - 垂直方向固定往上彈，且至少有 hitMinUpSpeed 的力道（原版 15）
+//   - 只有「跳躍中 + 按下擊球鍵」才會觸發另一套固定的強力公式（殺球）：
+//     水平速度固定是 jumpSpikePower 或它的兩倍（看有沒有按左右方向鍵加強），
+//     垂直速度則是「打之前球速的絕對值 * 上下方向鍵 * 倍率」，
+//     這也是為什麼原版要按著 down 鍵才能扣出又快又平的殺球、不按方向鍵殺球會變成水平速度較弱的球。
+// player 參數需要有 .rect（碰撞箱）可用來取得跟球比較用的中心 x 座標。
+function resolveBallHit(ball, player, isPowerHit, userInputXDirection, userInputYDirection) {
+  const playerRect = player.rect;
+  const playerCenterX = playerRect.x + playerRect.w / 2;
+  const ballCenterX = ball.x + ball.width / 2;
+
+  if (ballCenterX < playerCenterX) {
+    ball.vx = -Math.floor(Math.abs(ballCenterX - playerCenterX) / GAME_PARAMS.hitXDivisor);
+  } else if (ballCenterX > playerCenterX) {
+    ball.vx = Math.floor(Math.abs(ballCenterX - playerCenterX) / GAME_PARAMS.hitXDivisor);
+  }
+  // 水平速度剛好算出 0（球幾乎正對角色中心）時，原版會隨機給 -1 / 0 / 1，避免球直上直下卡住不動
+  if (ball.vx === 0) {
+    ball.vx = Math.floor(Math.random() * 3) - 1;
+  }
+
+  const ballAbsVY = Math.abs(ball.vy);
+  ball.vy = -ballAbsVY;
+  if (ballAbsVY < GAME_PARAMS.hitMinUpSpeed) {
+    ball.vy = -GAME_PARAMS.hitMinUpSpeed;
+  }
+
+  if (isPowerHit) {
+    const netCenterX = SCREEN_WIDTH / 2;
+    const magnitude = GAME_PARAMS.jumpSpikePower * (Math.abs(userInputXDirection) + 1);
+    ball.vx = ballCenterX < netCenterX ? magnitude : -magnitude;
+    ball.vy = Math.abs(ball.vy) * userInputYDirection * GAME_PARAMS.jumpSpikeUpMultiplier;
+  }
+
+  // 整體球速倍率（跟原本設定面板的 ballSpeedMultiplier 意義相同，方便您整體調快/調慢）
+  ball.vx *= GAME_PARAMS.ballSpeedMultiplier;
+  ball.vy *= GAME_PARAMS.ballSpeedMultiplier;
+
+  return isPowerHit;
 }
 
 // ---------- 排球 ----------
@@ -1387,28 +1678,67 @@ class Volleyball {
     return { x: this.x, y: this.y, w: this.width, h: this.height };
   }
 
-  update() {
+  // netRect：球網的碰撞矩形（Net.rect），改成跟原版一樣，球網碰撞判定是「這一步移動的一部分」，
+  // 不是移動完之後才另外檢查（見下方函式內部順序，完全對照原版 FUN_00402dc0 的執行順序）。
+  update(netRect) {
     if (this.resetTimer > 0) {
       this.resetTimer -= 1;
       return;
     }
 
-    this.vy += GAME_PARAMS.ballGravity;
-    this.x += this.vx;
-    this.y += this.vy;
-
     const restitution = GAME_PARAMS.ballBounceRestitution;
-    if (this.x <= 0 || this.x + this.width >= SCREEN_WIDTH) {
-      this.vx *= -restitution;
-      this.x = Math.max(0, Math.min(this.x, SCREEN_WIDTH - this.width));
+
+    // 1) 水平邊界：先「預測」移動後的位置會不會出界，出界就直接反彈水平速度
+    //    （原版是判斷完就反彈，本身位置還沒真的移動過去，所以球不會真的跑出邊界外）
+    const futureX = this.x + this.vx;
+    if (futureX < 0 || futureX > SCREEN_WIDTH - this.width) {
+      this.vx = -this.vx * restitution;
     }
-    if (this.y <= 0) {
-      this.vy *= -restitution;
-      this.y = 0;
+
+    // 2) 上邊界：原版不是「反彈」，而是直接把垂直速度重設成 1（緩緩開始往下掉），
+    //    這是原始遊戲機器碼裡的實際行為，照搬過來
+    const futureYForCeiling = this.y + this.vy;
+    if (futureYForCeiling < 0) {
+      this.vy = 1;
     }
-    if (this.y + this.height >= GROUND_Y) {
-      this.vy *= -restitution;
+
+    // 3) 球網碰撞：分成「打到頂端圓帽」（垂直反彈）跟「打到側面」（水平反彈）兩種情況，
+    //    碰撞判定用的半寬是 netCollisionHalfWidth（比畫面上看到的細網柱寬很多），
+    //    這是原版判定會讓球感覺「打到網附近就會被擋下來」而不是要瞄得很準才會碰到的原因。
+    if (netRect) {
+      const netCenterX = netRect.x + netRect.w / 2;
+      const ballCenterX = this.x + this.width / 2;
+      const netTopY = netRect.y; // 網柱最頂端
+      const netCapBottomY = netRect.y + GAME_PARAMS.netTopCapHeight; // 頂端圓帽跟側面的分界
+
+      if (Math.abs(ballCenterX - netCenterX) < GAME_PARAMS.netCollisionHalfWidth && this.y > netTopY) {
+        if (this.y <= netCapBottomY) {
+          // 打到頂端圓帽：只有正在往下掉的時候才會被彈回去（原版邏輯，避免球往上飛過網頂時被誤判）
+          if (this.vy > 0) {
+            this.vy = -this.vy * restitution;
+          }
+        } else {
+          // 打到網子側面：往左飛的球被推回左邊，往右飛的球被推回右邊
+          if (this.x < netCenterX) {
+            this.vx = -Math.abs(this.vx) * restitution;
+          } else {
+            this.vx = Math.abs(this.vx) * restitution;
+          }
+        }
+      }
+    }
+
+    // 4) 地板：這一步移動完之後才判斷有沒有觸地，觸地就吸附在地面高度、垂直速度反彈
+    //    （原版落地當下這個動作就算「這一球結束」，Game.updatePlaying() 裡緊接著的
+    //    得分判定會抓到 y+height >= GROUND_Y 這個狀態來計分，跟原本的流程相容）
+    const futureY = this.y + this.vy;
+    if (futureY + this.height >= GROUND_Y) {
+      this.vy = -this.vy * restitution;
       this.y = GROUND_Y - this.height;
+    } else {
+      this.y = futureY;
+      this.x = this.x + this.vx;
+      this.vy += GAME_PARAMS.ballGravity;
     }
 
     this.sparks = this.sparks.filter(s => s.update());
@@ -1418,27 +1748,6 @@ class Volleyball {
     if (this.ballAnimTimer >= BALL_ANIM_FRAME_DURATION) {
       this.ballAnimTimer = 0;
       this.ballAnimFrame = (this.ballAnimFrame + 1) % 5;
-    }
-  }
-
-  hit(power, angleDeg) {
-    const scaledPower = power * GAME_PARAMS.ballSpeedMultiplier;
-    const rad = (angleDeg * Math.PI) / 180;
-    this.vx = scaledPower * Math.cos(rad);
-    this.vy = scaledPower * Math.sin(rad);
-  }
-
-  checkNetCollision(netRect) {
-    if (rectsOverlap(this.rect, netRect)) {
-      const netCenterX = netRect.x + netRect.w / 2;
-      if (this.x + this.width / 2 < netCenterX) {
-        this.x = netRect.x - this.width;
-        this.vx = -Math.abs(this.vx);
-      } else {
-        this.x = netRect.x + netRect.w;
-        this.vx = Math.abs(this.vx);
-      }
-      this.vy *= -1;
     }
   }
 
@@ -1461,6 +1770,9 @@ class Volleyball {
     this.width = GAME_PARAMS.ballWidth;
     this.height = GAME_PARAMS.ballHeight;
     this.y = 0;
+    // 每次重新發球（不管是得分後換邊發球，還是遊戲一開始）都先把上一球殘留、
+    // 還沒淡出完的擊球火花清掉，不要讓它們拖到下一球才消失
+    this.sparks = [];
     const centerX = SCREEN_WIDTH / 2;
     if (side === "left") {
       // 固定發球位置：以畫面正中央為基準，往左側偏移 serveOffsetX
@@ -1563,6 +1875,9 @@ class Game {
     this.gameWinnerSide = null;
     this.winLoseFrame = 0;
     this.winLoseTimer = 0;
+
+    // 自動開新局用：進入 GAME_OVER 畫面後累計多少 tick，達到 autoRestartDelay 就自動重開一局
+    this.gameOverTimer = 0;
   }
 
   // 依 serveOffsetX 算出「站在球正下方」所需的角色 x 座標：
@@ -1576,7 +1891,10 @@ class Game {
 
   reset() {
     this.ai = new AIPlayer(this.getHomeX("left"), GROUND_Y - SPRITE_H, "left");
-    this.player = new Pikachu(this.getHomeX("right"), GROUND_Y - SPRITE_H, "right");
+    // player 也改用 AIPlayer 類別（AIPlayer 只是在 Pikachu 上多加幾個 AI 決策用的欄位，
+    // 沒有覆寫 move/jump/dive/update 等操作方法，所以鍵盤操作行為完全不受影響），
+    // 這樣「AI 託管」開啟時才能直接呼叫 player.makeDecision() 讓右側也變成 AI 自動操作。
+    this.player = new AIPlayer(this.getHomeX("right"), GROUND_Y - SPRITE_H, "right");
     this.ball = new Volleyball();
     // 開局第一球固定由左側（AI）發球，球在角色正上方停留 serveDropDelay 之後才開始掉落
     this.ball.resetPosition("left");
@@ -1606,6 +1924,8 @@ class Game {
       entity.hitAnimTimer = 0;
     });
     this.ai.willSpike = false;
+    this.player.willSpike = false;
+    this.player.spikeArmed = false;
   }
 
   // 進入遊戲（第一次開始／重新開始都會呼叫）：
@@ -1662,51 +1982,73 @@ class Game {
     // 等球真的開始動了才能移動／跳躍／殺球／飛撲
     const ballLocked = this.ball.resetTimer > 0;
 
+    // AI 託管開關：開啟後右側玩家不再讀鍵盤，改成呼叫跟左側 AI 相同的 makeDecision()，
+    // 等於「AI 對 AI 互打」，人類不用操作也能一直看下去。
+    const playerAITakeover = !!GAME_PARAMS.aiTakeoverEnabled;
+
     // 玩家操作
     if (!ballLocked) {
-      if (keys["ArrowLeft"]) p.move("left", netRect);
-      else if (keys["ArrowRight"]) p.move("right", netRect);
-      else if (!p.isJumping && !p.diveMode) p.state = "idle";
+      if (playerAITakeover) {
+        // 右側交給 AI 自動操作（makeDecision 內部會自己處理移動／跳躍／殺球／飛撲）
+        p.makeDecision(this.ball, netRect, this.ai);
+        this.actionHeld.player = false;
+      } else {
+        if (keys["ArrowLeft"]) p.move("left", netRect);
+        else if (keys["ArrowRight"]) p.move("right", netRect);
+        else if (!p.isJumping && !p.diveMode) p.state = "idle";
 
-      if (keys["ArrowUp"]) p.jump();
+        if (keys["ArrowUp"]) p.jump();
 
-      const actionNow = !!(keys["Enter"] || keys["Space"]);
-      if (actionNow && !this.actionHeld.player) {
-        // 剛按下瞬間：跳躍中觸球則殺球
-        if (p.isJumping && rectsOverlap(p.spikeRect, this.ball.rect)) {
-          this.ball.hit(GAME_PARAMS.jumpSpikePower, GAME_PARAMS.jumpSpikeAngleRightSide);
+        const actionNow = !!(keys["Enter"] || keys["Space"]);
+        if (actionNow && !this.actionHeld.player) {
+          // 剛按下瞬間：只要當時正在跳躍，就先打開「殺球容錯視窗」，
+          // 不要求這一格畫面剛好跟球重疊——跟原版一樣，按鍵時機跟球撞到的時機分開判定。
+          if (p.isJumping) {
+            p.spikeArmed = true;
+          }
+        }
+        // 容錯視窗開著的期間，每一格畫面都持續檢查球有沒有撞到（不只是按下的那一瞬間），
+        // 這跟 AI 的 willSpike 邏輯一致；一旦撞到就立刻觸發殺球並關閉視窗，避免同一次跳躍連續觸發。
+        if (p.spikeArmed && p.isJumping && rectsOverlap(p.spikeRect, this.ball.rect)) {
+          // 原版擊球方向完全依賴玩家「當下按住的方向鍵」：
+          // 左右鍵決定殺球是平擊(0)還是加強(±1)，上/下鍵決定往上/往下（或不按=水平擊球）。
+          const xDir = keys["ArrowLeft"] ? -1 : (keys["ArrowRight"] ? 1 : 0);
+          const yDir = keys["ArrowUp"] ? -1 : (keys["ArrowDown"] ? 1 : 0);
+          resolveBallHit(this.ball, p, /* isPowerHit */ true, xDir, yDir);
           this.ball.addSparks();
           playSound(sounds.slam);
+          p.spikeArmed = false;
         }
+        if (actionNow) {
+          if (keys["ArrowLeft"]) p.dive("left", netRect);
+          else if (keys["ArrowRight"]) p.dive("right", netRect);
+        }
+        this.actionHeld.player = actionNow;
       }
-      if (actionNow) {
-        if (keys["ArrowLeft"]) p.dive("left", netRect);
-        else if (keys["ArrowRight"]) p.dive("right", netRect);
-      }
-      this.actionHeld.player = actionNow;
 
-      // AI 決策
-      this.ai.makeDecision(this.ball, netRect);
+      // AI 決策（左側，一直都是 AI）
+      this.ai.makeDecision(this.ball, netRect, p);
     } else {
       if (!p.isJumping && !p.diveMode) p.state = "idle";
-      this.actionHeld.player = !!(keys["Enter"] || keys["Space"]);
+      this.actionHeld.player = playerAITakeover ? false : !!(keys["Enter"] || keys["Space"]);
     }
 
     // 更新角色 / 球
     this.ai.update(this.ball);
     p.update(this.ball);
-    this.ball.update();
-    this.ball.checkNetCollision(netRect);
+    // 球網碰撞判定已經照原版做法整合進 update() 內部（跟移動同一步處理），所以這裡直接把 netRect 傳進去
+    this.ball.update(netRect);
 
-    // 一般跳躍碰撞（非飛撲）
+    // 一般碰球（非飛撲、非跳躍殺球那一下）：原版無論站著或跳躍中，
+    // 只要沒有同時按殺球鍵，一律用同一套弱擊球公式（見 resolveBallHit）
     if (!this.ai.diveMode && rectsOverlap(this.ball.rect, this.ai.rect)) {
-      this.ball.hit(GAME_PARAMS.normalHitPower, GAME_PARAMS.normalHitAngleLeftBase + Math.random() * GAME_PARAMS.normalHitAngleVariance);
+      resolveBallHit(this.ball, this.ai, false, 0, 0);
       playSound(sounds.hit);
       // 在地上的一般碰球才播擊球動畫；跳躍中已經有專屬的跳躍圖，不疊加
       if (!this.ai.isJumping) this.ai.playHitAnim();
     }
     if (!p.diveMode && rectsOverlap(this.ball.rect, p.rect)) {
-      this.ball.hit(GAME_PARAMS.normalHitPower, GAME_PARAMS.normalHitAngleRightBase + Math.random() * GAME_PARAMS.normalHitAngleVariance);
+      resolveBallHit(this.ball, p, false, 0, 0);
       playSound(sounds.hit);
       if (!p.isJumping) p.playHitAnim();
     }
@@ -1734,6 +2076,7 @@ class Game {
         this.gameWinnerSide = winnerSide;
         this.winLoseFrame = 0;
         this.winLoseTimer = 0;
+        this.gameOverTimer = 0;
         playSound(sounds.win);
       }
     }
@@ -1758,6 +2101,23 @@ class Game {
       this.state = GameState.MENU;
     }
     this.prevEnter = enterNow;
+
+    // 自動開新局：開關開著的話，遊戲結束畫面停留滿 autoRestartDelay（tick）就自動重開一局，
+    // 不需要手動按 Enter，方便搭配「AI 託管」讓兩邊 AI 無限一直打下去。
+    // 上面如果剛剛已經因為按 Enter 重開了（state 已經變回 PLAYING），這裡就不用再重複觸發一次。
+    if (this.state === GameState.GAME_OVER) {
+      if (GAME_PARAMS.autoRestartEnabled) {
+        this.gameOverTimer++;
+        if (this.gameOverTimer >= GAME_PARAMS.autoRestartDelay) {
+          this.gameOverTimer = 0;
+          this.reset();
+          this.state = GameState.PLAYING;
+          this.enterGame();
+        }
+      } else {
+        this.gameOverTimer = 0;
+      }
+    }
   }
 
   draw() {
@@ -1831,6 +2191,8 @@ class Game {
     this.drawScore();
 
     if (DEBUG_SHOW_HITBOX) this.drawDebugHitboxes();
+    if (GAME_PARAMS.showBallPath) this.drawPredictedBallPath();
+    if (GAME_PARAMS.showBallPath) this.drawSpikePlannedPath();
   }
 
   drawDebugHitboxes() {
@@ -1859,25 +2221,74 @@ class Game {
     ctx.strokeRect(psr.x, psr.y, psr.w, psr.h);
     ctx.setLineDash([]);
 
-    // 畫出 AI 目前「提前算好」的預測球路徑（只在有來球、且預測功能開啟時才有資料）
-    if (this.ai._lastPredictedPath && this.ai._lastPredictedPath.length > 1) {
-      const path = this.ai._lastPredictedPath;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeStyle = "#ffe14a";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(path[0].x, path[0].y);
-      for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      // 預測落點畫個小圓圈標示出來
-      const last = path[path.length - 1];
-      ctx.fillStyle = "#ffe14a";
-      ctx.beginPath();
-      ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
-      ctx.fill();
+    // 只要 AI 曾經算過「這球殺下去會不會自殺」，就在牠頭上標出結果與挑選出的方向組合，
+    // 方便邊玩邊確認「瞄準弱點」的邏輯有沒有正常運作
+    if (this.ai.willSelfDestructIfSpike !== undefined) {
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      if (this.ai.willSelfDestructIfSpike) {
+        ctx.fillStyle = "#ff4d4d";
+        ctx.fillText("殺球會自殺→改保守", ar.x + ar.w / 2, ar.y - 6);
+      } else {
+        ctx.fillStyle = "#5cb85c";
+        const yDirLabel = { "-1": "高吊", "0": "平擊", "1": "重扣" }[this.ai.spikeYDir];
+        const xDirLabel = this.ai.spikeXDir === 0 ? "一般力道" : "加倍力道";
+        ctx.fillText(`殺球：${yDirLabel}／${xDirLabel}`, ar.x + ar.w / 2, ar.y - 6);
+      }
     }
 
+    ctx.restore();
+  }
+
+  // 畫出 AI 這次挑選出的殺球打法，模擬出來「打出去之後」球會怎麼飛、最後落在哪
+  // （chooseBestSpikeDirection() 試打過的那一組勝出組合）。
+  // 用跟「來球預測路徑」（黃色）不同的顏色（洋紅色）畫，一眼就能分辨哪條是「來球」、哪條是「打法」。
+  // 跟來球預測路徑共用同一個開關 GAME_PARAMS.showBallPath，打開「球的路徑顯示」就會兩條一起畫出來，
+  // 不需要額外打開設定面板的碰撞箱顯示。
+  drawSpikePlannedPath() {
+    const path = this.ai.spikePlannedPath;
+    if (!(path && path.length > 1)) return;
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "#ff4dff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 打出去的起點（擊球瞬間）畫個小方塊，落點畫個小圓圈，方便分辨方向
+    const first = path[0];
+    ctx.fillStyle = "#ff4dff";
+    ctx.fillRect(first.x - 3, first.y - 3, 6, 6);
+    const last = path[path.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 畫出 AI 目前「提前算好」的預測球路徑（只在有來球、且預測功能開啟時才有資料）。
+  // 獨立用 GAME_PARAMS.showBallPath 開關控制，跟 DEBUG_SHOW_HITBOX（碰撞箱顯示、開設定面板才會亮）分開，
+  // 不管設定面板有沒有打開，只要這個開關是 on 就會一直畫出來。
+  drawPredictedBallPath() {
+    if (!(this.ai._lastPredictedPath && this.ai._lastPredictedPath.length > 1)) return;
+    ctx.save();
+    const path = this.ai._lastPredictedPath;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "#ffe14a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 預測落點畫個小圓圈標示出來
+    const last = path[path.length - 1];
+    ctx.fillStyle = "#ffe14a";
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
