@@ -1394,6 +1394,22 @@ class AIPlayer extends Pikachu {
     this.spikeYDir = 1;
     // 這次挑中的打法模擬出來的完整路徑點陣列，只給除錯畫面畫「打法路徑」用，跟遊戲邏輯無關
     this.spikePlannedPath = null;
+
+    // ---- 原版特有的「膽量值 / 待命站位」個性化參數 ----
+    // computerBoldness：0~4 隨機值，每一球開始前重骰一次（見 rerollComputerBoldness）。
+    // 數字越大，AI 個性越大膽：站位判斷容錯越大（比較不龜毛）、越早跳起來準備接球、
+    // 但飛撲門檻也跟著變高（沒事不亂撲），模擬原版每球「賭性」不太一樣的手感。
+    this.computerBoldness = Math.floor(Math.random() * 5);
+    // computerWhereToStandBy：0 = 待命時站在自己半場正中央，1 = 待命時站在靠近球網處。
+    // 兩種待命位置會在特定情況下用機率隨機切換（見 makeDecision 內的重骰邏輯），
+    // 不會每次都乖乖站在同一個位置等球，增加站位的不可預測性。
+    this.computerWhereToStandBy = 0;
+  }
+
+  // 每一球開始前呼叫一次：重骰這一球要用的「膽量值」，模擬原版每球開場
+  // 都重新 rand() % 5 一次的做法（見 physics.js 的 initializeForNewRound）。
+  rerollComputerBoldness() {
+    this.computerBoldness = Math.floor(Math.random() * 5);
   }
 
   // 判斷「如果我現在跳下去，這一整段跳躍過程（起跳到落地）有沒有哪一格畫面真的會碰到球」。
@@ -1462,7 +1478,9 @@ class AIPlayer extends Pikachu {
       // 原本用 < / > 直接跟目標值比較，當目標值剛好卡在兩個像素中間、
       // 或球的 x 剛好貼著 AI 的 x 附近時，AI 每一格畫面都會左右各移動一次，
       // 變成肉眼可見的異常抖動。改成「差距大於一步才移動」就會穩定停住。
-      const tolerance = GAME_PARAMS.playerSpeed;
+      // 膽量值越大，站位容錯也跟著放寬一點：不會每一格畫面都斤斤計較要精準站在
+      // 目標點正下方，個性上比較大剌剌（對照原版「站位判斷用 computerBoldness+8」）。
+      const tolerance = GAME_PARAMS.playerSpeed + this.computerBoldness * 1.5;
       const halfWidth = SCREEN_WIDTH / 2;
       // 這套決策邏輯原本是寫死給左側 AI 用的，現在改成依 this.side 判斷，
       // 這樣同一套 makeDecision 也能給右側（玩家 AI 託管）使用，達成「AI 對 AI 互打」。
@@ -1470,39 +1488,63 @@ class AIPlayer extends Pikachu {
       const nearNetLimit = 50; // 站位不會硬走到貼著網子，留一點緩衝（跟原本左側數值一致）
       const zoneMinX = isLeft ? 0 : halfWidth + nearNetLimit;
       const zoneMaxX = isLeft ? halfWidth - nearNetLimit : SCREEN_WIDTH;
-      const readyX = isLeft
+      // 待命站位有兩種，依 computerWhereToStandBy 切換（跟原版一樣）：
+      // 0 = 站在自己半場正中央（比較保守、涵蓋範圍平均）；
+      // 1 = 站在靠近球網處（比較積極搶攻，但後場容易空出來）。
+      const readyXMidCourt = isLeft
         ? (halfWidth / 2 - this.width / 2)                    // 左側：己方（左半場）中央
         : (halfWidth + halfWidth / 2 - this.width / 2);        // 右側：己方（右半場）中央
+      const readyXNearNet = isLeft
+        ? (halfWidth - nearNetLimit - this.width)              // 左側：貼近球網（留一點緩衝）
+        : (halfWidth + nearNetLimit);                          // 右側：貼近球網（留一點緩衝）
+      const readyX = this.computerWhereToStandBy === 1 ? readyXNearNet : readyXMidCourt;
 
       // ---- 提前算好球的路徑 ----
-      // 球正朝這一側飛過來時，不管球目前實際上是不是已經飛過球網、
-      // 落在這一側半場，都用跟球完全相同的物理公式模擬出最終落點，
-      // 提前往落點移動卡位；球正飛離這一側（剛被這一側打出去、或還沒發球）時，回到預備位置等待。
-      const incoming = isLeft ? (ball.vx < 0) : (ball.vx > 0);
+      // 球現在人是不是已經在自己這一側半場（不管方向，先算出來，下面判斷追球/回防都會用到）。
+      const ballOnMySide = isLeft ? (ball.x < halfWidth) : (ball.x >= halfWidth);
+
+      // 原本這裡是用「球的水平速度正負號」判斷球是不是正朝這一側飛過來（incoming），
+      // 但發球那一瞬間球是直直往下掉、水平速度剛好是 0（不偏左也不偏右），
+      // 導致左右兩邊都判定成「球沒有朝我這邊來」，於是站在預備位置一動也不動、
+      // 完全不追蹤發球的實際落點，等球快掉到地上才臨時反應，常常來不及接——
+      // 這就是「AI 自己發球卻沒接好掉下去」的根本原因。
+      // 改成參考原版 letComputerDecideUserInput 的做法：不看方向，每一格畫面都先算出球的
+      // 預測落點，只要「預測落點會落在自己這一側」或「球現在人已經在自己這一側」，
+      // 就視為需要追蹤卡位；只有球明確在對面、預測也會落在對面時，才回預備位置等待。
       let targetX;
       let predictedSteps = null; // 預測出的球「還要幾格畫面才會落地」，用來判斷走路來不來得及
       let predictedFullPath = null; // 球「每一格畫面」的完整預測路徑，用來精準抓起跳時機（不看球現在位置）
+      let willTrackBall = false;
 
-      if (incoming && GAME_PARAMS.aiPredictionEnabled) {
-        // 球剛換方向飛過來的那一瞬間才重新骰一次「預測誤差」，同一輪來球全程沿用同一個誤差值，
-        // 避免每一格畫面都重骰誤差，導致 AI 明明在追同一顆球、站位卻肉眼可見地一直抖動。
-        if (!this._wasIncoming) {
-          const accuracy = Math.max(0, Math.min(100, GAME_PARAMS.aiPredictionAccuracy));
-          const maxErrorPx = 90; // 準確度 0% 時，預測落點最多可能偏差的像素數
-          this._predictionErrorPx = (Math.random() * 2 - 1) * maxErrorPx * (1 - accuracy / 100);
-        }
+      if (GAME_PARAMS.aiPredictionEnabled) {
         const predicted = predictBallTrajectory(ball, netRect);
-        this._lastPredictedPath = predicted.path; // 存起來供除錯畫面畫出預測軌跡虛線
-        predictedSteps = predicted.steps;
-        predictedFullPath = predicted.fullPath;
-        // predicted.x 是「球中心」的預測落點，AI 的碰撞箱又是在精靈寬度(this.width)裡置中，
-        // 所以要對齊兩者的中心，這裡要扣掉的是 AI 自己的半身寬(this.width/2)，
-        // 而不是球的半徑(ball.width/2)，不然兩邊中心會系統性地偏掉一段距離。
-        targetX = predicted.x - this.width / 2 + this._predictionErrorPx;
-        // 預測落點不可能真的落在球網另一側，超出己方半場的部分夾回半場邊界，
-        // 避免 AI 想「穿越球網」卡位卡到一半卡住不動。
-        targetX = Math.max(zoneMinX, Math.min(targetX, zoneMaxX));
-      } else if (incoming) {
+        const landingOnMySide = isLeft ? predicted.x < halfWidth : predicted.x >= halfWidth;
+        willTrackBall = ballOnMySide || landingOnMySide;
+
+        if (willTrackBall) {
+          // 球剛從「不用追」變成「要追」的那一瞬間才重新骰一次「預測誤差」，
+          // 同一輪來球全程沿用同一個誤差值，避免每一格畫面都重骰誤差，
+          // 導致 AI 明明在追同一顆球、站位卻肉眼可見地一直抖動。
+          if (!this._wasTrackingBall) {
+            const accuracy = Math.max(0, Math.min(100, GAME_PARAMS.aiPredictionAccuracy));
+            const maxErrorPx = 90; // 準確度 0% 時，預測落點最多可能偏差的像素數
+            this._predictionErrorPx = (Math.random() * 2 - 1) * maxErrorPx * (1 - accuracy / 100);
+          }
+          this._lastPredictedPath = predicted.path; // 存起來供除錯畫面畫出預測軌跡虛線
+          predictedSteps = predicted.steps;
+          predictedFullPath = predicted.fullPath;
+          // predicted.x 是「球中心」的預測落點，AI 的碰撞箱又是在精靈寬度(this.width)裡置中，
+          // 所以要對齊兩者的中心，這裡要扣掉的是 AI 自己的半身寬(this.width/2)，
+          // 而不是球的半徑(ball.width/2)，不然兩邊中心會系統性地偏掉一段距離。
+          targetX = predicted.x - this.width / 2 + this._predictionErrorPx;
+          // 預測落點不可能真的落在球網另一側，超出己方半場的部分夾回半場邊界，
+          // 避免 AI 想「穿越球網」卡位卡到一半卡住不動。
+          targetX = Math.max(zoneMinX, Math.min(targetX, zoneMaxX));
+        } else {
+          this._lastPredictedPath = null;
+          targetX = readyX;
+        }
+      } else if (ballOnMySide) {
         // 關閉預測功能時，退回原本「只看球現在位置」的即時反應行為（同樣要對齊中心）
         this._lastPredictedPath = null;
         targetX = ball.x + ball.width / 2 - this.width / 2;
@@ -1510,12 +1552,12 @@ class AIPlayer extends Pikachu {
         this._lastPredictedPath = null;
         targetX = readyX;
       }
-      this._wasIncoming = incoming;
+      this._wasTrackingBall = willTrackBall;
 
       // AI 追預測落點時，腳程比一般移動（playerSpeed）快一點（aiChaseSpeedMultiplier），
       // 用來補「算得再準、也要先起跑才追得到」這段先天的反應落差；
       // 回防備位置時仍用一般速度，不會整體變成無腦加速。
-      const chaseSpeed = (incoming && GAME_PARAMS.aiPredictionEnabled)
+      const chaseSpeed = (willTrackBall && GAME_PARAMS.aiPredictionEnabled)
         ? GAME_PARAMS.playerSpeed * (GAME_PARAMS.aiChaseSpeedMultiplier || 1)
         : GAME_PARAMS.playerSpeed;
 
@@ -1528,14 +1570,21 @@ class AIPlayer extends Pikachu {
         this.state = "idle";
       }
 
+      // 待命中（沒有在追球）、而且已經走到待命位置附近站定時，小機率重骰
+      // 「待命站位模式」（中央／靠網），讓 AI 不會每一球都站在完全一樣的地方等球，
+      // 跟原版「rand() % 20 === 0 時重骰 computerWhereToStandBy」的做法一致。
+      if (!willTrackBall && Math.abs(dx) <= tolerance && Math.random() < 1 / 20) {
+        this.computerWhereToStandBy = Math.random() < 0.5 ? 0 : 1;
+      }
+
       // 起跳／殺球／飛撲：現在改成完全依賴「預測路徑」來決定時機，不再看球現在實際飛到哪裡。
       // 做法：既然已經精準模擬出球每一格畫面會在哪，就完整模擬「如果我現在跳下去」整段跳躍
       // 過程中，殺球判定框會不會在某一格畫面真的碰到球——不是只看跳到最高點那一刻，
       // 這樣才能正確判斷「這球跳了也碰不到」的情況（例如玩家殺出又快又刁鑽的球，
       // AI 根本來不及卡到正確位置），碰不到就不跳，留在原地繼續走位，而不是白白跳一個空。
-      // （只有開啟 aiPredictionEnabled 且球正朝這邊飛時才能這樣算；
-      // 沒開預測、或球還沒轉向飛過來時，沒有路徑可用，退回原本「看現在位置」的即時反應寫法。）
-      const ballOnMySide = isLeft ? (ball.x < halfWidth) : (ball.x >= halfWidth);
+      // （只有開啟 aiPredictionEnabled 且正在追蹤這顆球時才能這樣算；
+      // 沒開預測、或球不在追蹤範圍內時，沒有路徑可用，退回原本「看現在位置」的即時反應寫法。
+      // ballOnMySide 已經在上面算好並沿用，這裡不用重複宣告。）
       if (ballOnMySide) {
         if (!this.isJumping) {
           if (predictedFullPath) {
@@ -1565,7 +1614,9 @@ class AIPlayer extends Pikachu {
             }
             // 否則：跳了也碰不到，就不跳，維持原本的走位邏輯（上面已經算好的 targetX 會讓
             // AI 自然而然往正確方向移動／後退卡位，不需要在這裡另外處理「後退」）
-          } else if (ball.y < this.y && Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance) {
+          } else if (ball.y < this.y && Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance + this.computerBoldness * 8) {
+            // 膽量值越大，這裡的觸發距離越寬鬆，等於「球還沒真的靠得很近就先跳起來卡位」，
+            // 對應原版「boldness 越大跳得越勤」的個性設定。
             // 沒有預測路徑可用時的退路：退回原本看「球現在位置」的即時反應，
             // 這種情況沒有預測路徑可以模擬各種方向的落點，沒辦法挑弱點，維持原本固定的前+下重扣。
             this.jump();
@@ -1596,7 +1647,9 @@ class AIPlayer extends Pikachu {
             cannotWalkInTime = framesNeeded > predictedSteps + 6; // 留一點安全邊際給起跳/反應時間
           } else {
             // 沒有預測路徑可用時的退路：退回原本看球現在距離的即時反應
-            cannotWalkInTime = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance;
+            // 膽量值越大，這裡的門檻越高，等於「沒事不會亂飛撲」，對應原版
+            // 「boldness 越大飛撲門檻(computerBoldness*5+PLAYER_LENGTH)越高、飛撲越少」的個性設定。
+            cannotWalkInTime = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance + this.computerBoldness * 10;
           }
 
           if (cannotWalkInTime) {
@@ -1926,6 +1979,13 @@ class Game {
     this.ai.willSpike = false;
     this.player.willSpike = false;
     this.player.spikeArmed = false;
+
+    // 每一球開始前重骰「膽量值」(computerBoldness)：跟原版一致，每一局/每一球
+    // 都重新骰一次 0~4 的隨機值，讓 AI 的積極度（多快出手、跳多勤、飛撲多勤）
+    // 每一球都有點不同，不會每次都用完全一樣的門檻值判斷，感覺更有變化、不死板。
+    // （不管這一側目前是不是 AI 在控制都重骰，反正玩家自己操作時這個值用不到，無害。）
+    this.ai.rerollComputerBoldness();
+    this.player.rerollComputerBoldness();
   }
 
   // 進入遊戲（第一次開始／重新開始都會呼叫）：
