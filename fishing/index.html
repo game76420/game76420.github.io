@@ -895,7 +895,7 @@ let LINE_PARAMS = {
   waveDisturbAmplitude: 10,  // 主角移動時，擾動水面的強度
 
   // --- 新增：碗與水面之間的相差高度（可調） ---
-  bowlWaterOffsetY: 0        // 碗相對於「貼齊水面」位置的額外上下偏移量：負值＝碗浮得比水面高，正值＝碗沉得比水面低（0＝碗中心貼齊水面）
+  bowlWaterOffsetY: -36      // 碗相對於「貼齊水面」位置的額外上下偏移量：負值＝碗浮得比水面高，正值＝碗沉得比水面低（0＝碗中心貼齊水面）
 };
 // 保留一份原始預設值，供調參面板的「還原預設值」使用
 const LINE_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(LINE_PARAMS));
@@ -1472,6 +1472,52 @@ function getCatchHalfSize(kind, padScaleX, padScaleY) {
     default: size = { w: 44, h: 32 };
   }
   return { hw: (size.w / 2) * padScaleX, hh: (size.h / 2) * padScaleY };
+}
+
+// 除錯用：把各個物件目前的「碰撞判定框」畫成虛線框，方便對照調參面板裡的數值來調整。
+// 只有在調參面板開啟時才會顯示，平常玩遊戲不會看到這些框，不影響正常畫面。
+function drawDebugHitboxes() {
+  if (!paramPanelOpen) return;
+  ctx.save();
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 2;
+  ctx.font = '11px Arial';
+  ctx.textBaseline = 'bottom';
+
+  function strokeBox(cx, cy, hw, hh, color, label) {
+    ctx.strokeStyle = color;
+    ctx.strokeRect(cx - hw, cy - hh, hw * 2, hh * 2);
+    if (label) {
+      ctx.fillStyle = color;
+      ctx.fillText(label, cx - hw, cy - hh - 2);
+    }
+  }
+
+  // 碗：實際判定「東西掉進碗裡」用的矩形範圍
+  strokeBox(bowlX + pot.w / 2, bowlY + pot.h / 2, pot.w / 2, pot.h / 2, 'rgba(255,40,40,0.9)', '碗');
+
+  // 魚：被鉤子直接勾到的判定範圍（框跟著魚移動，鉤子進到框裡就算勾到）
+  for (let fish of fishes) {
+    if (fish.caught || fish.lifting) continue;
+    const half = getCatchHalfSize(fish.color === 'gold' ? 'yellowFish' : 'purpleFish', LINE_PARAMS.hookCatchPadScaleX, LINE_PARAMS.hookCatchPadScaleY);
+    const scale = (typeof fish.sizeScale === 'number') ? fish.sizeScale : 1;
+    strokeBox(fish.x, fish.y, half.hw * scale, half.hh * scale, 'rgba(0,200,255,0.9)', '魚');
+  }
+
+  // 垃圾：被鉤子直接勾到的判定範圍
+  for (let trash of trashes) {
+    if (trash.hit || trash.lifting) continue;
+    const half = getCatchHalfSize(trash.type, LINE_PARAMS.hookCatchPadScaleX, LINE_PARAMS.hookCatchPadScaleY);
+    strokeBox(trash.x, trash.y, half.hw, half.hh, 'rgba(255,170,0,0.9)', '垃圾');
+  }
+
+  // 特殊海洋生物：被鉤子直接勾到的判定範圍
+  if (specialSeaCreature && !specialSeaCreature.caught && !specialSeaCreature.lifting) {
+    const half = getCatchHalfSize(specialSeaCreature.type, LINE_PARAMS.hookCatchPadScaleXSpecial, LINE_PARAMS.hookCatchPadScaleYSpecial);
+    strokeBox(specialSeaCreature.x, specialSeaCreature.y, half.hw, half.hh, 'rgba(200,60,220,0.9)', '生物');
+  }
+
+  ctx.restore();
 }
 
 // 修正「一次釣很多條魚時，明明對到碗裡卻從碗下方掉出去」的問題：
@@ -3083,6 +3129,9 @@ function gameLoop(currentTime) {
       hookY += LINE_PARAMS.hookSettleDownSpeed * timeScale;
       if (hookY > hookTargetY) hookY = hookTargetY;
     }
+
+    // 除錯用：調參面板開啟時，把各物件目前的碰撞判定框畫成虛線
+    drawDebugHitboxes();
 
     // --- 新增：碗沉到底動畫 ---
     if (bowlSinking) {
