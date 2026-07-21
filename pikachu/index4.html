@@ -2308,7 +2308,11 @@ const NetPlay = (() => {
         lastSeenSparkCount = s.ball.sparkCount;
       } else if (s.ball.sparkCount > lastSeenSparkCount) {
         const newSparks = s.ball.sparkCount - lastSeenSparkCount;
-        for (let i = 0; i < newSparks; i++) game.ball.addSparks();
+        // 直接生成剛好差異數量的火花物件，而不是呼叫 addSparks()（那個函式固定一次生成 10 顆），
+        // 避免 Guest 端因為呼叫次數 × 10 而生成比 Host 端多好幾倍的火花
+        for (let i = 0; i < newSparks; i++) {
+          game.ball.sparks.push(new Spark(game.ball.x + game.ball.width / 2, game.ball.y + game.ball.height));
+        }
         lastSeenSparkCount = s.ball.sparkCount;
       }
     }
@@ -2453,6 +2457,9 @@ class Game {
         this.applyMovementOnly(this.player, keys, this.net.rect);
       }
       NetPlay.applyLatestSnapshotTo(this);
+      // Guest 不會呼叫 ball.update()（球的物理完全由 Host 權威），但火花的生命值遞減、
+      // 過期移除是寫在 ball.update() 裡面的，這裡補跑同一段邏輯，否則火花會永遠留在畫面上不消失。
+      this.ball.sparks = this.ball.sparks.filter(s => s.update());
       return;
     }
     if (this.state === GameState.MENU) this.updateMenu();
