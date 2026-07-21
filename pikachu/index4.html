@@ -2080,6 +2080,7 @@ const NetPlay = (() => {
   let roomCode = null;
   const remoteKeys = {}; // Host 用：儲存 Guest 傳來的最新按鍵狀態
   let latestSnapshot = null; // Guest 用：Host 傳來的最新完整狀態快照
+  let lastSeenSparkCount = 0; // Guest 用：記錄上一次套用快照時 Host 那邊的火花數量，用來偵測「又多了幾個火花」
 
   function setStatus(text, kind) {
     const el = document.getElementById("onlineStatus");
@@ -2111,6 +2112,7 @@ const NetPlay = (() => {
     for (const k in remoteKeys) delete remoteKeys[k];
     latestSnapshot = null;
     lastAppliedSnapSeq = -1;
+    lastSeenSparkCount = 0;
     updateOnlineBtnVisual();
   }
 
@@ -2297,6 +2299,19 @@ const NetPlay = (() => {
     game.ball.y = s.ball.y;
     game.ball.ballAnimFrame = s.ball.ballAnimFrame;
     game.ball.resetTimer = s.ball.resetTimer;
+    // Host 端每次殺球命中都會呼叫 addSparks() 讓火花數量 +1，這裡透過比對數量的變化，
+    // 在 Guest 端用同一顆球目前的座標補生成對應數量的火花，這樣視覺效果才會同步出現，
+    // 不會因為 Guest 從來沒有本機呼叫過 addSparks() 而完全看不到火花。
+    if (typeof s.ball.sparkCount === "number") {
+      if (s.ball.sparkCount < lastSeenSparkCount) {
+        // 數量比上次還少，代表舊火花消失或重新開局，重置追蹤基準即可，不用補生成
+        lastSeenSparkCount = s.ball.sparkCount;
+      } else if (s.ball.sparkCount > lastSeenSparkCount) {
+        const newSparks = s.ball.sparkCount - lastSeenSparkCount;
+        for (let i = 0; i < newSparks; i++) game.ball.addSparks();
+        lastSeenSparkCount = s.ball.sparkCount;
+      }
+    }
   }
 
   function disconnect() {
