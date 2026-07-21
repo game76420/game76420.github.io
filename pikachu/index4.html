@@ -1,0 +1,3617 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pikachu Volleyball - 單人版</title>
+<style>
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:#222;
+    overflow:hidden;
+    font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+  }
+  #stage-wrap{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:#222;
+  }
+  #game{
+    display:block;
+    background:#000;
+    box-shadow:0 0 20px rgba(0,0,0,0.6);
+    image-rendering:pixelated;
+    image-rendering:-moz-crisp-edges;
+    image-rendering:crisp-edges;
+  }
+  #hint{
+    position:fixed; left:0; right:0; bottom:6px;
+    text-align:center; color:#ddd; font-size:12px;
+    pointer-events:none; user-select:none;
+    text-shadow:0 1px 2px #000;
+  }
+
+  /* ===== 設定按鈕（左上角）===== */
+  #settingsBtn{
+    position:fixed; top:10px; left:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:transparent;
+    color:#fff; font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:none;
+    transition:transform 0.2s;
+  }
+  #settingsBtn:hover{ transform:scale(1.06); }
+
+  /* ===== 重開遊戲按鈕：固定在設定齒輪下方，設定面板開關都能點，共用同一顆 ===== */
+  #restartGameBtn{
+    position:fixed; top:56px; left:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:transparent;
+    color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:none;
+    transition:transform 0.2s;
+  }
+  #restartGameBtn:hover{ transform:scale(1.06); }
+
+  /* ===== 線上對戰按鈕（設定齒輪、重開按鈕下方）===== */
+  #onlineBtn{
+    position:fixed; top:102px; left:10px; z-index:1300;
+    width:40px; height:40px; border-radius:50%;
+    border:none; cursor:pointer;
+    background:transparent;
+    color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:none;
+    transition:transform 0.2s;
+  }
+  #onlineBtn:hover{ transform:scale(1.06); }
+  #onlineBtn.connected{ color:#5cb85c; }
+
+  /* ===== 線上對戰面板（同樣是側邊面板風格）===== */
+  #onlinePanel{
+    position:fixed; top:0; left:0; height:100vh; z-index:1250;
+    display:none;
+    pointer-events:none;
+  }
+  .online-side-panel{
+    pointer-events:auto;
+    position:relative;
+    width:380px; max-width:92vw; height:100%;
+    background:rgba(255,255,255,0.98);
+    box-shadow:6px 0 24px rgba(0,0,0,0.35);
+    border-radius:0 14px 14px 0;
+    padding:22px 18px 16px 18px;
+    overflow-y:auto; box-sizing:border-box;
+    font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+    color:#222;
+  }
+  .online-side-panel h2{
+    margin:0 0 8px 0; font-size:1.2em; color:#0077cc; padding-right:26px;
+  }
+  .online-hint{
+    font-size:0.8em; color:#555; background:#f2f7fc;
+    border:1px solid #cfe3f5; border-radius:6px;
+    padding:8px 10px; margin:0 0 14px 0; line-height:1.6;
+  }
+  .online-step{
+    margin-bottom:14px; border:1px solid #e2e2e2; border-radius:10px;
+    overflow:hidden; background:#fbfbfc;
+  }
+  .online-step-title{
+    padding:8px 12px; font-size:0.86em; font-weight:700;
+    color:#fff; background:#4a90e2;
+  }
+  .online-step-body{ padding:10px 12px; }
+  .online-role-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .online-role-row button{
+    flex:1; padding:10px; font-size:0.9em; font-weight:700;
+    border:1.5px solid #4a90e2; border-radius:8px; cursor:pointer;
+    background:#fff; color:#4a90e2; transition:0.15s;
+  }
+  .online-role-row button.active{ background:#4a90e2; color:#fff; }
+  .online-textarea{
+    width:100%; box-sizing:border-box; font-family:'Consolas','Menlo',monospace;
+    font-size:0.72em; padding:8px; border:1px solid #ccc; border-radius:6px;
+    resize:vertical; min-height:70px;
+  }
+  .online-btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .online-btn-row button{
+    flex:1 1 auto; padding:8px 10px; font-size:0.84em; border:none;
+    border-radius:6px; cursor:pointer; background:#4a90e2; color:#fff;
+    transition:background 0.2s;
+  }
+  .online-btn-row button:hover{ background:#357abd; }
+  .online-btn-row button:disabled{ background:#bbb; cursor:not-allowed; }
+  #onlineStatus{
+    font-size:0.82em; padding:8px 10px; border-radius:6px; margin-top:10px;
+    background:#fff3cd; border:1px solid #ffe08a; color:#8a6d1a; text-align:center;
+  }
+  #onlineStatus.ok{ background:#e6f7e6; border-color:#bfe8bf; color:#1a7a1a; }
+  #onlineStatus.err{ background:#fdeaea; border-color:#f3b6b6; color:#a11; }
+  @media (max-width:600px){
+    .online-side-panel{ width:92vw; padding:16px 12px 12px 12px; }
+  }
+  .room-code-display{
+    text-align:center; font-family:'Consolas','Menlo',monospace;
+    font-size:2em; font-weight:700; letter-spacing:0.15em;
+    color:#0077cc; background:#f2f7fc; border:1.5px dashed #4a90e2;
+    border-radius:8px; padding:10px 6px; margin:8px 0;
+    user-select:all;
+  }
+  .room-code-input{
+    text-align:center; font-family:'Consolas','Menlo',monospace;
+    font-size:1.3em; font-weight:700; letter-spacing:0.2em;
+    text-transform:uppercase;
+  }
+  .online-step-body-hint{
+    font-size:0.78em; color:#666; margin-top:8px; line-height:1.5;
+  }
+
+  /* ===== 設定面板：靠左側的側邊面板，不會擋住整個遊戲畫面 ===== */
+  #paramPanel{
+    position:fixed; top:0; left:0; height:100vh; z-index:1200;
+    display:none; /* JS 會切換成 flex */
+    pointer-events:none; /* 面板以外的區域讓滑鼠事件穿透，遊戲仍可正常操作 */
+  }
+  .param-side-panel{
+    pointer-events:auto;
+    position:relative;
+    width:360px; max-width:90vw; height:100%;
+    background:rgba(255,255,255,0.98);
+    box-shadow:6px 0 24px rgba(0,0,0,0.35);
+    border-radius:0 14px 14px 0;
+    padding:22px 18px 16px 18px;
+    overflow-y:auto; box-sizing:border-box;
+    font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+    color:#222;
+  }
+  .param-side-panel h2{
+    margin:0 0 8px 0; font-size:1.2em; color:#0077cc; padding-right:26px;
+  }
+  .param-hint{
+    font-size:0.8em; color:#0a0; background:#eaffea;
+    border:1px solid #bfe8bf; border-radius:6px;
+    padding:8px 10px; margin:0 0 14px 0; line-height:1.5;
+  }
+  .modal-close-x{
+    position:absolute; top:12px; right:12px;
+    width:28px; height:28px; border:none; border-radius:50%;
+    background:#eee; color:#444; font-size:18px; line-height:1;
+    cursor:pointer;
+  }
+  .modal-close-x:hover{ background:#ddd; }
+  .param-group{
+    margin-bottom:10px; border:1px solid #e2e2e2; border-radius:10px;
+    overflow:hidden; background:#fbfbfc;
+  }
+  .param-group[data-kind="player"]{ border-color:#bcdcf7; }
+  .param-group[data-kind="ai"]{ border-color:#f7dcae; }
+  .param-group[data-kind="ball"]{ border-color:#cdeac0; }
+  .param-group[data-kind="sound"]{ border-color:#dcc7f0; }
+  .param-group[data-kind="rule"]{ border-color:#f5b8c4; }
+  .param-group[data-kind="screen"]{ border-color:#a8e0dc; }
+  .param-group[data-kind="speed"]{ border-color:#f2c14e; }
+  .param-group[data-kind="toggle"]{ border-color:#f0a8c8; }
+  .param-group summary{
+    list-style:none; cursor:pointer; padding:9px 12px;
+    font-size:0.86em; font-weight:700; display:flex; align-items:center;
+    gap:6px; user-select:none; color:#fff; background:#4a90e2;
+  }
+  .param-group[data-kind="ai"] summary{ background:#e2984a; }
+  .param-group[data-kind="ball"] summary{ background:#5cb85c; }
+  .param-group[data-kind="sound"] summary{ background:#9b59b6; }
+  .param-group[data-kind="rule"] summary{ background:#e0507a; }
+  .param-group[data-kind="screen"] summary{ background:#2ba89b; }
+  .param-group[data-kind="speed"] summary{ background:#e2a020; }
+  .param-group[data-kind="toggle"] summary{ background:#d1548c; }
+  .param-group summary::-webkit-details-marker{ display:none; }
+  .param-group summary::before{
+    content:'▶'; font-size:0.7em; transition:transform 0.15s; flex-shrink:0;
+  }
+  .param-group[open] > summary::before{ transform:rotate(90deg); }
+  .param-group summary .param-group-count{
+    margin-left:auto; font-weight:400; font-size:0.85em; opacity:0.85;
+  }
+  .param-group-body{ padding:12px 12px 2px 12px; }
+  .param-row{ margin-bottom:14px; }
+  .param-row-top{
+    display:flex; justify-content:space-between; align-items:center;
+    gap:8px; margin-bottom:4px;
+  }
+  .param-row-top label{ font-size:0.8em; color:#444; flex:1; }
+  .param-num{
+    width:76px; font-size:0.8em; padding:2px 4px;
+    border:1px solid #ccc; border-radius:4px;
+  }
+  .param-row input[type="range"]{ width:100%; }
+  .param-row input.param-text{
+    width:100%; box-sizing:border-box; padding:5px 8px;
+    border:1px solid #ccc; border-radius:6px; font-size:0.85em;
+    font-family:inherit; color:#222;
+  }
+  .param-row input.param-text:focus{ outline:none; border-color:#9b59b6; }
+  .param-row-hint{ font-size:0.72em; color:#999; margin-top:2px; }
+  /* ===== 開關型參數（音效/音樂開關）===== */
+  .param-row-top label.param-toggle-label{ flex:1; }
+  .param-toggle-switch{
+    position:relative; display:inline-block; width:44px; height:24px;
+    flex-shrink:0; cursor:pointer;
+  }
+  .param-toggle-switch input{
+    opacity:0; width:0; height:0;
+  }
+  .param-toggle-slider{
+    position:absolute; inset:0; cursor:pointer;
+    background:#ccc; border-radius:24px; transition:background 0.2s;
+  }
+  .param-toggle-slider::before{
+    content:""; position:absolute; width:18px; height:18px;
+    left:3px; top:3px; background:#fff; border-radius:50%;
+    transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .param-toggle-switch input:checked + .param-toggle-slider{ background:#5cb85c; }
+  .param-toggle-switch input:checked + .param-toggle-slider::before{ transform:translateX(20px); }
+  .param-json-row{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .param-json-row label{ font-size:0.8em; color:#444; }
+  #paramTextArea{
+    width:100%; font-family:'Consolas','Menlo',monospace; font-size:0.76em;
+    padding:8px; border:1px solid #ccc; border-radius:6px;
+    resize:vertical; box-sizing:border-box;
+  }
+  .param-btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .param-btn-row button{
+    flex:1 1 auto; padding:8px 10px; font-size:0.84em; border:none;
+    border-radius:6px; cursor:pointer; background:#4a90e2; color:#fff;
+    transition:background 0.2s;
+  }
+  .param-btn-row button:hover{ background:#357abd; }
+  #resetParamsBtn{ background:#fff; color:#e11; border:1.5px solid #e11 !important; }
+  #resetParamsBtn:hover{ background:#ffeaea; }
+  .param-status{
+    min-height:1.2em; font-size:0.8em; color:#0a0; margin-top:8px; text-align:center;
+  }
+  @media (max-width:600px){
+    .param-side-panel{ width:92vw; padding:16px 12px 12px 12px; }
+  }
+
+  /* ===== 虛擬搖桿與動作按鈕（觸控裝置用）===== */
+  #joystick{
+    position:fixed; left:32px; bottom:32px;
+    width:140px; height:140px; z-index:2000;
+    touch-action:none; display:none;
+  }
+  #joystick-base{
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    border:3px solid rgba(255,255,255,0.3);
+    border-radius:50%; position:absolute;
+    backdrop-filter:blur(10px);
+  }
+  #joystick-knob{
+    width:70px; height:70px;
+    background:linear-gradient(135deg,#4a90e2,#357abd);
+    border:2px solid rgba(255,255,255,0.5);
+    border-radius:50%; position:absolute;
+    left:35px; top:35px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:left 0.05s, top 0.05s;
+  }
+  #joystick-direction{
+    position:absolute; width:100%; height:100%;
+    border-radius:50%; pointer-events:none; z-index:1;
+  }
+  .direction-indicator{
+    position:absolute; width:20px; height:20px;
+    background:rgba(255,255,255,0.8); border-radius:50%;
+    transform:translate(-50%,-50%);
+    opacity:0; transition:opacity 0.2s;
+  }
+  .direction-indicator.active{
+    opacity:1; background:#4a90e2;
+    box-shadow:0 0 10px rgba(74,144,226,0.6);
+  }
+  .direction-indicator.up{ top:10px; left:50%; }
+  .direction-indicator.down{ bottom:10px; left:50%; }
+  .direction-indicator.left{ left:10px; top:50%; }
+  .direction-indicator.right{ right:10px; top:50%; }
+  .direction-indicator.up-left{ top:15px; left:15px; }
+  .direction-indicator.up-right{ top:15px; right:15px; }
+  .direction-indicator.down-left{ bottom:15px; left:15px; }
+  .direction-indicator.down-right{ bottom:15px; right:15px; }
+
+  #screenButtons{
+    position:fixed; right:32px; bottom:48px; z-index:2000;
+    display:none; flex-direction:column; gap:18px;
+  }
+  #screenButtons button{
+    width:80px; height:80px; border-radius:50%;
+    font-size:1em; background:#e2984a; color:#fff;
+    border:none; box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    font-family:inherit; cursor:pointer;
+  }
+  #screenButtons button:active{ background:#c97f36; transform:scale(0.95); }
+
+  @media (orientation:landscape) and (max-width:900px){
+    #joystick, #screenButtons{ display:block !important; }
+  }
+  @media (orientation:portrait) and (max-width:768px){
+    #joystick{
+      display:block !important;
+      left:30%; bottom:max(36px, env(safe-area-inset-bottom, 0px) + 24px);
+      transform:translateX(-50%);
+      width:130px; height:130px;
+    }
+    #joystick-knob{ width:65px; height:65px; left:32.5px; top:32.5px; }
+    #screenButtons{
+      display:block !important;
+      right:28px; bottom:max(48px, env(safe-area-inset-bottom, 0px) + 36px);
+      gap:12px;
+    }
+    #screenButtons button{
+      width:96px; height:96px; font-size:1.1em; font-weight:700;
+      box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    }
+  }
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <canvas id="game" width="800" height="600"></canvas>
+</div>
+
+<button id="settingsBtn" title="遊戲參數設定">⚙️</button>
+<button id="restartGameBtn" title="重新開始遊戲">🔄</button>
+<button id="onlineBtn" title="線上對戰">🌐</button>
+
+<!-- 虛擬搖桿：手機/平板上用來控制左右移動與跳躍 -->
+<div id="joystick" style="display:none;">
+  <div id="joystick-base"></div>
+  <div id="joystick-direction">
+    <div class="direction-indicator up"></div>
+    <div class="direction-indicator down"></div>
+    <div class="direction-indicator left"></div>
+    <div class="direction-indicator right"></div>
+    <div class="direction-indicator up-left"></div>
+    <div class="direction-indicator up-right"></div>
+    <div class="direction-indicator down-left"></div>
+    <div class="direction-indicator down-right"></div>
+  </div>
+  <div id="joystick-knob"></div>
+</div>
+<!-- 虛擬按鈕：對應鍵盤的 Enter / Space，觸發飛撲與殺球 -->
+<div id="screenButtons" style="display:none;">
+  <button id="actionBtn">飛撲/殺球</button>
+</div>
+
+<!-- 設定面板：靠左側的側邊面板（不是全螢幕遮罩），開啟時遊戲仍會繼續運作，
+     方便玩家一邊調整一邊實際測試手感 -->
+<div id="paramPanel" style="display:none;">
+  <div class="param-side-panel">
+    <button id="closeParamPanel" class="modal-close-x" title="關閉">×</button>
+    <h2>遊戲參數設定</h2>
+    <p class="param-hint">面板開啟時遊戲照常運作，可以邊調邊玩測試手感。覺得節奏太快，先拉低「玩家移動速度」「AI 反應距離」試試看。<br>面板開啟中，畫面上會用彩色邊框顯示皮卡丘與球的碰撞判定範圍，關閉面板後邊框會自動消失，方便對照調整數值。</p>
+    <div id="paramSliders" class="param-sliders"></div>
+    <div class="param-json-row">
+      <label for="paramTextArea">參數總表（JSON，可複製 / 貼上）：</label>
+      <textarea id="paramTextArea" rows="8" spellcheck="false" placeholder="按「複製目前參數」會把目前數值產生在這裡；下次要套用同一組設定時，把內容貼回這裡，再按「套用貼上的參數」即可。"></textarea>
+    </div>
+    <div class="param-btn-row">
+      <button id="copyParamsBtn">複製目前參數</button>
+      <button id="applyParamsBtn">套用貼上的參數</button>
+      <button id="resetParamsBtn">還原預設值</button>
+    </div>
+    <div id="paramCopyStatus" class="param-status"></div>
+  </div>
+</div>
+
+<!-- 線上對戰面板：用房間代碼透過 PeerJS 中介伺服器牽線，遊戲資料仍是雙方直接 P2P 傳輸 -->
+<div id="onlinePanel" style="display:none;">
+  <div class="online-side-panel">
+    <button id="closeOnlinePanel" class="modal-close-x" title="關閉">×</button>
+    <h2>🌐 線上對戰</h2>
+    <p class="online-hint">
+      建房間的人＝<b>左側</b>角色，加入的人＝<b>右側</b>角色。<br>
+      建房間只要把一組短代碼傳給對方（用 LINE / Discord 都可以）；對方輸入代碼按「加入」就會自動連線，不用再傳任何東西回來。
+    </p>
+
+    <div class="online-role-row">
+      <button id="roleHostBtn">我要建房間（左側）</button>
+      <button id="roleGuestBtn">我要加入房間（右側）</button>
+    </div>
+
+    <div id="hostFlow" style="display:none;">
+      <div class="online-step">
+        <div class="online-step-title">① 建立房間</div>
+        <div class="online-step-body">
+          <div class="online-btn-row">
+            <button id="hostCreateBtn">產生房間代碼</button>
+          </div>
+          <div id="hostRoomCode" class="room-code-display" style="display:none;"></div>
+          <div class="online-btn-row" id="hostCopyRow" style="display:none;">
+            <button id="hostCopyCodeBtn">複製代碼</button>
+          </div>
+          <div class="online-step-body-hint" id="hostWaitHint" style="display:none;">代碼傳給對方後，等對方輸入代碼加入即可，不用做任何其他事。</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="guestFlow" style="display:none;">
+      <div class="online-step">
+        <div class="online-step-title">① 輸入對方傳來的房間代碼</div>
+        <div class="online-step-body">
+          <input id="guestCodeInput" class="online-textarea room-code-input" type="text" maxlength="6" placeholder="輸入 4～6 碼房間代碼" autocomplete="off" autocapitalize="characters">
+          <div class="online-btn-row">
+            <button id="guestJoinBtn">加入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="onlineStatus">尚未連線</div>
+    <div class="online-btn-row" style="margin-top:10px;">
+      <button id="onlineDisconnectBtn" style="background:#e11;">中斷連線 / 回到單機</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+// ---------- 基本設定 / Canvas 等比縮放（兩側留黑）----------
+// 注意：畫面寬高現在可以在設定面板調整，所以改成 let，並在 GAME_PARAMS
+// 定義完成後由 applyScreenSize() 同步成使用者設定的數值
+let SCREEN_WIDTH = 800;
+let SCREEN_HEIGHT = 600;
+// 地板所在的 y 座標（角色腳底、球落地的高度）＝畫面高度 - 地面高度，
+// 由 applyScreenSize() 依 GAME_PARAMS.groundHeight 同步更新
+let GROUND_Y = SCREEN_HEIGHT;
+const FPS = 60;
+// 先宣告好 game（稍後才會賦值成 new Game()），讓 applyScreenSize() 在
+// 遊戲物件建立「之前」被呼叫時，也能安全地用 if(game) 判斷，不會因為
+// const 的暫時性死區（TDZ）而丟出 ReferenceError
+let game = null;
+const WHITE = "#ffffff";
+const BLACK = "#000000";
+const YELLOW = "#ffff00";
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+// 關閉影像平滑：pixel-art 風格的角色圖若被瀏覽器做平滑濾波會模糊，
+// 尤其是 ctx.scale(-1,1) 鏡像翻轉的那一側（例如 AI 往右飛撲/轉身時）特別明顯。
+// 注意：canvas.width / canvas.height 一旦被賦值就會重置 context 狀態，
+// 所以 applyScreenSize() 裡改尺寸之後也要重新設定一次。
+ctx.imageSmoothingEnabled = false;
+canvas.width = SCREEN_WIDTH;
+canvas.height = SCREEN_HEIGHT;
+
+function resize(){
+  const scale = Math.min(window.innerWidth / SCREEN_WIDTH, window.innerHeight / SCREEN_HEIGHT);
+  canvas.style.width  = Math.floor(SCREEN_WIDTH * scale) + "px";
+  canvas.style.height = Math.floor(SCREEN_HEIGHT * scale) + "px";
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- 資源載入 ----------
+function loadImage(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
+function loadSound(src) {
+  const a = new Audio(src);
+  a.preload = "auto";
+  return a;
+}
+function playSound(a) {
+  if (!GAME_PARAMS.sfxEnabled) return;
+  try {
+    const clone = a.cloneNode();
+    clone.volume = a.volume;
+    clone.play().catch(() => {});
+  } catch (e) {}
+}
+// 先完整播放 pikachu.wav，播完（觸發 ended 事件）才開始播放背景音樂 bgm，
+// 兩段音樂不會疊在一起播放。若 pikachu.wav 播放失敗（例如檔案遺失、瀏覽器阻擋自動播放），
+// 為了避免背景音樂整個播不出來，會直接退回播放背景音樂。
+// 也會分別尊重「音效開關」（控制 pikachu 提示音）與「音樂開關」（控制背景音樂 bgm）。
+function playPikachuThenMusic() {
+  let musicTriggered = false;
+  // 手機瀏覽器（尤其某些 App 內建瀏覽器/WebView）對「有聲播放」的要求非常嚴格：
+  // 只有「這次呼叫本身就在使用者手勢事件的呼叫堆疊裡」才會被允許播放，
+  // 就算音訊物件先前已經被「解鎖」過、或只是晚了一個 rAF 影格才呼叫 play()，
+  // 都可能被擋下來，這正是背景音樂在手機上播不出來、但一般音效（緊跟在
+  // 觸控之後立刻呼叫 playSound()）卻沒問題的原因。
+  //
+  // 這裡曾經試過「先用 muted = true 播放，pikachu.wav 播完再把 muted 設回
+  // false」，理論上 muted 播放一定會被允許；但實測發現部分手機瀏覽器
+  // （例如 iOS Safari）把「之後用程式把 muted 改回 false」視為跟直接呼叫
+  // play() 一樣，同樣必須發生在使用者手勢的呼叫堆疊裡才會生效——不在手勢
+  // 堆疊裡的話，muted 會被瀏覽器悄悄擋下來、繼續維持靜音，聽起來就像
+  // 「背景音樂完全沒播放」，只有真正點擊設定面板的音樂開關（貨真價實的
+  // 使用者點擊事件）才能讓它生效。
+  //
+  // 正確解法：一開始就用「沒有 muted、但音量 0」的方式呼叫 play()——
+  // 這是一次貨真價實的「有聲播放」呼叫，只要它確實發生在使用者手勢的
+  // 呼叫堆疊裡（呼叫這個函式的當下），瀏覽器就會允許。之後只需要把
+  // volume 從 0 調高，這只是單純調整音量、不是重新播放也不是取消靜音，
+  // 不會被自動播放限制擋下，不需要另一次使用者手勢。
+  if (GAME_PARAMS.musicEnabled) {
+    try {
+      sounds.bgm.muted = false;
+      sounds.bgm.volume = 0;
+      const p = sounds.bgm.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    } catch (e) {}
+  }
+  function startMusicOnce() {
+    if (musicTriggered) return;
+    musicTriggered = true;
+    if (GAME_PARAMS.musicEnabled) {
+      sounds.bgm.volume = 0.5;
+      // 保險：如果一開始的播放不知為何沒有真的播放起來（仍被擋下），
+      // 這裡再補呼叫一次 play()；多數情況下不會執行到這裡，因為前面已經播放成功。
+      if (sounds.bgm.paused) sounds.bgm.play().catch(() => {});
+    } else {
+      sounds.bgm.pause();
+    }
+  }
+  if (!GAME_PARAMS.sfxEnabled) {
+    // 音效關掉了，跳過 pikachu 提示音，直接（視音樂開關）開始播放背景音樂
+    startMusicOnce();
+    return;
+  }
+  try {
+    // 直接用 sounds.pikachu 本人播放，不要 cloneNode()：
+    // 這個元素從頁面載入時就已經帶著 preload="auto" 開始緩衝，直接用它
+    // 才能吃到這段緩衝進度；如果每次都重新複製一個全新的 Audio 元素，
+    // 等於每次都要重新開始抓取/緩衝檔案，在網路較慢、瀏覽器還沒有快取
+    // （例如使用者第一次進入頁面）時容易發生「還沒緩衝好就被跳過」的狀況。
+    const intro = sounds.pikachu;
+    intro.currentTime = 0;
+    intro.addEventListener("ended", startMusicOnce, { once: true });
+    intro.addEventListener("error", startMusicOnce, { once: true });
+    intro.play().catch(startMusicOnce);
+    // 保底逾時：萬一音檔載入異常導致 ended/error 都沒觸發，最多等 8 秒
+    // 還是要接著播放背景音樂，不要整個卡住
+    setTimeout(startMusicOnce, 8000);
+  } catch (e) {
+    startMusicOnce();
+  }
+}
+
+const images = {
+  background: loadImage("img/beach.png"),
+  // 球的動畫改成 5 張獨立圖檔（ball_1.png ~ ball_5.png），輪流播放但大小維持不變，
+  // 用法跟 pikachuFrames 一樣，陣列索引對應 frame（0~4）。
+  ballFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/ball_${n}.png`)),
+  // 平常狀態（idle/run）改成 5 張獨立圖檔，每張都是完整的一格 55x56，
+  // 不再用單張雪碧圖橫向切格。陣列索引就對應 frame（0~4 對應 pikachu_1~pikachu_5.png）。
+  pikachuFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_${n}.png`)),
+  // 跳躍狀態專用的 5 張圖檔（pikachu_jmp_1.png ~ pikachu_jmp_5.png），用法跟 pikachuFrames 一樣。
+  pikachuJumpFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_jmp_${n}.png`)),
+  // 擊球瞬間專用的 5 張圖檔（pikachu_hit_1.png ~ pikachu_hit_5.png），59x54，
+  // 在一般（非跳躍殺球/非飛撲）碰到球時短暫播放一次，播完自動回到平常姿勢。
+  pikachuHitFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/pikachu_hit_${n}.png`)),
+  // 飛撲狀態專用的 3 張圖檔（pikachu_swoop_1.png ~ pikachu_swoop_3.png），63x61，
+  // 用法跟 pikachuJumpFrames/pikachuHitFrames 一樣，不再用單張橫向雪碧圖切格。
+  pikachuSwoopFrames: [1, 2, 3].map(n => loadImage(`img/pikachu_swoop_${n}.png`)),
+  stick: loadImage("img/stick.png"),
+  // 飛撲擊球時產生的火花特效圖
+  spark: loadImage("img/spark.png"),
+  // 開始畫面（主選單）專用的首圖背景
+  mainScreen: loadImage("img/main.png"),
+  // 開始畫面「開始遊戲」按鈕圖
+  startButton: loadImage("img/1p.png"),
+  // 遊戲結束時，贏家/輸家各自的 5 張動畫圖（只播一次，播完停在最後一張）
+  winFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/win_${n}.png`)),
+  loseFrames: [1, 2, 3, 4, 5].map(n => loadImage(`img/lose_${n}.png`)),
+  // 分數用的數字圖檔：橫向排列的 0~9 雪碧圖，總寬 320、高 32，每個數字固定佔 32x32。
+  scoreDigits: loadImage("img/no.png"),
+};
+
+let assetsReady = false;
+// no.png 雪碧圖裡每個數字原始格子的寬高（來源圖總寬 320、高 32，共 10 格 0~9）。
+const SCORE_DIGIT_SRC = 32;
+// 把一個非負整數用 no.png 的數字圖示畫出來（可以是多位數，例如比分到 10 分以上）。
+// x/y：對齊基準點；align="left" 時 x 是最左邊數字的左邊界，align="right" 時 x 是最右邊數字的右邊界。
+// digitSize：每個數字圖示畫出來的寬高（正方形，會等比縮放原始 32x32 的格子）。
+function drawScoreNumber(num, x, y, align, digitSize) {
+  const img = images.scoreDigits;
+  if (!img || !img.naturalWidth) return;
+  const str = String(Math.max(0, Math.floor(num)));
+  const totalW = str.length * digitSize;
+  const startX = align === "left" ? x : x - totalW;
+  for (let i = 0; i < str.length; i++) {
+    const d = str.charCodeAt(i) - 48; // '0' 的 charCode 是 48
+    if (d < 0 || d > 9) continue;
+    ctx.drawImage(
+      img,
+      d * SCORE_DIGIT_SRC, 0, SCORE_DIGIT_SRC, SCORE_DIGIT_SRC,
+      startX + i * digitSize, y, digitSize, digitSize
+    );
+  }
+}
+
+// images 裡有些值是單張圖片、有些（pikachuFrames）是圖片陣列，
+// 這裡統一攤平成一維陣列，才能逐一檢查/監聽每張圖片是否載入完成。
+function flattenImages() {
+  return Object.values(images).flatMap(v => Array.isArray(v) ? v : [v]);
+}
+function checkAssetsReady() {
+  const imgs = flattenImages();
+  assetsReady = imgs.every(i => i.complete && i.naturalWidth !== 0);
+}
+flattenImages().forEach(i => {
+  i.addEventListener("load", checkAssetsReady);
+  i.addEventListener("error", checkAssetsReady);
+});
+
+// 球的動畫每隔幾個 update tick 換下一張圖（數字越小換得越快；60 = 每秒約換 1 張）
+const BALL_ANIM_FRAME_DURATION = 4;
+
+// ---------- 精靈參數 ----------
+const SPRITE_W = 55;
+const SPRITE_H = 56;
+const SWOOP_W = 63;
+const SWOOP_H = 61;
+const JUMP_W = 59;
+const JUMP_H = 59;
+const HIT_W = 59;
+const HIT_H = 54;
+const WIN_W = 59;
+const WIN_H = 64;
+const LOSE_W = 60;
+const LOSE_H = 63;
+
+/* ============================================================
+   【可調式參數面板】所有影響速度/手感/難度/音效檔名的數值都集中放在這裡，
+   左上角⚙️設定面板會即時讀取/修改，並且能複製成 JSON 文字保存。
+   覺得遊戲太快，可以直接降低 playerSpeed / aiJumpTriggerDistance 等數值。
+   ============================================================ */
+let GAME_PARAMS = {
+  // --- 整體遊戲速度 ---
+  gameSpeedMultiplier: 0.8,   // 遊戲整體速度倍率：直接影響主迴圈每秒跑幾次邏輯更新（tick），
+                            // 1 = 原速，2 = 兩倍速，0.5 = 一半速。會同時影響移動/跳躍/球速/動畫播放快慢。
+
+  // --- 音效／音樂開關 ---
+  sfxEnabled: true,    // 音效開關：擊球/跳躍/得分/殺球/進入遊戲(pikachu)等音效
+  musicEnabled: true,  // 音樂開關：背景音樂 bgm 循環播放
+
+  // --- 畫面尺寸 ---
+  screenWidth: 432,          // 遊戲畫面寬度（像素）
+  screenHeight: 304,         // 遊戲畫面高度（像素）
+  groundHeight: 26,          // 地面高度（像素）：地板離畫面底部的距離，角色與球會停在這個高度上
+
+  // --- 玩家移動與跳躍（AI 也共用這組數值）---
+  // 下面三個數值改成跟原版 physics.js 完全一樣（原版是逐格 +1 的「整數重力」，
+  // 不是連續的小數重力，所以這裡的 gravity 預設值也改回整數 1，
+  // 跳躍初速 -16、水平移動 6 都是原版 FUN_00401fc0 裡的原始數值）。
+  playerSpeed: 6,            // 左右移動速度（原版：xDirection * 6）
+  jumpVelocity: -16,         // 跳躍瞬間初速（原版：固定 -16）
+  gravity: 1,                // 重力加速度（原版：每格 tick 固定 +1，是整數階梯式重力，不是連續加速度）
+
+  // --- 動畫播放速度 ---
+  spriteAnimInterval: 10,      // 平常狀態（idle/run/jump）多少個 tick 換一張圖，數字越大播放越慢
+  diveAnimInterval: 20,       // 飛撲狀態多少個 tick 換一張圖，數字越大播放越慢
+  hitAnimInterval: 4,         // 擊球瞬間動畫多少個 tick 換一張圖，數字越大播放越慢（共 5 張，播完自動結束）
+  winLoseAnimInterval: 8,     // 遊戲結束時，贏家/輸家動畫多少個 tick 換一張圖（共 5 張，只播一次，播完停在最後一張）
+
+  // --- 飛撲 Dive ---
+  diveDistance: 250,         // 飛撲最遠可移動的水平距離（原版沒有這個上限概念，這裡保留給您微調用）
+  diveSpeed: 8,              // 飛撲時每格移動速度（原版：divingDirection * 8）
+  diveDuration: 5,           // 飛撲落地後「躺地」幾個 tick 才恢復站立。
+                              // 原版變數初始值是 3，但因為判斷式是「每格 -1，減到 -2 才恢復」，
+                              // 實際算下來落地後會僵直 5 個 tick，換算成這裡「從落地那刻累加到達這個數字」的寫法，5 才是對的值。
+                              // 舊版預設是 30（而且還從按下飛撲鍵、人還在空中飛的時候就開始倒數），
+                              // 兩個因素疊加起來，等於飛撲後的僵直時間被拉長到原版好幾倍，這是手感差異的一大來源之一。
+  diveInitialVY: -5,         // 飛撲瞬間垂直初速（原版：固定 -5）
+
+  // --- 擊球判定 ---
+  hitboxWidthGround: 34,             // 角色「站在地面」時的擊球碰撞箱寬度（跟圖片顯示大小分開，只影響判定範圍）
+  hitboxWidthJump: 55,               // 角色「跳起來」時的擊球碰撞箱寬度
+  hitboxHeight: 56,                 // 角色擊球碰撞箱高度（水平置中、垂直以腳底對齊）
+  spikeHitboxExtra: 15,             // 跳躍殺球判定專用的碰撞箱，往精靈頭頂上方額外延伸的高度（像素）
+  spikeHitboxForward: 15,           // 跳躍殺球判定範圍，往精靈面向的前方（面對球網的方向）額外加寬的距離（像素）
+  // 下面這段「擊球判定」已改成跟原版 physics.js 一樣的公式（見 resolveBallHit() 函式），
+  // 不再是「固定力道 + 固定角度 + 隨機浮動」的系統。原版擊球方向其實不是隨機決定的，
+  // 而是「球跟角色的水平距離」決定球被打飛的方向與強弱：
+  //   球速 x = (球與角色的水平距離 / hitXDivisor)，球在角色左邊就往左飛，右邊就往右飛
+  //   球速 y = 固定往上彈，且強度至少有 hitMinUpSpeed（原版是 15）
+  // 只有「跳躍中 + 按下擊球鍵」（也就是殺球/smash）才會用另一套固定的強力公式；
+  // 單純的「飛撲中碰到球」在原版裡其實不是殺球，只是很普通地把球頂回去（弱），
+  // 這跟很多人對原版的印象不同，但這是照原始遊戲機器碼逆向出來的實際行為。
+  hitXDivisor: 3,                   // 一般擊球：水平距離要除以這個值才是球的水平初速（原版固定 3，越小球飛越快）
+  hitMinUpSpeed: 15,                 // 一般擊球：往上彈的最低速度（原版固定 15，絕對值越大球彈越高）
+  jumpSpikePower: 10,               // 跳躍殺球（jump + 擊球鍵）水平初速的基礎值（原版固定 10，殺球永遠是這個值的 1~2 倍，見下方公式）
+  jumpSpikeUpMultiplier: 2,          // 跳躍殺球垂直初速 = 原本球速絕對值 * 這個倍率 * 方向鍵（原版固定 2）
+
+  // --- AI 難度 ---
+  aiJumpTriggerDistance: 80,   // 球與 AI 水平距離小於此值且球在頭頂上方時，AI 才會起跳（調高：原本 50 太小，AI 常常球都快到頭上了才彈跳，慢半拍）
+  aiSpikeChance: 95,           // AI 只要跳起來、球又在殺球判定範圍內，有百分之幾的機率會殺球（0~100，數字越大 AI 越常殺球）（調高：原本 80，讓 AI 更常主動殺球攻擊，不會老是軟軟地把球撥回去）
+  aiDiveTriggerDistance: 60,   // 球與 AI 水平距離超過此值時，AI 會嘗試飛撲接球（調低：原本 80，讓 AI 更早飛撲搶救，減少明明有機會卻站著看球落地的情況）
+
+  // --- AI 球路預測 ---
+  aiPredictionEnabled: true,   // 是否開啟「提前算好球的路徑」：開啟後 AI 會用跟球完全相同的物理公式，
+                               // 模擬球之後的彈跳、落地軌跡，提前移動到預測落點卡位，而不是等球飛到面前才反應
+  aiPredictionAccuracy: 100,   // 預測準確度（0~100）：100 = 完全準確，數字越低，AI 會在預測落點加入越多隨機誤差，
+                               // 模擬「算得不夠準」，避免 AI 變得無法擊敗
+  aiPredictionMaxSteps: 900,   // 模擬球路徑時最多往前推算幾個 tick（避免球反彈係數=1時模擬跑不完，安全上限）
+  aiChaseSpeedMultiplier: 1.8, // AI 追球時的移動速度倍率（乘在 playerSpeed 上，只在「有算出預測落點、正在趕過去卡位」時生效）：
+                               // 就算算得再準，若 AI 走路速度跟玩家一樣、又是等對手擊球那一刻才開始起跑，
+                               // 遇到又快又刁鑽的殺球還是會追不到；這個倍率讓 AI 追球時腳程比平常快一些，
+                               // 用來補足「反應/起跑」天生比人類慢半拍的落差，調到 1 就等於跟玩家一樣快。（調高：原本 1.4，AI 卡位會明顯變積極、變快）
+
+  // --- AI 託管／自動連續對戰 ---
+  aiTakeoverEnabled: false,    // AI 託管開關：開啟後，右側玩家改由 AI 自動操作（跟左側 AI 用同一套決策邏輯），
+                                // 等於「AI 對 AI 互打」，人類不用操作，可當成自動展示/測試模式
+  autoRestartEnabled: false,   // 自動開新局開關：開啟後，遊戲結束畫面停留一段時間後會自動重新開始一局，
+                                // 不需要手動按 Enter，通常會搭配上面的 AI 託管一起用，讓 AI 無限自打下去
+  autoRestartDelay: 180,       // 自動開新局要等待多久才開始下一局（tick，設定面板會換算成秒顯示，180 tick = 3 秒）
+
+  // --- 除錯顯示 ---
+  showBallPath: false,         // 是否在畫面上顯示 AI 提前算好的球路徑虛線與預測落點（僅供除錯/觀察用，預設關閉，跟設定面板開關無關，獨立控制）
+
+  // --- 排球物理 ---
+  ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球）的初速都會乘上這個值，調低就整體變慢
+  ballGravity: 1,               // 球的重力加速度（原版固定每格 tick +1，是整數階梯式，不是 0.1 這種連續小數；
+                                 // 這是「球感覺飄／落下太慢」最主要的原因，改成 1 之後球的拋物線會明顯變陡、變快）
+  ballBounceRestitution: 1,    // 球碰到邊界/地板反彈後的速度保留比例（原版是完全反彈=1，不會耗損）
+  ballWidth: 40,                // 球的碰撞箱寬度（同時也是繪製寬度）
+  ballHeight: 40,                // 球的碰撞箱高度（同時也是繪製高度）
+
+  // --- 球網 ---
+  netWidth: 5,                // 球網「畫面顯示」寬度
+  netHeight: 102,              // 球網高度
+  netCollisionHalfWidth: 25,  // 球網「碰撞判定」的半寬（原版固定 25，比畫面上看到的網柱寬很多，
+                               // 這樣球不用真的貼到網柱圖案才會反彈，判定比較寬鬆／符合原版手感）
+  netTopCapHeight: 16,          // 球網頂端「圓帽」的判定高度（原版固定 16）：
+                               // 球打到網子最頂端這一小段圓帽範圍時只會往下彈（y 方向反彈），
+                               // 打到網子側面（圓帽以下）則是往旁邊彈開（x 方向反彈），這是原版網子判定的關鍵細節
+
+  // --- 遊戲規則 ---
+  winScore: 15,                // 先得到幾分獲勝
+
+  // --- 分數顯示 ---
+  scoreFontSize: 32,           // 分數數字圖示的顯示大小（像素，正方形，會等比縮放 no.png 裡 32x32 的格子）
+  scoreY: 8,                  // 分數數字圖示的頂端 y 座標（離畫面頂端的距離，像素，數字越大分數越靠下）
+
+  // --- 發球 ---
+  serveOffsetX: 130,           // 發球時球的固定水平位置：以畫面正中央為基準，往發球方那一側偏移的距離（像素）。左右鏡射，AI（左側）與玩家（右側）用同一個距離、方向相反
+  serveDropDelay: 60,          // 得分後，球停在原地多少 tick 才開始掉落（設定面板會換算成秒顯示，60 tick = 1 秒）
+
+  // --- 音樂 / 音效檔案名稱（檔案要放在 sounds/ 資料夾底下）---
+  bgmFile: "sounds/bgm.mp3",       // 背景音樂
+  hitFile: "sounds/hit.wav",       // 一般擊球音效
+  jumpFile: "sounds/jump.wav",     // 跳躍音效
+  scoreFile: "sounds/score.wav",   // 得分音效
+  slamFile: "sounds/Data_2.wav",   // 殺球/飛撲扣殺音效
+  pikachuFile: "sounds/pikachu.wav", // 進入遊戲時播放
+  winFile: "sounds/win.wav"          // 遊戲結束時播放
+};
+// 保留一份原始預設值，供設定面板的「還原預設值」使用
+const GAME_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(GAME_PARAMS));
+
+// 依照 GAME_PARAMS 目前的畫面尺寸設定，同步 SCREEN_WIDTH / SCREEN_HEIGHT、
+// canvas 實際大小，並重置場上物件位置（球網/角色/球都跟畫面尺寸相關，
+// 尺寸一變就必須重新計算位置，否則會卡在畫面外）。
+function applyScreenSize(){
+  SCREEN_WIDTH = GAME_PARAMS.screenWidth;
+  SCREEN_HEIGHT = GAME_PARAMS.screenHeight;
+  GROUND_Y = SCREEN_HEIGHT - GAME_PARAMS.groundHeight;
+  canvas.width = SCREEN_WIDTH;
+  canvas.height = SCREEN_HEIGHT;
+  ctx.imageSmoothingEnabled = false; // 改尺寸會重置 context，要重新關閉平滑避免翻轉角色變模糊
+  if(typeof resize === "function") resize();
+  if(game){
+    game.reset();
+  }
+}
+applyScreenSize();
+
+// 每個音效對應的「檔案名稱」參數名稱（放進 GAME_PARAMS，可在設定面板調整）
+const SND_FILE_KEY = {
+  bgm:   "bgmFile",
+  hit:   "hitFile",
+  jump:  "jumpFile",
+  score: "scoreFile",
+  slam:  "slamFile",
+  pikachu: "pikachuFile",
+  win:     "winFile"
+};
+// 反查表：GAME_PARAMS 的檔名鍵 -> sounds 的音效鍵，設定面板改檔名時用來重新載入該音效
+const FILE_KEY_TO_SND_KEY = {};
+Object.keys(SND_FILE_KEY).forEach(function(k){ FILE_KEY_TO_SND_KEY[SND_FILE_KEY[k]] = k; });
+
+const sounds = {};
+// 依照 GAME_PARAMS 目前指定的檔名，(重新)載入某個音效。
+// GAME_PARAMS 定義完成之後會被呼叫一次做初始載入，
+// 之後設定面板修改檔名時也會呼叫這個函式來換掉音效檔。
+function reloadSound(key){
+  const fileKey = SND_FILE_KEY[key];
+  const filename = (fileKey && GAME_PARAMS[fileKey]) || "";
+  if(!filename) return;
+  const wasPlaying = key === "bgm" && sounds.bgm && !sounds.bgm.paused;
+  sounds[key] = loadSound(filename);
+  if(key === "bgm"){
+    sounds.bgm.loop = true;
+    sounds.bgm.volume = 0.5;
+    if(wasPlaying) sounds.bgm.play().catch(() => {});
+  }
+}
+Object.keys(SND_FILE_KEY).forEach(reloadSound);
+
+/* ------------------------------------------------------------
+   手機瀏覽器（尤其 iOS Safari）音訊自動播放限制：
+   .play() 一定要「在使用者手勢事件當下、同一個呼叫堆疊裡」被呼叫，才算數。
+   一般音效之所以在手機上聽得到，是因為 playSound() 幾乎都是緊接在觸控操作
+   之後被觸發；但背景音樂是在 pikachu.wav 播完後的 "ended" 事件裡才呼叫
+   sounds.bgm.play()，這已經不是使用者手勢的同一個呼叫堆疊了，
+   所以手機上會被瀏覽器擋下來，只聽得到音效、聽不到音樂。
+
+   解法：在使用者第一次觸控/點擊/按鍵的當下，同步把每一個音訊物件都
+   play() 一次再立刻 pause()、重置到開頭。這個「解鎖」動作完成之後，
+   之後不管在哪裡（ended 事件、setTimeout…）呼叫同一個音訊物件的 .play()，
+   瀏覽器都會允許正常播放。
+
+   ⚠️ 但 pikachu.wav 不能放進這個解鎖清單：它會在同一次觸控之後幾乎立刻
+   （下一個 rAF 影格）被 playPikachuThenMusic() 真正播放。解鎖動作的
+   pause()/歸零是等 play() 的 Promise resolve 之後才非同步執行的——
+   如果當下網路較慢、音檔還沒緩衝好（例如第一次進入頁面、還沒有快取），
+   這個非同步的暫停可能會晚於真正的播放呼叫才觸發，結果就是把剛開始播放
+   的 pikachu.wav 攔腰打斷，聽起來就像完全沒播放。重新整理後檔案已經在
+   瀏覽器快取裡，解鎖的播放/暫停幾乎瞬間完成，兩者不會撞在一起，所以才會
+   「重新整理後就正常」。
+   只要用其他音效（hit/jump/score/slam/win）完成一次解鎖，
+   就能讓整個頁面被瀏覽器視為「已取得播放授權」，pikachu.wav 自己稍後的
+   正式播放呼叫一樣會被允許，不需要把它也放進這個解鎖清單。
+   bgm 也一樣不放進這個清單：背景音樂改由 playPikachuThenMusic() 在進入遊戲
+   當下自己直接呼叫一次「音量 0」的 play() 處理（見該函式內註解），跟這裡的
+   解鎖動作分開，避免兩邊同時操作同一個 sounds.bgm 互相打架。
+   ------------------------------------------------------------ */
+let audioUnlocked = false;
+function unlockAudioForMobile(){
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  Object.keys(sounds).forEach(function(key){
+    if (key === "pikachu") return; // 交給正式播放流程自己處理，避免跟這裡的解鎖動作互相打架
+    if (key === "bgm") return; // 背景音樂也交給 playPikachuThenMusic() 自己的 muted play() 處理；
+    // 這裡的「play() 完馬上 pause()+歸零」是非同步的，如果跟進入遊戲那次同一個觸控
+    // 觸發的正式背景音樂播放「撞在一起」，這裡延遲執行的 pause()/歸零可能會晚於
+    // 正式播放才發生，結果把剛播起來的背景音樂攔腰打斷、歸零，導致後面只能靠
+    // 「ended」事件裡再重新呼叫一次 play() 來補救——但那次呼叫已經不在使用者手勢
+    // 的呼叫堆疊裡了，在手機瀏覽器上會被擋下（電腦版限制較鬆所以不會發現這個問題）。
+    const a = sounds[key];
+    if(!a) return;
+    try{
+      const playPromise = a.play();
+      if(playPromise && typeof playPromise.then === "function"){
+        playPromise.then(function(){
+          a.pause();
+          a.currentTime = 0;
+        }).catch(function(){});
+      } else {
+        a.pause();
+        a.currentTime = 0;
+      }
+    }catch(e){}
+  });
+}
+["touchstart", "pointerdown", "keydown"].forEach(function(evt){
+  // capture:true 讓這個監聽器在「捕獲階段」就先執行，
+  // 這樣就算虛擬搖桿/動作按鈕的觸控事件呼叫了 e.stopPropagation()（它們有呼叫），
+  // 音訊解鎖動作還是會在事件到達目標元素之前就先跑過，不會被擋掉
+  window.addEventListener(evt, unlockAudioForMobile, { once: true, capture: true, passive: true });
+});
+
+// 面板用的參數說明表：[顯示名稱, 參數鍵, 最小值, 最大值, 每格間距, 類型]
+const GAME_PARAMS_META = [
+  ["整體遊戲速度倍率 gameSpeedMultiplier", "gameSpeedMultiplier", 0.25, 3, 0.05],
+
+  ["音效開關 sfxEnabled", "sfxEnabled", 0, 0, 0, "bool"],
+  ["音樂開關 musicEnabled", "musicEnabled", 0, 0, 0, "bool"],
+
+  ["畫面寬度 screenWidth", "screenWidth", 400, 1600, 20, "free"],
+  ["畫面高度 screenHeight", "screenHeight", 300, 1200, 20, "free"],
+  ["地面高度 groundHeight", "groundHeight", 0, 300, 5, "free"],
+
+  ["移動速度 playerSpeed", "playerSpeed", 1, 10, 0.5],
+  ["跳躍力道 jumpVelocity", "jumpVelocity", -25, -5, 0.5],
+  ["重力 gravity", "gravity", 0.2, 3, 0.1],
+
+  ["平常動畫換圖間隔 spriteAnimInterval", "spriteAnimInterval", 1, 30, 1],
+  ["飛撲動畫換圖間隔 diveAnimInterval", "diveAnimInterval", 1, 60, 1],
+  ["擊球動畫換圖間隔 hitAnimInterval", "hitAnimInterval", 1, 30, 1],
+  ["贏家/輸家動畫換圖間隔 winLoseAnimInterval", "winLoseAnimInterval", 1, 30, 1],
+
+  ["飛撲距離 diveDistance", "diveDistance", 50, 300, 10, "free"],
+  ["飛撲速度 diveSpeed", "diveSpeed", 2, 25, 1],
+  ["飛撲維持時間 diveDuration", "diveDuration", 0.02, 1.5, 0.02, "sec"],
+  ["飛撲垂直初速 diveInitialVY", "diveInitialVY", -10, 0, 0.5],
+
+  ["擊球碰撞箱寬度(站立時) hitboxWidthGround", "hitboxWidthGround", 10, 100, 2, "free"],
+  ["擊球碰撞箱寬度(跳躍時) hitboxWidthJump", "hitboxWidthJump", 10, 100, 2, "free"],
+  ["擊球碰撞箱高度 hitboxHeight", "hitboxHeight", 10, 100, 2, "free"],
+  ["跳躍殺球判定範圍加高 spikeHitboxExtra", "spikeHitboxExtra", 0, 60, 2, "free"],
+  ["跳躍殺球判定範圍加寬(前方) spikeHitboxForward", "spikeHitboxForward", 0, 60, 2, "free"],
+  ["一般擊球水平除數 hitXDivisor", "hitXDivisor", 1, 8, 0.5],
+  ["一般擊球最低上彈速度 hitMinUpSpeed", "hitMinUpSpeed", 5, 30, 1],
+  ["跳躍殺球水平基礎值 jumpSpikePower", "jumpSpikePower", 5, 30, 1],
+  ["跳躍殺球垂直倍率 jumpSpikeUpMultiplier", "jumpSpikeUpMultiplier", 1, 4, 0.2],
+
+  ["AI 起跳觸發距離 aiJumpTriggerDistance", "aiJumpTriggerDistance", 10, 150, 5, "free"],
+  ["AI 殺球機率(%) aiSpikeChance", "aiSpikeChance", 0, 100, 5],
+  ["AI 飛撲觸發距離 aiDiveTriggerDistance", "aiDiveTriggerDistance", 20, 200, 5, "free"],
+
+  ["AI 提前算球路徑開關 aiPredictionEnabled", "aiPredictionEnabled", 0, 0, 0, "bool"],
+  ["AI 預測準確度(%) aiPredictionAccuracy", "aiPredictionAccuracy", 0, 100, 5],
+  ["AI 追球速度倍率 aiChaseSpeedMultiplier", "aiChaseSpeedMultiplier", 1, 2.5, 0.1],
+
+  ["AI 託管玩家(AI對AI互打) aiTakeoverEnabled", "aiTakeoverEnabled", 0, 0, 0, "bool"],
+  ["自動開新局開關 autoRestartEnabled", "autoRestartEnabled", 0, 0, 0, "bool"],
+  ["自動開新局等待時間 autoRestartDelay", "autoRestartDelay", 0.5, 15, 0.5, "sec"],
+
+  ["球的路徑顯示 showBallPath", "showBallPath", 0, 0, 0, "bool"],
+
+  ["球速倍率 ballSpeedMultiplier", "ballSpeedMultiplier", 0.2, 2, 0.05],
+  ["球重力 ballGravity", "ballGravity", 0.2, 3, 0.1],
+  ["球反彈係數 ballBounceRestitution", "ballBounceRestitution", 0.3, 1, 0.05],
+  ["球碰撞箱寬度 ballWidth", "ballWidth", 10, 80, 2, "free"],
+  ["球碰撞箱高度 ballHeight", "ballHeight", 10, 80, 2, "free"],
+
+  ["球網寬度(顯示) netWidth", "netWidth", 2, 40, 1, "free"],
+  ["球網高度 netHeight", "netHeight", 50, 300, 5, "free"],
+  ["球網碰撞半寬 netCollisionHalfWidth", "netCollisionHalfWidth", 5, 60, 1, "free"],
+  ["球網頂端圓帽判定高度 netTopCapHeight", "netTopCapHeight", 0, 60, 1, "free"],
+
+  ["獲勝分數 winScore", "winScore", 1, 30, 1],
+
+  ["分數圖示大小 scoreFontSize", "scoreFontSize", 10, 100, 2, "free"],
+  ["分數圖示頂端位置 scoreY", "scoreY", 0, 200, 2, "free"],
+
+  ["發球水平位置(距中央) serveOffsetX", "serveOffsetX", 0, 200, 5, "free"],
+  ["發球停留時間 serveDropDelay", "serveDropDelay", 0, 3, 0.1, "sec"],
+
+  ["背景音樂檔名 bgmFile", "bgmFile", 0, 0, 0, "text"],
+  ["一般擊球音效檔名 hitFile", "hitFile", 0, 0, 0, "text"],
+  ["跳躍音效檔名 jumpFile", "jumpFile", 0, 0, 0, "text"],
+  ["得分音效檔名 scoreFile", "scoreFile", 0, 0, 0, "text"],
+  ["殺球/飛撲音效檔名 slamFile", "slamFile", 0, 0, 0, "text"],
+  ["進入遊戲音效檔名 pikachuFile", "pikachuFile", 0, 0, 0, "text"],
+  ["遊戲結束音效檔名 winFile", "winFile", 0, 0, 0, "text"]
+];
+
+// 設定面板分類：把參數依用途分組顯示
+const PARAM_CATEGORIES = [
+  { kind: "speed", title: "⚡ 整體遊戲速度",
+    keys: ["gameSpeedMultiplier"] },
+  { kind: "rule", title: "🏆 遊戲規則",
+    keys: ["winScore"] },
+  { kind: "toggle", title: "🔊 音效與音樂開關",
+    keys: ["sfxEnabled", "musicEnabled"] },
+  { kind: "screen", title: "🖥️ 畫面尺寸",
+    keys: ["screenWidth", "screenHeight", "groundHeight"] },
+  { kind: "player", title: "🕹️ 玩家／AI　移動與跳躍",
+    keys: ["playerSpeed", "jumpVelocity", "gravity"] },
+  { kind: "player", title: "🎞️ 動畫播放速度",
+    keys: ["spriteAnimInterval", "diveAnimInterval", "hitAnimInterval", "winLoseAnimInterval"] },
+  { kind: "player", title: "🤸 飛撲 Dive",
+    keys: ["diveDistance", "diveSpeed", "diveDuration", "diveInitialVY"] },
+  { kind: "player", title: "🏐 擊球判定（原版公式，見 resolveBallHit）",
+    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "hitXDivisor", "hitMinUpSpeed", "jumpSpikePower", "jumpSpikeUpMultiplier"] },
+  { kind: "ai", title: "🤖 AI　難度",
+    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier"] },
+  { kind: "toggle", title: "🎮 AI 託管／自動連續對戰",
+    keys: ["aiTakeoverEnabled", "autoRestartEnabled", "autoRestartDelay"] },
+  { kind: "toggle", title: "🐛 除錯顯示",
+    keys: ["showBallPath"] },
+  { kind: "ball", title: "⚽ 排球物理", 
+    keys: ["ballSpeedMultiplier", "ballGravity", "ballBounceRestitution", "ballWidth", "ballHeight"] },
+  { kind: "ball", title: "🥅 球網",
+    keys: ["netWidth", "netHeight", "netCollisionHalfWidth", "netTopCapHeight"] },
+  { kind: "rule", title: "🔢 分數顯示",
+    keys: ["scoreFontSize", "scoreY"] },
+  { kind: "rule", title: "🏐 發球",
+    keys: ["serveOffsetX", "serveDropDelay"] },
+  { kind: "sound", title: "🎵 音樂／音效檔案名稱 (sounds/ 資料夾)",
+    keys: ["bgmFile", "hitFile", "jumpFile", "scoreFile", "slamFile", "pikachuFile", "winFile"] }
+];
+
+// 設定面板開啟時，是否在畫面上顯示碰撞判定範圍（皮卡丘/球）
+let DEBUG_SHOW_HITBOX = false;
+
+// ---------- 特效火花 ----------
+class Spark {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.life = 10;
+    this.maxLife = 10;
+    this.size = 32; // 火花圖顯示大小（正方形），可依 spark.png 的實際比例調整
+  }
+  update() {
+    this.life -= 1;
+    return this.life > 0;
+  }
+  draw(ctx) {
+    const img = images.spark;
+    if (assetsReady && img && img.complete && img.naturalWidth !== 0) {
+      ctx.save();
+      // 隨著生命值遞減淡出，火花消失時不會太突兀
+      ctx.globalAlpha = Math.max(this.life / this.maxLife, 0);
+      ctx.drawImage(img, this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+      ctx.restore();
+    } else {
+      // spark.png 還沒載入完成時的備用畫法，避免畫面上完全沒有回饋
+      ctx.fillStyle = "red";
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+// ---------- 皮卡丘角色 ----------
+class Pikachu {
+  constructor(x, y, side) {
+    this.x = x;
+    this.y = y;
+    this.side = side; // 'left' or 'right'
+    this.width = SPRITE_W;
+    this.height = SPRITE_H;
+
+    this.state = "idle"; // idle, run, jump, dive
+    this.frame = 0;
+    this.animTimer = 0;
+    // 動畫換圖速度改成從 GAME_PARAMS 即時讀取（見 update() 裡的 threshold），
+    // 這樣設定面板調整後不用重開就會生效，這裡不用再存固定值。
+
+    this.vy = 0;
+    this.isJumping = false;
+    this.score = 0;
+
+    this.diveMode = false;
+    this.diveTimer = 0;
+    this.diveLanded = false; // 是否已經落地進入「躺地」僵直階段（原版：state===4 lying_down）
+    this.diveTargetX = 0;
+    this.divingMovement = false;
+    this.diveDirection = null;
+
+    // 殺球容錯視窗：玩家按下殺球鍵那一刻（且當時正在跳躍），先把這個旗標打開，
+    // 之後每一格畫面都持續檢查球有沒有撞到，直到真的撞到、或落地為止才關閉，
+    // 不再要求「按下的那一格畫面」剛好跟球重疊，跟 AI 的 willSpike 邏輯一致。
+    this.spikeArmed = false;
+
+    // 擊球瞬間短暫播放的動畫（跟 this.state 分開，不影響移動/跳躍/飛撲的狀態機，
+    // 純粹是畫面上蓋一層擊球姿勢，播完 5 張圖就自動關閉，回到平常的圖）
+    this.hitAnimActive = false;
+    this.hitAnimFrame = 0;
+    this.hitAnimTimer = 0;
+
+    this.flip = side === "right";
+  }
+
+  // 一般（非跳躍殺球/非飛撲）碰到球時呼叫：播一次 pikachu_hit_1~5.png
+  playHitAnim() {
+    this.hitAnimActive = true;
+    this.hitAnimFrame = 0;
+    this.hitAnimTimer = 0;
+  }
+
+  get rect() {
+    // 擊球碰撞箱大小可另外用 GAME_PARAMS.hitboxWidthGround / hitboxWidthJump / hitboxHeight 調整，
+    // 跟精靈圖本身的畫面大小（this.width/this.height）分開，改碰撞箱不會影響圖片顯示大小。
+    // 站在地面時用 hitboxWidthGround（較窄，避免站著不動就穩贏），
+    // 跳起來之後（this.isJumping）改用 hitboxWidthJump（較寬，方便跳躍中判定擊球/殺球）。
+    // 垂直以腳底（this.y + this.height）對齊，這樣調高度時角色腳底還是貼在地面上。
+    // 水平方向不再置中縮減，而是「前方（面向球網那一側）貼齊圖片邊緣、只從背後（面向球場外側那一側）
+    // 縮減」：左側角色面向右邊（球網在右邊），所以縮減的部分從左邊（背後）扣掉；
+    // 右側角色面向左邊，縮減的部分則從右邊（背後）扣掉。這樣站在原地時，
+    // 球只要繞到角色背後就碰不到，不會單純站著不動就穩贏。
+    const w = this.isJumping
+      ? (GAME_PARAMS.hitboxWidthJump || this.width)
+      : (GAME_PARAMS.hitboxWidthGround || this.width);
+    const h = GAME_PARAMS.hitboxHeight || this.height;
+    const x = this.side === "left"
+      ? this.x + (this.width - w)   // 左側角色：前方（右邊）貼齊，從左邊（背後）縮減
+      : this.x;                      // 右側角色：前方（左邊）貼齊，從右邊（背後）縮減
+    return {
+      x,
+      y: this.y + (this.height - h),
+      w,
+      h
+    };
+  }
+
+  // 專門給「跳躍殺球」判定用的碰撞箱：在基本碰撞箱（this.rect）上，
+  // 往上額外延伸一段距離（GAME_PARAMS.spikeHitboxExtra），讓球還沒完全貼到角色本體、
+  // 只是掠過頭頂上方時，跳躍中也能判定成殺球；
+  // 另外還往「精靈面向的前方」（左側角色朝右、右側角色朝左，也就是面對球網的方向）
+  // 加寬一段距離（GAME_PARAMS.spikeHitboxForward），方便殺一顆稍微在前面一點的球。
+  // 一般的落地碰球仍然用原本的 rect，不會被放大。
+  get spikeRect() {
+    const base = this.rect;
+    const extraUp = GAME_PARAMS.spikeHitboxExtra || 0;
+    const extraForward = GAME_PARAMS.spikeHitboxForward || 0;
+    let x = base.x;
+    let w = base.w;
+    if (extraForward) {
+      if (this.side === "left") {
+        // 左側角色面向右邊，往右（x 增加的方向）加寬
+        w += extraForward;
+      } else {
+        // 右側角色面向左邊，往左（x 減少的方向）加寬
+        x -= extraForward;
+        w += extraForward;
+      }
+    }
+    return { x, y: base.y - extraUp, w, h: base.h + extraUp };
+  }
+
+  move(direction, net, speed) {
+    // 飛撲中鎖死方向鍵：一旦開始飛撲，就讓飛撲自己的位移邏輯（divingMovement/diveTargetX）
+    // 獨佔控制權，直到飛撲結束、落地站穩為止；玩家或 AI 這時按左右都不會再生效。
+    // 這樣飛撲方向（diveDirection，也就是翻面用的依據）從頭到尾只會被設定一次，
+    // 不會被中途的移動指令打架，從根本上避免精靈中途轉向、圖案跟移動方向對不上的問題。
+    if (this.diveMode) return;
+    // speed 可由呼叫端覆寫（AI 追預測落點時會傳入比 playerSpeed 快一點的速度），
+    // 不傳就沿用原本玩家/AI 共用的 GAME_PARAMS.playerSpeed，玩家操作完全不受影響。
+    const stepSpeed = speed !== undefined ? speed : GAME_PARAMS.playerSpeed;
+    const minX = this.side === "left" ? 0 : SCREEN_WIDTH / 2;
+    const maxX = this.side === "left" ? SCREEN_WIDTH / 2 : SCREEN_WIDTH;
+    if (direction === "left" && this.x > minX) {
+      this.x -= stepSpeed;
+      if (!this.diveMode && !this.isJumping) this.state = "run";
+    } else if (direction === "right" && this.x + this.width < maxX) {
+      this.x += stepSpeed;
+      if (!this.diveMode && !this.isJumping) this.state = "run";
+    } else {
+      if (!this.diveMode && !this.isJumping) this.state = "idle";
+    }
+  }
+
+  jump() {
+    if (!this.isJumping && !this.diveMode) {
+      this.isJumping = true;
+      this.vy = GAME_PARAMS.jumpVelocity;
+      this.state = "jump";
+      this.frame = 0;
+      this.animTimer = 0;
+      playSound(sounds.jump);
+    }
+  }
+
+  dive(direction, netRect) {
+    if (!this.isJumping && !this.diveMode) {
+      this.diveMode = true;
+      this.state = "dive";
+      this.frame = 0;
+      this.animTimer = 0;
+      this.diveTimer = 0;
+      this.vy = GAME_PARAMS.diveInitialVY;
+      const diveDistance = GAME_PARAMS.diveDistance;
+      this.diveDirection = direction;
+
+      if (direction === "left") {
+        const limit = this.side === "left" ? 0 : netRect.x + netRect.w;
+        this.diveTargetX = Math.max(this.x - diveDistance, limit);
+      } else {
+        const limit = this.side === "left" ? netRect.x - this.width : SCREEN_WIDTH - this.width;
+        this.diveTargetX = Math.min(this.x + diveDistance, limit);
+      }
+      this.divingMovement = true;
+    }
+  }
+
+  update(ball) {
+    // 動畫：換圖間隔改由 GAME_PARAMS 控制，數字越大換圖越慢（撥放速度越慢）
+    this.animTimer++;
+    const threshold = this.state === "dive" ? GAME_PARAMS.diveAnimInterval : GAME_PARAMS.spriteAnimInterval;
+    if (this.animTimer >= threshold) {
+      if (this.diveMode) {
+        if (this.y + this.height < GROUND_Y) {
+          this.frame = Math.min(1, this.frame + 1);
+        } else {
+          this.frame = 2;
+        }
+      } else {
+        const frameCount = this.state === "dive" ? 3 : 5;
+        this.frame = (this.frame + 1) % frameCount;
+      }
+      this.animTimer = 0;
+    }
+
+    // 擊球瞬間動畫：跟上面的 this.frame 完全分開計算，播完 5 張（0~4）就自動關閉
+    if (this.hitAnimActive) {
+      this.hitAnimTimer++;
+      if (this.hitAnimTimer >= GAME_PARAMS.hitAnimInterval) {
+        this.hitAnimTimer = 0;
+        this.hitAnimFrame++;
+        if (this.hitAnimFrame >= 5) {
+          this.hitAnimActive = false;
+          this.hitAnimFrame = 0;
+        }
+      }
+    }
+
+    // 移動狀態下的水平飛撲位移
+    if (this.divingMovement && this.diveMode) {
+      const diveSpeed = GAME_PARAMS.diveSpeed;
+      if (Math.abs(this.x - this.diveTargetX) <= diveSpeed) {
+        this.x = this.diveTargetX;
+        this.divingMovement = false;
+      } else if (this.x < this.diveTargetX) {
+        this.x += diveSpeed;
+      } else {
+        this.x -= diveSpeed;
+      }
+    }
+
+    // 重力 / 跳躍 / 飛撲垂直運動
+    // 改成跟原版 physics.js（FUN_00401fc0）一樣的離散公式：
+    // 「先用『這一格』的速度移動位置，移動完之後才把重力加進『下一格』要用的速度」，
+    // 而且是否要繼續加重力，要看「移動完之後有沒有超過地面」才決定，
+    // 不是像連續物理那樣每格都無條件加重力。
+    if (this.isJumping || (this.diveMode && !this.diveLanded)) {
+      const touchY = GROUND_Y - this.height; // 相當於原版的 PLAYER_TOUCHING_GROUND_Y_COORD
+      const futureY = this.y + this.vy;
+      this.y = futureY;
+      if (futureY < touchY) {
+        // 還在空中，才繼續加重力（原版：yVelocity += 1）
+        this.vy += GAME_PARAMS.gravity;
+      } else if (futureY > touchY) {
+        // 落地：直接吸附在地面上，速度歸零（原版是硬吸附，不是慢慢停下來）
+        this.y = touchY;
+        this.vy = 0;
+        this.isJumping = false;
+        this.spikeArmed = false; // 落地代表這次跳躍結束，殺球容錯視窗一併關閉
+        if (this.diveMode) {
+          // 原版：飛撲落地那一刻才切換成「躺地」狀態，並從這一刻才開始倒數，
+          // 飛撲過程中在空中飛的那段時間不算在僵直時間內（這跟舊版直接從按下飛撲鍵就開始倒數不同）。
+          this.diveLanded = true;
+          this.diveTimer = 0;
+        }
+      }
+      // futureY === touchY 這種剛好對齊的情況（浮點數下極少發生）：原版兩個分支都不進，
+      // 位置/速度維持原樣，這裡自然也是同樣行為，不用特別處理。
+    }
+
+    // 飛撲落地後的「躺地」僵直：原版在這段期間完全不處理任何 x/y 移動，玩家操作也無效
+    // （Pikachu.move() 開頭已經用 this.diveMode 擋掉移動輸入，這裡只需負責倒數與恢復站立）。
+    if (this.diveMode && this.diveLanded) {
+      this.diveTimer++;
+      if (this.diveTimer >= GAME_PARAMS.diveDuration) {
+        this.diveMode = false;
+        this.diveLanded = false;
+        this.state = "idle";
+        this.frame = 0;
+        this.diveTimer = 0;
+      }
+    }
+
+    // 飛撲中撞球：原版裡「飛撲」跟「跳躍中按擊球鍵殺球」是兩種不同的碰撞情境，
+    // 飛撲本身沒有專屬的強力公式，飛撲觸球用的是跟一般站立碰球「完全相同」的弱擊球公式
+    // （球會被頂回去，但不會像殺球那麼兇狠——這是原版刻意的設計：飛撲是救球，不是攻擊）。
+    if (this.diveMode && ball && rectsOverlap(this.rect, ball.rect)) {
+      resolveBallHit(ball, this, /* isPowerHit */ false, 0, 0);
+      ball.addSparks();
+      playSound(sounds.slam);
+    }
+  }
+
+  draw(ctx) {
+    if (!assetsReady) return;
+    let sheet, sx, sy, sw, sh, drawW, drawH, drawY;
+    if (this.state === "dive") {
+      // 飛撲改用 3 張獨立圖檔（pikachu_swoop_1.png ~ pikachu_swoop_3.png），
+      // this.frame（0~2）直接對應陣列索引，不用再切格（sx/sy 都是 0）。
+      sheet = images.pikachuSwoopFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = SWOOP_W;
+      sh = SWOOP_H;
+      drawW = SWOOP_W;
+      drawH = SWOOP_H;
+      drawY = this.y - (SWOOP_H - SPRITE_H);
+    } else if (this.hitAnimActive) {
+      // 擊球瞬間動畫（pikachu_hit_1.png ~ pikachu_hit_5.png），59x54，
+      // 只在一般碰球（非跳躍殺球/非飛撲）時短暫蓋在平常姿勢上面播一次。
+      sheet = images.pikachuHitFrames[this.hitAnimFrame];
+      sx = 0;
+      sy = 0;
+      sw = HIT_W;
+      sh = HIT_H;
+      drawW = HIT_W;
+      drawH = HIT_H;
+      // 垂直：讓腳底對齊跟平常站立時一樣的地面高度（圖比平常矮，所以往下修正）
+      drawY = this.y - (HIT_H - SPRITE_H);
+    } else if (this.state === "jump") {
+      // 跳躍狀態改用專用的 5 張圖檔（pikachu_jmp_1.png ~ pikachu_jmp_5.png），
+      // 圖檔實際尺寸是 59x59（比平常的 55x56 稍大），所以照原始大小畫出來，
+      // 不硬壓縮成 55x56，避免變形。
+      sheet = images.pikachuJumpFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = JUMP_W;
+      sh = JUMP_H;
+      drawW = JUMP_W;
+      drawH = JUMP_H;
+      // 垂直：讓腳底對齊跟平常站立時一樣的地面高度（跟 dive/swoop 的做法相同）
+      drawY = this.y - (JUMP_H - SPRITE_H);
+    } else {
+      // 平常狀態（idle/run）改用 5 張獨立圖檔（pikachu_1.png ~ pikachu_5.png），
+      // this.frame（0~4）直接對應陣列索引，取的是整張圖，不用再切格（sx/sy 都是 0）。
+      sheet = images.pikachuFrames[this.frame];
+      sx = 0;
+      sy = 0;
+      sw = SPRITE_W;
+      sh = SPRITE_H;
+      drawW = SPRITE_W;
+      drawH = SPRITE_H;
+      drawY = this.y;
+    }
+
+    let shouldFlip;
+    if (this.state === "dive") {
+      // 飛撲圖檔（pikachu_swoop_1~3.png）本身就是「朝右撲」的畫面，
+      // 跟平常站立圖（pikachu_1~5.png）同一套朝右的預設方向一致，
+      // 所以只要看「飛撲方向」本身：往右撲不用翻，往左撲才翻。
+      // 這裡不該再看 this.side，不然像左側玩家退到底、往前（右）飛撲時，
+      // 反而會被判定成要翻面，變成精靈臉朝後倒退撲過去的怪異畫面。
+      shouldFlip = this.diveDirection === "left";
+    } else {
+      shouldFlip = this.side === "right";
+    }
+
+    // 座標一律取整數再拿去畫：鏡像側（scale(-1,1)）如果用到小數座標，
+    // 在關閉平滑（imageSmoothingEnabled=false）的情況下很容易被裁掉邊緣 1px，
+    // 之前玩家側鼻子不見就是這個原因，所以畫之前先四捨五入成整數像素。
+    // 跳躍圖／擊球圖都比碰撞箱寬（55），水平置中對齊，兩側鏡射時才不會歪一邊
+    // （飛撲 swoop 維持原本不置中的做法，因為那是有方向性的撲球動作，不需要置中）。
+    const centerOffsetX = (this.state === "jump" || this.hitAnimActive) ? (SPRITE_W - drawW) / 2 : 0;
+    const drawX = Math.round(this.x + centerOffsetX);
+    drawY = Math.round(drawY);
+
+    ctx.save();
+    if (shouldFlip) {
+      ctx.translate(drawX + drawW, drawY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(sheet, sx, sy, sw, sh, 0, 0, drawW, drawH);
+    } else {
+      ctx.drawImage(sheet, sx, sy, sw, sh, drawX, drawY, drawW, drawH);
+    }
+    ctx.restore();
+  }
+}
+
+// ---------- 球路徑預測 ----------
+// 用跟 Volleyball.update()「完全相同」的物理公式（重力、邊界反彈、地板反彈、
+// 球網碰撞）把球目前的位置與速度往前模擬很多個 tick，算出球最終會落在哪個 x 座標。
+// 這樣 AI 就能在球還沒飛到面前之前，提前移動到預測落點卡位，而不是每格畫面
+// 只看球「現在」在哪裡才反應。
+// 回傳值：{ x: 預測落點的 x 座標(球中心), path: 取樣後的軌跡點陣列，供除錯畫面畫虛線用 }
+function predictBallTrajectory(ball, netRect) {
+  let x = ball.x, y = ball.y, vx = ball.vx, vy = ball.vy;
+  const w = ball.width, h = ball.height;
+  const gravity = GAME_PARAMS.ballGravity;
+  const restitution = GAME_PARAMS.ballBounceRestitution;
+  const maxSteps = GAME_PARAMS.aiPredictionMaxSteps || 900;
+  const path = [{ x: x + w / 2, y: y + h / 2 }];
+  // fullPath：每一格畫面都記錄一次（不像 path 是每 3 格取樣一次，只給除錯畫面畫虛線用），
+  // 這樣 AI 才能精準查出「再過 N 格畫面，球會在哪個座標」，用來抓準起跳時機，
+  // 而不必等球「現在」飛到夠近才反應。
+  // 額外記錄每一格畫面的 vy（不只 x/y），這樣之後模擬「如果在這一格畫面打這顆球」時，
+  // 才能用跟球當下真正一致的垂直速度去算擊球公式，而不是用一個猜測值。
+  const fullPath = [{ x: x + w / 2, y: y + h / 2, vy: vy }];
+
+  // 這裡的每一步都跟 Volleyball.update() 用完全一樣的判斷順序/公式，
+  // AI 才能準確預測出球實際會落在哪裡（不然預測跟實際物理兜不起來，AI 會卡位卡錯地方）。
+  for (let i = 0; i < maxSteps; i++) {
+    const futureX = x + vx;
+    if (futureX < 0 || futureX > SCREEN_WIDTH - w) {
+      vx = -vx * restitution;
+    }
+
+    if (y + vy < 0) {
+      vy = 1;
+    }
+
+    if (netRect) {
+      const netCenterX = netRect.x + netRect.w / 2;
+      const ballCenterX = x + w / 2;
+      const netTopY = netRect.y;
+      const netCapBottomY = netRect.y + GAME_PARAMS.netTopCapHeight;
+      if (Math.abs(ballCenterX - netCenterX) < GAME_PARAMS.netCollisionHalfWidth && y > netTopY) {
+        if (y <= netCapBottomY) {
+          if (vy > 0) vy = -vy * restitution;
+        } else {
+          if (x < netCenterX) vx = -Math.abs(vx) * restitution;
+          else vx = Math.abs(vx) * restitution;
+        }
+      }
+    }
+
+    let landed = false;
+    const futureY = y + vy;
+    if (futureY + h >= GROUND_Y) {
+      vy = -vy * restitution;
+      y = GROUND_Y - h;
+      landed = true; // 模擬到落地，這就是球最終的落點，不用再繼續往下模擬
+    } else {
+      y = futureY;
+      x = x + vx;
+      vy += gravity;
+    }
+
+    if (i % 3 === 0 || landed) path.push({ x: x + w / 2, y: y + h / 2 });
+    fullPath.push({ x: x + w / 2, y: y + h / 2, vy: vy });
+    if (landed) return { x: x + w / 2, path, fullPath, steps: i + 1 };
+  }
+
+  return { x: x + w / 2, path, fullPath, steps: maxSteps };
+}
+
+// 模擬「如果我在 (hitX, hitY) 這個位置，用 (hitVx, hitVy) 這個初速把球打出去」，
+// 球最後的完整落點資訊——直接借用跟 predictBallTrajectory 完全相同的物理公式
+// （重力、地板、球網頂端圓帽/側面反彈、左右邊界反彈），確保模擬出來的結果
+// 跟球實際飛行的結果一致，不是另外寫一套簡化公式亂猜。
+function simulatePostHit(hitX, hitY, hitVx, hitVy, netRect) {
+  const fakeBall = {
+    x: hitX - GAME_PARAMS.ballWidth / 2,
+    y: hitY - GAME_PARAMS.ballHeight / 2,
+    vx: hitVx,
+    vy: hitVy,
+    width: GAME_PARAMS.ballWidth,
+    height: GAME_PARAMS.ballHeight,
+  };
+  return predictBallTrajectory(fakeBall, netRect); // { x: 落地時球中心x, steps: 落地要花幾格畫面, ... }
+}
+
+// 判斷「這一下打出去，最後會不會反而讓自己這邊丟分（自殺球）」。
+// 最常見的成因是：殺球打得太用力、太靠近網子，球撞到網子彈回來，
+// 又飛回自己這一側落地——原本想攻擊對面，結果球網幫對面把球擋回來、自己反而丟分。
+// isLeftSide：這顆球是哪一側的角色打出去的（true=左側/AI，false=右側/玩家）。
+function willHitSelfDestruct(hitX, hitY, hitVx, hitVy, netRect, isLeftSide) {
+  const landingX = simulatePostHit(hitX, hitY, hitVx, hitVy, netRect).x;
+  const netCenterX = SCREEN_WIDTH / 2;
+  // 落點還在自己這一側 = 這一球等於是自己把球送回自己家門口，判定為「自殺球」
+  return isLeftSide ? landingX < netCenterX : landingX > netCenterX;
+}
+
+// ---- 原版特有的「瞄準弱點」邏輯 ----
+// 原版按鍵殺球時，左右鍵決定力道是否加倍、上/放開/下鍵決定球是「高吊」「平擊」還是「重扣」，
+// 組合起來會落在球場上不同的位置。這裡讓 AI 在真正出手前，把每一種組合都「先在腦內打一次」，
+// 模擬出每種打法最後的落點，再比對對手目前站的位置跟腳程，挑一個對手最沒把握救到的組合出手，
+// 而不是像過去那樣每次都死板地固定用「前+下」硬扣。
+// 回傳 { xDir, yDir, landingX, steps, margin }（margin 越大代表對手越沒機會救到）；
+// 如果每一種組合都會自殺（例如卡在網邊很尷尬的位置），回傳 null。
+function chooseBestSpikeDirection(contactPoint, netRect, opponent, isLeftSide) {
+  const netCenterX = SCREEN_WIDTH / 2;
+  const xDirChoices = [0, 1]; // 原版：左右鍵只影響力道是否加倍，不影響球飛的方向（方向永遠是往對面）
+  const yDirChoices = [-1, 0, 1]; // 上（高吊）／放開（平擊）／下（重扣）
+  let best = null;
+
+  for (const xDir of xDirChoices) {
+    for (const yDir of yDirChoices) {
+      const magnitude = GAME_PARAMS.jumpSpikePower * (Math.abs(xDir) + 1);
+      const simVx = (contactPoint.x < netCenterX ? magnitude : -magnitude) * GAME_PARAMS.ballSpeedMultiplier;
+      const simVy = Math.abs(contactPoint.vy) * yDir * GAME_PARAMS.jumpSpikeUpMultiplier * GAME_PARAMS.ballSpeedMultiplier;
+
+      const result = simulatePostHit(contactPoint.x, contactPoint.y, simVx, simVy, netRect);
+      const landingX = result.x;
+
+      // 自殺球直接淘汰，不列入考慮
+      const selfDestruct = isLeftSide ? landingX < netCenterX : landingX > netCenterX;
+      if (selfDestruct) continue;
+
+      // 估計對手要走多遠、來不來得及：對手目前位置到預測落點的距離，
+      // 除以「一般移動速度」（不套用 AI 專屬的追球加速倍率，這樣才是公平地站在對手角度算，
+      // 不會因為套用了 AI 自己的加速倍率而高估對手的反應能力，導致 AI 反而不敢打刁鑽角度）。
+      // margin 是正數，代表就算對手看到球立刻起跑，也還差這麼多格畫面才追得到；
+      // 數字越大，代表這球對對手來說越難救。
+      const opponentCenterX = opponent.x + opponent.width / 2;
+      const distanceNeeded = Math.abs(landingX - opponentCenterX);
+      const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
+      const margin = framesNeeded - result.steps;
+
+      const candidate = { xDir, yDir, landingX, steps: result.steps, margin, path: result.path };
+      if (!best || candidate.margin > best.margin) best = candidate;
+    }
+  }
+  return best;
+}
+
+// ---------- AI ----------
+class AIPlayer extends Pikachu {
+  constructor(x, y, side) {
+    super(x, y, side);
+    // 本次跳躍是否會殺球：跳起的當下就依 aiSpikeChance 機率決定一次，
+    // 不是每一格畫面都重骰（不然骰個幾格畫面下來幾乎一定會中）。
+    this.willSpike = false;
+    // 這一次殺球要用哪一組方向鍵組合出手（由 chooseBestSpikeDirection 決定），
+    // 預設先給原本「前+下」的固定重扣，避免還沒算過的第一格畫面沒有值可用。
+    this.spikeXDir = 1;
+    this.spikeYDir = 1;
+    // 這次挑中的打法模擬出來的完整路徑點陣列，只給除錯畫面畫「打法路徑」用，跟遊戲邏輯無關
+    this.spikePlannedPath = null;
+
+    // ---- 原版特有的「膽量值 / 待命站位」個性化參數 ----
+    // computerBoldness：0~4 隨機值，每一球開始前重骰一次（見 rerollComputerBoldness）。
+    // 數字越大，AI 個性越大膽：站位判斷容錯越大（比較不龜毛）、越早跳起來準備接球、
+    // 但飛撲門檻也跟著變高（沒事不亂撲），模擬原版每球「賭性」不太一樣的手感。
+    this.computerBoldness = Math.floor(Math.random() * 5);
+    // computerWhereToStandBy：0 = 待命時站在自己半場正中央，1 = 待命時站在靠近球網處。
+    // 兩種待命位置會在特定情況下用機率隨機切換（見 makeDecision 內的重骰邏輯），
+    // 不會每次都乖乖站在同一個位置等球，增加站位的不可預測性。
+    this.computerWhereToStandBy = 0;
+  }
+
+  // 每一球開始前呼叫一次：重骰這一球要用的「膽量值」，模擬原版每球開場
+  // 都重新 rand() % 5 一次的做法（見 physics.js 的 initializeForNewRound）。
+  rerollComputerBoldness() {
+    this.computerBoldness = Math.floor(Math.random() * 5);
+  }
+
+  // 判斷「如果我現在跳下去，這一整段跳躍過程（起跳到落地）有沒有哪一格畫面真的會碰到球」。
+  // 跟原本「只看跳到最高點那一刻」的單點判斷不同：這裡完整模擬跳躍中每一格畫面的垂直位置
+  // （公式跟 Pikachu.update() 的跳躍重力完全一致），同時假設 AI 會持續往預測站位（targetX）移動
+  // （水平速度上限是 chaseSpeed，跟平常走位邏輯一致），再用跟 spikeRect getter 相同的公式
+  // 算出每一格畫面的殺球判定框，逐格跟球的預測路徑（predictedFullPath）比對有沒有重疊。
+  // 只要整段跳躍完全沒有任何一格畫面碰得到球，就回傳 -1——代表「這球用跳的攔不到」，
+  // 這種情況就不該跳，跳了也是白跳（原地起跳、球從旁邊飛過），該做的是繼續走位或放棄這球。
+  // 有碰到球的話，回傳「第幾格畫面碰到」（>=0），方便呼叫端查出當時球的位置/垂直速度，
+  // 進一步模擬「打這一下之後，球最後會落在哪」（見 willHitSelfDestruct）。
+  canReachBallByJumping(targetX, chaseSpeed, predictedFullPath) {
+    const touchY = GROUND_Y - this.height;
+    let simY = touchY;
+    let simVy = GAME_PARAMS.jumpVelocity;
+    let simX = this.x;
+    const gravity = GAME_PARAMS.gravity;
+    const w = GAME_PARAMS.hitboxWidthJump || this.width;
+    const h = GAME_PARAMS.hitboxHeight || this.height;
+    const extraUp = GAME_PARAMS.spikeHitboxExtra || 0;
+    const extraForward = GAME_PARAMS.spikeHitboxForward || 0;
+    const bw = GAME_PARAMS.ballWidth || 24;
+    const bh = GAME_PARAMS.ballHeight || 24;
+    const maxFrames = predictedFullPath.length - 1;
+
+    for (let t = 0; t <= maxFrames; t++) {
+      // 垂直：跳躍物理，跟 Pikachu.update() 完全同一套離散公式
+      const futureY = simY + simVy;
+      if (futureY < touchY) {
+        simY = futureY;
+        simVy += gravity;
+      } else {
+        // 落地，跳躍結束，之後的畫面已經不是「跳躍中」，不用再模擬
+        break;
+      }
+
+      // 水平：假設持續往預測站位移動，速度上限跟目前使用的追球速度一致
+      const dx = targetX - simX;
+      if (Math.abs(dx) > chaseSpeed) simX += Math.sign(dx) * chaseSpeed;
+      else simX = targetX;
+
+      // 用跟 spikeRect getter 相同的公式，算出這一格畫面（模擬出來的 simX/simY）的殺球判定框
+      let rx = this.side === "left" ? simX + (this.width - w) : simX;
+      let rw = w;
+      if (extraForward) {
+        if (this.side === "left") rw += extraForward;
+        else { rx -= extraForward; rw += extraForward; }
+      }
+      const ry = simY + (this.height - h) - extraUp;
+      const rh = h + extraUp;
+
+      const ballPt = predictedFullPath[t];
+      if (!ballPt) break;
+      const bx = ballPt.x - bw / 2, by = ballPt.y - bh / 2;
+
+      if (rectsOverlap({ x: rx, y: ry, w: rw, h: rh }, { x: bx, y: by, w: bw, h: bh })) {
+        return t;
+      }
+    }
+    return -1;
+  }
+
+  makeDecision(ball, netRect, opponent) {
+    try {
+      // 移動判斷都加一個「容許誤差」(等於一步移動速度)：
+      // 原本用 < / > 直接跟目標值比較，當目標值剛好卡在兩個像素中間、
+      // 或球的 x 剛好貼著 AI 的 x 附近時，AI 每一格畫面都會左右各移動一次，
+      // 變成肉眼可見的異常抖動。改成「差距大於一步才移動」就會穩定停住。
+      // 膽量值越大，站位容錯也跟著放寬一點：不會每一格畫面都斤斤計較要精準站在
+      // 目標點正下方，個性上比較大剌剌（對照原版「站位判斷用 computerBoldness+8」）。
+      const tolerance = GAME_PARAMS.playerSpeed + this.computerBoldness * 1.5;
+      const halfWidth = SCREEN_WIDTH / 2;
+      // 這套決策邏輯原本是寫死給左側 AI 用的，現在改成依 this.side 判斷，
+      // 這樣同一套 makeDecision 也能給右側（玩家 AI 託管）使用，達成「AI 對 AI 互打」。
+      const isLeft = this.side === "left";
+      const nearNetLimit = 50; // 站位不會硬走到貼著網子，留一點緩衝（跟原本左側數值一致）
+      const zoneMinX = isLeft ? 0 : halfWidth + nearNetLimit;
+      const zoneMaxX = isLeft ? halfWidth - nearNetLimit : SCREEN_WIDTH;
+      // 待命站位有兩種，依 computerWhereToStandBy 切換（跟原版一樣）：
+      // 0 = 站在自己半場正中央（比較保守、涵蓋範圍平均）；
+      // 1 = 站在靠近球網處（比較積極搶攻，但後場容易空出來）。
+      const readyXMidCourt = isLeft
+        ? (halfWidth / 2 - this.width / 2)                    // 左側：己方（左半場）中央
+        : (halfWidth + halfWidth / 2 - this.width / 2);        // 右側：己方（右半場）中央
+      const readyXNearNet = isLeft
+        ? (halfWidth - nearNetLimit - this.width)              // 左側：貼近球網（留一點緩衝）
+        : (halfWidth + nearNetLimit);                          // 右側：貼近球網（留一點緩衝）
+      const readyX = this.computerWhereToStandBy === 1 ? readyXNearNet : readyXMidCourt;
+
+      // ---- 提前算好球的路徑 ----
+      // 球現在人是不是已經在自己這一側半場（不管方向，先算出來，下面判斷追球/回防都會用到）。
+      const ballOnMySide = isLeft ? (ball.x < halfWidth) : (ball.x >= halfWidth);
+
+      // 原本這裡是用「球的水平速度正負號」判斷球是不是正朝這一側飛過來（incoming），
+      // 但發球那一瞬間球是直直往下掉、水平速度剛好是 0（不偏左也不偏右），
+      // 導致左右兩邊都判定成「球沒有朝我這邊來」，於是站在預備位置一動也不動、
+      // 完全不追蹤發球的實際落點，等球快掉到地上才臨時反應，常常來不及接——
+      // 這就是「AI 自己發球卻沒接好掉下去」的根本原因。
+      // 改成參考原版 letComputerDecideUserInput 的做法：不看方向，每一格畫面都先算出球的
+      // 預測落點，只要「預測落點會落在自己這一側」或「球現在人已經在自己這一側」，
+      // 就視為需要追蹤卡位；只有球明確在對面、預測也會落在對面時，才回預備位置等待。
+      let targetX;
+      let predictedSteps = null; // 預測出的球「還要幾格畫面才會落地」，用來判斷走路來不來得及
+      let predictedFullPath = null; // 球「每一格畫面」的完整預測路徑，用來精準抓起跳時機（不看球現在位置）
+      let willTrackBall = false;
+
+      if (GAME_PARAMS.aiPredictionEnabled) {
+        const predicted = predictBallTrajectory(ball, netRect);
+        const landingOnMySide = isLeft ? predicted.x < halfWidth : predicted.x >= halfWidth;
+        willTrackBall = ballOnMySide || landingOnMySide;
+
+        if (willTrackBall) {
+          // 球剛從「不用追」變成「要追」的那一瞬間才重新骰一次「預測誤差」，
+          // 同一輪來球全程沿用同一個誤差值，避免每一格畫面都重骰誤差，
+          // 導致 AI 明明在追同一顆球、站位卻肉眼可見地一直抖動。
+          if (!this._wasTrackingBall) {
+            const accuracy = Math.max(0, Math.min(100, GAME_PARAMS.aiPredictionAccuracy));
+            const maxErrorPx = 90; // 準確度 0% 時，預測落點最多可能偏差的像素數
+            this._predictionErrorPx = (Math.random() * 2 - 1) * maxErrorPx * (1 - accuracy / 100);
+          }
+          this._lastPredictedPath = predicted.path; // 存起來供除錯畫面畫出預測軌跡虛線
+          predictedSteps = predicted.steps;
+          predictedFullPath = predicted.fullPath;
+          // predicted.x 是「球中心」的預測落點，AI 的碰撞箱又是在精靈寬度(this.width)裡置中，
+          // 所以要對齊兩者的中心，這裡要扣掉的是 AI 自己的半身寬(this.width/2)，
+          // 而不是球的半徑(ball.width/2)，不然兩邊中心會系統性地偏掉一段距離。
+          targetX = predicted.x - this.width / 2 + this._predictionErrorPx;
+          // 預測落點不可能真的落在球網另一側，超出己方半場的部分夾回半場邊界，
+          // 避免 AI 想「穿越球網」卡位卡到一半卡住不動。
+          targetX = Math.max(zoneMinX, Math.min(targetX, zoneMaxX));
+        } else {
+          this._lastPredictedPath = null;
+          targetX = readyX;
+        }
+      } else if (ballOnMySide) {
+        // 關閉預測功能時，退回原本「只看球現在位置」的即時反應行為（同樣要對齊中心）
+        this._lastPredictedPath = null;
+        targetX = ball.x + ball.width / 2 - this.width / 2;
+      } else {
+        this._lastPredictedPath = null;
+        targetX = readyX;
+      }
+      this._wasTrackingBall = willTrackBall;
+
+      // AI 追預測落點時，腳程比一般移動（playerSpeed）快一點（aiChaseSpeedMultiplier），
+      // 用來補「算得再準、也要先起跑才追得到」這段先天的反應落差；
+      // 回防備位置時仍用一般速度，不會整體變成無腦加速。
+      const chaseSpeed = (willTrackBall && GAME_PARAMS.aiPredictionEnabled)
+        ? GAME_PARAMS.playerSpeed * (GAME_PARAMS.aiChaseSpeedMultiplier || 1)
+        : GAME_PARAMS.playerSpeed;
+
+      const dx = targetX - this.x;
+      if (dx < -tolerance && this.x > zoneMinX) {
+        this.move("left", netRect, chaseSpeed);
+      } else if (dx > tolerance && this.x < zoneMaxX) {
+        this.move("right", netRect, chaseSpeed);
+      } else if (!this.diveMode && !this.isJumping) {
+        this.state = "idle";
+      }
+
+      // 待命中（沒有在追球）、而且已經走到待命位置附近站定時，小機率重骰
+      // 「待命站位模式」（中央／靠網），讓 AI 不會每一球都站在完全一樣的地方等球，
+      // 跟原版「rand() % 20 === 0 時重骰 computerWhereToStandBy」的做法一致。
+      if (!willTrackBall && Math.abs(dx) <= tolerance && Math.random() < 1 / 20) {
+        this.computerWhereToStandBy = Math.random() < 0.5 ? 0 : 1;
+      }
+
+      // 起跳／殺球／飛撲：現在改成完全依賴「預測路徑」來決定時機，不再看球現在實際飛到哪裡。
+      // 做法：既然已經精準模擬出球每一格畫面會在哪，就完整模擬「如果我現在跳下去」整段跳躍
+      // 過程中，殺球判定框會不會在某一格畫面真的碰到球——不是只看跳到最高點那一刻，
+      // 這樣才能正確判斷「這球跳了也碰不到」的情況（例如玩家殺出又快又刁鑽的球，
+      // AI 根本來不及卡到正確位置），碰不到就不跳，留在原地繼續走位，而不是白白跳一個空。
+      // （只有開啟 aiPredictionEnabled 且正在追蹤這顆球時才能這樣算；
+      // 沒開預測、或球不在追蹤範圍內時，沒有路徑可用，退回原本「看現在位置」的即時反應寫法。
+      // ballOnMySide 已經在上面算好並沿用，這裡不用重複宣告。）
+      if (ballOnMySide) {
+        if (!this.isJumping) {
+          if (predictedFullPath) {
+            const contactTick = this.canReachBallByJumping(targetX, chaseSpeed, predictedFullPath);
+            if (contactTick >= 0) {
+              this.jump();
+              // 原版特有的「瞄準弱點」邏輯：不是死板地固定用「前+下」硬扣，
+              // 而是把左右鍵（力道加倍與否）跟上/放開/下鍵（高吊/平擊/重扣）的
+              // 每一種組合都先在腦內模擬一次打出去的落點，再比對對手目前站的位置跟腳程，
+              // 挑一個對手最沒把握救到的組合出手（同時已經排除掉會撞網自殺的組合）。
+              const contactPoint = predictedFullPath[contactTick];
+              const best = chooseBestSpikeDirection(contactPoint, netRect, opponent, this.side === "left");
+              if (best) {
+                this.willSpike = true;
+                this.spikeXDir = best.xDir;
+                this.spikeYDir = best.yDir;
+                this.willSelfDestructIfSpike = false;
+                // 存下這次挑中的打法完整模擬路徑，供除錯畫面畫出「AI 算出的打法路徑」
+                this.spikePlannedPath = best.path;
+              } else {
+                // 找不到任何一種組合是安全的（例如剛好卡在網邊很尷尬的位置，怎麼打都會自殺），
+                // 放棄這次強力殺球，人還是照跳（卡住位置），球碰到時會落到下面 updatePlaying()
+                // 的一般碰球判定，用比較保守、原版的「弱擊球」公式把球安全地頂回去。
+                this.willSpike = false;
+                this.willSelfDestructIfSpike = true;
+              }
+            }
+            // 否則：跳了也碰不到，就不跳，維持原本的走位邏輯（上面已經算好的 targetX 會讓
+            // AI 自然而然往正確方向移動／後退卡位，不需要在這裡另外處理「後退」）
+          } else if (ball.y < this.y && Math.abs(ball.x - this.x) < GAME_PARAMS.aiJumpTriggerDistance + this.computerBoldness * 8) {
+            // 膽量值越大，這裡的觸發距離越寬鬆，等於「球還沒真的靠得很近就先跳起來卡位」，
+            // 對應原版「boldness 越大跳得越勤」的個性設定。
+            // 沒有預測路徑可用時的退路：退回原本看「球現在位置」的即時反應，
+            // 這種情況沒有預測路徑可以模擬各種方向的落點，沒辦法挑弱點，維持原本固定的前+下重扣。
+            this.jump();
+            this.willSpike = Math.random() * 100 < GAME_PARAMS.aiSpikeChance;
+            this.spikeXDir = 1;
+            this.spikeYDir = 1;
+          }
+        }
+
+        if (this.willSpike && rectsOverlap(this.spikeRect, ball.rect)) {
+          // 原版的擊球方向（xDirection/yDirection）是玩家當下按住的方向鍵，
+          // AI 沒有真的在「按鍵」，這裡改用 chooseBestSpikeDirection() 事先試打過
+          // 各種方向組合、挑出來「對手最沒把握救到」的那一組（this.spikeXDir/spikeYDir），
+          // 不再像過去那樣每次都寫死用「前+下」。
+          resolveBallHit(ball, this, /* isPowerHit */ true, this.spikeXDir, this.spikeYDir);
+          ball.addSparks();
+          playSound(sounds.slam);
+          this.willSpike = false;
+        }
+
+        if (!this.diveMode && !this.isJumping) {
+          // 飛撲一樣改成完全用「走到預測落點需要幾格畫面」跟「球還剩幾格畫面會落地」比較，
+          // 算出用走的鐵定來不及才飛撲搶救，不再額外看球現在的即時距離。
+          let cannotWalkInTime = false;
+          if (predictedSteps !== null) {
+            const distanceNeeded = Math.abs(targetX - this.x);
+            const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
+            cannotWalkInTime = framesNeeded > predictedSteps + 6; // 留一點安全邊際給起跳/反應時間
+          } else {
+            // 沒有預測路徑可用時的退路：退回原本看球現在距離的即時反應
+            // 膽量值越大，這裡的門檻越高，等於「沒事不會亂飛撲」，對應原版
+            // 「boldness 越大飛撲門檻(computerBoldness*5+PLAYER_LENGTH)越高、飛撲越少」的個性設定。
+            cannotWalkInTime = Math.abs(ball.x - this.x) > GAME_PARAMS.aiDiveTriggerDistance + this.computerBoldness * 10;
+          }
+
+          if (cannotWalkInTime) {
+            // 撲的方向看「要去的地方」（預測落點）而不是球現在的位置，
+            // 這樣提前判斷來不及時，才會撲對方向，而不是撲向球目前還沒到的位置。
+            const direction = targetX < this.x ? "left" : "right";
+            this.dive(direction, netRect);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("AI Error:", e);
+    }
+  }
+}
+
+// ---------- 擊球公式（照搬原版 physics.js 的 processCollisionBetweenBallAndPlayer） ----------
+// 原版重點：擊球方向/力道不是「固定角度 + 隨機浮動」，而是由「球跟角色的水平距離」決定：
+//   - 距離越遠，球被打飛的水平速度越快；球在角色左邊就往左飛，右邊就往右飛
+//   - 垂直方向固定往上彈，且至少有 hitMinUpSpeed 的力道（原版 15）
+//   - 只有「跳躍中 + 按下擊球鍵」才會觸發另一套固定的強力公式（殺球）：
+//     水平速度固定是 jumpSpikePower 或它的兩倍（看有沒有按左右方向鍵加強），
+//     垂直速度則是「打之前球速的絕對值 * 上下方向鍵 * 倍率」，
+//     這也是為什麼原版要按著 down 鍵才能扣出又快又平的殺球、不按方向鍵殺球會變成水平速度較弱的球。
+// player 參數需要有 .rect（碰撞箱）可用來取得跟球比較用的中心 x 座標。
+function resolveBallHit(ball, player, isPowerHit, userInputXDirection, userInputYDirection) {
+  const playerRect = player.rect;
+  const playerCenterX = playerRect.x + playerRect.w / 2;
+  const ballCenterX = ball.x + ball.width / 2;
+
+  if (ballCenterX < playerCenterX) {
+    ball.vx = -Math.floor(Math.abs(ballCenterX - playerCenterX) / GAME_PARAMS.hitXDivisor);
+  } else if (ballCenterX > playerCenterX) {
+    ball.vx = Math.floor(Math.abs(ballCenterX - playerCenterX) / GAME_PARAMS.hitXDivisor);
+  }
+  // 水平速度剛好算出 0（球幾乎正對角色中心）時，原版會隨機給 -1 / 0 / 1，避免球直上直下卡住不動
+  if (ball.vx === 0) {
+    ball.vx = Math.floor(Math.random() * 3) - 1;
+  }
+
+  const ballAbsVY = Math.abs(ball.vy);
+  ball.vy = -ballAbsVY;
+  if (ballAbsVY < GAME_PARAMS.hitMinUpSpeed) {
+    ball.vy = -GAME_PARAMS.hitMinUpSpeed;
+  }
+
+  if (isPowerHit) {
+    const netCenterX = SCREEN_WIDTH / 2;
+    const magnitude = GAME_PARAMS.jumpSpikePower * (Math.abs(userInputXDirection) + 1);
+    ball.vx = ballCenterX < netCenterX ? magnitude : -magnitude;
+    ball.vy = Math.abs(ball.vy) * userInputYDirection * GAME_PARAMS.jumpSpikeUpMultiplier;
+  }
+
+  // 整體球速倍率（跟原本設定面板的 ballSpeedMultiplier 意義相同，方便您整體調快/調慢）
+  ball.vx *= GAME_PARAMS.ballSpeedMultiplier;
+  ball.vy *= GAME_PARAMS.ballSpeedMultiplier;
+
+  return isPowerHit;
+}
+
+// ---------- 排球 ----------
+class Volleyball {
+  constructor() {
+    this.width = GAME_PARAMS.ballWidth;
+    this.height = GAME_PARAMS.ballHeight;
+    this.x = SCREEN_WIDTH / 2 - this.width / 2;
+    this.y = SCREEN_HEIGHT / 2 - this.height / 2;
+    this.vx = 0;
+    this.vy = 0;
+    this.sparks = [];
+    this.resetTimer = 0;
+    // 球的動畫幀（大小不變，只是輪流換圖）：ballAnimTimer 每次 update 累加，
+    // 每隔 BALL_ANIM_FRAME_DURATION 個 tick 就切到下一張圖，5 張圖循環播放。
+    this.ballAnimTimer = 0;
+    this.ballAnimFrame = 0;
+  }
+
+  get rect() {
+    return { x: this.x, y: this.y, w: this.width, h: this.height };
+  }
+
+  // netRect：球網的碰撞矩形（Net.rect），改成跟原版一樣，球網碰撞判定是「這一步移動的一部分」，
+  // 不是移動完之後才另外檢查（見下方函式內部順序，完全對照原版 FUN_00402dc0 的執行順序）。
+  update(netRect) {
+    if (this.resetTimer > 0) {
+      this.resetTimer -= 1;
+      return;
+    }
+
+    const restitution = GAME_PARAMS.ballBounceRestitution;
+
+    // 1) 水平邊界：先「預測」移動後的位置會不會出界，出界就直接反彈水平速度
+    //    （原版是判斷完就反彈，本身位置還沒真的移動過去，所以球不會真的跑出邊界外）
+    const futureX = this.x + this.vx;
+    if (futureX < 0 || futureX > SCREEN_WIDTH - this.width) {
+      this.vx = -this.vx * restitution;
+    }
+
+    // 2) 上邊界：原版不是「反彈」，而是直接把垂直速度重設成 1（緩緩開始往下掉），
+    //    這是原始遊戲機器碼裡的實際行為，照搬過來
+    const futureYForCeiling = this.y + this.vy;
+    if (futureYForCeiling < 0) {
+      this.vy = 1;
+    }
+
+    // 3) 球網碰撞：分成「打到頂端圓帽」（垂直反彈）跟「打到側面」（水平反彈）兩種情況，
+    //    碰撞判定用的半寬是 netCollisionHalfWidth（比畫面上看到的細網柱寬很多），
+    //    這是原版判定會讓球感覺「打到網附近就會被擋下來」而不是要瞄得很準才會碰到的原因。
+    if (netRect) {
+      const netCenterX = netRect.x + netRect.w / 2;
+      const ballCenterX = this.x + this.width / 2;
+      const netTopY = netRect.y; // 網柱最頂端
+      const netCapBottomY = netRect.y + GAME_PARAMS.netTopCapHeight; // 頂端圓帽跟側面的分界
+
+      if (Math.abs(ballCenterX - netCenterX) < GAME_PARAMS.netCollisionHalfWidth && this.y > netTopY) {
+        if (this.y <= netCapBottomY) {
+          // 打到頂端圓帽：只有正在往下掉的時候才會被彈回去（原版邏輯，避免球往上飛過網頂時被誤判）
+          if (this.vy > 0) {
+            this.vy = -this.vy * restitution;
+          }
+        } else {
+          // 打到網子側面：往左飛的球被推回左邊，往右飛的球被推回右邊
+          if (this.x < netCenterX) {
+            this.vx = -Math.abs(this.vx) * restitution;
+          } else {
+            this.vx = Math.abs(this.vx) * restitution;
+          }
+        }
+      }
+    }
+
+    // 4) 地板：這一步移動完之後才判斷有沒有觸地，觸地就吸附在地面高度、垂直速度反彈
+    //    （原版落地當下這個動作就算「這一球結束」，Game.updatePlaying() 裡緊接著的
+    //    得分判定會抓到 y+height >= GROUND_Y 這個狀態來計分，跟原本的流程相容）
+    const futureY = this.y + this.vy;
+    if (futureY + this.height >= GROUND_Y) {
+      this.vy = -this.vy * restitution;
+      this.y = GROUND_Y - this.height;
+    } else {
+      this.y = futureY;
+      this.x = this.x + this.vx;
+      this.vy += GAME_PARAMS.ballGravity;
+    }
+
+    this.sparks = this.sparks.filter(s => s.update());
+
+    // 推進球的動畫幀（固定播放速度，跟球飛多快無關，單純輪流換圖）
+    this.ballAnimTimer++;
+    if (this.ballAnimTimer >= BALL_ANIM_FRAME_DURATION) {
+      this.ballAnimTimer = 0;
+      this.ballAnimFrame = (this.ballAnimFrame + 1) % 5;
+    }
+  }
+
+  draw(ctx) {
+    if (assetsReady) {
+      const frameImg = images.ballFrames[this.ballAnimFrame];
+      // 大小永遠用 this.width / this.height（跟球本身邏輯尺寸一致），只換圖不換大小
+      ctx.drawImage(frameImg, this.x, this.y, this.width, this.height);
+    }
+    this.sparks.forEach(s => s.draw(ctx));
+  }
+
+  addSparks() {
+    for (let i = 0; i < 10; i++) {
+      this.sparks.push(new Spark(this.x + this.width / 2, this.y + this.height));
+    }
+  }
+
+  resetPosition(side) {
+    this.width = GAME_PARAMS.ballWidth;
+    this.height = GAME_PARAMS.ballHeight;
+    this.y = 0;
+    // 每次重新發球（不管是得分後換邊發球，還是遊戲一開始）都先把上一球殘留、
+    // 還沒淡出完的擊球火花清掉，不要讓它們拖到下一球才消失
+    this.sparks = [];
+    const centerX = SCREEN_WIDTH / 2;
+    if (side === "left") {
+      // 固定發球位置：以畫面正中央為基準，往左側偏移 serveOffsetX
+      this.x = Math.max(0, Math.min(centerX - GAME_PARAMS.serveOffsetX - this.width / 2, SCREEN_WIDTH - this.width));
+    } else if (side === "right") {
+      // 左右鏡射：往右側偏移相同距離
+      this.x = Math.max(0, Math.min(centerX + GAME_PARAMS.serveOffsetX - this.width / 2, SCREEN_WIDTH - this.width));
+    } else {
+      this.x = centerX - this.width / 2;
+      this.y = SCREEN_HEIGHT / 2 - this.height / 2;
+    }
+    this.vx = 0; // 沒有水平初速，直直落下
+    this.vy = 0; // 靜止開始，靠重力自然加速掉落
+  }
+
+  startResetTimer() {
+    this.resetTimer = GAME_PARAMS.serveDropDelay;
+  }
+}
+
+// ---------- 球網 ----------
+class Net {
+  constructor() {
+    this.w = GAME_PARAMS.netWidth;
+    this.h = GAME_PARAMS.netHeight;
+    this.x = SCREEN_WIDTH / 2 - this.w / 2;
+    this.y = GROUND_Y - this.h;
+  }
+  get rect() {
+    return { x: this.x, y: this.y, w: this.w, h: this.h };
+  }
+  draw(ctx) {
+    if (assetsReady) {
+      ctx.drawImage(images.stick, this.x, this.y, this.w, this.h);
+    } else {
+      ctx.fillStyle = "#8b5a2b";
+      ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+  }
+}
+
+// ---------- 工具函式 ----------
+function rectsOverlap(a, b) {
+  return (
+    a.x < b.x + b.w &&
+    a.x + a.w > b.x &&
+    a.y < b.y + b.h &&
+    a.y + a.h > b.y
+  );
+}
+
+// ---------- 輸入處理 ----------
+const keys = {};
+window.addEventListener("keydown", e => {
+  keys[e.code] = true;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "Enter"].includes(e.code)) {
+    e.preventDefault();
+  }
+});
+window.addEventListener("keyup", e => {
+  keys[e.code] = false;
+});
+canvas.addEventListener("pointerdown", () => {
+  keys["Enter"] = true;
+  setTimeout(() => { keys["Enter"] = false; }, 100);
+  // 手機上直接在這次觸控的呼叫堆疊裡就把「開始遊戲／重新開始」處理掉，
+  // 不要等到下一個 rAF 影格才由 updateMenu()/updateGameOver() 讀取 keys.Enter，
+  // 這樣裡面呼叫的 sounds.bgm.play() 才確定是在使用者手勢的同一個呼叫堆疊裡，
+  // 避免多等這一格造成部分手機瀏覽器/WebView 認定「已經不算使用者手勢了」。
+  //
+  // 線上對戰 Guest：不能直接本地 reset()（狀態機由 Host 主導，本地改了下一格也會被
+  // Host 傳來的快照蓋掉），改成送出「重開請求」給 Host，由 Host 執行 reset 後同步回來。
+  if (window.NetPlay && NetPlay.role === "guest" && NetPlay.connected) {
+    if (game && game.state === GameState.GAME_OVER) {
+      NetPlay.requestRestart();
+    }
+    return;
+  }
+  if (game && game.state === GameState.MENU) {
+    game.reset();
+    game.state = GameState.PLAYING;
+    game.enterGame();
+  } else if (game && game.state === GameState.GAME_OVER) {
+    game.reset();
+    game.state = GameState.PLAYING;
+    game.enterGame();
+  }
+});
+
+// ---------- 遊戲狀態機 ----------
+// ============================================================
+// 線上對戰模組（NetPlay）：用 PeerJS 的公用中介伺服器（只幫忙牽線，遊戲資料仍是雙方
+// 直接 P2P 傳輸）。建房間的人拿到一組短房間代碼，對方輸入代碼按「加入」就直接連上，
+// 全程不需要再把任何東西傳回去，比手動複製貼上 SDP 文字簡單很多。
+// Host（建房間者＝左側角色）跑完整物理當「權威」，每格模擬完把完整狀態快照送給 Guest；
+// Guest（加入者＝右側角色）不跑物理，只送出自己的按鍵狀態、並直接依快照畫面。
+// ============================================================
+const NetPlay = (() => {
+  const ROOM_PREFIX = "pikavb-"; // 幫房間代碼加上專屬前綴，降低跟其他人用同一個公用中介伺服器時的代碼碰撞機率
+  const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 移除容易看錯的 0/O、1/I/L
+
+  let peer = null;
+  let conn = null;
+  let role = null; // "host" | "guest" | null
+  let connected = false;
+  let roomCode = null;
+  const remoteKeys = {}; // Host 用：儲存 Guest 傳來的最新按鍵狀態
+  let latestSnapshot = null; // Guest 用：Host 傳來的最新完整狀態快照
+
+  function setStatus(text, kind) {
+    const el = document.getElementById("onlineStatus");
+    if (!el) return;
+    el.textContent = text;
+    el.className = kind ? kind : "";
+  }
+
+  function randomRoomCode(len) {
+    let code = "";
+    for (let i = 0; i < len; i++) {
+      code += ROOM_CODE_CHARS[Math.floor(Math.random() * ROOM_CODE_CHARS.length)];
+    }
+    return code;
+  }
+
+  function updateOnlineBtnVisual() {
+    const btn = document.getElementById("onlineBtn");
+    if (btn) btn.classList.toggle("connected", connected);
+  }
+
+  function resetPeer() {
+    if (conn) { try { conn.close(); } catch (e) {} }
+    if (peer) { try { peer.destroy(); } catch (e) {} }
+    peer = null;
+    conn = null;
+    connected = false;
+    roomCode = null;
+    for (const k in remoteKeys) delete remoteKeys[k];
+    latestSnapshot = null;
+    lastAppliedSnapSeq = -1;
+    updateOnlineBtnVisual();
+  }
+
+  let lastAppliedSnapSeq = -1; // 記錄目前已套用的最新序號，資料通道不保證順序，靠這個丟掉太舊的封包
+  function setupConnectionEvents(c) {
+    conn = c;
+    conn.on("open", () => {
+      connected = true;
+      setStatus(role === "host" ? "✅ 已連線！你是左側角色" : "✅ 已連線！你是右側角色", "ok");
+      updateOnlineBtnVisual();
+      // 連線成功後，兩邊都自動從選單進入遊戲，確保雙方同時開始
+      if (role === "host" && window.game) {
+        window.game.reset();
+        window.game.state = GameState.PLAYING;
+        window.game.enterGame();
+      }
+      const panel = document.getElementById("onlinePanel");
+      if (panel) panel.style.display = "none";
+    });
+    conn.on("close", () => {
+      connected = false;
+      setStatus("連線已中斷", "err");
+      updateOnlineBtnVisual();
+    });
+    conn.on("error", () => {
+      setStatus("連線發生錯誤", "err");
+    });
+    conn.on("data", (msg) => {
+      try {
+        if (msg.t === "keys" && role === "host") {
+          Object.assign(remoteKeys, msg.k);
+        } else if (msg.t === "snap" && role === "guest") {
+          if (typeof msg.seq === "number" && msg.seq <= lastAppliedSnapSeq) return; // 太舊的封包，忽略
+          if (typeof msg.seq === "number") lastAppliedSnapSeq = msg.seq;
+          latestSnapshot = msg.s;
+        } else if (msg.t === "restartReq" && role === "host") {
+          // Guest 在結束畫面按了 Enter，請求重開一局；Host 是狀態機的唯一權威，收到後才真的執行 reset
+          if (window.game && window.game.state === GameState.GAME_OVER) {
+            window.game.reset();
+            window.game.state = GameState.PLAYING;
+            window.game.enterGame();
+          }
+        }
+      } catch (e) { /* 忽略解析失敗的訊息 */ }
+    });
+  }
+
+  // Host：建立房間，拿到房間代碼後只要等對方輸入代碼加入，不用做任何其他事
+  function hostCreateRoom(attemptsLeft) {
+    if (attemptsLeft === undefined) attemptsLeft = 3;
+    resetPeer();
+    role = "host";
+    roomCode = randomRoomCode(4);
+    setStatus("正在建立房間…", null);
+    peer = new Peer(ROOM_PREFIX + roomCode);
+
+    peer.on("open", () => {
+      setStatus("房間已建立，把代碼傳給對方，等對方加入即可", null);
+      const codeEl = document.getElementById("hostRoomCode");
+      if (codeEl) { codeEl.textContent = roomCode; codeEl.style.display = "block"; }
+      const copyRow = document.getElementById("hostCopyRow");
+      if (copyRow) copyRow.style.display = "flex";
+      const waitHint = document.getElementById("hostWaitHint");
+      if (waitHint) waitHint.style.display = "block";
+    });
+    peer.on("connection", (c) => {
+      setupConnectionEvents(c);
+    });
+    peer.on("error", (err) => {
+      if (err && err.type === "unavailable-id" && attemptsLeft > 0) {
+        // 代碼恰好被別人用掉，重新抽一組再試一次，使用者不會察覺
+        hostCreateRoom(attemptsLeft - 1);
+        return;
+      }
+      setStatus("建立房間失敗，請檢查網路後重試", "err");
+    });
+  }
+
+  // Guest：輸入對方給的房間代碼即可直接連線，不用產生任何東西回傳
+  function guestJoinRoom(codeInput) {
+    resetPeer();
+    role = "guest";
+    const code = (codeInput || "").trim().toUpperCase();
+    if (!code) { setStatus("請先輸入房間代碼", "err"); return; }
+    setStatus("連線中…", null);
+    peer = new Peer();
+    peer.on("open", () => {
+      const c = peer.connect(ROOM_PREFIX + code, { reliable: false });
+      setupConnectionEvents(c);
+    });
+    peer.on("error", (err) => {
+      if (err && err.type === "peer-unavailable") {
+        setStatus("找不到這個房間代碼，請確認對方已建立房間、代碼是否正確", "err");
+      } else {
+        setStatus("連線失敗，請檢查網路後重試", "err");
+      }
+    });
+  }
+
+  // Guest 端：每一格畫面把自己的按鍵狀態送給 Host（只送遊戲會用到的幾個鍵，減少流量）
+  let guestPrevEnter = false; // Guest 自己這端記錄「上一格是否按著 Enter」，用來偵測結束畫面的「剛按下」瞬間
+  function sendLocalKeys(keySrc, gameState) {
+    if (!conn || !conn.open) return;
+    const enterNow = !!(keySrc["Enter"] || keySrc["Space"]);
+    const k = {
+      ArrowLeft: !!keySrc["ArrowLeft"],
+      ArrowRight: !!keySrc["ArrowRight"],
+      ArrowUp: !!keySrc["ArrowUp"],
+      ArrowDown: !!keySrc["ArrowDown"],
+      Enter: enterNow
+    };
+    try { conn.send({ t: "keys", k }); } catch (e) {}
+
+    // 結束畫面時，Guest 按下 Enter（剛按下那一瞬間）要另外送一則「請求重開」訊息給 Host，
+    // 因為遊戲狀態機完全由 Host 主導，Guest 不能自己 reset()，只能請 Host 代為執行。
+    if (gameState === GameState.GAME_OVER && enterNow && !guestPrevEnter) {
+      try { conn.send({ t: "restartReq" }); } catch (e) {}
+    }
+    guestPrevEnter = enterNow;
+  }
+
+  // Host 端：把完整遊戲狀態（雙方角色、球、比分、狀態機）打包送給 Guest
+  let snapshotSeq = 0; // 遞增序號：資料通道是「不保證順序」的，靠序號讓 Guest 端丟掉太舊的封包，避免舊狀態蓋掉新狀態造成畫面倒退
+  function sendSnapshot(game) {
+    if (!conn || !conn.open) return;
+    const packEntity = (e) => ({
+      x: e.x, y: e.y, state: e.state, frame: e.frame,
+      hitAnimActive: e.hitAnimActive, hitAnimFrame: e.hitAnimFrame,
+      diveMode: e.diveMode, flip: e.flip
+    });
+    const s = {
+      gs: game.state,
+      scoreLeft: game.scoreLeft,
+      scoreRight: game.scoreRight,
+      ai: packEntity(game.ai),
+      player: packEntity(game.player),
+      ball: {
+        x: game.ball.x, y: game.ball.y,
+        ballAnimFrame: game.ball.ballAnimFrame,
+        resetTimer: game.ball.resetTimer,
+        sparkCount: game.ball.sparks.length
+      },
+      gameWinnerSide: game.gameWinnerSide,
+      winLoseFrame: game.winLoseFrame
+    };
+    snapshotSeq++;
+    try { conn.send({ t: "snap", seq: snapshotSeq, s }); } catch (e) {}
+  }
+
+  // Guest 端：把收到的最新快照套用到本機的 game 物件上。
+  // 自己（右側）的位置已經在本機即時預測過，這裡只補上 Host 才會算的「命中/飛撲」動畫欄位；
+  // 位置只有在跟本機預測差距明顯時（剛連線、掉封包累積誤差）才做修正，
+  // 差距小就用平滑內插慢慢貼齊，差距大才直接對齊，避免畫面出現明顯的瞬間跳動。
+  function applyLatestSnapshotTo(game) {
+    if (!latestSnapshot) return;
+    const s = latestSnapshot;
+    game.state = s.gs;
+    game.scoreLeft = s.scoreLeft;
+    game.scoreRight = s.scoreRight;
+    game.gameWinnerSide = s.gameWinnerSide;
+    game.winLoseFrame = s.winLoseFrame;
+    // 對手（左側）完全信任 Host 傳來的權威狀態，Guest 自己沒有在跑對手的物理
+    Object.assign(game.ai, s.ai);
+    // 自己（右側）：命中/飛撲動畫這些「攻防判定」相關欄位聽 Host 的
+    game.player.hitAnimActive = s.player.hitAnimActive;
+    game.player.hitAnimFrame = s.player.hitAnimFrame;
+    game.player.diveMode = s.player.diveMode;
+    const dx = s.player.x - game.player.x;
+    const dy = s.player.y - game.player.y;
+    const driftDist = Math.sqrt(dx * dx + dy * dy);
+    if (driftDist > 40) {
+      // 差距太大：可能剛連線、或掉了太多封包導致誤差累積，直接對齊比較保險
+      game.player.x = s.player.x;
+      game.player.y = s.player.y;
+      game.player.state = s.player.state;
+      game.player.frame = s.player.frame;
+      game.player.flip = s.player.flip;
+    } else if (driftDist > 1) {
+      // 小幅漂移：平滑貼近權威位置，不會有突兀的跳動
+      game.player.x += dx * 0.25;
+      game.player.y += dy * 0.25;
+    }
+    game.ball.x = s.ball.x;
+    game.ball.y = s.ball.y;
+    game.ball.ballAnimFrame = s.ball.ballAnimFrame;
+    game.ball.resetTimer = s.ball.resetTimer;
+  }
+
+  function disconnect() {
+    role = null;
+    resetPeer();
+    setStatus("尚未連線", null);
+  }
+
+  // Guest 端主動請求 Host 重開一局（結束畫面按鈕/點擊螢幕都會呼叫這個）
+  function requestRestart() {
+    if (!conn || !conn.open) return;
+    try { conn.send({ t: "restartReq" }); } catch (e) {}
+  }
+
+  return {
+    get role() { return role; },
+    get connected() { return connected; },
+    get roomCode() { return roomCode; },
+    remoteKeys,
+    hostCreateRoom,
+    guestJoinRoom,
+    sendLocalKeys,
+    sendSnapshot,
+    applyLatestSnapshotTo,
+    requestRestart,
+    disconnect
+  };
+})();
+window.NetPlay = NetPlay;
+
+const GameState = { MENU: 0, PLAYING: 1, GAME_OVER: 2 };
+
+class Game {
+  constructor() {
+    this.state = GameState.MENU;
+    this.menuIndex = 0;
+    this.menuItems = ["開始遊戲"];
+    this.reset();
+    this.musicStarted = false;
+
+    this.prevUp = false;
+    this.prevDown = false;
+    this.prevEnter = false;
+    this.prevAction = false;
+
+    this.actionHeld = { player: false };
+
+    // 遊戲結束畫面用：贏家/輸家動畫播放進度，只播一次（不循環）
+    this.gameWinnerSide = null;
+    this.winLoseFrame = 0;
+    this.winLoseTimer = 0;
+
+    // 自動開新局用：進入 GAME_OVER 畫面後累計多少 tick，達到 autoRestartDelay 就自動重開一局
+    this.gameOverTimer = 0;
+  }
+
+  // 依 serveOffsetX 算出「站在球正下方」所需的角色 x 座標：
+  // 跟 Volleyball.resetPosition() 用同一個基準點（畫面中央 ± serveOffsetX），
+  // 只是換算成角色（精靈）自己的寬度，讓角色中心對齊球中心。
+  getHomeX(side) {
+    const centerX = SCREEN_WIDTH / 2;
+    const cx = side === "left" ? centerX - GAME_PARAMS.serveOffsetX : centerX + GAME_PARAMS.serveOffsetX;
+    return Math.round(Math.max(0, Math.min(cx - SPRITE_W / 2, SCREEN_WIDTH - SPRITE_W)));
+  }
+
+  reset() {
+    this.ai = new AIPlayer(this.getHomeX("left"), GROUND_Y - SPRITE_H, "left");
+    // player 也改用 AIPlayer 類別（AIPlayer 只是在 Pikachu 上多加幾個 AI 決策用的欄位，
+    // 沒有覆寫 move/jump/dive/update 等操作方法，所以鍵盤操作行為完全不受影響），
+    // 這樣「AI 託管」開啟時才能直接呼叫 player.makeDecision() 讓右側也變成 AI 自動操作。
+    this.player = new AIPlayer(this.getHomeX("right"), GROUND_Y - SPRITE_H, "right");
+    this.ball = new Volleyball();
+    // 開局第一球固定由左側（AI）發球，球在角色正上方停留 serveDropDelay 之後才開始掉落
+    this.ball.resetPosition("left");
+    this.ball.startResetTimer();
+    this.net = new Net();
+    this.scoreLeft = 0;
+    this.scoreRight = 0;
+  }
+
+  // 每一場（得分之後、下一球開始前）呼叫：把兩邊角色都收回各自的發球位置（站在球正下方），
+  // 並清掉跳躍/飛撲等狀態，避免上一球結束時卡在飛撲或半空中的姿勢。
+  resetPlayerPositions() {
+    const homeX = { left: this.getHomeX("left"), right: this.getHomeX("right") };
+    [this.ai, this.player].forEach(entity => {
+      entity.x = homeX[entity.side];
+      entity.y = GROUND_Y - SPRITE_H;
+      entity.vy = 0;
+      entity.isJumping = false;
+      entity.diveMode = false;
+      entity.divingMovement = false;
+      entity.diveTimer = 0;
+      entity.state = "idle";
+      entity.frame = 0;
+      entity.animTimer = 0;
+      entity.hitAnimActive = false;
+      entity.hitAnimFrame = 0;
+      entity.hitAnimTimer = 0;
+    });
+    this.ai.willSpike = false;
+    this.player.willSpike = false;
+    this.player.spikeArmed = false;
+
+    // 每一球開始前重骰「膽量值」(computerBoldness)：跟原版一致，每一局/每一球
+    // 都重新骰一次 0~4 的隨機值，讓 AI 的積極度（多快出手、跳多勤、飛撲多勤）
+    // 每一球都有點不同，不會每次都用完全一樣的門檻值判斷，感覺更有變化、不死板。
+    // （不管這一側目前是不是 AI 在控制都重骰，反正玩家自己操作時這個值用不到，無害。）
+    this.ai.rerollComputerBoldness();
+    this.player.rerollComputerBoldness();
+  }
+
+  // 進入遊戲（第一次開始／重新開始都會呼叫）：
+  // 第一次進入時，要「先完整播放 pikachu.wav，播完才開始播放背景音樂」，
+  // 兩者不能同時疊在一起播放；之後背景音樂會一直循環播放，
+  // 所以之後每次重新進入遊戲只需要再播一次 pikachu.wav 提示音，不用重新啟動背景音樂。
+  enterGame() {
+    if (!this.musicStarted) {
+      this.musicStarted = true;
+      playPikachuThenMusic();
+    } else {
+      playSound(sounds.pikachu);
+    }
+  }
+
+  startMusic() {
+    // 保留給舊呼叫點相容用，行為等同 enterGame()
+    this.enterGame();
+  }
+
+  update() {
+    // 線上對戰 Guest：整個狀態機（選單/遊戲中/結束畫面）完全由 Host 主導，
+    // Guest 只負責持續送出按鍵、並套用 Host 傳回來的最新快照，不自己跑任何規則判定。
+    if (window.NetPlay && NetPlay.role === "guest" && NetPlay.connected) {
+      NetPlay.sendLocalKeys(keys, this.state);
+      // 本機立即模擬「自己」的移動/跳躍，不等 Host 回傳結果，操控才會即時；
+      // 攻防判定（殺球/飛撲命中、球本身、比分）還是完全信任 Host 傳回的權威快照，
+      // 這裡只用跟 Host 完全相同的 applyMovementOnly() 預測位置，兩邊判定邏輯保持一致。
+      if (this.state === GameState.PLAYING) {
+        this.applyMovementOnly(this.player, keys, this.net.rect);
+      }
+      NetPlay.applyLatestSnapshotTo(this);
+      return;
+    }
+    if (this.state === GameState.MENU) this.updateMenu();
+    else if (this.state === GameState.PLAYING) this.updatePlaying();
+    else if (this.state === GameState.GAME_OVER) this.updateGameOver();
+
+    // Host：不管目前在哪個畫面（選單/遊戲中/結束），都持續把狀態快照送給 Guest，
+    // 這樣 Guest 那邊也能同步看到選單、比分、結束畫面，而不是只有 PLAYING 中才同步。
+    if (window.NetPlay && NetPlay.role === "host" && NetPlay.connected && this.state !== GameState.PLAYING) {
+      NetPlay.sendSnapshot(this);
+    }
+  }
+
+  updateMenu() {
+    const upNow = !!keys["ArrowUp"];
+    const downNow = !!keys["ArrowDown"];
+    const enterNow = !!(keys["Enter"] || keys["Space"]);
+
+    if (upNow && !this.prevUp) {
+      this.menuIndex = (this.menuIndex - 1 + this.menuItems.length) % this.menuItems.length;
+    }
+    if (downNow && !this.prevDown) {
+      this.menuIndex = (this.menuIndex + 1) % this.menuItems.length;
+    }
+    if (enterNow && !this.prevEnter) {
+      if (this.menuItems[this.menuIndex] === "開始遊戲") {
+        this.reset();
+        this.state = GameState.PLAYING;
+        this.enterGame();
+      }
+    }
+    this.prevUp = upNow;
+    this.prevDown = downNow;
+    this.prevEnter = enterNow;
+  }
+
+  // 把「讀取一組按鍵狀態 -> 套用到某個角色」的邏輯抽成共用函式，
+  // 這樣本地鍵盤操作、線上對戰時套用對方傳來的按鍵狀態，都能重複使用同一套判定，
+  // 行為完全一致（原本這段邏輯只寫給 this.player 用）。
+  // heldRef 是一個 {value:boolean} 物件，用來記錄「上一格是否按著action鍵」（跨影格保存用）。
+
+  // 只處理「移動 / 跳躍」，不牽涉球的判定（不需要 ball 物件）。
+  // 抽出來的目的：線上對戰 Guest 端可以直接呼叫這個函式在本機立即模擬「自己」的移動，
+  // 不用等 Host 回傳結果，才能跟 Host 端用完全一樣的移動判定，兩邊不會走鐘。
+  applyMovementOnly(entity, keySrc, netRect) {
+    if (keySrc["ArrowLeft"]) entity.move("left", netRect);
+    else if (keySrc["ArrowRight"]) entity.move("right", netRect);
+    else if (!entity.isJumping && !entity.diveMode) entity.state = "idle";
+
+    if (keySrc["ArrowUp"]) entity.jump();
+  }
+
+  applyKeyControl(entity, keySrc, ball, netRect, heldRef) {
+    this.applyMovementOnly(entity, keySrc, netRect);
+
+    const actionNow = !!(keySrc["Enter"] || keySrc["Space"]);
+    if (actionNow && !heldRef.value) {
+      if (entity.isJumping) {
+        entity.spikeArmed = true;
+      }
+    }
+    if (entity.spikeArmed && entity.isJumping && rectsOverlap(entity.spikeRect, ball.rect)) {
+      const xDir = keySrc["ArrowLeft"] ? -1 : (keySrc["ArrowRight"] ? 1 : 0);
+      const yDir = keySrc["ArrowUp"] ? -1 : (keySrc["ArrowDown"] ? 1 : 0);
+      resolveBallHit(ball, entity, /* isPowerHit */ true, xDir, yDir);
+      ball.addSparks();
+      playSound(sounds.slam);
+      entity.spikeArmed = false;
+    }
+    if (actionNow) {
+      if (keySrc["ArrowLeft"]) entity.dive("left", netRect);
+      else if (keySrc["ArrowRight"]) entity.dive("right", netRect);
+    }
+    heldRef.value = actionNow;
+  }
+
+
+  updatePlaying() {
+    const p = this.player;
+    const netRect = this.net.rect;
+
+    // 得分後球停在原地等待掉落的期間（serveDropDelay），雙方都不能操控，
+    // 等球真的開始動了才能移動／跳躍／殺球／飛撲
+    const ballLocked = this.ball.resetTimer > 0;
+
+    // AI 託管開關：開啟後右側玩家不再讀鍵盤，改成呼叫跟左側 AI 相同的 makeDecision()，
+    // 等於「AI 對 AI 互打」，人類不用操作也能一直看下去。
+    // 線上對戰時（無論 Host 或未連線）此開關功能維持原樣，只影響「右側非遠端玩家」的情況。
+    const playerAITakeover = !!GAME_PARAMS.aiTakeoverEnabled;
+
+    // 線上對戰 Host：右側改成讀取「Guest 傳來的按鍵狀態」，而不是本機鍵盤；
+    // 左側（this.ai）則改成讀取 Host 本機鍵盤，取代原本的 AI makeDecision。
+    const isNetHost = !!(window.NetPlay && NetPlay.role === "host" && NetPlay.connected);
+    const rightKeySrc = isNetHost ? NetPlay.remoteKeys : keys;
+
+    // actionHeld 用 {value:boolean} 的形式跨影格保存「上一格是否按著action鍵」，
+    // this._rightHeldRef / this._leftHeldRef 是固定引用同一顆物件，跟 this.actionHeld.player 同步。
+    this._rightHeldRef = this._rightHeldRef || { value: this.actionHeld.player };
+    this._leftHeldRef = this._leftHeldRef || { value: false };
+    this._rightHeldRef.value = this.actionHeld.player;
+
+    // 玩家操作（右側角色）
+    if (!ballLocked) {
+      if (isNetHost) {
+        this.applyKeyControl(p, rightKeySrc, this.ball, netRect, this._rightHeldRef);
+        this.actionHeld.player = this._rightHeldRef.value;
+      } else if (playerAITakeover) {
+        // 右側交給 AI 自動操作（makeDecision 內部會自己處理移動／跳躍／殺球／飛撲）
+        p.makeDecision(this.ball, netRect, this.ai);
+        this.actionHeld.player = false;
+      } else {
+        this.applyKeyControl(p, keys, this.ball, netRect, this._rightHeldRef);
+        this.actionHeld.player = this._rightHeldRef.value;
+      }
+
+      // 左側：線上對戰 Host 時改讀本機鍵盤（取代 AI），否則維持原本 AI 決策
+      if (isNetHost) {
+        this.applyKeyControl(this.ai, keys, this.ball, netRect, this._leftHeldRef);
+      } else {
+        this.ai.makeDecision(this.ball, netRect, p);
+      }
+    } else {
+      if (!p.isJumping && !p.diveMode) p.state = "idle";
+      if (isNetHost) {
+        this.actionHeld.player = !!(rightKeySrc["Enter"] || rightKeySrc["Space"]);
+      } else {
+        this.actionHeld.player = playerAITakeover ? false : !!(keys["Enter"] || keys["Space"]);
+      }
+    }
+
+    // 更新角色 / 球
+    this.ai.update(this.ball);
+    p.update(this.ball);
+    // 球網碰撞判定已經照原版做法整合進 update() 內部（跟移動同一步處理），所以這裡直接把 netRect 傳進去
+    this.ball.update(netRect);
+
+    // 一般碰球（非飛撲、非跳躍殺球那一下）：原版無論站著或跳躍中，
+    // 只要沒有同時按殺球鍵，一律用同一套弱擊球公式（見 resolveBallHit）
+    if (!this.ai.diveMode && rectsOverlap(this.ball.rect, this.ai.rect)) {
+      resolveBallHit(this.ball, this.ai, false, 0, 0);
+      playSound(sounds.hit);
+      // 在地上的一般碰球才播擊球動畫；跳躍中已經有專屬的跳躍圖，不疊加
+      if (!this.ai.isJumping) this.ai.playHitAnim();
+    }
+    if (!p.diveMode && rectsOverlap(this.ball.rect, p.rect)) {
+      resolveBallHit(this.ball, p, false, 0, 0);
+      playSound(sounds.hit);
+      if (!p.isJumping) p.playHitAnim();
+    }
+
+    // 得分判定
+    if (this.ball.y + this.ball.height >= GROUND_Y) {
+      let winnerSide;
+      if (this.ball.x + this.ball.width / 2 < SCREEN_WIDTH / 2) {
+        this.scoreRight += 1;
+        winnerSide = "right";
+      } else {
+        this.scoreLeft += 1;
+        winnerSide = "left";
+      }
+
+      // 雙方都先收回最後方起始位置，再由上一球的勝方發球，
+      // 球固定從畫面中央鏡射出去的位置直直落下（沒有水平初速），位置與角色實際站位無關，可在設定面板調整
+      this.resetPlayerPositions();
+      this.ball.resetPosition(winnerSide);
+      this.ball.startResetTimer();
+      playSound(sounds.score);
+
+      if (this.scoreLeft >= GAME_PARAMS.winScore || this.scoreRight >= GAME_PARAMS.winScore) {
+        this.state = GameState.GAME_OVER;
+        this.gameWinnerSide = winnerSide;
+        this.winLoseFrame = 0;
+        this.winLoseTimer = 0;
+        this.gameOverTimer = 0;
+        playSound(sounds.win);
+      }
+    }
+
+    // Host：每一格模擬完成後，把權威狀態快照送給 Guest，讓對方畫面同步
+    if (isNetHost) {
+      NetPlay.sendSnapshot(this);
+    }
+  }
+
+  updateGameOver() {
+    // 贏家/輸家動畫：只播一次，播到最後一張（frame 4）就停住，不會循環重播
+    this.winLoseTimer++;
+    if (this.winLoseTimer >= GAME_PARAMS.winLoseAnimInterval) {
+      this.winLoseTimer = 0;
+      this.winLoseFrame = Math.min(this.winLoseFrame + 1, 4);
+    }
+
+    const enterNow = !!(keys["Enter"] || keys["Space"]);
+    const escNow = !!keys["Escape"];
+    if (enterNow && !this.prevEnter) {
+      this.reset();
+      this.state = GameState.PLAYING;
+      this.enterGame();
+    }
+    if (escNow) {
+      this.state = GameState.MENU;
+    }
+    this.prevEnter = enterNow;
+
+    // 自動開新局：開關開著的話，遊戲結束畫面停留滿 autoRestartDelay（tick）就自動重開一局，
+    // 不需要手動按 Enter，方便搭配「AI 託管」讓兩邊 AI 無限一直打下去。
+    // 上面如果剛剛已經因為按 Enter 重開了（state 已經變回 PLAYING），這裡就不用再重複觸發一次。
+    if (this.state === GameState.GAME_OVER) {
+      if (GAME_PARAMS.autoRestartEnabled) {
+        this.gameOverTimer++;
+        if (this.gameOverTimer >= GAME_PARAMS.autoRestartDelay) {
+          this.gameOverTimer = 0;
+          this.reset();
+          this.state = GameState.PLAYING;
+          this.enterGame();
+        }
+      } else {
+        this.gameOverTimer = 0;
+      }
+    }
+  }
+
+  draw() {
+    if (this.state === GameState.MENU) this.drawMenu();
+    else if (this.state === GameState.PLAYING) this.drawPlaying();
+    else if (this.state === GameState.GAME_OVER) this.drawGameOver();
+  }
+
+  drawBackground() {
+    if (assetsReady) {
+      ctx.drawImage(images.background, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else {
+      ctx.fillStyle = "#4aa3df";
+      ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+      ctx.fillStyle = "#e0c88a";
+      const bandHeight = Math.max(GAME_PARAMS.groundHeight, 30);
+      ctx.fillRect(0, SCREEN_HEIGHT - bandHeight, SCREEN_WIDTH, bandHeight);
+      if (GAME_PARAMS.groundHeight > 0) {
+        ctx.strokeStyle = "#b89b5e";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND_Y);
+        ctx.lineTo(SCREEN_WIDTH, GROUND_Y);
+        ctx.stroke();
+      }
+    }
+  }
+
+  drawMenu() {
+    // 開始畫面首圖：改用 main.png，不再套用遊戲內的沙灘背景
+    if (assetsReady && images.mainScreen && images.mainScreen.naturalWidth) {
+      ctx.drawImage(images.mainScreen, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    } else {
+      this.drawBackground();
+    }
+
+    // 「開始遊戲」改用 1p.png 圖片按鈕，不再顯示文字
+    const startImg = images.startButton;
+    if (assetsReady && startImg && startImg.naturalWidth) {
+      const w = startImg.naturalWidth;
+      const h = startImg.naturalHeight;
+      ctx.drawImage(startImg, SCREEN_WIDTH / 2 - w / 2, 220, w, h);
+    } else {
+      // 圖片還沒載入完成時的備用文字，避免完全看不到按鈕在哪
+      ctx.fillStyle = YELLOW;
+      ctx.font = "28px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("開始遊戲", SCREEN_WIDTH / 2, 240);
+    }
+  }
+
+  // 分數顯示：改用 no.png 這張數字雪碧圖（橫向 0~9，每格 32x32），
+  // 不再用 canvas 文字＋外框描邊繪製，直接把對應數字的那一格圖片畫出來，
+  // 風格由圖檔本身決定。抽成共用方法，遊戲進行中跟遊戲結束畫面都會呼叫，
+  // 確保比分一直顯示、不會被隱藏。
+  drawScore() {
+    if (!assetsReady) return;
+    const digitSize = GAME_PARAMS.scoreFontSize; // 每個數字圖示的顯示大小（寬高相同，正方形格子）
+    const y = GAME_PARAMS.scoreY; // 數字圖示的頂端 y 座標
+    drawScoreNumber(this.scoreLeft, 20, y, "left", digitSize);
+    drawScoreNumber(this.scoreRight, SCREEN_WIDTH - 20, y, "right", digitSize);
+  }
+
+  drawPlaying() {
+    this.drawBackground();
+    this.ai.draw(ctx);
+    this.player.draw(ctx);
+    this.ball.draw(ctx);
+    this.net.draw(ctx);
+
+    this.drawScore();
+
+    if (DEBUG_SHOW_HITBOX) this.drawDebugHitboxes();
+    if (GAME_PARAMS.showBallPath) this.drawPredictedBallPath();
+    if (GAME_PARAMS.showBallPath) this.drawSpikePlannedPath();
+  }
+
+  drawDebugHitboxes() {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#4a90e2";
+    const ar = this.ai.rect;
+    ctx.strokeRect(ar.x, ar.y, ar.w, ar.h);
+    ctx.strokeStyle = "#e2984a";
+    const pr = this.player.rect;
+    ctx.strokeRect(pr.x, pr.y, pr.w, pr.h);
+    ctx.strokeStyle = "#e0507a";
+    const br = this.ball.rect;
+    ctx.strokeRect(br.x, br.y, br.w, br.h);
+    ctx.strokeStyle = "#5cb85c";
+    const nr = this.net.rect;
+    ctx.strokeRect(nr.x, nr.y, nr.w, nr.h);
+
+    // 跳躍殺球的加高判定範圍（虛線），方便邊調 spikeHitboxExtra 邊看效果
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = "#4a90e2";
+    const asr = this.ai.spikeRect;
+    ctx.strokeRect(asr.x, asr.y, asr.w, asr.h);
+    ctx.strokeStyle = "#e2984a";
+    const psr = this.player.spikeRect;
+    ctx.strokeRect(psr.x, psr.y, psr.w, psr.h);
+    ctx.setLineDash([]);
+
+    // 只要 AI 曾經算過「這球殺下去會不會自殺」，就在牠頭上標出結果與挑選出的方向組合，
+    // 方便邊玩邊確認「瞄準弱點」的邏輯有沒有正常運作
+    if (this.ai.willSelfDestructIfSpike !== undefined) {
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      if (this.ai.willSelfDestructIfSpike) {
+        ctx.fillStyle = "#ff4d4d";
+        ctx.fillText("殺球會自殺→改保守", ar.x + ar.w / 2, ar.y - 6);
+      } else {
+        ctx.fillStyle = "#5cb85c";
+        const yDirLabel = { "-1": "高吊", "0": "平擊", "1": "重扣" }[this.ai.spikeYDir];
+        const xDirLabel = this.ai.spikeXDir === 0 ? "一般力道" : "加倍力道";
+        ctx.fillText(`殺球：${yDirLabel}／${xDirLabel}`, ar.x + ar.w / 2, ar.y - 6);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // 畫出 AI 這次挑選出的殺球打法，模擬出來「打出去之後」球會怎麼飛、最後落在哪
+  // （chooseBestSpikeDirection() 試打過的那一組勝出組合）。
+  // 用跟「來球預測路徑」（黃色）不同的顏色（洋紅色）畫，一眼就能分辨哪條是「來球」、哪條是「打法」。
+  // 跟來球預測路徑共用同一個開關 GAME_PARAMS.showBallPath，打開「球的路徑顯示」就會兩條一起畫出來，
+  // 不需要額外打開設定面板的碰撞箱顯示。
+  drawSpikePlannedPath() {
+    const path = this.ai.spikePlannedPath;
+    if (!(path && path.length > 1)) return;
+    ctx.save();
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "#ff4dff";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 打出去的起點（擊球瞬間）畫個小方塊，落點畫個小圓圈，方便分辨方向
+    const first = path[0];
+    ctx.fillStyle = "#ff4dff";
+    ctx.fillRect(first.x - 3, first.y - 3, 6, 6);
+    const last = path[path.length - 1];
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 畫出 AI 目前「提前算好」的預測球路徑（只在有來球、且預測功能開啟時才有資料）。
+  // 獨立用 GAME_PARAMS.showBallPath 開關控制，跟 DEBUG_SHOW_HITBOX（碰撞箱顯示、開設定面板才會亮）分開，
+  // 不管設定面板有沒有打開，只要這個開關是 on 就會一直畫出來。
+  drawPredictedBallPath() {
+    if (!(this.ai._lastPredictedPath && this.ai._lastPredictedPath.length > 1)) return;
+    ctx.save();
+    const path = this.ai._lastPredictedPath;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = "#ffe14a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // 預測落點畫個小圓圈標示出來
+    const last = path[path.length - 1];
+    ctx.fillStyle = "#ffe14a";
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 遊戲結束畫面用：把單一角色畫成贏家/輸家動畫的某一張圖，
+  // 面向、腳底對齊地面的算法都跟平常站立姿勢一致（同一個 SPRITE_W/H 基準），
+  // 圖片還沒載入完成時，直接退回該角色原本的站立姿勢，避免畫面空白。
+  drawWinLoseSprite(entity, img, w, h) {
+    if (!assetsReady || !img || !img.naturalWidth) {
+      entity.draw(ctx);
+      return;
+    }
+    const centerOffsetX = (SPRITE_W - w) / 2;
+    const drawX = Math.round(entity.x + centerOffsetX);
+    const drawY = Math.round(entity.y - (h - SPRITE_H));
+    const shouldFlip = entity.side === "right";
+    ctx.save();
+    if (shouldFlip) {
+      ctx.translate(drawX + w, drawY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, w, h);
+    } else {
+      ctx.drawImage(img, drawX, drawY, w, h);
+    }
+    ctx.restore();
+  }
+
+  drawGameOver() {
+    this.drawBackground();
+    this.net.draw(ctx);
+
+    const winnerIsLeft = this.gameWinnerSide === "left";
+    const winnerEntity = winnerIsLeft ? this.ai : this.player;
+    const loserEntity = winnerIsLeft ? this.player : this.ai;
+    const winImg = images.winFrames[this.winLoseFrame];
+    const loseImg = images.loseFrames[this.winLoseFrame];
+    this.drawWinLoseSprite(winnerEntity, winImg, WIN_W, WIN_H);
+    this.drawWinLoseSprite(loserEntity, loseImg, LOSE_W, LOSE_H);
+
+    this.ball.draw(ctx);
+    this.drawScore();
+  }
+}
+
+game = new Game();
+window.game = game; // 讓 NetPlay 模組（連線建立後自動開局用）能存取到目前的遊戲物件
+
+/* ============================================================
+   【設定面板】把 GAME_PARAMS_META 動態轉成可拖拉的滑桿 + 數字輸入框，
+   並提供「複製目前參數」「套用貼上的參數」「還原預設值」三個功能。
+   完全比照 skuld.html 的做法。
+   ============================================================ */
+(function(){
+  function buildParamPanel(){
+    const container = document.getElementById("paramSliders");
+    if(!container) return;
+    container.innerHTML = "";
+
+    const metaByKey = {};
+    GAME_PARAMS_META.forEach(function(meta){ metaByKey[meta[1]] = meta; });
+
+    function buildRow(meta){
+      const label = meta[0], key = meta[1], min = meta[2], max = meta[3], step = meta[4], type = meta[5];
+
+      const row = document.createElement("div");
+      row.className = "param-row";
+
+      const top = document.createElement("div");
+      top.className = "param-row-top";
+
+      const labelEl = document.createElement("label");
+      // label 格式是「中文說明(可能含空格) 參數代號」，參數代號一定是最後一個空格分隔的字，
+      // 之前寫成 label.split(" ")[0] 是「只取第一個字」，遇到中文說明裡本身就有空格
+      // （例如「AI 起跳觸發距離 aiJumpTriggerDistance」）就會被攔腰截斷成只剩「AI」。
+      // 改成「去掉最後一個字，其餘原樣保留」才能正確留下完整的中文說明。
+      const labelParts = label.split(" ");
+      labelEl.textContent = labelParts.slice(0, -1).join(" ");
+      labelEl.title = label;
+
+      if(type === "bool"){
+        // 開關型參數（目前用於音效/音樂開關）：渲染成 iOS 風格的切換開關
+        labelEl.className = "param-toggle-label";
+        labelEl.htmlFor = "param-bool-" + key;
+
+        const toggleWrap = document.createElement("label");
+        toggleWrap.className = "param-toggle-switch";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "param-bool-" + key;
+        checkbox.checked = !!GAME_PARAMS[key];
+
+        const slider = document.createElement("span");
+        slider.className = "param-toggle-slider";
+
+        toggleWrap.appendChild(checkbox);
+        toggleWrap.appendChild(slider);
+
+        checkbox.addEventListener("change", function(){
+          GAME_PARAMS[key] = checkbox.checked;
+          // 音樂開關：即時暫停/恢復目前正在播放的背景音樂
+          if(key === "musicEnabled"){
+            if(!checkbox.checked){
+              if(sounds.bgm && !sounds.bgm.paused) sounds.bgm.pause();
+            } else if(game && game.musicStarted){
+              sounds.bgm.muted = false;
+              sounds.bgm.play().catch(() => {});
+            }
+          }
+        });
+
+        top.appendChild(labelEl);
+        top.appendChild(toggleWrap);
+        row.appendChild(top);
+        return row;
+      }
+
+      if(type === "text"){
+        // 文字型參數（目前用於音樂/音效檔案名稱）：只給一個文字輸入框，
+        // 直接輸入 sounds/ 資料夾底下的檔名，例如 sounds/hit.wav
+        labelEl.htmlFor = "param-text-" + key;
+
+        const text = document.createElement("input");
+        text.type = "text";
+        text.id = "param-text-" + key;
+        text.className = "param-text";
+        text.value = GAME_PARAMS[key];
+        text.spellcheck = false;
+        text.placeholder = "例如 sounds/hit.wav";
+
+        function updateText(v){
+          const val = (v || "").trim();
+          if(!val) return;
+          GAME_PARAMS[key] = val;
+          text.value = val;
+          // 如果這個 key 是音效檔名，換檔後要重新載入該音效
+          const sndKey = FILE_KEY_TO_SND_KEY[key];
+          if(sndKey) reloadSound(sndKey);
+        }
+        text.addEventListener("change", function(){ updateText(text.value); text.blur(); });
+
+        top.appendChild(labelEl);
+        row.appendChild(top);
+        row.appendChild(text);
+
+        const hint = document.createElement("div");
+        hint.className = "param-row-hint";
+        hint.textContent = "檔案需放在 sounds/ 資料夾底下";
+        row.appendChild(hint);
+
+        return row;
+      }
+
+      const isSec = (type === "sec");
+      const isFree = (type === "free"); // 不設上下限的參數
+      const noLimit = isSec || isFree;
+      labelEl.htmlFor = noLimit ? ("param-num-" + key) : ("param-range-" + key);
+      if(isSec) labelEl.textContent = labelEl.textContent + "（秒）";
+      function toDisplay(frames){ return isSec ? +(frames / FPS).toFixed(3) : frames; }
+      function toStored(display){ return isSec ? Math.round(display * FPS) : display; }
+
+      const num = document.createElement("input");
+      num.type = "number";
+      num.id = "param-num-" + key;
+      if(noLimit){
+        num.step = step;
+      } else {
+        num.min = min; num.max = max; num.step = step;
+      }
+      num.value = toDisplay(GAME_PARAMS[key]);
+      num.className = "param-num";
+
+      top.appendChild(labelEl);
+      top.appendChild(num);
+
+      let range = null;
+      if(!noLimit){
+        range = document.createElement("input");
+        range.type = "range";
+        range.id = "param-range-" + key;
+        range.min = min; range.max = max; range.step = step;
+        range.value = toDisplay(GAME_PARAMS[key]);
+      }
+
+      function updateValue(v){
+        let val = parseFloat(v);
+        if(isNaN(val)) return;
+        if(!noLimit) val = Math.max(min, Math.min(max, val));
+        GAME_PARAMS[key] = toStored(val);
+        if(range) range.value = val;
+        num.value = val;
+        // 畫面寬高／地面高度比較特殊：改變後要重新調整 canvas 大小（或地板位置）
+        // 並重置場上物件位置，不能只是單純更新數字
+        if(key === "screenWidth" || key === "screenHeight" || key === "groundHeight") applyScreenSize();
+      }
+
+      if(range){
+        range.addEventListener("input", function(){ updateValue(range.value); });
+        range.addEventListener("change", function(){ range.blur(); });
+        range.addEventListener("mouseup", function(){ range.blur(); });
+        range.addEventListener("touchend", function(){ range.blur(); });
+      }
+      num.addEventListener("change", function(){ updateValue(num.value); num.blur(); });
+
+      row.appendChild(top);
+      if(range) row.appendChild(range);
+      return row;
+    }
+
+    PARAM_CATEGORIES.forEach(function(cat){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = cat.kind;
+      details.open = true;
+
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = cat.title;
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = cat.keys.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+
+      cat.keys.forEach(function(key){
+        const meta = metaByKey[key];
+        if(!meta) return;
+        body.appendChild(buildRow(meta));
+      });
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+
+    const categorizedKeys = new Set(PARAM_CATEGORIES.reduce(function(acc,c){ return acc.concat(c.keys); }, []));
+    const leftover = GAME_PARAMS_META.filter(function(meta){ return !categorizedKeys.has(meta[1]); });
+    if(leftover.length){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = "other";
+      details.open = true;
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = "⚙️ 其他";
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      countSpan.textContent = leftover.length + " 項";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+      leftover.forEach(function(meta){ body.appendChild(buildRow(meta)); });
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    }
+  }
+
+  function refreshParamPanelValues(){
+    GAME_PARAMS_META.forEach(function(meta){
+      const key = meta[1];
+      const type = meta[5];
+      if(type === "bool"){
+        const checkbox = document.getElementById("param-bool-" + key);
+        if(checkbox) checkbox.checked = !!GAME_PARAMS[key];
+        return;
+      }
+      if(type === "text"){
+        const text = document.getElementById("param-text-" + key);
+        if(text) text.value = GAME_PARAMS[key];
+        return;
+      }
+      const range = document.getElementById("param-range-" + key);
+      const num = document.getElementById("param-num-" + key);
+      const displayVal = (type === "sec") ? +(GAME_PARAMS[key] / FPS).toFixed(3) : GAME_PARAMS[key];
+      if(range) range.value = displayVal;
+      if(num) num.value = displayVal;
+    });
+  }
+
+  function showStatus(msg, ms){
+    const statusEl = document.getElementById("paramCopyStatus");
+    if(!statusEl) return;
+    statusEl.textContent = msg;
+    setTimeout(function(){ statusEl.textContent = ""; }, ms || 2500);
+  }
+
+  const settingsBtn = document.getElementById("settingsBtn");
+  const paramPanel = document.getElementById("paramPanel");
+  const closeParamPanel = document.getElementById("closeParamPanel");
+  const paramTextArea = document.getElementById("paramTextArea");
+  const copyParamsBtn = document.getElementById("copyParamsBtn");
+  const applyParamsBtn = document.getElementById("applyParamsBtn");
+  const resetParamsBtn = document.getElementById("resetParamsBtn");
+  const restartGameBtn = document.getElementById("restartGameBtn");
+
+  if(settingsBtn && paramPanel){
+    settingsBtn.addEventListener("click", function(){
+      const willShow = paramPanel.style.display === "none";
+      paramPanel.style.display = willShow ? "flex" : "none";
+      DEBUG_SHOW_HITBOX = willShow;
+      if(willShow) refreshParamPanelValues();
+      settingsBtn.blur();
+    });
+  }
+  if(closeParamPanel && paramPanel){
+    closeParamPanel.addEventListener("click", function(){
+      paramPanel.style.display = "none";
+      DEBUG_SHOW_HITBOX = false;
+      closeParamPanel.blur();
+    });
+  }
+  if(copyParamsBtn && paramTextArea){
+    copyParamsBtn.addEventListener("click", function(){
+      const json = JSON.stringify(GAME_PARAMS, null, 2);
+      paramTextArea.value = json;
+      let copied = false;
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(json);
+          copied = true;
+        }
+      }catch(e){}
+      if(!copied){
+        try{ paramTextArea.select(); document.execCommand("copy"); copied = true; }catch(e){}
+      }
+      showStatus(copied ? "已複製到剪貼簿！可以貼到別的地方保存。" : "已顯示在下方文字框，請手動全選複製。");
+      copyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(applyParamsBtn && paramTextArea){
+    applyParamsBtn.addEventListener("click", function(){
+      try{
+        const parsed = JSON.parse(paramTextArea.value);
+        let sizeChanged = false;
+        let musicToggleChanged = false;
+        Object.keys(parsed).forEach(function(key){
+          if(!Object.prototype.hasOwnProperty.call(GAME_PARAMS, key)) return;
+          const incoming = parsed[key];
+          const current = GAME_PARAMS[key];
+          if(typeof incoming === "boolean" && typeof current === "boolean"){
+            if(key === "musicEnabled" && incoming !== current) musicToggleChanged = true;
+            GAME_PARAMS[key] = incoming;
+          }else if(typeof incoming === "number" && typeof current === "number"){
+            if((key === "screenWidth" || key === "screenHeight" || key === "groundHeight") && incoming !== current) sizeChanged = true;
+            GAME_PARAMS[key] = incoming;
+          }else if(typeof incoming === "string" && typeof current === "string" && incoming.trim()){
+            GAME_PARAMS[key] = incoming.trim();
+            const sndKey = FILE_KEY_TO_SND_KEY[key];
+            if(sndKey) reloadSound(sndKey);
+          }
+        });
+        if(sizeChanged) applyScreenSize();
+        if(musicToggleChanged){
+          if(GAME_PARAMS.musicEnabled){
+            if(game && game.musicStarted) sounds.bgm.play().catch(() => {});
+          } else if(sounds.bgm && !sounds.bgm.paused){
+            sounds.bgm.pause();
+          }
+        }
+        refreshParamPanelValues();
+        showStatus("參數已套用！");
+      }catch(e){
+        showStatus("格式錯誤，請確認貼上的是完整的參數 JSON。", 3000);
+      }
+      applyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(resetParamsBtn){
+    resetParamsBtn.addEventListener("click", function(){
+      GAME_PARAMS = JSON.parse(JSON.stringify(GAME_PARAMS_DEFAULTS));
+      Object.keys(SND_FILE_KEY).forEach(reloadSound);
+      applyScreenSize();
+      refreshParamPanelValues();
+      // 音樂開關還原：預設是開的話，若遊戲已開始要恢復播放；預設是關的話要暫停
+      if(GAME_PARAMS.musicEnabled){
+        if(game && game.musicStarted) sounds.bgm.play().catch(() => {});
+      } else if(sounds.bgm && !sounds.bgm.paused){
+        sounds.bgm.pause();
+      }
+      showStatus("已還原成預設值。");
+      resetParamsBtn.blur();
+    });
+  }
+
+  if(restartGameBtn){
+    restartGameBtn.addEventListener("click", function(){
+      // 獨立按鈕，跟設定齒輪並排固定在畫面上，不管設定面板有沒有打開都能點來重開一局，
+      // 點下去也不會去動 paramPanel 的顯示狀態。
+      //
+      // 線上對戰 Guest：不能直接本地 reset()，狀態機由 Host 主導，改成請 Host 代為重開。
+      if(window.NetPlay && NetPlay.role === "guest" && NetPlay.connected){
+        NetPlay.requestRestart();
+        showStatus("已送出重開請求給對方…");
+        restartGameBtn.blur();
+        return;
+      }
+      game.reset();
+      game.state = GameState.PLAYING;
+      game.enterGame();
+      showStatus("遊戲已重新開始！");
+      restartGameBtn.blur();
+    });
+  }
+
+  buildParamPanel();
+
+  // ===== 線上對戰面板 =====
+  const onlineBtn = document.getElementById("onlineBtn");
+  const onlinePanel = document.getElementById("onlinePanel");
+  const closeOnlinePanel = document.getElementById("closeOnlinePanel");
+  const roleHostBtn = document.getElementById("roleHostBtn");
+  const roleGuestBtn = document.getElementById("roleGuestBtn");
+  const hostFlow = document.getElementById("hostFlow");
+  const guestFlow = document.getElementById("guestFlow");
+  const hostCreateBtn = document.getElementById("hostCreateBtn");
+  const hostRoomCode = document.getElementById("hostRoomCode");
+  const hostCopyCodeBtn = document.getElementById("hostCopyCodeBtn");
+  const guestCodeInput = document.getElementById("guestCodeInput");
+  const guestJoinBtn = document.getElementById("guestJoinBtn");
+  const onlineDisconnectBtn = document.getElementById("onlineDisconnectBtn");
+
+  function copyText(text){
+    if(!text) return false;
+    let copied = false;
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text);
+        copied = true;
+      }
+    }catch(e){}
+    if(!copied){
+      try{
+        const tmp = document.createElement("textarea");
+        tmp.value = text;
+        tmp.style.position = "fixed";
+        tmp.style.opacity = "0";
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand("copy");
+        document.body.removeChild(tmp);
+        copied = true;
+      }catch(e){}
+    }
+    return copied;
+  }
+
+  if(onlineBtn && onlinePanel){
+    onlineBtn.addEventListener("click", function(){
+      const willShow = onlinePanel.style.display === "none";
+      onlinePanel.style.display = willShow ? "flex" : "none";
+      onlineBtn.blur();
+    });
+  }
+  if(closeOnlinePanel && onlinePanel){
+    closeOnlinePanel.addEventListener("click", function(){
+      onlinePanel.style.display = "none";
+      closeOnlinePanel.blur();
+    });
+  }
+  if(roleHostBtn && roleGuestBtn && hostFlow && guestFlow){
+    roleHostBtn.addEventListener("click", function(){
+      roleHostBtn.classList.add("active");
+      roleGuestBtn.classList.remove("active");
+      hostFlow.style.display = "block";
+      guestFlow.style.display = "none";
+    });
+    roleGuestBtn.addEventListener("click", function(){
+      roleGuestBtn.classList.add("active");
+      roleHostBtn.classList.remove("active");
+      guestFlow.style.display = "block";
+      hostFlow.style.display = "none";
+    });
+  }
+  if(hostCreateBtn){
+    hostCreateBtn.addEventListener("click", function(){
+      NetPlay.hostCreateRoom();
+      hostCreateBtn.blur();
+    });
+  }
+  if(hostCopyCodeBtn && hostRoomCode){
+    hostCopyCodeBtn.addEventListener("click", function(){
+      const ok = copyText(NetPlay.roomCode || hostRoomCode.textContent);
+      showStatus(ok ? "已複製，傳給對方吧！" : "複製失敗，請手動選取代碼複製。");
+      hostCopyCodeBtn.blur();
+    });
+  }
+  if(guestJoinBtn && guestCodeInput){
+    guestJoinBtn.addEventListener("click", function(){
+      NetPlay.guestJoinRoom(guestCodeInput.value);
+      guestJoinBtn.blur();
+    });
+    guestCodeInput.addEventListener("keydown", function(e){
+      if(e.key === "Enter"){ NetPlay.guestJoinRoom(guestCodeInput.value); }
+    });
+  }
+  if(onlineDisconnectBtn){
+    onlineDisconnectBtn.addEventListener("click", function(){
+      NetPlay.disconnect();
+      if(hostRoomCode){ hostRoomCode.style.display = "none"; hostRoomCode.textContent = ""; }
+      const hostCopyRow = document.getElementById("hostCopyRow");
+      if(hostCopyRow) hostCopyRow.style.display = "none";
+      const hostWaitHint = document.getElementById("hostWaitHint");
+      if(hostWaitHint) hostWaitHint.style.display = "none";
+      if(guestCodeInput) guestCodeInput.value = "";
+      if(game){
+        game.reset();
+        game.state = GameState.MENU;
+      }
+      onlineDisconnectBtn.blur();
+    });
+  }
+})();
+
+/* ============================================================
+   虛擬搖桿與螢幕按鈕（手機/平板觸控用）
+   ------------------------------------------------------------
+   搖桿：對應 ArrowLeft / ArrowRight / ArrowUp（左右移動、跳躍）
+   按鈕：對應 Enter / Space，觸發飛撲與殺球
+   完全比照 skuld.html 的做法。
+   ============================================================ */
+(function(){
+  function updateControlsVisibility(){
+    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = window.innerWidth <= window.innerHeight;
+    const isMobile = window.innerWidth <= 768;
+    const joystick = document.getElementById("joystick");
+    const screenButtons = document.getElementById("screenButtons");
+    if(joystick && screenButtons){
+      if(isLandscape && window.innerWidth <= 900){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else if(isPortrait && isMobile){
+        joystick.style.display = "block";
+        screenButtons.style.display = "block";
+      } else {
+        joystick.style.display = "none";
+        screenButtons.style.display = "none";
+      }
+      screenButtons.style.zIndex = 2000;
+    }
+  }
+  window.addEventListener("resize", updateControlsVisibility);
+  window.addEventListener("orientationchange", updateControlsVisibility);
+  updateControlsVisibility();
+  window.addEventListener("resize", ()=>setTimeout(updateKnobGeometry, 50));
+  window.addEventListener("orientationchange", ()=>setTimeout(updateKnobGeometry, 50));
+  setTimeout(updateKnobGeometry, 50);
+
+  // 虛擬搖桿控制
+  const joystick = document.getElementById("joystick");
+  const knob = document.getElementById("joystick-knob");
+  const directionIndicators = document.querySelectorAll(".direction-indicator");
+  let dragging = false, startX = 0, startY = 0;
+  let joyDX = 0, joyDY = 0;
+  let activeTouchId = null;
+  let knobCenterOffset = 35; // 動態計算：底座與旋鈕置中所需的位移量
+  let knobMaxDist = 45;      // 動態計算：旋鈕可拖曳的最大距離
+
+  function updateKnobGeometry(){
+    if(!joystick || !knob) return;
+    const baseSize = joystick.offsetWidth;
+    const knobSize = knob.offsetWidth;
+    knobCenterOffset = (baseSize - knobSize) / 2;
+    // 讓旋鈕邊緣最遠可以貼到底座邊緣，並保留一點緩衝
+    knobMaxDist = Math.max(20, baseSize / 2 - knobSize / 4);
+  }
+
+  function updateDirectionIndicators(){
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+    if(Math.abs(joyDX) > 0.1 || Math.abs(joyDY) > 0.1){
+      let direction = "";
+      if(joyDY < -0.3) direction += "up";
+      else if(joyDY > 0.3) direction += "down";
+      if(joyDX < -0.3) direction += "-left";
+      else if(joyDX > 0.3) direction += "-right";
+      if(direction){
+        const indicator = document.querySelector(".direction-indicator." + direction);
+        if(indicator) indicator.classList.add("active");
+      }
+    }
+  }
+
+  function resetJoystick(){
+    dragging = false;
+    activeTouchId = null;
+    if(knob){ knob.style.left = knobCenterOffset + "px"; knob.style.top = knobCenterOffset + "px"; }
+    joyDX = 0; joyDY = 0;
+    keys["ArrowLeft"] = keys["ArrowRight"] = keys["ArrowUp"] = keys["ArrowDown"] = false;
+    directionIndicators.forEach(function(indicator){ indicator.classList.remove("active"); });
+  }
+
+  function moveKnobTo(clientX, clientY){
+    let dx = clientX - startX;
+    let dy = clientY - startY;
+    const maxDist = knobMaxDist;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if(dist > maxDist){
+      dx = dx * maxDist / dist;
+      dy = dy * maxDist / dist;
+    }
+    knob.style.left = (knobCenterOffset + dx) + "px";
+    knob.style.top = (knobCenterOffset + dy) + "px";
+    joyDX = dx / maxDist;
+    joyDY = dy / maxDist;
+    keys["ArrowLeft"]  = joyDX < -0.2;
+    keys["ArrowRight"] = joyDX > 0.2;
+    keys["ArrowUp"]    = joyDY < -0.2;
+    keys["ArrowDown"]  = joyDY > 0.2;
+    updateDirectionIndicators();
+  }
+
+  if(joystick && knob){
+    // 綁在整個底座（外圈）上，而不是只綁在中間的小旋鈕上，
+    // 這樣玩家點在搖桿範圍內任何地方都能立刻開始拖曳，大幅提升靈敏度
+    joystick.addEventListener("touchstart", function(e){
+      if(dragging) return;
+      dragging = true;
+      updateKnobGeometry();
+      const touch = e.changedTouches[0];
+      activeTouchId = touch.identifier;
+      const baseRect = joystick.getBoundingClientRect();
+      startX = baseRect.left + baseRect.width / 2;
+      startY = baseRect.top + baseRect.height / 2;
+      // 立刻把旋鈕移動到手指按下的位置，減少「按了沒反應」的感覺
+      moveKnobTo(touch.clientX, touch.clientY);
+      if(game.state === GameState.MENU || game.state === GameState.GAME_OVER){
+        keys["Enter"] = true;
+        setTimeout(()=>{ keys["Enter"] = false; }, 100);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }, {passive:false});
+
+    document.addEventListener("touchmove", function(e){
+      if(!dragging) return;
+      let touch = null;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ touch = t; break; }
+      }
+      if(!touch) return;
+      moveKnobTo(touch.clientX, touch.clientY);
+      e.preventDefault();
+    }, {passive:false});
+
+    document.addEventListener("touchend", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+
+    // 補上 touchcancel：觸控常會被系統手勢、多指觸控等中斷而不會觸發 touchend，
+    // 若沒處理這個事件，dragging 會卡在 true，導致搖桿之後完全沒反應
+    document.addEventListener("touchcancel", function(e){
+      if(!dragging) return;
+      let stillTouching = false;
+      for(const t of e.touches){
+        if(t.identifier === activeTouchId){ stillTouching = true; break; }
+      }
+      if(stillTouching) return;
+      resetJoystick();
+    }, {passive:false});
+  }
+
+  // 虛擬按鈕控制（飛撲/殺球，對應 Enter / Space）
+  const actionBtn = document.getElementById("actionBtn");
+  if(actionBtn){
+    function pressAction(e){
+      keys["Enter"] = true;
+      if(e){ e.preventDefault(); e.stopPropagation(); }
+    }
+    function releaseAction(e){
+      keys["Enter"] = false;
+      if(e){ e.preventDefault(); }
+    }
+    actionBtn.addEventListener("touchstart", pressAction, {passive:false});
+    actionBtn.addEventListener("touchend", releaseAction, {passive:false});
+    actionBtn.addEventListener("touchcancel", releaseAction, {passive:false});
+    actionBtn.addEventListener("mousedown", pressAction);
+    actionBtn.addEventListener("mouseup", releaseAction);
+    actionBtn.addEventListener("mouseleave", releaseAction);
+  }
+})();
+
+/* ============================================================
+   主迴圈（固定時間步 Fixed Timestep，確保不同裝置/螢幕更新率速度一致）
+   ============================================================ */
+const FRAME_TIME = 1000 / FPS; // 每次遊戲邏輯更新間隔（毫秒），固定為 1/60 秒
+const MAX_UPDATES_PER_FRAME = 5; // 避免分頁切換回來後瞬間補跑太多次造成暴衝
+
+let lastTime = null;
+let accumulator = 0;
+
+/* ------------------------------------------------------------
+   分頁/視窗切到背景（電腦縮小視窗、切換分頁；手機切到別的 App、
+   鎖螢幕）時，明確把音樂與遊戲邏輯「暫停」，而不是放給瀏覽器自己
+   節流 requestAnimationFrame（不同瀏覽器/裝置節流的方式不一致，
+   這正是電腦版跟手機版體感速度不一樣的主因）。
+   回到前景時再明確「恢復」，並重置計時器，避免補跑一堆幀造成暴衝。
+   ------------------------------------------------------------ */
+let wasMusicPlayingBeforeHide = false;
+let isHiddenNow = false; // 避免 blur 跟 visibilitychange 幾乎同時觸發，導致暫停旗標被第二次呼叫覆蓋掉
+
+function pauseForHidden(){
+  if (isHiddenNow) return; // 已經處理過這次「切到背景」了，不要重複記錄
+  isHiddenNow = true;
+  // 暫停音樂
+  if (sounds.bgm && !sounds.bgm.paused) {
+    wasMusicPlayingBeforeHide = true;
+    sounds.bgm.pause();
+  } else {
+    wasMusicPlayingBeforeHide = false;
+  }
+}
+
+function resumeFromHidden(){
+  if (!isHiddenNow) return; // 沒有處於「背景」狀態就不用恢復（避免 focus/visibilitychange 重複觸發）
+  isHiddenNow = false;
+  // 回到前景才恢復音樂，避免在背景繼續播放
+  if (wasMusicPlayingBeforeHide && sounds.bgm) {
+    sounds.bgm.play().catch(() => {});
+  }
+  // 重置計時器：不要把背景期間累積的時間一次補跑完，
+  // 這樣電腦跟手機從背景切回來的體感速度才會一致
+  lastTime = null;
+  accumulator = 0;
+}
+
+document.addEventListener("visibilitychange", function(){
+  if (document.hidden) {
+    pauseForHidden();
+  } else {
+    resumeFromHidden();
+  }
+});
+// 部分瀏覽器（尤其某些行動裝置瀏覽器）縮小/切走時觸發 blur/focus 而非 visibilitychange，
+// 一併處理以確保電腦版與手機版行為一致
+window.addEventListener("blur", pauseForHidden);
+window.addEventListener("focus", function(){
+  if (!document.hidden) resumeFromHidden();
+});
+
+function loop(currentTime) {
+  // 頁面在背景時完全不跑遊戲邏輯與畫面更新，等回到前景由 resumeFromHidden() 重置計時器後再繼續
+  if (document.hidden) {
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  if (lastTime === null) {
+    lastTime = currentTime;
+  }
+  let delta = currentTime - lastTime;
+  lastTime = currentTime;
+
+  if (delta > 250) delta = 250;
+
+  accumulator += delta * (GAME_PARAMS.gameSpeedMultiplier || 1);
+
+  let updates = 0;
+  while (accumulator >= FRAME_TIME && updates < MAX_UPDATES_PER_FRAME) {
+    game.update();
+    accumulator -= FRAME_TIME;
+    updates++;
+  }
+
+  game.draw();
+  requestAnimationFrame(loop);
+}
+
+checkAssetsReady();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
