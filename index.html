@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>張書維工作室 - 作品集</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700&family=Baloo+2:wght@600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;600;700&family=Noto+Sans+TC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #e60012; /* 任天堂紅 */
-            --secondary-color: #fff;
-            --accent-color: #ffe600; /* 可愛黃色 */
-            --blue: #0099e5;
-            --text-color: #222;
-            --light-text: #666;
-            --background: #fff;
-            --card-bg: #fff5f7;
-            --shadow: 0 4px 16px rgba(230,0,18,0.08);
-            --shadow-hover: 0 8px 32px rgba(230,0,18,0.15);
-            --border-pixel: 3px solid #e60012;
-            --gradient: linear-gradient(135deg, #e60012 0%, #fff 100%);
+            --navy: #16233f;
+            --navy-deep: #0e182c;
+            --accent: #a9822f;
+            --accent-light: #c9a35b;
+            --ink: #1e2430;
+            --muted: #6b7280;
+            --bg: #f6f6f4;
+            --surface: #ffffff;
+            --border: #e3e3df;
+            --shadow: 0 2px 10px rgba(14, 24, 44, 0.06);
+            --shadow-hover: 0 10px 28px rgba(14, 24, 44, 0.12);
         }
 
         * {
@@ -33,10 +32,10 @@
         }
 
         body {
-            font-family: 'Baloo 2', 'Noto Sans TC', sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
-            background: var(--background);
+            font-family: 'Noto Sans TC', sans-serif;
+            line-height: 1.7;
+            color: var(--ink);
+            background: var(--bg);
             overflow-x: hidden;
             min-height: 100vh;
         }
@@ -45,7 +44,7 @@
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
@@ -53,92 +52,49 @@
             }
         }
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
         /* Header 樣式 */
         header {
-            background: var(--primary-color);
+            background: var(--navy);
             color: #fff;
             text-align: center;
-            padding: 3.5rem 2rem 2.5rem 2rem;
+            padding: 4rem 2rem 3.5rem 2rem;
             position: relative;
             overflow: hidden;
-            min-height: 200px;
+            min-height: 180px;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            border-bottom: var(--border-pixel);
-            border-radius: 0 0 3rem 3rem;
-            box-shadow: var(--shadow);
-            margin-bottom: 2.5rem;
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-            animation: float 6s ease-in-out infinite;
+            border-bottom: 3px solid var(--accent);
         }
 
         header h1 {
-            font-size: 3.2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 2.6rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
             position: relative;
             z-index: 1;
-            text-shadow: 0 2px 0 #fff, 0 4px 8px #e60012aa;
-            letter-spacing: 0.1em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.7rem;
-        }
-
-        header h1::before {
-            content: '⭐';
-            font-size: 2.2rem;
-            margin-right: 0.2em;
-        }
-
-        header h1::after {
-            content: '🍄';
-            font-size: 2.2rem;
-            margin-left: 0.2em;
+            letter-spacing: 0.08em;
         }
 
         header p {
-            font-size: 1.3rem;
-            opacity: 0.98;
+            font-size: 1.05rem;
+            color: #cfd6e4;
+            opacity: 0.95;
             position: relative;
             z-index: 1;
-            margin-bottom: 0.5rem;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
 
         /* Navigation 樣式 */
         nav {
-            background: #fff;
-            padding: 1rem 0;
+            background: var(--surface);
+            padding: 0.6rem 0;
             box-shadow: var(--shadow);
             position: sticky;
             top: 0;
             z-index: 1000;
-            backdrop-filter: blur(10px);
-            border-bottom: var(--border-pixel);
-            border-radius: 0 0 1.5rem 1.5rem;
-            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
         }
 
         nav ul {
@@ -150,10 +106,7 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 2rem;
-            gap: 0.5rem;
-            background: #fff;
-            border-radius: 1.5rem;
-            box-shadow: var(--shadow);
+            gap: 0.25rem;
         }
 
         nav ul li {
@@ -161,212 +114,213 @@
         }
 
         nav ul li a {
-            color: var(--primary-color);
+            color: var(--ink);
             text-decoration: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 1.2rem;
-            transition: background 0.2s, color 0.2s;
-            font-weight: bold;
+            padding: 0.7rem 1.3rem;
+            border-radius: 4px;
+            transition: color 0.2s, background 0.2s;
+            font-weight: 500;
+            font-size: 0.95rem;
             position: relative;
-            overflow: hidden;
             display: inline-block;
             white-space: nowrap;
         }
 
-        nav ul li a::before {
+        nav ul li a::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: var(--gradient);
-            transition: left 0.3s ease;
-            z-index: -1;
+            left: 1.3rem;
+            right: 1.3rem;
+            bottom: 0.35rem;
+            height: 2px;
+            background: var(--accent);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.2s ease;
         }
 
-        nav ul li a:hover::before {
-            left: 0;
+        nav ul li a:hover,
+        nav ul li a.active {
+            color: var(--navy);
+            background: rgba(169, 130, 47, 0.08);
         }
 
-        nav ul li a:hover {
-            color: #fff;
-            transform: translateY(-2px);
-            box-shadow: var(--shadow);
+        nav ul li a:hover::after,
+        nav ul li a.active::after {
+            transform: scaleX(1);
         }
 
         /* Main 內容樣式 */
         main {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 3rem 2rem;
             min-height: calc(100vh - 400px);
-            background: var(--background);
         }
 
         section {
-            background: var(--card-bg);
-            margin-bottom: 2.5rem;
-            padding: 2.5rem 1.5rem;
-            border-radius: 2rem;
+            background: var(--surface);
+            margin-bottom: 2rem;
+            padding: 3rem 2.5rem;
+            border-radius: 6px;
             box-shadow: var(--shadow);
-            border: var(--border-pixel);
-            transition: all 0.3s ease;
+            border: 1px solid var(--border);
             animation: fadeInUp 0.6s ease-out;
             position: relative;
         }
 
-        section:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-hover);
-        }
-
-        section:not(:first-child)::before {
-            content: '';
-            display: block;
-            width: 80px;
-            height: 8px;
-            background: var(--primary-color);
-            border-radius: 8px;
-            margin: 0 auto 2rem auto;
-            opacity: 0.18;
-        }
-
         h2 {
-            color: var(--primary-color);
-            font-size: 2.2rem;
-            margin-bottom: 1.5rem;
+            font-family: 'Noto Serif TC', serif;
+            color: var(--navy);
+            font-size: 1.7rem;
+            margin-bottom: 2rem;
             text-align: center;
-            position: relative;
+            font-weight: 600;
             letter-spacing: 0.05em;
-            text-shadow: 0 2px 0 #fff, 0 2px 8px #e6001211;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        h2::before {
-            content: '⭐';
-            font-size: 1.3em;
+            position: relative;
+            padding-bottom: 1rem;
         }
 
         h2::after {
-            content: '🍄';
-            font-size: 1.3em;
+            content: '';
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 48px;
+            height: 3px;
+            background: var(--accent);
+        }
+
+        h2 i {
+            margin-right: 0.5rem;
+            color: var(--accent);
         }
 
         /* 服務區塊樣式 */
         .services {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            gap: 1.75rem;
         }
 
         .service {
-            background: #fff;
-            padding: 2rem 1.2rem;
-            border-radius: 1.5rem;
+            background: var(--surface);
+            padding: 2rem 1.5rem;
+            border-radius: 6px;
             text-align: center;
-            transition: box-shadow 0.2s, transform 0.2s;
-            border: 2px solid #ffe6ea;
+            transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+            border: 1px solid var(--border);
             height: 100%;
         }
 
         .service:hover {
             box-shadow: var(--shadow-hover);
+            border-color: var(--accent-light);
+            transform: translateY(-3px);
         }
 
         .service i {
-            font-size: 2.5rem;
-            color: var(--primary-color);
-            margin-bottom: 0.7rem;
-            filter: drop-shadow(0 2px 0 #fff);
+            font-size: 2rem;
+            color: var(--accent);
+            margin-bottom: 0.9rem;
         }
 
         .service h3 {
-            color: var(--primary-color);
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
+            font-family: 'Noto Serif TC', serif;
+            color: var(--navy);
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
         }
 
         .service p {
-            color: var(--light-text);
-            line-height: 1.6;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 0.95rem;
         }
 
         /* 作品集樣式 */
         .portfolio {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 2rem;
+            gap: 1.75rem;
         }
 
         .portfolio-item {
-            background: #fff;
-            border-radius: 1.5rem;
+            background: var(--surface);
+            border-radius: 6px;
             overflow: hidden;
             box-shadow: var(--shadow);
-            transition: box-shadow 0.2s, transform 0.2s;
+            transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
             height: 100%;
             display: flex;
             flex-direction: column;
-            border: 2px solid #ffe6ea;
-            padding: 2rem 1.2rem;
+            border: 1px solid var(--border);
+            border-top: 3px solid var(--navy);
+            padding: 1.75rem 0;
         }
 
         .portfolio-item:hover {
             box-shadow: var(--shadow-hover);
+            transform: translateY(-3px);
         }
 
         .portfolio-item h3 {
-            color: var(--primary-color);
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
+            font-family: 'Noto Serif TC', serif;
+            color: var(--navy);
+            font-size: 1.15rem;
+            margin-bottom: 0.8rem;
             padding: 0 1.5rem;
-            padding-top: 1.5rem;
+            font-weight: 600;
+        }
+
+        .portfolio-item h3 i {
+            color: var(--accent);
         }
 
         .portfolio-item p {
-            color: var(--light-text);
+            color: var(--muted);
             padding: 0 1.5rem;
             margin-bottom: 1.5rem;
             flex-grow: 1;
+            font-size: 0.95rem;
         }
 
         .portfolio-item button {
-            margin: 0 1.5rem 1.5rem 1.5rem;
+            margin: 0 1.5rem 0 1.5rem;
             width: calc(100% - 3rem);
         }
 
         /* 遊戲區塊樣式 */
         .games-section {
-            background: #fff0f0;
-            color: var(--primary-color);
+            background: var(--navy);
+            color: #fff;
             text-align: center;
-            border: 3px dashed #e60012;
+            border: none;
         }
 
         .games-section h2 {
-            color: var(--primary-color);
+            color: #fff;
         }
 
-        .games-section h2::after {
-            background: var(--primary-color);
+        .games-section > p {
+            color: #cfd6e4 !important;
         }
 
         .games-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
             margin-top: 2rem;
         }
 
         .game-card {
-            background: #fff8f8;
-            border-radius: 1.5rem;
-            padding: 2rem 1.2rem;
-            border: 2.5px solid #e60012;
-            transition: box-shadow 0.2s, transform 0.2s;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            padding: 1.75rem 1.25rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
             cursor: pointer;
             height: 100%;
             display: flex;
@@ -375,207 +329,219 @@
         }
 
         .game-card:hover {
-            box-shadow: var(--shadow-hover);
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
         }
 
         .game-card img.game-icon {
-            width: 64px;
-            height: 64px;
+            width: 56px;
+            height: 56px;
             object-fit: contain;
             margin: 0 auto 1rem auto;
             display: block;
-            filter: drop-shadow(0 2px 4px rgba(230,0,18,0.25));
-            animation: pulse 2s infinite;
-            image-rendering: -webkit-optimize-contrast;
         }
 
         .game-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
+            font-family: 'Noto Serif TC', serif;
+            font-size: 1.15rem;
+            margin-bottom: 0.7rem;
+            font-weight: 600;
         }
 
         .game-card p {
-            opacity: 0.9;
+            color: #cfd6e4;
             margin-bottom: 1.5rem;
             flex-grow: 1;
+            font-size: 0.9rem;
+        }
+
+        .game-btn {
+            background: transparent;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .game-btn:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
 
         /* 按鈕樣式 */
         button {
-            background: var(--accent-color);
-            color: #e60012;
-            border: none;
-            border-radius: 2rem;
-            font-size: 1.1rem;
-            font-family: 'Baloo 2', 'Noto Sans TC', sans-serif;
-            font-weight: bold;
-            padding: 0.7rem 2.2rem;
+            background: var(--navy);
+            color: #fff;
+            border: 1px solid var(--navy);
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-weight: 500;
+            padding: 0.7rem 1.75rem;
             margin-top: 1rem;
-            box-shadow: 0 2px 8px #e6001233;
-            transition: background 0.2s, color 0.2s, box-shadow 0.2s, filter 0.15s;
-            letter-spacing: 0.1em;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            letter-spacing: 0.03em;
+            cursor: pointer;
         }
 
         button:hover {
-            background: #fff;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            filter: brightness(1.1);
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
 
         /* 客戶推薦樣式 */
         .testimonials {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            gap: 1.75rem;
         }
 
         .testimonial {
-            background: #fffbe6;
+            background: var(--bg);
             padding: 2rem;
-            border-radius: 15px;
-            text-align: center;
+            border-radius: 6px;
+            text-align: left;
             position: relative;
             height: 100%;
-            border: 2.5px solid #ffe600;
-        }
-
-        .testimonial::before {
-            content: '"';
-            font-size: 4rem;
-            color: var(--primary-color);
-            position: absolute;
-            top: -10px;
-            left: 20px;
-            opacity: 0.3;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
         }
 
         .testimonial p {
             margin-bottom: 1rem;
             font-style: italic;
+            color: var(--ink);
         }
 
         .testimonial strong {
-            color: var(--primary-color);
+            color: var(--navy);
+            font-size: 0.9rem;
+            font-weight: 600;
         }
 
         /* 部落格樣式 */
         .blog {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
+            gap: 1.75rem;
         }
 
         .blog-post {
-            background: #fff8f8;
-            border-radius: 15px;
+            background: var(--surface);
+            border-radius: 6px;
             overflow: hidden;
             box-shadow: var(--shadow);
-            transition: all 0.3s ease;
+            transition: box-shadow 0.2s, transform 0.2s;
             height: 100%;
             display: flex;
             flex-direction: column;
-            border: 2.5px solid #e60012;
+            border: 1px solid var(--border);
         }
 
         .blog-post:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             box-shadow: var(--shadow-hover);
         }
 
         .blog-post h3 {
-            color: var(--primary-color);
+            font-family: 'Noto Serif TC', serif;
+            color: var(--navy);
             padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
 
         .blog-post p {
             padding: 0 1.5rem 1.5rem 1.5rem;
-            color: var(--light-text);
+            color: var(--muted);
             flex-grow: 1;
+            font-size: 0.95rem;
         }
 
         /* 聯繫資訊樣式 */
         .contact-info {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1.75rem;
             text-align: center;
         }
 
         .contact-item {
-            background: #fff8f8;
+            background: var(--bg);
             padding: 2rem;
-            border-radius: 15px;
-            transition: all 0.3s ease;
+            border-radius: 6px;
+            transition: box-shadow 0.2s, transform 0.2s;
             height: 100%;
-            border: 2.5px solid #e60012;
+            border: 1px solid var(--border);
         }
 
         .contact-item:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
             box-shadow: var(--shadow);
         }
 
         .contact-item i {
-            font-size: 2.5rem;
-            color: var(--primary-color);
+            font-size: 1.8rem;
+            color: var(--accent);
             margin-bottom: 1rem;
         }
 
         .contact-item h3 {
             margin-bottom: 0.5rem;
-            color: var(--text-color);
+            color: var(--navy);
+            font-family: 'Noto Serif TC', serif;
+            font-weight: 600;
+            font-size: 1.05rem;
         }
 
         .contact-item p {
-            color: var(--light-text);
+            color: var(--muted);
         }
 
         /* Footer 樣式 */
         footer {
-            background: var(--primary-color);
-            color: #fff;
+            background: var(--navy-deep);
+            color: #cfd6e4;
             text-align: center;
-            padding: 3rem 2rem;
+            padding: 2.5rem 2rem;
             margin-top: 3rem;
+            font-size: 0.9rem;
         }
 
         .social-icons {
             display: flex;
             justify-content: center;
-            gap: 2rem;
-            margin-top: 2rem;
+            gap: 1rem;
+            margin-top: 1.5rem;
             flex-wrap: wrap;
         }
 
         .social-icons a {
-            color: var(--primary-color);
-            background: #fff;
+            color: #cfd6e4;
+            background: rgba(255, 255, 255, 0.06);
             border-radius: 50%;
-            border: 2px solid #e60012;
-            width: 2.5rem;
-            height: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 2.4rem;
+            height: 2.4rem;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.3rem;
-            margin: 0 0.3rem;
-            box-shadow: 0 2px 8px #e6001233;
-            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            font-size: 1.1rem;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
         }
 
         .social-icons a:hover {
-            background: var(--primary-color);
+            background: var(--accent);
             color: #fff;
-            box-shadow: 0 4px 16px #e6001266;
+            border-color: var(--accent);
         }
 
         /* 響應式設計 */
         @media (max-width: 1024px) {
             main {
-                padding: 1.5rem;
+                padding: 2rem 1.5rem;
             }
-            
+
             section {
                 padding: 2rem;
             }
@@ -583,8 +549,8 @@
 
         @media (max-width: 768px) {
             header {
-                padding: 2rem 1rem;
-                min-height: 150px;
+                padding: 2.2rem 1rem;
+                min-height: 140px;
                 padding-left: 72px;
             }
 
@@ -596,7 +562,7 @@
                 display: flex;
                 flex-direction: column;
                 gap: 0;
-                background: var(--white);
+                background: var(--surface);
                 position: fixed;
                 top: 0;
                 left: -240px;
@@ -606,7 +572,6 @@
                 box-shadow: 2px 0 16px rgba(0,0,0,0.08);
                 z-index: 3002;
                 padding: 2.5rem 0 1rem 0;
-                border-radius: 0 1.5rem 1.5rem 0;
                 transition: left 0.3s cubic-bezier(.4,1.3,.5,1);
             }
             nav ul.show {
@@ -617,18 +582,16 @@
             }
             nav ul li a {
                 padding: 1.1rem 1.5rem;
-                font-size: 1.15rem;
-                border-radius: 0.8rem;
-                border-bottom: 1px solid #eee;
-                color: var(--primary-color);
+                font-size: 1rem;
+                border-bottom: 1px solid var(--border);
+                color: var(--navy);
                 text-align: left;
                 display: block;
-                margin: 0.2rem 1rem;
+                margin: 0;
                 font-weight: 500;
-                transition: background 0.2s, color 0.2s;
             }
             nav ul li a:hover {
-                background: var(--primary-color);
+                background: var(--navy);
                 color: #fff;
             }
             nav ul li:last-child a {
@@ -636,54 +599,54 @@
             }
 
             main {
-                padding: 1rem;
+                padding: 1.5rem 1rem;
             }
 
             section {
-                padding: 1.2rem 0.5rem;
-                margin-bottom: 2rem;
+                padding: 1.5rem 1rem;
+                margin-bottom: 1.5rem;
             }
 
             .services, .portfolio, .testimonials, .blog, .games-grid {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
+                gap: 1.25rem;
             }
 
             .contact-info {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
+                gap: 1.25rem;
             }
 
             .service, .portfolio-item, .testimonial, .blog-post, .game-card {
-                padding: 1.2rem 0.5rem;
+                padding: 1.5rem 1.25rem;
             }
 
             .social-icons {
-                gap: 1rem;
+                gap: 0.75rem;
             }
 
             .nav-toggle {
                 display: block;
             }
 
-            header h1 { font-size: 2.1rem; }
-            h2 { font-size: 1.3rem; }
+            header h1 { font-size: 1.7rem; }
+            h2 { font-size: 1.25rem; }
         }
 
         @media (max-width: 480px) {
             header h1 {
-                font-size: 2rem;
+                font-size: 1.5rem;
             }
 
             header p {
-                font-size: 1rem;
+                font-size: 0.9rem;
             }
 
             .nav-toggle {
-                font-size: 1.5rem;
-                padding: 0.12rem 0.7rem 0.12rem 0.7rem;
-                top: 0.3rem;
-                left: 0.3rem;
+                font-size: 1.4rem;
+                padding: 0.2rem 0.7rem;
+                top: 0.4rem;
+                left: 0.4rem;
             }
             nav ul {
                 width: 80vw;
@@ -696,7 +659,7 @@
             }
 
             h2 {
-                font-size: 1.8rem;
+                font-size: 1.15rem;
             }
 
             .service, .portfolio-item, .testimonial, .blog-post, .game-card {
@@ -704,7 +667,7 @@
             }
 
             button {
-                padding: 0.8rem 1.5rem;
+                padding: 0.7rem 1.3rem;
                 font-size: 0.9rem;
             }
 
@@ -716,8 +679,8 @@
         /* 滾動動畫 */
         .fade-in {
             opacity: 0;
-            transform: translateY(30px);
-            transition: all 0.6s ease;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
         }
 
         .fade-in.visible {
@@ -732,7 +695,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--gradient);
+            background: var(--navy);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -746,10 +709,10 @@
         }
 
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid var(--white);
+            width: 42px;
+            height: 42px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top: 3px solid var(--accent);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -757,12 +720,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        /* 修復特定問題 */
-        .portfolio-item button,
-        .game-card button {
-            margin-top: auto;
         }
 
         /* 確保內容不會溢出 */
@@ -778,55 +735,32 @@
         .nav-toggle {
             display: none;
             position: fixed;
-            top: 0.7rem;
-            left: 0.7rem;
+            top: 0.8rem;
+            left: 0.8rem;
             z-index: 2147483647;
-            background: var(--white);
-            border: 2px solid var(--primary-color);
-            font-size: 2.1rem;
-            color: var(--primary-color);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            font-size: 1.7rem;
+            color: var(--navy);
             cursor: pointer;
-            border-radius: 1.5rem;
-            box-shadow: 0 4px 16px rgba(60,60,120,0.18), 0 1.5px 0 #bbb;
-            padding: 0.15rem 1.1rem 0.15rem 1.1rem;
+            border-radius: 4px;
+            box-shadow: var(--shadow);
+            padding: 0.1rem 0.9rem;
             margin: 0;
-            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+            transition: background 0.2s, color 0.2s;
             font-family: inherit;
-            font-weight: bold;
-            letter-spacing: 0.2em;
+            font-weight: 500;
         }
         .nav-toggle:hover {
-            background: var(--primary-color);
+            background: var(--navy);
             color: #fff;
-            box-shadow: 0 6px 24px rgba(60,60,120,0.25);
         }
         .nav-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.25);
+            background: rgba(14, 24, 44, 0.35);
             z-index: 3000;
-        }
-
-        /* 可愛圓點背景 */
-        body::before {
-            content: '';
-            position: fixed;
-            left: 0; top: 0; right: 0; bottom: 0;
-            pointer-events: none;
-            z-index: 0;
-            background: repeating-radial-gradient(circle at 40px 40px, #ffe6ea 0, #ffe6ea 6px, transparent 7px, transparent 60px),
-                        url('https://www.svgrepo.com/show/494000/cloud.svg') repeat-x top 80px left 0/120px 60px;
-            opacity: 0.18;
-        }
-
-        .service:hover, .portfolio-item:hover, .testimonial:hover, .blog-post:hover, .game-card:hover {
-            box-shadow: var(--shadow-hover);
-        }
-        button:hover {
-            background: #fff;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
         }
     </style>
 </head>
@@ -867,7 +801,7 @@
                     <img class="game-icon" src="icon/pikachu.png" alt="皮卡丘打排球">
                     <h3>皮卡丘打排球</h3>
                     <p>可愛的皮卡丘沙灘排球對戰遊戲，單一 HTML5 檔案、支援 RWD 響應式排版！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -875,7 +809,7 @@
                     <img class="game-icon" src="icon/down.gif" alt="小朋友下樓梯">
                     <h3>小朋友下樓梯</h3>
                     <p>經典的下樓梯遊戲，控制角色躲避障礙物，挑戰您的反應速度！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -883,7 +817,7 @@
                     <img class="game-icon" src="icon/up.gif" alt="小朋友上樓梯">
                     <h3>小朋友上樓梯</h3>
                     <p>全新挑戰！控制角色往上爬樓梯，考驗您的反應與技巧。</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -891,7 +825,7 @@
                     <img class="game-icon" src="icon/flappybird.png" alt="Flappy Bird">
                     <h3>Flappy Bird</h3>
                     <p>經典的 Flappy Bird 遊戲，控制小鳥穿越管道，挑戰最高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -899,7 +833,7 @@
                     <img class="game-icon" src="icon/bingo.png" alt="Bingo 遊戲">
                     <h3>Bingo 遊戲</h3>
                     <p>與電腦對戰的 Bingo 遊戲，連成一線即可獲勝！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -907,7 +841,7 @@
                     <img class="game-icon" src="icon/samegame.png" alt="Same Game">
                     <h3>Same Game</h3>
                     <p>經典消除遊戲，點擊相同顏色方塊消除，挑戰高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -915,7 +849,7 @@
                     <img class="game-icon" src="icon/fishing.png" alt="釣魚遊戲">
                     <h3>釣魚遊戲</h3>
                     <p>經典釣魚遊戲，控制魚鉤釣魚，挑戰高分排行榜！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -923,7 +857,7 @@
                     <img class="game-icon" src="icon/snowcraft.png" alt="雪球大戰">
                     <h3>雪球大戰</h3>
                     <p>刺激的雪球大戰遊戲，控制角色投擲雪球，與敵人展開激烈對戰！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -931,7 +865,7 @@
                     <img class="game-icon" src="icon/candy.png" alt="糖果傳奇">
                     <h3>糖果傳奇</h3>
                     <p>經典三消遊戲，消除糖果挑戰高分！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -939,7 +873,15 @@
                     <img class="game-icon" src="icon/hexxagon.png" alt="Hexxagon">
                     <h3>Hexxagon</h3>
                     <p>經典六角棋盤策略遊戲，擴張領地並吃掉對手棋子，挑戰你的戰術思維！</p>
-                    <button style="background: rgba(255, 255, 255, 0.2); border: 2px solid rgba(255, 255, 255, 0.3);">
+                    <button class="game-btn">
+                        <i class="fas fa-play"></i> 開始遊戲
+                    </button>
+                </div>
+                <div class="game-card" onclick="openSkuld()">
+                    <img class="game-icon" src="icon/skuld.png" alt="幸運女神打兔子">
+                    <h3>幸運女神打兔子</h3>
+                    <p>可愛的幸運女神大戰兔子，操作女神展開趣味攻防，挑戰高分！</p>
+                    <button class="game-btn">
                         <i class="fas fa-play"></i> 開始遊戲
                     </button>
                 </div>
@@ -1219,6 +1161,11 @@
         // 皮卡丘打排球遊戲
         function openPikachu() {
             window.open("https://game76420.github.io/pikachu/", "_blank");
+        }
+
+        // 幸運女神打兔子遊戲
+        function openSkuld() {
+            window.open("https://game76420.github.io/skuld/", "_blank");
         }
 
         // 導航列高亮
