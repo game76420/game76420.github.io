@@ -633,8 +633,11 @@ function resizeCanvas() {
       canvas.style.height = targetH + 'px';
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
-      MIN_THROW_DISTANCE = 40 * scale;
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
+      // 注意：投擲距離必須用「邏輯座標」(BASE_WIDTH/BASE_HEIGHT) 計算，
+      // 而不是實際螢幕像素(targetW/targetH)，否則不同螢幕尺寸會得到不同的
+      // 最大投擲距離，造成手機直版等小螢幕丟不遠的問題。
+      MIN_THROW_DISTANCE = 40;
+      MAX_THROW_DISTANCE = Math.sqrt(BASE_WIDTH * BASE_WIDTH + BASE_HEIGHT * BASE_HEIGHT) * 0.75;
     } else if (isMobileDevice) {
       // 手機版：充分利用螢幕空間
       let targetW, targetH;
@@ -674,9 +677,11 @@ function resizeCanvas() {
       scale = targetW / BASE_WIDTH;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
-      MIN_THROW_DISTANCE = 40 * scale;
-      // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
+      // 同樣使用邏輯座標(BASE_WIDTH/BASE_HEIGHT)計算，避免直版小螢幕
+      // 因為 targetW/targetH 過小而導致全力丟擲距離不足。
+      MIN_THROW_DISTANCE = 40;
+      // 統一：最大投擲距離都設為畫布對角線（邏輯座標）
+      MAX_THROW_DISTANCE = Math.sqrt(BASE_WIDTH * BASE_WIDTH + BASE_HEIGHT * BASE_HEIGHT) * 0.75;
     } else {
       // 電腦版：使用更大的基礎尺寸，讓場地更大
       let targetW, targetH;
@@ -721,9 +726,11 @@ function resizeCanvas() {
       scale = targetW / computerBaseWidth;
       ctx.setTransform(window.devicePixelRatio * scale, 0, 0, window.devicePixelRatio * scale, 0, 0);
       
-      MIN_THROW_DISTANCE = 40 * scale;
-      // 統一：最大投擲距離都設為畫布對角線
-      MAX_THROW_DISTANCE = Math.sqrt(targetW * targetW + targetH * targetH) * 0.75;
+      // 同樣使用邏輯座標(computerBaseWidth/computerBaseHeight)計算，
+      // 讓丟擲手感在所有裝置上一致，不受實際螢幕像素大小影響。
+      MIN_THROW_DISTANCE = 40;
+      // 統一：最大投擲距離都設為畫布對角線（邏輯座標）
+      MAX_THROW_DISTANCE = Math.sqrt(computerBaseWidth * computerBaseWidth + computerBaseHeight * computerBaseHeight) * 0.75;
     }
     
     console.log('Canvas實際尺寸:', canvas.width, 'x', canvas.height);
