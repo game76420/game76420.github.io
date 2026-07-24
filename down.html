@@ -1753,14 +1753,12 @@ function handleTouch(e) {
 
 window.addEventListener('touchstart', handleTouch);
 window.addEventListener('touchmove', handleTouch);
-window.addEventListener('touchend', function(e) {
-  setKey('ArrowLeft', false);
-  setKey('ArrowRight', false);
-});
-window.addEventListener('touchcancel', function(e) {
-  setKey('ArrowLeft', false);
-  setKey('ArrowRight', false);
-});
+// 注意：touchend / touchcancel 觸發時，e.touches 已經不包含剛離開畫面的那根手指，
+// 所以要用剩下還按著的手指重新計算方向，而不是直接把左右都清空。
+// 否則快速連續左右切換時，若新手指按下與舊手指離開的事件重疊，
+// 舊手指的 touchend 會把剛按下的新方向也一併清掉，造成角色卡住不動。
+window.addEventListener('touchend', handleTouch);
+window.addEventListener('touchcancel', handleTouch);
 
 // 遊戲結束自訂彈窗
 function showGameOverModal(score, isNewRecord) {
