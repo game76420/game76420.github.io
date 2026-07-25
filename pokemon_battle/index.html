@@ -137,14 +137,10 @@
     padding-top:16px;
   }
   .frame-edge{position:absolute;pointer-events:none;background-image:url('assets/images/border.png');z-index:2;}
-  /* 邊框花紋圖(spark1~4)原始尺寸是 64x64，這裡的 background-size 要跟其他頁面
-     (主選單 #screen-title 的 64px 64px、戰鬥畫面 canvas 內用原始像素繪製的花紋)
-     維持同一個「花紋單位格」大小，這樣邊框上的花紋才會跟其他頁面一樣等比放大，
-     而不是被硬壓成 12px 的小方塊、看起來像沒有放大的原始尺寸。*/
-  .frame-top{top:0;left:0;right:0;height:16px;background-size:64px 64px;background-repeat:repeat-x;transform:scaleY(-1) rotate(180deg);}
-  .frame-bottom{bottom:0;left:0;right:0;height:16px;background-size:64px 64px;background-repeat:repeat-x;}
-  .frame-left{top:0;bottom:0;left:0;width:16px;background-size:64px 64px;background-repeat:repeat-y;}
-  .frame-right{top:0;bottom:0;right:0;width:16px;background-size:64px 64px;background-repeat:repeat-y;}
+  .frame-top{top:0;left:0;right:0;height:12px;background-size:auto 12px;background-repeat:repeat-x;transform:scaleY(-1) rotate(180deg);}
+  .frame-bottom{bottom:0;left:0;right:0;height:12px;background-size:auto 12px;background-repeat:repeat-x;}
+  .frame-left{top:0;bottom:0;left:0;width:12px;background-size:12px auto;background-repeat:repeat-y;}
+  .frame-right{top:0;bottom:0;right:0;width:12px;background-size:12px auto;background-repeat:repeat-y;}
   .level-title{
     font-family:'Press Start 2P',monospace;font-size:18px;color:#fff;
     text-shadow:0 3px 0 rgba(0,0,0,.35);margin-bottom:6px;
@@ -425,15 +421,18 @@ let currentBattleBgKey = "spark3";
 function applyLevelBackground(lev){
   currentBattleBgKey = bgKeyForLevel(lev);
   const introEl = document.getElementById("screen-intro");
-  // 原本是「中間整片」套用該關卡的花紋底圖、四周細框固定用粉紅/綠色 border.png；
-  // 現在對調過來：四周細框改套用該關卡的花紋底圖，中間主要區塊則還原成
-  // #screen-intro 在 CSS 裡預設的粉紫色漸層(不再被 JS 蓋掉)。
+  // 中間主要區塊套用該關卡的花紋底圖，並用跟主選單(#screen-title)、對戰畫面
+  // 一樣的 64px 磁磚尺寸放大顯示，而不是瀏覽器預設的原始圖片尺寸；
+  // 四周細框固定使用 border.png 邊框裝飾，不再被 JS 覆蓋成花紋圖。
   const tileUrl = "url('"+IMG_BASE+IMAGE_FILES[currentBattleBgKey]+"')";
+  const borderUrl = "url('"+IMG_BASE+"border.png')";
   document.querySelectorAll("#screen-intro .frame-edge").forEach(function(el){
-    el.style.backgroundImage = tileUrl;
+    el.style.backgroundImage = borderUrl;
   });
   if(introEl){
-    introEl.style.backgroundImage = "";
+    introEl.style.backgroundImage = tileUrl;
+    introEl.style.backgroundRepeat = "repeat";
+    introEl.style.backgroundSize = "64px 64px";
   }
 }
 
@@ -769,16 +768,27 @@ window.addEventListener("mousemove", e=> setPaddleFromClientX(e.clientX));
    調整（數值越大，滑動同樣距離球拍移動越多）。綁在 window 上而不是只綁
    canvas，這樣手指在畫面任何地方滑動都能控制，符合「對畫面滑動」的操作方式。 */
 let touchDragX = null;
-function overlayIsActive(){
-  return !!document.querySelector(".overlay.active");
+// 只有在「對戰畫面」真的是目前顯示中的畫面時，才把觸控事件當成拖動球拍處理、
+// 並且呼叫 preventDefault()；否則(例如打贏後回到關卡館主畫面、或任何其他畫面)
+// 這裡的 preventDefault 會讓手機瀏覽器不觸發按鈕的 click 事件，導致畫面看起來
+// 卡住、點什麼按鈕都沒反應。battle 物件本身在對戰結束後不會被清空，所以不能只
+// 靠 `if(!battle)` 判斷。
+function battleScreenActive(){
+  // 光看 #screen-battle 有沒有 .active 還不夠：打贏/打輸後彈出的
+  // 「Next ▶」「Try Again！/Game Over！」按鈕也是畫在 #screen-battle 裡面的
+  // 疊層(overlay)，並不是切到別的 .screen，所以那段期間 #screen-battle
+  // 仍然是 active。必須額外確認 battle 還在進行中(還沒贏也還沒輸)，
+  // 否則同樣的手機點擊被吃掉問題會發生在這幾顆按鈕上。
+  return !!(battle && !battle.over && !battle.win &&
+    screens["screen-battle"] && screens["screen-battle"].classList.contains("active"));
 }
 function touchStartHandler(e){
-  if(!battle || overlayIsActive()) return;
+  if(!battle || !battleScreenActive()) return;
   e.preventDefault();
   touchDragX = e.touches[0].clientX;
 }
 function touchMoveHandler(e){
-  if(!battle || touchDragX===null || overlayIsActive()) return;
+  if(!battle || touchDragX===null || !battleScreenActive()) return;
   e.preventDefault();
   const t = e.touches[0];
   const rect = canvas.getBoundingClientRect();
@@ -863,11 +873,8 @@ function tick(){
   if(ball.x > FIELD_W-P.ballEdgeMargin){ ball.vx = -P.ballSideBounceVX; play("k"); }
   if(ball.x < P.ballEdgeMargin){ ball.vx = P.ballSideBounceVX; play("k"); }
 
-  // hit enemy — checked every frame regardless of phase, so the ball can
-  // land a hit both on the way up AND on the way back down after bouncing
-  // off the ceiling (previously this only ran while phase==="up", so a
-  // falling ball passing through the enemy sprite never registered a hit).
-  {
+  if(ball.phase === "up"){
+    // hit enemy
     const enSize = nativeSize(monsterImg(lev), 96, 90);
     if(rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, en.x,en.y,enSize.w,enSize.h)){
       const dmg = b.powerball>=P.powerballSuperThreshold ? P.dmgPower : P.dmgNormal;
@@ -877,9 +884,6 @@ function tick(){
       if(t - b.lastHitSnd > P.soundHitThrottleMs){ play("hit"); b.lastHitSnd = t; }
       if(b.hp <= 0){ winLevel(); return; }
     }
-  }
-
-  if(ball.phase === "up"){
     // ceiling -> bounce down
     if(ball.y <= CEIL_Y){
       ball.phase = "down";
