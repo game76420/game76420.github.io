@@ -1,1 +1,1634 @@
-d
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>精靈對決 Monster Battle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Caveat:wght@700&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --yellow:#ffd23f;
+    --yellow-dark:#f0a500;
+    --blue:#2a5ea8;
+    --blue-dark:#173a6b;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --panel:#fffdf5;
+    --ink:#1b2430;
+    --result-title-font-size:24px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:radial-gradient(ellipse at top, #2f6b3a 0%, #163a1e 55%, #0c2010 100%);
+    font-family:'Noto Sans TC',sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+    touch-action:none;
+  }
+  #app{
+    position:relative;
+    width:100vw;height:100vh;
+    display:flex;align-items:center;justify-content:center;
+  }
+  /* ---------- 4:3 game window, like the original ---------- */
+  #stage{
+    position:relative;
+    background:#111;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+    overflow:visible;
+    transform-origin:center center;
+  }
+  .screen{
+    position:absolute;inset:0;
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    color:#fff;
+    background-repeat:repeat;
+  }
+  .screen.active{display:flex;}
+
+  /* ---------- pixel dot pattern backgrounds ---------- */
+  .pattern-bg{
+    background-color:#2a7d3a;
+    background-image:
+      radial-gradient(circle at 12px 12px, rgba(0,0,0,.14) 0 6px, transparent 7px),
+      radial-gradient(circle at 34px 34px, rgba(0,0,0,.14) 0 6px, transparent 7px);
+    background-size:46px 46px;
+  }
+
+  /* ---------- title ---------- */
+  #screen-title{
+    justify-content:flex-start;padding-top:20px;
+    background-color:#2a7d3a;
+    background-image:url('assets/images/spark2.png');
+    background-repeat:repeat;
+    background-size:64px 64px;
+  }
+  .logo-wrap{text-align:center;}
+  .logo-img{
+    display:block;
+    margin:0 auto;
+    width:260px;
+    max-width:80%;
+    height:auto;
+    filter:drop-shadow(0 5px 10px rgba(0,0,0,.5));
+  }
+  .verline{
+    margin-top:2px;font-size:9px;color:var(--yellow);
+    font-family:'Press Start 2P',monospace;
+  }
+  .pikachu-title{
+    image-rendering:pixelated;margin-top:8px;
+    filter:drop-shadow(0 8px 8px rgba(0,0,0,.45));
+  }
+  .credit{
+    position:absolute;bottom:10px;left:0;right:0;text-align:center;
+    font-family:'Press Start 2P',monospace;font-size:9px;color:var(--yellow);
+  }
+  .start-img-btn{
+    border:none;background:none;padding:0;cursor:pointer;line-height:0;
+    filter:drop-shadow(0 4px 4px rgba(0,0,0,.4));
+    transition:transform .06s;
+  }
+  .start-img-btn:active{transform:translateY(3px);}
+  .start-img-btn img{image-rendering:pixelated;}
+
+  .btn{
+    font-family:'Press Start 2P',monospace;
+    font-size:12px;
+    background:linear-gradient(180deg,#fffef7,#f1e6c8);
+    border:2.5px solid #1a1a2e;
+    border-radius:8px;
+    padding:9px 20px;
+    color:#173a6b;
+    cursor:pointer;
+    box-shadow:0 3px 6px rgba(0,0,0,.4);
+    transition:transform .06s;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 2px rgba(0,0,0,.4);}
+  .btn-row{display:flex;gap:12px;margin-top:10px;}
+  .start-wrap{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+
+  /* ---------- password (now inline on the title screen, like the original) ---------- */
+  #password-input{
+    font-family:'Press Start 2P',monospace;
+    font-size:12px;
+    text-align:center;
+    letter-spacing:2px;
+    padding:9px 20px;
+    border:2.5px solid #1a1a2e;
+    border-radius:8px;
+    background:linear-gradient(180deg,#fffef7,#f1e6c8);
+    color:#173a6b;
+    box-shadow:0 3px 6px rgba(0,0,0,.4);
+    outline:none;
+    width:150px;
+  }
+  #password-input::placeholder{color:#173a6b;opacity:.6;}
+
+  /* ---------- intro (Level select) ---------- */
+  #screen-intro{
+    background:radial-gradient(ellipse at 50% 22%, #b45bff 0%, #7d3fd8 48%, #4a2590 100%);
+    justify-content:flex-start;
+    padding-top:16px;
+  }
+  .frame-edge{position:absolute;pointer-events:none;background-image:url('assets/images/border.png');z-index:2;}
+  .frame-top{top:0;left:0;right:0;height:12px;background-size:auto 12px;background-repeat:repeat-x;transform:scaleY(-1) rotate(180deg);}
+  .frame-bottom{bottom:0;left:0;right:0;height:12px;background-size:auto 12px;background-repeat:repeat-x;}
+  .frame-left{top:0;bottom:0;left:0;width:12px;background-size:12px auto;background-repeat:repeat-y;}
+  .frame-right{top:0;bottom:0;right:0;width:12px;background-size:12px auto;background-repeat:repeat-y;}
+  .level-title{
+    font-family:'Press Start 2P',monospace;font-size:18px;color:#fff;
+    text-shadow:0 3px 0 rgba(0,0,0,.35);margin-bottom:6px;
+  }
+  .intro-monster-wrap{width:110px;height:110px;display:flex;align-items:center;justify-content:center;margin-bottom:2px;}
+  .intro-monster-wrap img{max-width:110px;max-height:110px;image-rendering:pixelated;filter:drop-shadow(0 8px 8px rgba(0,0,0,.4));}
+  .info-row{display:flex;justify-content:center;gap:8px;font-size:13px;margin:3px 0;}
+  .info-row .lbl{color:var(--yellow);}
+  .info-row .val-name{color:#3ee85e;font-weight:700;}
+  .info-row .val-hp{color:#ff5b4a;font-weight:700;}
+  .atk-row{display:flex;align-items:center;justify-content:center;gap:8px;margin:5px 0 2px;font-size:13px;}
+  .atk-row .lbl{color:var(--yellow);}
+  .atk-icon{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle,#fff 30%,#e74c3c 32%,#e74c3c 55%,#fff 58%);border:2px solid #222;}
+
+  /* ---------- battle ---------- */
+  #screen-battle{background:#111;}
+  #gameCanvas{width:100%;height:100%;display:block;image-rendering:pixelated;position:relative;z-index:1;}
+  /* HUD green bar: separate background element behind the canvas; the canvas keeps
+     that strip transparent each frame so only the HUD text is drawn on top of this. */
+  .hud-bg-bar{
+    position:absolute;left:0;right:0;top:0;height:var(--hud-frac,0%);
+    background:transparent;z-index:0;pointer-events:none;
+  }
+  /* yellow side frame, like the original — kept above overlays too (z-index higher than
+     .overlay) so it still frames the Game Over / Win screens, not just live gameplay.
+     Uses --hud-border-frac (tight to the green bar's actual height) rather than --hud-frac
+     (the padded value used by the overlay) so the yellow visually connects to the green
+     bar with no gap. The HUD text is kept clear of these side columns horizontally via
+     hudTextMarginX, so it's safe for the border to start this high. */
+  .side-border{position:absolute;top:var(--hud-border-frac,0%);bottom:var(--floor-frac,0%);width:2%;background:#ffff00;z-index:11;pointer-events:none;}
+  .side-border-left{left:0;}
+  .side-border-right{right:0;}
+
+  /* ---------- overlays (drawn on top of the still battle screen, like the original) ----------
+     The canvas keeps its last rendered frame frozen behind the overlay. The overlay only spans
+     from below the HUD strip down to above the paddle/tier-bar strip, so — just like the
+     original — the HUD text stays visible above it and the frozen pikachu + tier bar stay
+     visible below it, framing the Game Over / Win screen the same way it framed live play. */
+  .overlay{
+    position:absolute;left:0;right:0;bottom:var(--floor-frac,0%);top:var(--hud-frac,0%);z-index:10;
+    display:none;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .overlay.active{display:flex;}
+  .result-title{
+    font-family:'Press Start 2P',monospace;
+    font-size:var(--result-title-font-size,24px);color:#ffff00;
+    -webkit-text-stroke:2px var(--blue);
+    text-shadow:2px 2px 0 var(--blue), 0 4px 0 rgba(0,0,0,.4);
+    margin:8px 0 10px;
+    white-space:nowrap;
+  }
+  .rocket-img{image-rendering:pixelated;filter:drop-shadow(0 6px 8px rgba(0,0,0,.5));}
+  .win-img{width:100px;height:115px;image-rendering:pixelated;filter:drop-shadow(0 6px 8px rgba(0,0,0,.5));}
+  .pw-box{
+    font-family:'Press Start 2P',monospace;
+    background:#fff;color:var(--ink);
+    border-radius:8px;padding:8px 14px;font-size:13px;
+    margin:4px 0 8px;letter-spacing:2px;
+  }
+  .small-note{font-size:11px;color:#fff;text-shadow:0 2px 3px rgba(0,0,0,.6);max-width:280px;text-align:center;margin-top:0;}
+
+  /* ---------- win all (full screen recap) ---------- */
+  #screen-winall{background:linear-gradient(180deg,#123a2a,#061710);justify-content:center;}
+
+  /* ================= 設定 / 除錯面板 ================= */
+  #settingsBtn{
+    position:fixed; top:14px; left:14px; z-index:1300;
+    width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+    background:rgba(0,0,0,.55);color:#fff;font-size:17px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 6px rgba(0,0,0,.5);
+  }
+  #settingsBtn:hover{background:rgba(0,0,0,.8);}
+  #paramPanel{
+    position:fixed; inset:0; z-index:1400;
+    display:none;
+    pointer-events:none; /* 面板以外的區域讓滑鼠事件穿透，遊戲畫面仍可正常看到/操作 */
+  }
+  .param-side-panel{
+    pointer-events:auto;
+    position:fixed; top:0; left:0; height:100vh;
+    width:340px; max-width:90vw;
+    background:rgba(255,253,245,.99);
+    box-shadow:6px 0 24px rgba(0,0,0,.35);
+    padding:14px 12px 10px 12px;
+    overflow-y:auto; box-sizing:border-box;
+    font-family:'Noto Sans TC',sans-serif;
+    color:#1b2430;
+  }
+  .param-side-panel h2{margin:2px 0 6px 0;font-size:1em;color:var(--blue-dark);padding-right:24px;}
+  .param-hint{font-size:.68em;color:#0a0;background:#eaffea;border:1px solid #bfe8bf;border-radius:6px;padding:6px 8px;margin:0 0 10px;line-height:1.5;}
+  .modal-close-x{position:absolute;top:8px;right:8px;width:24px;height:24px;border:none;border-radius:50%;background:#eee;color:#444;font-size:15px;line-height:1;cursor:pointer;}
+  .modal-close-x:hover{background:#ddd;}
+  .param-group{margin-bottom:8px;border:1px solid #e2e2e2;border-radius:8px;overflow:hidden;background:#fbfbfc;}
+  .param-group[data-kind="paddle"]{border-color:#bcdcf7;}
+  .param-group[data-kind="control"]{border-color:#f7c6d9;}
+  .param-group[data-kind="speed"]{border-color:#ffd9a0;}
+  .param-group[data-kind="passwords"]{border-color:#c9c2f0;}
+  .param-group[data-kind="ball"]{border-color:#cdeac0;}
+  .param-group[data-kind="enemy"]{border-color:#f7dcae;}
+  .param-group[data-kind="item"]{border-color:#dcc7f0;}
+  .param-group[data-kind="proj"]{border-color:#f5b8c4;}
+  .param-group[data-kind="rule"]{border-color:#a8e0dc;}
+  .param-group summary{list-style:none;cursor:pointer;padding:7px 10px;font-size:.72em;font-weight:700;display:flex;align-items:center;gap:6px;user-select:none;color:#fff;background:#4a90e2;}
+  .param-group[data-kind="ball"] summary{background:#5cb85c;}
+  .param-group[data-kind="enemy"] summary{background:#e2984a;}
+  .param-group[data-kind="item"] summary{background:#9b59b6;}
+  .param-group[data-kind="proj"] summary{background:#e0507a;}
+  .param-group[data-kind="rule"] summary{background:#2ba89b;}
+  .param-group[data-kind="control"] summary{background:#e2568f;}
+  .param-group[data-kind="speed"] summary{background:#e08a2b;}
+  .param-group[data-kind="passwords"] summary{background:#7a63d1;}
+  .param-group summary::-webkit-details-marker{display:none;}
+  .param-group summary::before{content:'▶';font-size:.7em;transition:transform .15s;flex-shrink:0;}
+  .param-group[open] > summary::before{transform:rotate(90deg);}
+  .param-group summary .param-group-count{margin-left:auto;font-weight:400;font-size:.85em;opacity:.85;}
+  .param-group-body{padding:9px 9px 1px 9px;}
+  .param-row{margin-bottom:10px;}
+  .param-row-top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px;}
+  .param-row-top label{font-size:.68em;color:#444;flex:1;}
+  .param-num{width:64px;font-size:.72em;padding:2px 4px;border:1px solid #ccc;border-radius:4px;}
+  .param-row input[type="range"]{width:100%;}
+  .param-json-row{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;}
+  .param-json-row label{font-size:.7em;color:#444;}
+  #paramTextArea{width:100%;font-family:'Consolas','Menlo',monospace;font-size:.68em;padding:6px;border:1px solid #ccc;border-radius:6px;resize:vertical;box-sizing:border-box;}
+  .param-btn-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .param-btn-row button{flex:1 1 auto;padding:7px 8px;font-size:.72em;border:none;border-radius:6px;cursor:pointer;background:#4a90e2;color:#fff;}
+  .param-btn-row button:hover{background:#357abd;}
+  #resetParamsBtn{background:#fff;color:#e11;border:1.5px solid #e11 !important;}
+  #resetParamsBtn:hover{background:#ffeaea;}
+  .param-status{min-height:1.2em;font-size:.7em;color:#0a0;margin-top:6px;text-align:center;}
+  .pw-list-hint{font-size:.68em;color:#555;margin-bottom:8px;line-height:1.5;}
+  .pw-list-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .pw-list-row{
+    display:flex;justify-content:space-between;align-items:center;gap:6px;
+    background:#fff;border:1px solid #ddd;border-radius:6px;
+    padding:6px 9px;font-size:.72em;color:#333;cursor:pointer;
+    font-family:'Noto Sans TC',sans-serif;
+  }
+  .pw-list-row:hover{background:#f3f0ff;border-color:#c9c2f0;}
+  .pw-list-row:active{background:#e8e2fb;}
+  .pw-list-code{font-family:'Press Start 2P',monospace;font-size:.85em;color:#7a63d1;letter-spacing:1px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <button id="settingsBtn" title="遊戲參數設定">⚙️</button>
+
+  <!-- 設定 / 除錯面板：固定在網頁左側（遊戲框外面），可調整所有戰鬥參數、顯示碰撞箱、匯出/匯入 JSON -->
+  <div id="paramPanel">
+    <div class="param-side-panel">
+      <button id="closeParamPanel" class="modal-close-x" title="關閉">×</button>
+      <h2>⚙ 遊戲參數設定</h2>
+      <p class="param-hint">面板開啟時遊戲照常運作，可以邊調邊玩測試手感。<br>面板開啟中，戰鬥畫面會用彩色框顯示 皮卡丘/球/敵人/道具/子彈 的碰撞判定範圍，關閉面板後框線會自動消失。</p>
+      <div id="paramSliders" class="param-sliders"></div>
+      <div class="param-json-row">
+        <label for="paramTextArea">參數總表（JSON，可複製 / 貼上）：</label>
+        <textarea id="paramTextArea" rows="8" spellcheck="false" placeholder="按「複製目前參數」會把目前數值產生在這裡；下次要套用同一組設定時，把內容貼回這裡，再按「套用貼上的參數」即可。"></textarea>
+      </div>
+      <div class="param-btn-row">
+        <button id="copyParamsBtn">複製目前參數</button>
+        <button id="downloadParamsBtn">下載 JSON</button>
+        <button id="applyParamsBtn">套用貼上的參數</button>
+        <button id="resetParamsBtn">還原預設值</button>
+      </div>
+      <div id="paramCopyStatus" class="param-status"></div>
+    </div>
+  </div>
+
+  <div id="stage">
+
+    <!-- TITLE -->
+    <div id="screen-title" class="screen pattern-bg active">
+      <div class="logo-wrap">
+        <img class="logo-img" src="" data-asset="logo" alt="Pokémon - Gotta catch 'em all!">
+        <div class="verline">Ver 0.2</div>
+      </div>
+      <img class="pikachu-title" src="" data-asset="pikachu" alt="pikachu">
+      <div class="start-wrap">
+        <button class="btn" id="btn-title-start">START!</button>
+        <input id="password-input" maxlength="6" placeholder="Pass" autocomplete="off">
+      </div>
+      <div class="credit">1999 Max Image World</div>
+    </div>
+
+    <!-- INTRO -->
+    <div id="screen-intro" class="screen">
+      <div class="frame-edge frame-top"></div>
+      <div class="frame-edge frame-bottom"></div>
+      <div class="frame-edge frame-left"></div>
+      <div class="frame-edge frame-right"></div>
+      <div class="level-title" id="intro-level">Level 1</div>
+      <div class="intro-monster-wrap"><img id="intro-monster-img" src="" alt="monster"></div>
+      <div class="info-row"><span class="lbl">名稱：</span><span class="val-name" id="intro-name">-</span></div>
+      <div class="info-row"><span class="lbl">生命力：</span><span class="val-hp" id="intro-hp">-</span></div>
+      <div class="atk-row"><span class="lbl">攻擊方式：</span><div class="atk-icon"></div></div>
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="btn-intro-start">START!</button>
+      </div>
+    </div>
+
+    <!-- BATTLE -->
+    <div id="screen-battle" class="screen">
+      <div class="hud-bg-bar"></div>
+      <canvas id="gameCanvas" width="480" height="360"></canvas>
+      <div class="side-border side-border-left"></div>
+      <div class="side-border side-border-right"></div>
+
+      <!-- OVER overlay -->
+      <div id="overlay-over" class="overlay">
+        <img class="rocket-img" src="" data-asset="rocket" alt="rocket">
+        <div class="btn-row">
+          <button class="btn" id="btn-over-retry">Try Again !</button>
+          <button class="btn" id="btn-over-quit">Game Over !</button>
+        </div>
+      </div>
+
+      <!-- WIN overlay -->
+      <div id="overlay-win" class="overlay">
+        <img class="win-img" src="" data-asset="win" alt="you win">
+        <div id="win-pw-wrap">
+          <div class="small-note">下次可用密碼直接進入下一關：</div>
+          <div class="pw-box" id="win-password">----</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" id="btn-win-next">Next ▶</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- WIN ALL -->
+    <div id="screen-winall" class="screen">
+      <div class="result-title">ALL CLEAR!!</div>
+      <img class="pikachu-title" src="" data-asset="pikachu" alt="pikachu">
+      <div class="small-note" style="margin-top:12px;">恭喜你，16 隻精靈全部擊敗！<br>感謝遊玩！</div>
+      <div class="btn-row">
+        <button class="btn" id="btn-winall-title">回到標題</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================== asset manifest (external files) ============================== */
+const IMAGE_FILES = {
+  ball:"ball.png", bar1:"bar1.png", bar2:"bar2.png", bar3:"bar3.png", bar4:"bar4.png",
+  border:"border.png", item_add:"item_add.png", item_heal:"item_heal.png", item_remove:"item_remove.png",
+  logo:"logo.png",
+  pikachu:"pikachu.png", rocket:"rocket.png", spark1:"spark1.png", spark2:"spark2.png", spark3:"spark3.png", spark4:"spark4.png",
+  star:"star.png", startbtn:"startbtn.png",
+  monster1:"monster1.png", monster2:"monster2.png", monster3:"monster3.png", monster4:"monster4.png",
+  monster5:"monster5.png", monster6:"monster6.png", monster7:"monster7.png", monster8:"monster8.png",
+  monster9:"monster9.png", monster10:"monster10.png", monster11:"monster11.png", monster12:"monster12.png",
+  monster13:"monster13.png", monster14:"monster14.png", monster15:"monster15.png",
+  proj1:"proj1.png", proj2:"proj2.png", proj3:"proj3.png", proj4:"proj4.png", proj5:"proj5.png",
+  proj6:"proj6.png", proj7:"proj7.png", proj8:"proj8.png", proj9:"proj9.png", proj10:"proj10.png",
+  proj11:"proj11.png", proj12:"proj12.png", proj13:"proj13.png", proj14:"proj14.png", proj15:"proj15.png",
+  win:"win.png"
+};
+const SOUND_FILES = {
+  "beep":"beep.wav", "cat":"cat.wav", "haha":"haha.wav", "hit me":"hit me.wav", "hit":"hit.wav",
+  "k":"k.wav", "ka":"ka.wav", "o":"o.wav", "pi-super":"pi-super.wav", "pi":"pi.wav",
+  "Pi2":"Pi2.wav", "pi3":"pi3.wav", "title-back":"title-back.wav", "win":"win.wav"
+};
+const IMG_BASE = "assets/images/";
+const SND_BASE = "assets/sounds/";
+
+/* ---- 關卡背景圖片循環 (spark3 → spark4 → spark1 → spark2 → 重複) ----
+   主選單固定用 spark2.png（見 #screen-title 的 CSS），每個關卡則依序循環使用
+   spark3/spark4/spark1/spark2，關卡5開始重複同一組順序。 */
+const LEVEL_BG_CYCLE = ["spark3","spark4","spark1","spark2"];
+function bgKeyForLevel(lev){ return LEVEL_BG_CYCLE[(lev-1) % LEVEL_BG_CYCLE.length]; }
+let currentBattleBgKey = "spark3";
+function applyLevelBackground(lev){
+  currentBattleBgKey = bgKeyForLevel(lev);
+  const introEl = document.getElementById("screen-intro");
+  // 原本是「中間整片」套用該關卡的花紋底圖、四周細框固定用粉紅/綠色 border.png；
+  // 現在對調過來：四周細框改套用該關卡的花紋底圖，中間主要區塊則還原成
+  // #screen-intro 在 CSS 裡預設的粉紫色漸層(不再被 JS 蓋掉)。
+  const tileUrl = "url('"+IMG_BASE+IMAGE_FILES[currentBattleBgKey]+"')";
+  document.querySelectorAll("#screen-intro .frame-edge").forEach(function(el){
+    el.style.backgroundImage = tileUrl;
+  });
+  if(introEl){
+    introEl.style.backgroundImage = "";
+  }
+}
+
+const IMG = {};
+const SND = {};
+
+/* bar1~bar4 are the bottom bars: only their colored (opaque) pixels are the
+   real collision blocks that bounce the ball back. We scan each bar image's
+   alpha channel once it loads and cache the opaque x-ranges, scaled to the
+   full field width (FIELD_W), so drawing and collision always match. */
+const BAR_SEGMENTS = {
+  // bar1~bar4 are the bottom bars: only their colored (opaque) pixels are the
+  // real collision blocks that bounce the ball back. These x-ranges are the
+  // ORIGINAL, un-scaled pixel coordinates of each source image (bar images
+  // are drawn at their true 324x13 size now, not stretched to FIELD_W), and
+  // were measured directly from each image's alpha channel ahead of time.
+  // They're hardcoded (rather than read from the image at runtime via
+  // getImageData) because some desktop/local wrappers block canvas pixel
+  // readback for security reasons, which would otherwise make every catch
+  // silently fail.
+  bar1: [[0,40],[100,149],[191,234],[285,324]],
+  bar2: [[0,74],[257,324]],
+  bar3: [[0,10],[103,137],[182,213],[314,324]],
+  bar4: [[0,8],[157,165],[318,324]]
+};
+// bar images are shown at their real size (324x13) and centered horizontally
+// in the field, since we no longer stretch images to fill the field width.
+// This is a function (not a constant) because the field width is now
+// user-configurable (GAME_PARAMS.fieldW) and can change at runtime.
+// BAR_NATIVE_W is the reference width the BAR_SEGMENTS x-ranges were measured
+// at. GAME_PARAMS.barW/barH are now user-adjustable (面板可調), so the bar is
+// drawn stretched to that size and the collision segments are scaled by the
+// same ratio to stay in sync with what's drawn.
+const BAR_NATIVE_W = 324;
+function barX(){ return (FIELD_W - GAME_PARAMS.barW) / 2; }
+function barRenderedHeight(tier){
+  return GAME_PARAMS.barH;
+}
+function isXOnBar(tier, x, halfWidth){
+  const segs = BAR_SEGMENTS["bar"+tier];
+  if(!segs) return true; // unknown tier: don't unfairly punish the player
+  // check the ball's whole width (not just its center point) against each
+  // segment, with a small forgiveness margin, so a ball that is visibly
+  // resting on the green block doesn't get rejected by a 1px edge case
+  const hw = (halfWidth||0) + 6;
+  const lo = x - hw, hi = x + hw;
+  const bx = barX();
+  const scale = GAME_PARAMS.barW / BAR_NATIVE_W;
+  for(let i=0;i<segs.length;i++){
+    if(hi >= segs[i][0]*scale+bx && lo <= segs[i][1]*scale+bx) return true;
+  }
+  return false;
+}
+/* ---- 圖片實際大小輔助函式：所有圖片都依原始像素大小顯示，不縮放，碰撞箱也採用相同大小 ---- */
+function nativeSize(img, fallbackW, fallbackH){
+  if(img && img.naturalWidth) return {w: img.naturalWidth, h: img.naturalHeight};
+  return {w: fallbackW, h: fallbackH};
+}
+
+const BAR_TINT = {}; // key -> canvas: same shape as the source bar, recolored bright green with a bevel highlight, like the original game's HP-bar blocks
+function buildBarTint(key, img){
+  const w = img.naturalWidth, h = img.naturalHeight;
+  if(!w || !h) return;
+  const tint = document.createElement("canvas");
+  tint.width = w; tint.height = h;
+  const tctx = tint.getContext("2d");
+  try{
+    tctx.drawImage(img, 0, 0);
+    tctx.globalCompositeOperation = "source-in";
+    tctx.fillStyle = "#00ff00";
+    tctx.fillRect(0,0,w,h);
+    tctx.globalCompositeOperation = "source-atop";
+    const grad = tctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,"rgba(255,255,255,.55)");
+    grad.addColorStop(.4,"rgba(255,255,255,0)");
+    grad.addColorStop(1,"rgba(0,60,0,.35)");
+    tctx.fillStyle = grad;
+    tctx.fillRect(0,0,w,h);
+    BAR_TINT[key] = tint; // pure drawing/compositing, no pixel readback, so this works even where getImageData is blocked
+  }catch(e){ /* if drawing itself is somehow blocked, render() falls back to the plain source image */ }
+}
+
+function loadAssets(){
+  for(const k in IMAGE_FILES){
+    const im = new Image();
+    if(k==="bar1"||k==="bar2"||k==="bar3"||k==="bar4"){
+      im.onload = ()=>buildBarTint(k, im);
+    }
+    im.src = IMG_BASE + IMAGE_FILES[k];
+    IMG[k] = im;
+  }
+  for(const k in SOUND_FILES){
+    const a = new Audio();
+    a.src = SND_BASE + SOUND_FILES[k];
+    a.preload = "auto";
+    SND[k] = a;
+  }
+  document.querySelectorAll('img[data-asset]').forEach(el=>{
+    el.src = IMG_BASE + IMAGE_FILES[el.dataset.asset];
+  });
+}
+function play(name, {loop=false, vol=1}={}){
+  const base = SND[name];
+  if(!base) return;
+  if(loop){
+    base.loop = true;
+    base.volume = vol;
+    if(base.paused) base.play().catch(()=>{});
+    return base;
+  }
+  const c = base.cloneNode();
+  c.volume = vol;
+  c.play().catch(()=>{});
+}
+function stopLoop(name){
+  const base = SND[name];
+  if(base){ base.pause(); base.currentTime = 0; }
+}
+
+/* ============================== data tables ============================== */
+const MONSTER_NAMES = ["大舌貝","巴大蝴","火爆猴","寶石海星","閃電鳥","鬼斯通","三合一磁怪","雙彈瓦斯","大鉗蟹","妙娃花","大甲","毒刺水母","怪力","暴鯉龍","胡地"];
+const PASSWORDS = {2:"412",3:"524",4:"318",5:"985",6:"5246",7:"9513",8:"4123",9:"5214",10:"8546",11:"88521",12:"21234",13:"90123",14:"54387",15:"52013"};
+function barTier(lev){ if(lev<=3) return 1; if(lev<=6) return 2; if(lev<=9) return 3; return 4; }
+function monsterImg(lev){ return IMG["monster"+lev]; }
+function projImg(lev){ return IMG["proj"+lev]; }
+function enemyHpFor(lev){ return GAME_PARAMS.enemyHpBase + lev*GAME_PARAMS.enemyHpPerLevel; }
+
+/* ============================== screen management ============================== */
+const screens = {};
+document.querySelectorAll(".screen").forEach(s=>screens[s.id]=s);
+function hideOverlays(){
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("active"));
+}
+function showScreen(id){
+  hideOverlays();
+  Object.values(screens).forEach(s=>s.classList.remove("active"));
+  screens[id].classList.add("active");
+}
+function showOverlay(id){
+  // keeps the battle screen (and its frozen last frame) visible underneath, like the original
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* ============================== global game state ============================== */
+let lev = 1;
+let musicStarted = false;
+
+function ensureMusic(){
+  if(!musicStarted){
+    musicStarted = true;
+    play("title-back", {loop:true, vol:.5});
+  }
+}
+
+/* ---------- TITLE (password is now entered directly on this screen, like the original) ---------- */
+document.getElementById("btn-title-start").addEventListener("click", ()=>{
+  ensureMusic();
+  const val = document.getElementById("password-input").value.trim();
+  let found = 1;
+  for(const L in PASSWORDS){ if(PASSWORDS[L] === val){ found = parseInt(L,10); } }
+  lev = found;
+  play("ka");
+  goIntro();
+});
+
+/* ---------- INTRO ---------- */
+function goIntro(){
+  applyLevelBackground(lev);
+  document.getElementById("intro-level").textContent = "Level " + lev;
+  document.getElementById("intro-name").textContent = MONSTER_NAMES[lev-1];
+  document.getElementById("intro-hp").textContent = enemyHpFor(lev);
+  document.getElementById("intro-monster-img").src = monsterImg(lev).src;
+  showScreen("screen-intro");
+}
+document.getElementById("btn-intro-start").addEventListener("click", ()=>{
+  play("ka");
+  startBattle();
+});
+
+/* ============================== 可調參數 GAME_PARAMS ============================== */
+let GAME_PARAMS = {
+  dragSensitivity: 1.6,
+  gameSpeed: 1,
+  fieldW: 400, fieldH: 300,
+  hudH: 10, ceilY: 10, paddleY: 300, floorY: 332, barY: 287,
+  barW: 400, barH: 13,
+  hudFontSize: 15, hudTextYOffset: 16, hudTextMarginX: 12, hudLabelValueGap: 4,
+  resultTitleFontSize: 24,
+  paddleSmoothing: 0.55,
+  paddleCatchOffsetY: -17,
+  paddleDrawYOffset: 35,
+  ballUpVY: -6, ballDownVY: 6, ballEdgeMargin: 10, ballSideBounceVX: 2, ballMinVX: -6, ballMaxVX: 6,
+  ballDeflectThreshold: 30, ballDeflectStrong: 2, ballDeflectWeak: 1,
+  enemyWanderSpeed: 1,
+  enemyWanderXMin: 50, enemyWanderXSpan: 100, enemyWanderYMin: 34, enemyWanderYSpan: 100,
+  enemyHpBase: 100, enemyHpPerLevel: 100, dmgNormal: 1, dmgPower: 3,
+  enemyStartY: 84,
+  itemSpawnEveryHits: 4,
+  cutehpMax: 200, itemHealAmount: 100, powerballSuperThreshold: 5, chainFollowDivisor: 3,
+  itemSpawnXMargin: 30, itemSpawnYMin: 40, itemSpawnYRangeFactor: 0.5,
+  projSpeed: 5,
+  projSpawnChanceDenom: 220, projDmgDivisor: 3, projDmgBase: 1,
+  soundHitThrottleMs: 90, soundHitMeThrottleMs: 250
+};
+const GAME_PARAMS_DEFAULTS = JSON.parse(JSON.stringify(GAME_PARAMS));
+let DEBUG_SHOW_HITBOX = false;
+
+/* ============================== BATTLE ============================== */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+let FIELD_W, FIELD_H;
+let HUD_H, CEIL_Y, PADDLE_Y, FLOOR_Y, BAR_Y;
+const stageEl = document.getElementById("stage");
+// 等比縮放到最大：#stage 本身維持原始邏輯尺寸(FIELD_W x FIELD_H)不變，
+// 改用 CSS transform:scale 整體放大/縮小，這樣選單、關卡介紹等用固定像素字體
+// /圖片排版的畫面，也會跟戰鬥畫面(canvas)一樣整個等比例放大，而不是只有
+// canvas 內容被拉伸、其他頁面卻維持原始大小不變。
+// 畫面用 CSS transform:scale 整體放大時，canvas 的繪圖解析度如果還停留在
+// 邏輯尺寸(FIELD_W x FIELD_H)，內容會被瀏覽器用點陣圖的方式拉伸，因此放大後
+// HUD 文字/圖形看起來模糊。這裡改成把 canvas 的實際繪圖解析度(width/height
+// 屬性，也就是像素緩衝區大小)拉高到「螢幕實際會顯示的像素數」——同時考慮
+// window.devicePixelRatio(螢幕本身的高解析度)和 fitStageToWindow 算出來的
+// 縮放倍率——CSS 顯示尺寸則維持邏輯尺寸不變。這樣瀏覽器就有足夠的來源像素
+// 可以畫，放大後文字依然銳利，不會模糊。
+let CANVAS_SCALE = 1;
+function fitStageToWindow(){
+  if(!stageEl) return;
+  stageEl.style.width = FIELD_W + "px";
+  stageEl.style.height = FIELD_H + "px";
+  const maxW = window.innerWidth * 0.96;
+  const maxH = window.innerHeight * 0.96;
+  const scale = Math.min(maxW/FIELD_W, maxH/FIELD_H);
+  stageEl.style.transform = "scale(" + scale + ")";
+  // 限制上限避免在超高解析度螢幕上把畫布緩衝區撐得過大，影響效能/記憶體
+  const dpr = window.devicePixelRatio || 1;
+  CANVAS_SCALE = Math.min(dpr * scale, 4);
+  const bufW = Math.max(1, Math.round(FIELD_W * CANVAS_SCALE));
+  const bufH = Math.max(1, Math.round(FIELD_H * CANVAS_SCALE));
+  if(canvas.width !== bufW) canvas.width = bufW;
+  if(canvas.height !== bufH) canvas.height = bufH;
+}
+window.addEventListener("resize", fitStageToWindow);
+function syncFieldLayout(){
+  FIELD_W = GAME_PARAMS.fieldW;
+  FIELD_H = GAME_PARAMS.fieldH;
+  HUD_H = GAME_PARAMS.hudH;
+  CEIL_Y = GAME_PARAMS.ceilY;
+  PADDLE_Y = GAME_PARAMS.paddleY;
+  FLOOR_Y = GAME_PARAMS.floorY;
+  BAR_Y = GAME_PARAMS.barY;
+  if(stageEl){
+    stageEl.style.aspectRatio = FIELD_W + "/" + FIELD_H;
+  }
+  fitStageToWindow();
+  const battleScreenEl = document.getElementById("screen-battle");
+  if(battleScreenEl){
+    // --hud-frac must cover the *whole* HUD row (the thin colored bar AND the text drawn
+    // below it via hudTextYOffset) — not just the bar's own height — otherwise the overlay/
+    // side-border start partway through the text and clip it off, hiding the HUD entirely.
+    const hudTextBaselineY = HUD_H/2+1+GAME_PARAMS.hudTextYOffset;
+    const hudSafeH = Math.max(HUD_H, hudTextBaselineY + GAME_PARAMS.hudFontSize/2 + 4);
+    battleScreenEl.style.setProperty("--hud-frac", (hudSafeH/FIELD_H*100)+"%");
+    // tight version: just the green bar's own height, used by the yellow side border so it
+    // visually connects to the green bar with no gap. Safe because the HUD text is kept
+    // clear of the side-border columns horizontally (see hudTextMarginX in render()).
+    battleScreenEl.style.setProperty("--hud-border-frac", (HUD_H/FIELD_H*100)+"%");
+    // the pikachu paddle + tier bar are drawn in this bottom strip; the overlay
+    // stops above it so that strip keeps showing the frozen last frame, like the original
+    battleScreenEl.style.setProperty("--floor-frac", (GAME_PARAMS.paddleDrawYOffset/FIELD_H*100)+"%");
+  }
+  document.documentElement.style.setProperty("--result-title-font-size", GAME_PARAMS.resultTitleFontSize+"px");
+}
+syncFieldLayout();
+
+let battle = null; // holds all mutable battle state
+let rafId = null;
+let lastTick = 0;
+const TICK_MS = 1000/30;
+let accumulator = 0;
+
+function startBattle(){
+  const tier = barTier(lev);
+  battle = {
+    hp: enemyHpFor(lev),
+    hpMax: enemyHpFor(lev),
+    cutehp: GAME_PARAMS.cutehpMax,
+    cutehpMax: GAME_PARAMS.cutehpMax,
+    powerball: 0,
+    soc: 0,
+    good: 0,
+    dir: 0,
+    speedTier: tier,
+    paddleX: FIELD_W/2,
+    paddleTargetX: FIELD_W/2,
+    enemy: { x: FIELD_W/2, y: GAME_PARAMS.enemyStartY, targetX: FIELD_W/2, targetY: GAME_PARAMS.enemyStartY },
+    ball: { x: FIELD_W/2, y: PADDLE_Y-10, vx: (Math.random()<0.5?-1:1)*(1+Math.random()*2), vy: GAME_PARAMS.ballUpVY, phase: "up", visible:true },
+    proj: { x:0, y:0, active:false },
+    item: { x:0, y:0, type:0, visible:false },
+    chain1: { x: FIELD_W/2, y: PADDLE_Y-10 },
+    chain2: { x: FIELD_W/2, y: PADDLE_Y-10 },
+    hitFlashPaddle: 0,
+    hitFlashEnemy: 0,
+    lastHitMeSnd: 0,
+    lastHitSnd: 0,
+    over: false,
+    win: false
+  };
+  showScreen("screen-battle");
+  lastTick = performance.now();
+  accumulator = 0;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ---- input ----
+   The paddle simply follows the mouse's relative X position with no clamping,
+   like the original: moving the cursor far enough to either side lets the
+   paddle slide all the way off the edge of the field until it's fully hidden.
+   mousemove is bound to the whole window (not just the canvas) so the paddle
+   keeps following even once the cursor has left the game area. */
+function setPaddleFromClientX(clientX){
+  if(!battle) return;
+  const rect = canvas.getBoundingClientRect();
+  const relX = (clientX - rect.left) / rect.width * FIELD_W;
+  battle.paddleTargetX = relX;
+}
+window.addEventListener("mousemove", e=> setPaddleFromClientX(e.clientX));
+
+/* ---- 手機觸控：改用「左右滑動(swipe)」的相對位移控制球拍，不用手指剛好
+   按在球拍要移動到的確切位置，只要在畫面上左右拖動手指，球拍就會跟著滑動
+   的距離移動；滑動幅度可用設定面板最上方的「滑動靈敏度 dragSensitivity」
+   調整（數值越大，滑動同樣距離球拍移動越多）。綁在 window 上而不是只綁
+   canvas，這樣手指在畫面任何地方滑動都能控制，符合「對畫面滑動」的操作方式。 */
+let touchDragX = null;
+function touchStartHandler(e){
+  if(!battle) return;
+  e.preventDefault();
+  touchDragX = e.touches[0].clientX;
+}
+function touchMoveHandler(e){
+  if(!battle || touchDragX===null) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  const deltaCss = t.clientX - touchDragX;
+  touchDragX = t.clientX;
+  const deltaField = deltaCss / rect.width * FIELD_W * GAME_PARAMS.dragSensitivity;
+  battle.paddleTargetX += deltaField;
+}
+function touchEndHandler(){ touchDragX = null; }
+window.addEventListener("touchstart", touchStartHandler, {passive:false});
+window.addEventListener("touchmove", touchMoveHandler, {passive:false});
+window.addEventListener("touchend", touchEndHandler, {passive:false});
+window.addEventListener("touchcancel", touchEndHandler, {passive:false});
+
+/* ---- main loop (fixed 30hz updates for authentic feel) ---- */
+function loop(now){
+  rafId = requestAnimationFrame(loop);
+  let dt = now - lastTick;
+  lastTick = now;
+  if(dt > 250) dt = 250;
+  // 遊戲速度倍率：只影響「累積了多少可以拿來跑幾次 tick() 的時間」，
+  // tick() 本身仍然是固定步進，所以調快/調慢速度時，球的行為、碰撞判定
+  // 都還是原本那一套邏輯，只是整體用更快/更慢的節奏在跑，方便測試手感。
+  accumulator += dt * (GAME_PARAMS.gameSpeed || 1);
+  while(accumulator >= TICK_MS){
+    tick();
+    accumulator -= TICK_MS;
+  }
+  render();
+}
+
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return Math.abs(ax-bx) < (aw+bw)/2 && Math.abs(ay-by) < (ah+bh)/2;
+}
+
+function spawnItem(){
+  const n = Math.floor(Math.random()*9)+1; // 1..9
+  let good;
+  if(n===1) good = 1;
+  else if(n<5) good = 2;
+  else good = 3;
+  battle.item.type = good;
+  const P = GAME_PARAMS;
+  battle.item.x = P.itemSpawnXMargin + Math.random()*(FIELD_W-P.itemSpawnXMargin*2);
+  battle.item.y = P.itemSpawnYMin + Math.random()*(FIELD_H*P.itemSpawnYRangeFactor); // 掉落範圍與比例可調；碰撞判定大小仍與該道具圖片的實際像素大小相同
+  battle.item.visible = true;
+}
+
+function tick(){
+  if(!battle || battle.over || battle.win) return;
+  const b = battle;
+
+  const P = GAME_PARAMS;
+  const ballSize = nativeSize(IMG.ball, 23, 23);
+  const paddleSize = nativeSize(IMG.pikachu, 97, 45);
+
+  // paddle smoothing toward mouse position
+  b.paddleX += (b.paddleTargetX - b.paddleX) * P.paddleSmoothing;
+
+  // enemy wander
+  const en = b.enemy;
+  if(Math.abs(en.x-en.targetX) < 1.5 && Math.abs(en.y-en.targetY) < 1.5){
+    en.targetX = P.enemyWanderXMin + Math.random()*(FIELD_W-P.enemyWanderXSpan);
+    en.targetY = P.enemyWanderYMin + Math.random()*P.enemyWanderYSpan;
+  } else {
+    en.x += Math.sign(en.targetX-en.x) * P.enemyWanderSpeed;
+    en.y += Math.sign(en.targetY-en.y) * P.enemyWanderSpeed;
+  }
+
+  // super chain follow
+  if(b.powerball >= P.powerballSuperThreshold){
+    b.chain1.x += (b.ball.x - b.chain1.x)/P.chainFollowDivisor;
+    b.chain1.y += (b.ball.y - b.chain1.y)/P.chainFollowDivisor;
+    b.chain2.x += (b.chain1.x - b.chain2.x)/P.chainFollowDivisor;
+    b.chain2.y += (b.chain1.y - b.chain2.y)/P.chainFollowDivisor;
+  }
+
+  // ball movement
+  const ball = b.ball;
+  ball.y += ball.vy;
+  ball.x += ball.vx;
+  if(ball.x > FIELD_W-P.ballEdgeMargin){ ball.vx = -P.ballSideBounceVX; play("k"); }
+  if(ball.x < P.ballEdgeMargin){ ball.vx = P.ballSideBounceVX; play("k"); }
+
+  if(ball.phase === "up"){
+    // hit enemy
+    const enSize = nativeSize(monsterImg(lev), 96, 90);
+    if(rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, en.x,en.y,enSize.w,enSize.h)){
+      const dmg = b.powerball>=P.powerballSuperThreshold ? P.dmgPower : P.dmgNormal;
+      b.hp -= dmg;
+      b.hitFlashEnemy = 4;
+      const t = performance.now();
+      if(t - b.lastHitSnd > P.soundHitThrottleMs){ play("hit"); b.lastHitSnd = t; }
+      if(b.hp <= 0){ winLevel(); return; }
+    }
+    // ceiling -> bounce down
+    if(ball.y <= CEIL_Y){
+      ball.phase = "down";
+      ball.vy = P.ballDownVY;
+    }
+  } else {
+    // phase down
+    // two independent ways for the ball to bounce back up:
+    // 1) the green bar blocks: any ball reaching bar height over a colored
+    //    (opaque) segment bounces, no matter where the paddle is.
+    // 2) the pikachu paddle itself: the ball also bounces the moment it
+    //    touches the paddle sprite, regardless of the bar's coloring there.
+    const barH = barRenderedHeight(b.speedTier);
+    const barCatchCenterY = BAR_Y + barH/2;
+    const barCatchHalfH = (ballSize.h + barH) / 2;
+    const onGreenBlock = Math.abs(ball.y - barCatchCenterY) < barCatchHalfH && isXOnBar(b.speedTier, ball.x, ballSize.w/2);
+
+    const paddleCatchCenterY = PADDLE_Y + P.paddleCatchOffsetY;
+    const onPaddle = rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, b.paddleX,paddleCatchCenterY,paddleSize.w,paddleSize.h);
+
+    if(onGreenBlock || onPaddle){
+      ball.phase = "up";
+      ball.vy = P.ballUpVY;
+      b.hitFlashPaddle = 4;
+      b.soc++;
+      if(b.soc > P.itemSpawnEveryHits){
+        b.soc = 0;
+        spawnItem();
+      }
+      if(ball.x > b.paddleX+P.ballDeflectThreshold) ball.vx += P.ballDeflectStrong;
+      if(ball.x > b.paddleX) ball.vx += P.ballDeflectWeak;
+      if(ball.x < b.paddleX-P.ballDeflectThreshold) ball.vx -= P.ballDeflectStrong;
+      if(ball.x < b.paddleX) ball.vx -= P.ballDeflectWeak;
+      ball.vx = Math.max(P.ballMinVX, Math.min(P.ballMaxVX, ball.vx));
+      play("o");
+    }
+    // missed paddle -> game over
+    if(ball.phase === "down" && ball.y > FLOOR_Y){
+      loseLevel();
+      return;
+    }
+    // enemy fires projectile
+    if(!b.proj.active){
+      const n = Math.floor(Math.random()*P.projSpawnChanceDenom);
+      if(n <= lev){
+        b.proj.active = true;
+        b.proj.x = en.x;
+        b.proj.y = en.y;
+      }
+    }
+  }
+
+  // item pickup by ball
+  if(b.item.visible){
+    const itemKey = b.item.type===1?"item_heal":b.item.type===2?"item_remove":"item_add";
+    const itemSize = nativeSize(IMG[itemKey], 27, 27);
+    if(rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, b.item.x,b.item.y,itemSize.w,itemSize.h)){
+      if(b.item.type === 1){ b.cutehp = Math.min(b.cutehpMax, b.cutehp+P.itemHealAmount); play("pi3"); }
+      else if(b.item.type === 2){ if(b.powerball>0) b.powerball--; play("cat"); }
+      else if(b.item.type === 3){
+        b.powerball++;
+        play("pi");
+        if(b.powerball === P.powerballSuperThreshold){ play("pi-super"); }
+      }
+      b.item.visible = false;
+    }
+  }
+
+  // projectile movement + collision with paddle
+  if(b.proj.active){
+    b.proj.y += P.projSpeed;
+    const projSize = nativeSize(projImg(lev), 40, 40);
+    if(b.proj.y > FLOOR_Y){ b.proj.active = false; }
+    else if(rectsOverlap(b.proj.x,b.proj.y,projSize.w,projSize.h, b.paddleX,PADDLE_Y,paddleSize.w,paddleSize.h)){
+      const dmg = Math.floor(lev/P.projDmgDivisor)+P.projDmgBase;
+      b.cutehp -= dmg;
+      b.hitFlashPaddle = 6;
+      const t = performance.now();
+      if(t - b.lastHitMeSnd > P.soundHitMeThrottleMs){ play("hit me"); b.lastHitMeSnd = t; }
+      b.proj.active = false;
+      if(b.cutehp <= 0){ loseLevel(); return; }
+    }
+  }
+
+  if(b.hitFlashPaddle>0) b.hitFlashPaddle--;
+  if(b.hitFlashEnemy>0) b.hitFlashEnemy--;
+}
+
+function winLevel(){
+  battle.win = true;
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  play("win");
+  const oldLev = lev;
+  lev = lev + 1;
+  showOverlay("overlay-win");
+  if(lev >= 16){
+    document.getElementById("win-pw-wrap").style.display = "none";
+    document.getElementById("btn-win-next").textContent = "領取獎盃 ▶";
+  } else {
+    document.getElementById("win-pw-wrap").style.display = "";
+    document.getElementById("win-password").textContent = PASSWORDS[lev] || "----";
+    document.getElementById("btn-win-next").textContent = "Next ▶";
+  }
+}
+function loseLevel(){
+  battle.over = true;
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  play("haha");
+  showOverlay("overlay-over");
+}
+
+document.getElementById("btn-win-next").addEventListener("click", ()=>{
+  play("Pi2");
+  if(lev >= 16){
+    showScreen("screen-winall");
+  } else {
+    goIntro();
+  }
+});
+document.getElementById("btn-over-retry").addEventListener("click", ()=>{
+  play("ka");
+  goIntro();
+});
+document.getElementById("btn-over-quit").addEventListener("click", ()=>{
+  play("ka");
+  showScreen("screen-title");
+});
+document.getElementById("btn-winall-title").addEventListener("click", ()=>{
+  play("ka");
+  lev = 1;
+  showScreen("screen-title");
+});
+
+/* ============================== 分頁/視窗失焦時暫停 ==============================
+   桌面版：視窗縮小、切到背景分頁，或失去焦點時，停止音樂播放並暫停遊戲；
+   回到前景/取得焦點時再自動恢復。 */
+let inactivePaused = false;
+function pauseForInactive(){
+  if(inactivePaused) return;
+  inactivePaused = true;
+  const music = SND["title-back"];
+  if(music && !music.paused) music.pause();
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+}
+function resumeFromInactive(){
+  if(!inactivePaused) return;
+  inactivePaused = false;
+  if(musicStarted){
+    const music = SND["title-back"];
+    if(music && music.paused) music.play().catch(()=>{});
+  }
+  if(battle && !battle.over && !battle.win && screens["screen-battle"].classList.contains("active")){
+    lastTick = performance.now();
+    accumulator = 0;
+    if(!rafId) rafId = requestAnimationFrame(loop);
+  }
+}
+document.addEventListener("visibilitychange", ()=>{
+  if(document.hidden) pauseForInactive(); else resumeFromInactive();
+});
+window.addEventListener("blur", pauseForInactive);
+window.addEventListener("focus", resumeFromInactive);
+
+/* ============================== render ============================== */
+const bgPatternCache = {};
+function drawPatternBg(){
+  // base fill acts as a fallback if the sprite image for this level hasn't
+  // loaded yet (or is missing), so the field is never left blank
+  ctx.fillStyle = "#7f5f00";
+  ctx.fillRect(0,0,FIELD_W,FIELD_H);
+  const img = IMG[currentBattleBgKey];
+  if(img && img.complete && img.naturalWidth){
+    let pattern = bgPatternCache[currentBattleBgKey];
+    if(!pattern){
+      pattern = ctx.createPattern(img, "repeat");
+      bgPatternCache[currentBattleBgKey] = pattern;
+    }
+    if(pattern){
+      ctx.save();
+      ctx.fillStyle = pattern;
+      ctx.fillRect(0,0,FIELD_W,FIELD_H);
+      ctx.restore();
+    }
+  }
+}
+
+// top HUD strip: a solid green bar, like the original — it's part of the
+// background art (painted every frame), with the HUD text drawn on top of it.
+function drawHudBar(){
+  ctx.fillStyle = "#0fbf00";
+  ctx.fillRect(0,0,FIELD_W,HUD_H);
+  // thin darker seam along the bottom edge so it reads as a distinct bar
+  ctx.fillStyle = "#0a7d00";
+  ctx.fillRect(0,HUD_H-2,FIELD_W,2);
+}
+
+function render(){
+  if(!battle) return;
+  const b = battle;
+  const P = GAME_PARAMS;
+  // 把畫布座標系統縮放到跟高解析度緩衝區一致，這樣底下所有繪圖呼叫可以繼續用
+  // 原本的邏輯座標(FIELD_W/FIELD_H)，不用逐一乘上縮放倍率
+  ctx.setTransform(CANVAS_SCALE, 0, 0, CANVAS_SCALE, 0, 0);
+  drawPatternBg();
+  drawHudBar();
+
+  // enemy
+  const enImg = monsterImg(lev);
+  if(enImg && enImg.complete){
+    const w = enImg.naturalWidth, h = enImg.naturalHeight;
+    ctx.save();
+    if(b.hitFlashEnemy>0){ ctx.filter = "brightness(2) saturate(0)"; }
+    ctx.drawImage(enImg, b.enemy.x-w/2, b.enemy.y-h/2, w, h);
+    ctx.restore();
+  }
+
+  // item
+  if(b.item.visible){
+    const key = b.item.type===1?"item_heal":b.item.type===2?"item_remove":"item_add";
+    const im = IMG[key];
+    if(im && im.complete){
+      const iw = im.naturalWidth, ih = im.naturalHeight;
+      ctx.drawImage(im, b.item.x-iw/2, b.item.y-ih/2, iw, ih);
+    }
+  }
+
+  // chain sparkles (super mode)
+  if(b.powerball>=P.powerballSuperThreshold){
+    const s1 = IMG.spark1, s2 = IMG.spark2;
+    if(s1&&s1.complete) ctx.drawImage(s1, b.chain1.x-s1.naturalWidth/2, b.chain1.y-s1.naturalHeight/2, s1.naturalWidth, s1.naturalHeight);
+    if(s2&&s2.complete) ctx.drawImage(s2, b.chain2.x-s2.naturalWidth/2, b.chain2.y-s2.naturalHeight/2, s2.naturalWidth, s2.naturalHeight);
+  }
+
+  // enemy projectile
+  if(b.proj.active){
+    const pim = projImg(lev);
+    if(pim && pim.complete){
+      const pw = pim.naturalWidth, ph = pim.naturalHeight;
+      ctx.drawImage(pim, b.proj.x-pw/2, b.proj.y-ph/2, pw, ph);
+    }
+  }
+
+  // ball (the flying/falling pokéball is the only visible catcher indicator, as in the original)
+  const bim = IMG.ball;
+  if(bim && bim.complete){
+    const bw = bim.naturalWidth, bh = bim.naturalHeight;
+    ctx.save();
+    if(b.hitFlashPaddle>0 && b.ball.phase==="up"){ ctx.filter = "brightness(1.6)"; }
+    ctx.drawImage(bim, b.ball.x-bw/2, b.ball.y-bh/2, bw, bh);
+    ctx.restore();
+  }
+
+  // floor-strip side margins: continues the yellow side frame down through the bottom
+  // paddle/tier-bar strip too, so the yellow reads as one continuous strip from the HUD
+  // all the way to the bottom edge — same as the original. This is drawn directly on the
+  // canvas (not as an HTML overlay, unlike the side-border above) specifically so the
+  // tier bar's green blocks (drawn right after this) land on TOP of it, matching the
+  // original where the green blocks visually sit in front of the yellow frame instead of
+  // being hidden behind it.
+  const floorTopY = FIELD_H - P.paddleDrawYOffset;
+  const sideMarginPx = FIELD_W * 0.02;
+  ctx.fillStyle = "#ffff00";
+  ctx.fillRect(0, floorTopY, sideMarginPx, FIELD_H - floorTopY);
+  ctx.fillRect(FIELD_W - sideMarginPx, floorTopY, sideMarginPx, FIELD_H - floorTopY);
+
+  // bottom tier bar: stretched proportionally to the full field width;
+  // recolored bright green (matching the original game's HP-bar blocks) —
+  // these colored pixels are the real collision blocks (see isXOnBar)
+  const barKey = "bar"+b.speedTier;
+  const barSrc = BAR_TINT[barKey] || IMG[barKey];
+  if(barSrc && (barSrc.complete === undefined || barSrc.complete) && (barSrc.naturalWidth || barSrc.width)){
+    ctx.drawImage(barSrc, barX(), BAR_Y, P.barW, P.barH);
+  }
+
+  // bottom sprite (paddle): it slides left/right with the pointer, peeking up from the bottom edge
+  const pik = IMG.pikachu;
+  if(pik && pik.complete){
+    const w = pik.naturalWidth, h = pik.naturalHeight;
+    ctx.save();
+    if(b.hitFlashPaddle>0){ ctx.filter="brightness(1.7)"; }
+    ctx.drawImage(pik, b.paddleX-w/2, FIELD_H-P.paddleDrawYOffset, w, h);
+    ctx.restore();
+  }
+
+  // top HUD strip text: drawn on top of the solid green bar painted by drawHudBar() above.
+  // hudTextYOffset lets this baseline be nudged up/down independently of the bar height.
+  // Matches the original's color scheme: yellow labels, green HP/power values, red enemy HP
+  // value, each with a thin black outline for legibility against the background, like the original.
+  const hudTextY = HUD_H/2+1+P.hudTextYOffset;
+  const HUD_LABEL_COLOR = "#ffff00";
+  const HUD_GREEN = "#55ff00";
+  const HUD_RED = "#ff4000";
+  ctx.font = "bold "+P.hudFontSize+"px 'Noto Sans TC', 'Press Start 2P', sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#000";
+  function hudText(str, x, color){
+    ctx.strokeText(str, x, hudTextY);
+    ctx.fillStyle = color;
+    ctx.fillText(str, x, hudTextY);
+  }
+
+  const marginX = P.hudTextMarginX;
+  const lvGap = P.hudLabelValueGap;
+
+  ctx.textAlign = "left";
+  const myHpVal = String(Math.max(0,b.cutehp));
+  hudText("生命力:", marginX, HUD_LABEL_COLOR);
+  const myHpLabelW = ctx.measureText("生命力:").width;
+  hudText(myHpVal, marginX+myHpLabelW+lvGap, HUD_GREEN);
+
+  const powerVal = String(b.powerball);
+  const powerLabel = "力量:";
+  const powerLabelW = ctx.measureText(powerLabel).width;
+  const powerValW = ctx.measureText(powerVal).width;
+  const powerCenter = FIELD_W/2;
+  const powerTotalW = powerLabelW+lvGap+powerValW;
+  hudText(powerLabel, powerCenter-powerTotalW/2, HUD_LABEL_COLOR);
+  hudText(powerVal, powerCenter-powerTotalW/2+powerLabelW+lvGap, HUD_GREEN);
+
+  ctx.textAlign = "right";
+  const hpLabel = "敵人的生命力: ";
+  const hpVal = String(Math.max(0,b.hp));
+  const hpValW = ctx.measureText(hpVal).width;
+  hudText(hpLabel, FIELD_W-marginX-hpValW-lvGap, HUD_LABEL_COLOR);
+  hudText(hpVal, FIELD_W-marginX, HUD_RED);
+
+  if(DEBUG_SHOW_HITBOX) drawDebugHitboxes(b, P);
+}
+
+/* ---- 除錯：畫出所有碰撞判定框，設定面板開啟時才會顯示 ---- */
+function drawDebugHitboxes(b, P){
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.font = "9px sans-serif";
+  ctx.textAlign = "center";
+
+  const paddleSize = nativeSize(IMG.pikachu, 97, 45);
+  const ballSize = nativeSize(IMG.ball, 23, 23);
+  const enSize = nativeSize(monsterImg(lev), 96, 90);
+
+  // 球拍接球判定區（藍）－ 球拍本身的碰撞範圍（與皮卡丘圖片同大小），不論是否對到綠色方塊都會反彈
+  ctx.strokeStyle = "#2a5ea8";
+  ctx.strokeRect(b.paddleX-paddleSize.w/2, PADDLE_Y+P.paddleCatchOffsetY-paddleSize.h/2, paddleSize.w, paddleSize.h);
+  ctx.fillStyle = "#2a5ea8";
+  ctx.fillText("球拍接球區", b.paddleX, PADDLE_Y+P.paddleCatchOffsetY-paddleSize.h/2-4);
+
+  // 球拍格擋子彈判定區（洋紅，虛線）－ 同樣採用球拍圖片實際大小
+  ctx.setLineDash([4,3]);
+  ctx.strokeStyle = "#e0507a";
+  ctx.strokeRect(b.paddleX-paddleSize.w/2, PADDLE_Y-paddleSize.h/2, paddleSize.w, paddleSize.h);
+  ctx.setLineDash([]);
+
+  // 球的判定框（紅）：採用球圖片的實際大小
+  const ball = b.ball;
+  ctx.strokeStyle = "#e74c3c";
+  ctx.strokeRect(ball.x-ballSize.w/2, ball.y-ballSize.h/2, ballSize.w, ballSize.h);
+
+  // 敵人受擊判定區（橘）－ 採用目前這隻怪物圖片的實際大小
+  ctx.strokeStyle = "#f0a500";
+  ctx.strokeRect(b.enemy.x-enSize.w/2, b.enemy.y-enSize.h/2, enSize.w, enSize.h);
+  ctx.fillStyle = "#f0a500";
+  ctx.fillText("敵人受擊區", b.enemy.x, b.enemy.y-enSize.h/2-4);
+
+  // 道具判定區（紫）－ 採用目前道具圖片的實際大小
+  if(b.item.visible){
+    const itemKey = b.item.type===1?"item_heal":b.item.type===2?"item_remove":"item_add";
+    const itemSize = nativeSize(IMG[itemKey], 27, 27);
+    ctx.strokeStyle = "#9b59b6";
+    ctx.strokeRect(b.item.x-itemSize.w/2, b.item.y-itemSize.h/2, itemSize.w, itemSize.h);
+  }
+
+  // 子彈判定區（綠）－ 採用目前這一關子彈圖片的實際大小
+  if(b.proj.active){
+    const projSize = nativeSize(projImg(lev), 40, 40);
+    ctx.strokeStyle = "#2ecc71";
+    ctx.strokeRect(b.proj.x-projSize.w/2, b.proj.y-projSize.h/2, projSize.w, projSize.h);
+  }
+
+  // 底部綠色方塊碰撞判定區（洋紅，虛線）－ 跟 tick() 裡實際用來反彈球的範圍完全一致
+  const barKeyDbg = "bar"+b.speedTier;
+  const segsDbg = BAR_SEGMENTS[barKeyDbg];
+  if(segsDbg){
+    const barHDbg = barRenderedHeight(b.speedTier);
+    const bx = barX();
+    const scaleDbg = GAME_PARAMS.barW / BAR_NATIVE_W;
+    ctx.setLineDash([4,3]);
+    ctx.strokeStyle = "#d13b6b";
+    segsDbg.forEach(function(seg){
+      ctx.strokeRect(seg[0]*scaleDbg+bx, BAR_Y, (seg[1]-seg[0])*scaleDbg, barHDbg);
+    });
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#d13b6b";
+    ctx.textAlign = "center";
+    ctx.fillText("綠色方塊碰撞區", FIELD_W/2, BAR_Y-4);
+  }
+
+  // 天花板 / 地板判定線
+  ctx.setLineDash([6,4]);
+  ctx.strokeStyle = "#00bcd4";
+  ctx.beginPath(); ctx.moveTo(0,CEIL_Y); ctx.lineTo(FIELD_W,CEIL_Y); ctx.stroke();
+  ctx.strokeStyle = "#ff5252";
+  ctx.beginPath(); ctx.moveTo(0,FLOOR_Y); ctx.lineTo(FIELD_W,FLOOR_Y); ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.restore();
+}
+
+/* ============================== boot ============================== */
+loadAssets();
+
+/* ============================================================
+   【設定面板】把 GAME_PARAMS_META 動態轉成可拖拉的滑桿 + 數字輸入框，
+   並提供「複製目前參數」「下載 JSON」「套用貼上的參數」「還原預設值」。
+   ============================================================ */
+const GAME_PARAMS_META = [
+  ["操控：滑動靈敏度 dragSensitivity", "dragSensitivity", 0.3, 4, 0.1],
+  ["遊戲：速度倍率 gameSpeed", "gameSpeed", 0.1, 3, 0.1],
+
+  ["畫面：寬度 fieldW", "fieldW", 200, 1280, 10],
+  ["畫面：高度 fieldH", "fieldH", 150, 960, 10],
+  ["畫面：HUD 高度 hudH", "hudH", 10, 60, 1],
+  ["畫面：天花板 Y ceilY", "ceilY", 10, 200, 1],
+  ["畫面：球拍 Y paddleY", "paddleY", 200, 900, 1],
+  ["畫面：判定地板 Y floorY", "floorY", 200, 960, 1],
+  ["畫面：底部色條 Y barY", "barY", 200, 900, 1],
+  ["畫面：底部色條 寬度 barW", "barW", 40, 1280, 2],
+  ["畫面：底部色條 高度 barH", "barH", 2, 100, 1],
+  ["畫面：HUD 文字大小 hudFontSize", "hudFontSize", 6, 30, 1],
+  ["畫面：HUD 文字 Y偏移 hudTextYOffset", "hudTextYOffset", -30, 30, 1],
+  ["畫面：HUD 文字左右邊距 hudTextMarginX", "hudTextMarginX", 0, 60, 1],
+  ["畫面：HUD 標籤與數值間距 hudLabelValueGap", "hudLabelValueGap", 0, 40, 1],
+  ["畫面：結算標題文字大小 resultTitleFontSize", "resultTitleFontSize", 10, 80, 1],
+
+  ["球拍：追隨平滑係數 paddleSmoothing", "paddleSmoothing", 0.05, 1, 0.05],
+  ["球拍：接球判定Y偏移 paddleCatchOffsetY", "paddleCatchOffsetY", -30, 30, 1],
+  ["球拍：繪製Y偏移(離底部) paddleDrawYOffset", "paddleDrawYOffset", 20, 200, 1],
+
+  ["球：彈起垂直初速 ballUpVY", "ballUpVY", -20, -1, 0.5],
+  ["球：下墜垂直初速 ballDownVY", "ballDownVY", 1, 20, 0.5],
+  ["球：邊界反彈觸發距 ballEdgeMargin", "ballEdgeMargin", 2, 40, 1],
+  ["球：邊界反彈水平速度 ballSideBounceVX", "ballSideBounceVX", 0.5, 10, 0.5],
+  ["球：水平速度下限 ballMinVX", "ballMinVX", -15, -1, 0.5],
+  ["球：水平速度上限 ballMaxVX", "ballMaxVX", 1, 15, 0.5],
+  ["球：偏移打門檻 ballDeflectThreshold", "ballDeflectThreshold", 5, 100, 1],
+  ["球：偏移打(大)加速 ballDeflectStrong", "ballDeflectStrong", 0, 6, 0.2],
+  ["球：偏移打(小)加速 ballDeflectWeak", "ballDeflectWeak", 0, 6, 0.2],
+
+  ["敵人：遊走速度 enemyWanderSpeed", "enemyWanderSpeed", 0.2, 6, 0.2],
+  ["敵人：遊走X最小值 enemyWanderXMin", "enemyWanderXMin", 0, 200, 5],
+  ["敵人：遊走X範圍(扣值) enemyWanderXSpan", "enemyWanderXSpan", 20, 400, 5],
+  ["敵人：遊走Y最小值 enemyWanderYMin", "enemyWanderYMin", 0, 150, 2],
+  ["敵人：遊走Y範圍 enemyWanderYSpan", "enemyWanderYSpan", 10, 250, 5],
+  ["敵人：基礎生命力(Lv1) enemyHpBase", "enemyHpBase", 10, 1000, 10],
+  ["敵人：每級增加生命力 enemyHpPerLevel", "enemyHpPerLevel", 0, 500, 10],
+  ["敵人：一般受傷量 dmgNormal", "dmgNormal", 1, 20, 1],
+  ["敵人：超級模式受傷量 dmgPower", "dmgPower", 1, 30, 1],
+  ["敵人：初始 Y 座標 enemyStartY", "enemyStartY", 20, 200, 2],
+
+  ["道具：連續接球出現門檻 itemSpawnEveryHits", "itemSpawnEveryHits", 1, 20, 1],
+  ["我方：生命力上限 cutehpMax", "cutehpMax", 50, 999, 10],
+  ["道具：補血恢復量 itemHealAmount", "itemHealAmount", 10, 500, 10],
+  ["力量：超級模式門檻 powerballSuperThreshold", "powerballSuperThreshold", 1, 15, 1],
+  ["力量：尾巴跟隨除數 chainFollowDivisor", "chainFollowDivisor", 1, 10, 0.5],
+  ["道具：掉落X邊界留白 itemSpawnXMargin", "itemSpawnXMargin", 5, 150, 5],
+  ["道具：掉落Y最小值 itemSpawnYMin", "itemSpawnYMin", 0, 150, 2],
+  ["道具：掉落Y範圍比例 itemSpawnYRangeFactor", "itemSpawnYRangeFactor", 0.1, 1, 0.05],
+
+  ["子彈：下墜速度 projSpeed", "projSpeed", 1, 20, 0.5],
+  ["子彈：生成機率分母 projSpawnChanceDenom", "projSpawnChanceDenom", 20, 1000, 10],
+  ["子彈：傷害公式除數 projDmgDivisor", "projDmgDivisor", 1, 10, 1],
+  ["子彈：傷害公式基礎值 projDmgBase", "projDmgBase", 0, 10, 1],
+
+  ["音效：擊中敵人節流(ms) soundHitThrottleMs", "soundHitThrottleMs", 0, 1000, 10],
+  ["音效：被子彈擊中節流(ms) soundHitMeThrottleMs", "soundHitMeThrottleMs", 0, 1000, 10]
+];
+
+const PARAM_CATEGORIES = [
+  { kind: "control", title: "📱 觸控操作 Touch Control", keys: ["dragSensitivity"] },
+  { kind: "speed", title: "🚀 遊戲速度控制 Game Speed", keys: ["gameSpeed"] },
+  { kind: "passwords", title: "🔑 關卡密碼提示 Level Passwords", keys: [] },
+  { kind: "rule", title: "🖥️ 畫面版面", keys: ["fieldW","fieldH","hudH","ceilY","paddleY","floorY","barY","barW","barH","hudFontSize","hudTextYOffset","hudTextMarginX","hudLabelValueGap","resultTitleFontSize"] },
+  { kind: "paddle", title: "🕹️ 球拍 Paddle", keys: ["paddleSmoothing","paddleCatchOffsetY","paddleDrawYOffset"] },
+  { kind: "ball", title: "⚽ 球 Ball", keys: ["ballUpVY","ballDownVY","ballEdgeMargin","ballSideBounceVX","ballMinVX","ballMaxVX","ballDeflectThreshold","ballDeflectStrong","ballDeflectWeak"] },
+  { kind: "enemy", title: "👾 敵人 Enemy", keys: ["enemyWanderSpeed","enemyWanderXMin","enemyWanderXSpan","enemyWanderYMin","enemyWanderYSpan","enemyHpBase","enemyHpPerLevel","dmgNormal","dmgPower","enemyStartY"] },
+  { kind: "item", title: "🎁 道具與力量 Item", keys: ["itemSpawnEveryHits","cutehpMax","itemHealAmount","powerballSuperThreshold","chainFollowDivisor","itemSpawnXMargin","itemSpawnYMin","itemSpawnYRangeFactor"] },
+  { kind: "proj", title: "🔴 敵人子彈 Projectile", keys: ["projSpeed","projSpawnChanceDenom","projDmgDivisor","projDmgBase"] },
+  { kind: "sound", title: "🔊 音效節流 Sound", keys: ["soundHitThrottleMs","soundHitMeThrottleMs"] }
+];
+
+(function(){
+  function buildParamPanel(){
+    const container = document.getElementById("paramSliders");
+    if(!container) return;
+    container.innerHTML = "";
+
+    const metaByKey = {};
+    GAME_PARAMS_META.forEach(function(meta){ metaByKey[meta[1]] = meta; });
+
+    function buildRow(meta){
+      const label = meta[0], key = meta[1], min = meta[2], max = meta[3], step = meta[4];
+      const row = document.createElement("div");
+      row.className = "param-row";
+
+      const top = document.createElement("div");
+      top.className = "param-row-top";
+
+      const labelEl = document.createElement("label");
+      const labelParts = label.split(" ");
+      labelEl.textContent = labelParts.slice(0, -1).join(" ");
+      labelEl.title = label;
+      labelEl.htmlFor = "param-num-" + key;
+
+      const num = document.createElement("input");
+      num.type = "number";
+      num.id = "param-num-" + key;
+      num.min = min; num.max = max; num.step = step;
+      num.value = GAME_PARAMS[key];
+      num.className = "param-num";
+
+      top.appendChild(labelEl);
+      top.appendChild(num);
+
+      const range = document.createElement("input");
+      range.type = "range";
+      range.id = "param-range-" + key;
+      range.min = min; range.max = max; range.step = step;
+      range.value = GAME_PARAMS[key];
+
+      function updateValue(v){
+        let val = parseFloat(v);
+        if(isNaN(val)) return;
+        val = Math.max(min, Math.min(max, val));
+        GAME_PARAMS[key] = val;
+        range.value = val;
+        num.value = val;
+        if(key==="fieldW"||key==="fieldH"||key==="hudH"||key==="ceilY"||key==="paddleY"||key==="floorY"||key==="barY"||key==="barH"||key==="paddleDrawYOffset"||key==="hudFontSize"||key==="hudTextYOffset") syncFieldLayout();
+        if(key==="resultTitleFontSize") document.documentElement.style.setProperty("--result-title-font-size", val+"px");
+      }
+
+      range.addEventListener("input", function(){ updateValue(range.value); });
+      range.addEventListener("change", function(){ range.blur(); });
+      range.addEventListener("mouseup", function(){ range.blur(); });
+      range.addEventListener("touchend", function(){ range.blur(); });
+      num.addEventListener("change", function(){ updateValue(num.value); num.blur(); });
+
+      row.appendChild(top);
+      row.appendChild(range);
+      return row;
+    }
+
+    function buildPasswordList(){
+      const wrap = document.createElement("div");
+      wrap.className = "pw-list";
+      const hint = document.createElement("div");
+      hint.className = "pw-list-hint";
+      hint.textContent = "點一下可複製密碼，並自動填入標題畫面的密碼欄：";
+      wrap.appendChild(hint);
+      const grid = document.createElement("div");
+      grid.className = "pw-list-grid";
+      // Level 1 不需要密碼（一開始就是關卡1），從第 2 關開始列出
+      const levels = Object.keys(PASSWORDS).map(Number).sort(function(a,b){ return a-b; });
+      levels.forEach(function(L){
+        const code = PASSWORDS[L];
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "pw-list-row";
+        row.innerHTML = "<span>Level " + L + "</span><span class=\"pw-list-code\">" + code + "</span>";
+        row.addEventListener("click", function(){
+          let copied = false;
+          try{
+            if(navigator.clipboard && navigator.clipboard.writeText){
+              navigator.clipboard.writeText(code);
+              copied = true;
+            }
+          }catch(e){}
+          if(!copied){
+            try{
+              const tmp = document.createElement("textarea");
+              tmp.value = code;
+              tmp.style.position = "fixed";
+              tmp.style.opacity = "0";
+              document.body.appendChild(tmp);
+              tmp.select();
+              document.execCommand("copy");
+              document.body.removeChild(tmp);
+              copied = true;
+            }catch(e){}
+          }
+          const pwInput = document.getElementById("password-input");
+          if(pwInput) pwInput.value = code;
+          showStatus((copied ? "已複製並填入：" : "已填入(複製失敗，請手動複製)：") + "Level " + L + " → " + code);
+        });
+        grid.appendChild(row);
+      });
+      wrap.appendChild(grid);
+      return wrap;
+    }
+
+    PARAM_CATEGORIES.forEach(function(cat){
+      const details = document.createElement("details");
+      details.className = "param-group";
+      details.dataset.kind = cat.kind;
+      details.open = true;
+
+      const summary = document.createElement("summary");
+      const titleSpan = document.createElement("span");
+      titleSpan.textContent = cat.title;
+      const countSpan = document.createElement("span");
+      countSpan.className = "param-group-count";
+      summary.appendChild(titleSpan);
+      summary.appendChild(countSpan);
+
+      const body = document.createElement("div");
+      body.className = "param-group-body";
+      if(cat.kind === "passwords"){
+        countSpan.textContent = Object.keys(PASSWORDS).length + " 關";
+        body.appendChild(buildPasswordList());
+      } else {
+        countSpan.textContent = cat.keys.length + " 項";
+        cat.keys.forEach(function(key){
+          const meta = metaByKey[key];
+          if(!meta) return;
+          body.appendChild(buildRow(meta));
+        });
+      }
+
+      details.appendChild(summary);
+      details.appendChild(body);
+      container.appendChild(details);
+    });
+  }
+
+  function refreshParamPanelValues(){
+    GAME_PARAMS_META.forEach(function(meta){
+      const key = meta[1];
+      const range = document.getElementById("param-range-" + key);
+      const num = document.getElementById("param-num-" + key);
+      const v = GAME_PARAMS[key];
+      if(range) range.value = v;
+      if(num) num.value = v;
+    });
+  }
+
+  function showStatus(msg, ms){
+    const statusEl = document.getElementById("paramCopyStatus");
+    if(!statusEl) return;
+    statusEl.textContent = msg;
+    setTimeout(function(){ statusEl.textContent = ""; }, ms || 2500);
+  }
+
+  const settingsBtn = document.getElementById("settingsBtn");
+  const paramPanel = document.getElementById("paramPanel");
+  const closeParamPanel = document.getElementById("closeParamPanel");
+  const paramTextArea = document.getElementById("paramTextArea");
+  const copyParamsBtn = document.getElementById("copyParamsBtn");
+  const downloadParamsBtn = document.getElementById("downloadParamsBtn");
+  const applyParamsBtn = document.getElementById("applyParamsBtn");
+  const resetParamsBtn = document.getElementById("resetParamsBtn");
+
+  function closePanel(){
+    paramPanel.style.display = "none";
+    DEBUG_SHOW_HITBOX = false;
+  }
+  if(settingsBtn && paramPanel){
+    settingsBtn.addEventListener("click", function(){
+      const willShow = paramPanel.style.display !== "flex";
+      paramPanel.style.display = willShow ? "flex" : "none";
+      DEBUG_SHOW_HITBOX = willShow;
+      if(willShow) refreshParamPanelValues();
+      settingsBtn.blur();
+    });
+  }
+  if(closeParamPanel && paramPanel){
+    closeParamPanel.addEventListener("click", function(){
+      closePanel();
+      closeParamPanel.blur();
+    });
+  }
+  // 點選單以外的區域（右邊遊戲畫面那一大片）也能直接把設定面板關掉，
+  // 不用特地按左上角的 × 才能關；點在面板本身(.param-side-panel)裡面
+  // 或齒輪按鈕上則不觸發，避免跟開關按鈕自己的邏輯衝突。
+  if(paramPanel){
+    document.addEventListener("click", function(e){
+      if(paramPanel.style.display !== "flex") return;
+      const sidePanel = paramPanel.querySelector(".param-side-panel");
+      if(sidePanel && sidePanel.contains(e.target)) return;
+      if(settingsBtn && (e.target === settingsBtn || settingsBtn.contains(e.target))) return;
+      closePanel();
+    });
+  }
+  if(copyParamsBtn && paramTextArea){
+    copyParamsBtn.addEventListener("click", function(){
+      const json = JSON.stringify(GAME_PARAMS, null, 2);
+      paramTextArea.value = json;
+      let copied = false;
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(json);
+          copied = true;
+        }
+      }catch(e){}
+      if(!copied){
+        try{ paramTextArea.select(); document.execCommand("copy"); copied = true; }catch(e){}
+      }
+      showStatus(copied ? "已複製到剪貼簿！" : "已顯示在下方文字框，請手動全選複製。");
+      copyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(downloadParamsBtn){
+    downloadParamsBtn.addEventListener("click", function(){
+      const json = JSON.stringify(GAME_PARAMS, null, 2);
+      const blob = new Blob([json], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "monster_battle_params.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showStatus("已下載 monster_battle_params.json");
+      downloadParamsBtn.blur();
+    });
+  }
+  if(applyParamsBtn && paramTextArea){
+    applyParamsBtn.addEventListener("click", function(){
+      try{
+        const parsed = JSON.parse(paramTextArea.value);
+        Object.keys(parsed).forEach(function(key){
+          if(!Object.prototype.hasOwnProperty.call(GAME_PARAMS, key)) return;
+          const incoming = parsed[key];
+          if(typeof incoming === "number" && isFinite(incoming)){
+            GAME_PARAMS[key] = incoming;
+          }
+        });
+        syncFieldLayout();
+        refreshParamPanelValues();
+        showStatus("參數已套用！");
+      }catch(e){
+        showStatus("格式錯誤，請確認貼上的是完整的參數 JSON。", 3000);
+      }
+      applyParamsBtn.blur();
+      paramTextArea.blur();
+    });
+  }
+  if(resetParamsBtn){
+    resetParamsBtn.addEventListener("click", function(){
+      GAME_PARAMS = JSON.parse(JSON.stringify(GAME_PARAMS_DEFAULTS));
+      syncFieldLayout();
+      refreshParamPanelValues();
+      showStatus("已還原成預設值。");
+      resetParamsBtn.blur();
+    });
+  }
+
+  buildParamPanel();
+})();
+
+})();
+</script>
+</body>
+</html>
