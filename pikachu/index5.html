@@ -240,8 +240,14 @@
     font-size:1em; background:#e2984a; color:#fff;
     border:none; box-shadow:0 2px 8px rgba(0,0,0,0.2);
     font-family:inherit; cursor:pointer;
+    transition:background 0.08s, transform 0.08s, box-shadow 0.08s;
   }
-  #screenButtons button:active{ background:#c97f36; transform:scale(0.95); }
+  #screenButtons button:active,
+  #screenButtons button.pressed{
+    background:#a8641f;
+    transform:scale(0.92);
+    box-shadow:0 1px 4px rgba(0,0,0,0.3);
+  }
 
   @media (orientation:landscape) and (max-width:900px){
     #joystick, #screenButtons{ display:block !important; }
@@ -3116,10 +3122,12 @@ game = new Game();
   if(actionBtn){
     function pressAction(e){
       keys["Enter"] = true;
+      actionBtn.classList.add("pressed");
       if(e){ e.preventDefault(); e.stopPropagation(); }
     }
     function releaseAction(e){
       keys["Enter"] = false;
+      actionBtn.classList.remove("pressed");
       if(e){ e.preventDefault(); }
     }
     actionBtn.addEventListener("touchstart", pressAction, {passive:false});
