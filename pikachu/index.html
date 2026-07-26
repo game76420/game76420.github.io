@@ -232,12 +232,12 @@
   .direction-indicator.down-right{ bottom:15px; right:15px; }
 
   #screenButtons{
-    position:fixed; right:32px; bottom:48px; z-index:2000;
+    position:fixed; right:32px; bottom:32px; z-index:2000;
     display:none; flex-direction:column; gap:18px;
   }
   #screenButtons button{
-    width:80px; height:80px; border-radius:50%;
-    font-size:1em; background:#e2984a; color:#fff;
+    width:140px; height:140px; border-radius:50%;
+    font-size:1.3em; background:#e2984a; color:#fff;
     border:none; box-shadow:0 2px 8px rgba(0,0,0,0.2);
     font-family:inherit; cursor:pointer;
     transition:background 0.08s, transform 0.08s, box-shadow 0.08s;
@@ -262,11 +262,11 @@
     #joystick-knob{ width:65px; height:65px; left:0; top:0; transform:translate(32.5px,32.5px); }
     #screenButtons{
       display:block !important;
-      right:28px; bottom:max(48px, env(safe-area-inset-bottom, 0px) + 36px);
+      right:28px; bottom:max(36px, env(safe-area-inset-bottom, 0px) + 24px);
       gap:12px;
     }
     #screenButtons button{
-      width:96px; height:96px; font-size:1.1em; font-weight:700;
+      width:130px; height:130px; font-size:1.4em; font-weight:700;
       box-shadow:0 4px 14px rgba(0,0,0,0.35);
     }
   }
