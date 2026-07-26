@@ -29,8 +29,8 @@
     touch-action:none;
   }
   #app{
-    position:relative;
-    width:100vw;height:100vh;
+    position:fixed;top:0;left:0;
+    width:100vw;height:100vh; /* fallback for browsers without JS sizing yet */
     display:flex;align-items:center;justify-content:center;
   }
   /* ---------- 4:3 game window, like the original ---------- */
@@ -659,7 +659,30 @@ const stageEl = document.getElementById("stage");
 // 縮放倍率——CSS 顯示尺寸則維持邏輯尺寸不變。這樣瀏覽器就有足夠的來源像素
 // 可以畫，放大後文字依然銳利，不會模糊。
 let CANVAS_SCALE = 1;
+// 手機版(尤其橫向)瀏覽器網址列/工具列會動態縮放可視高度，各家瀏覽器對
+// 100vh/100vw 的認定又不一致(有的算「工具列收起後的最大高度」、有的算
+// 「工具列展開時的最小高度」)，導致單純用 CSS vh/vw 置中時，畫面看起來
+// 沒有真的置中、或有一邊被裁切。這裡改用 JS 量出目前「實際看得到」的
+// 寬高(優先用 visualViewport，沒有的話退回 innerWidth/innerHeight)，
+// 直接把 #app 設成該像素尺寸，讓 flex 置中的計算基準跟使用者實際看到
+// 的畫面一致。
+const appEl = document.getElementById("app");
+function fitAppToViewport(){
+  if(!appEl) return;
+  const vv = window.visualViewport;
+  const w = vv ? vv.width : window.innerWidth;
+  const h = vv ? vv.height : window.innerHeight;
+  appEl.style.width = w + "px";
+  appEl.style.height = h + "px";
+  // visualViewport 在被鍵盤/縮放推移時會有 offsetLeft/offsetTop，一併對齊，
+  // 避免內容雖然尺寸對了、位置卻仍然偏移的情況。
+  if(vv){
+    appEl.style.left = vv.offsetLeft + "px";
+    appEl.style.top = vv.offsetTop + "px";
+  }
+}
 function fitStageToWindow(){
+  fitAppToViewport();
   if(!stageEl) return;
   stageEl.style.width = FIELD_W + "px";
   stageEl.style.height = FIELD_H + "px";
@@ -676,6 +699,16 @@ function fitStageToWindow(){
   if(canvas.height !== bufH) canvas.height = bufH;
 }
 window.addEventListener("resize", fitStageToWindow);
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", fitStageToWindow);
+  window.visualViewport.addEventListener("scroll", fitAppToViewport);
+}
+window.addEventListener("orientationchange", function(){
+  // 有些手機瀏覽器在 orientationchange 剛觸發那一刻，innerWidth/innerHeight
+  // 還沒更新成旋轉後的值，所以延遲量測一次、旋轉動畫結束後再量測一次。
+  setTimeout(fitStageToWindow, 60);
+  setTimeout(fitStageToWindow, 300);
+});
 function syncFieldLayout(){
   FIELD_W = GAME_PARAMS.fieldW;
   FIELD_H = GAME_PARAMS.fieldH;
@@ -782,13 +815,21 @@ function battleScreenActive(){
   return !!(battle && !battle.over && !battle.win &&
     screens["screen-battle"] && screens["screen-battle"].classList.contains("active"));
 }
+// 判斷這次觸控是不是點在「設定齒輪」按鈕或設定面板本身上——如果是，就完全
+// 不要 preventDefault()、也不要當成拖動球拍處理，否則手機瀏覽器不會補發
+// click 事件，導致對戰進行中怎麼點齒輪選單都叫不出來。
+function isSettingsTouch(e){
+  const t = e.touches && e.touches[0] ? e.touches[0].target : e.target;
+  if(!t || !t.closest) return false;
+  return !!t.closest("#settingsBtn, #paramPanel");
+}
 function touchStartHandler(e){
-  if(!battle || !battleScreenActive()) return;
+  if(!battle || !battleScreenActive() || isSettingsTouch(e)) return;
   e.preventDefault();
   touchDragX = e.touches[0].clientX;
 }
 function touchMoveHandler(e){
-  if(!battle || touchDragX===null || !battleScreenActive()) return;
+  if(!battle || touchDragX===null || !battleScreenActive() || isSettingsTouch(e)) return;
   e.preventDefault();
   const t = e.touches[0];
   const rect = canvas.getBoundingClientRect();
