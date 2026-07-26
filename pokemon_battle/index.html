@@ -914,17 +914,23 @@ function tick(){
   if(ball.x > FIELD_W-P.ballEdgeMargin){ ball.vx = -P.ballSideBounceVX; play("k"); }
   if(ball.x < P.ballEdgeMargin){ ball.vx = P.ballSideBounceVX; play("k"); }
 
+  // hit enemy — checked regardless of phase. The enemy wanders around the
+  // upper part of the field, so the ball can clip it either on the way up
+  // (paddle -> ceiling) or on the way back down (ceiling -> paddle); it used
+  // to only be checked during the "up" phase, so a ball that had already
+  // bounced off the ceiling and was falling back down would pass right
+  // through the monster with no hit registered.
+  const enSize = nativeSize(monsterImg(lev), 96, 90);
+  if(rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, en.x,en.y,enSize.w,enSize.h)){
+    const dmg = b.powerball>=P.powerballSuperThreshold ? P.dmgPower : P.dmgNormal;
+    b.hp -= dmg;
+    b.hitFlashEnemy = 4;
+    const t = performance.now();
+    if(t - b.lastHitSnd > P.soundHitThrottleMs){ play("hit"); b.lastHitSnd = t; }
+    if(b.hp <= 0){ winLevel(); return; }
+  }
+
   if(ball.phase === "up"){
-    // hit enemy
-    const enSize = nativeSize(monsterImg(lev), 96, 90);
-    if(rectsOverlap(ball.x,ball.y,ballSize.w,ballSize.h, en.x,en.y,enSize.w,enSize.h)){
-      const dmg = b.powerball>=P.powerballSuperThreshold ? P.dmgPower : P.dmgNormal;
-      b.hp -= dmg;
-      b.hitFlashEnemy = 4;
-      const t = performance.now();
-      if(t - b.lastHitSnd > P.soundHitThrottleMs){ play("hit"); b.lastHitSnd = t; }
-      if(b.hp <= 0){ winLevel(); return; }
-    }
     // ceiling -> bounce down
     if(ball.y <= CEIL_Y){
       ball.phase = "down";
