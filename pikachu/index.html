@@ -573,6 +573,10 @@ let GAME_PARAMS = {
   hitboxHeight: 56,                 // 角色擊球碰撞箱高度（水平置中、垂直以腳底對齊）
   spikeHitboxExtra: 15,             // 跳躍殺球判定專用的碰撞箱，往精靈頭頂上方額外延伸的高度（像素）
   spikeHitboxForward: 15,           // 跳躍殺球判定範圍，往精靈面向的前方（面對球網的方向）額外加寬的距離（像素）
+  spikeWindowFrames: 9,             // 殺球容錯視窗：按下擊球鍵那一刻起，只有接下來這幾格畫面之內球撞到才算殺球，
+                                     // 超過這個格數還沒撞到就自動關閉視窗（即使人還在空中）。
+                                     // 對應原版反編譯出來的行為：按鍵後 state 只維持約 9 格畫面（5 格延遲 + 4 格擊球動畫），
+                                     // 這段時間一過就退回普通跳躍狀態，球太晚碰到只會是弱擊，不是殺球。
   // 下面這段「擊球判定」已改成跟原版 physics.js 一樣的公式（見 resolveBallHit() 函式），
   // 不再是「固定力道 + 固定角度 + 隨機浮動」的系統。原版擊球方向其實不是隨機決定的，
   // 而是「球跟角色的水平距離」決定球被打飛的方向與強弱：
@@ -611,6 +615,9 @@ let GAME_PARAMS = {
 
   // --- 除錯顯示 ---
   showBallPath: false,         // 是否在畫面上顯示 AI 提前算好的球路徑虛線與預測落點（僅供除錯/觀察用，預設關閉，跟設定面板開關無關，獨立控制）
+  showHitbox: false,           // 是否持續顯示碰撞框（玩家/AI/球/球網/殺球判定範圍），獨立開關，關掉設定面板後也會繼續顯示，直到手動關閉為止
+  showAiCandidates: false,     // 是否顯示 AI 這次殺球「試算過的所有候選打法」（chooseBestSpikeDirection 算出來、沒被選中的那些也畫出來），
+                                // 用來觀察 AI 到底在多組策略裡挑了哪一個、其他選項原本會打到哪裡，僅供除錯/觀察用
 
   // --- 排球物理 ---
   ballSpeedMultiplier: 1,      // 球速整體倍率：所有擊球（一般/跳躍殺球）的初速都會乘上這個值，調低就整體變慢
@@ -635,6 +642,17 @@ let GAME_PARAMS = {
   // --- 分數顯示 ---
   scoreFontSize: 32,           // 分數數字圖示的顯示大小（像素，正方形，會等比縮放 no.png 裡 32x32 的格子）
   scoreY: 8,                  // 分數數字圖示的頂端 y 座標（離畫面頂端的距離，像素，數字越大分數越靠下）
+
+  // --- AI 出手多樣性 ---
+  aiStrategyGridSize: 4,         // AI 每次殺球試算的候選策略「格數」(N)：力道與角度各切成 N 等分，
+                                  // 組合起來共 N×N 組候選打法（原版固定是 2×3=6 組）。
+                                  // 例如設 4 就是 4×4=16 種可能的殺球策略，數字越大候選越多元，
+                                  // 但每次殺球要模擬的球路徑數量也是 N×N，數字太大會增加運算量（上限 8）。
+  aiSpikeVariety: 50,           // AI 殺球方向的「隨機挑選」機率(0~100)：chooseBestSpikeDirection 原本永遠固定
+                                 // 挑「對手最沒把握救到」的那個組合，只要來球條件一樣，AI 一定打出一模一樣的角度/落點。
+                                 // 這裡改成有這個機率會改從「分數相近的前幾名組合」裡隨機挑一個，
+                                 // 保留大部分情況仍然選聰明的打法（AI 不會變笨），只是不再永遠只有一種選擇。
+                                 // 設 0 = 完全維持原本的固定最佳解（每次都選同一組）。
 
   // --- 發球 ---
   serveOffsetX: 130,           // 發球時球的固定水平位置：以畫面正中央為基準，往發球方那一側偏移的距離（像素）。左右鏡射，AI（左側）與玩家（右側）用同一個距離、方向相反
@@ -794,6 +812,7 @@ const GAME_PARAMS_META = [
   ["擊球碰撞箱高度 hitboxHeight", "hitboxHeight", 10, 100, 2, "free"],
   ["跳躍殺球判定範圍加高 spikeHitboxExtra", "spikeHitboxExtra", 0, 60, 2, "free"],
   ["跳躍殺球判定範圍加寬(前方) spikeHitboxForward", "spikeHitboxForward", 0, 60, 2, "free"],
+  ["殺球容錯視窗(格數) spikeWindowFrames", "spikeWindowFrames", 1, 30, 1, "free"],
   ["一般擊球水平除數 hitXDivisor", "hitXDivisor", 1, 8, 0.5],
   ["一般擊球最低上彈速度 hitMinUpSpeed", "hitMinUpSpeed", 5, 30, 1],
   ["跳躍殺球水平基礎值 jumpSpikePower", "jumpSpikePower", 5, 30, 1],
@@ -806,12 +825,16 @@ const GAME_PARAMS_META = [
   ["AI 提前算球路徑開關 aiPredictionEnabled", "aiPredictionEnabled", 0, 0, 0, "bool"],
   ["AI 預測準確度(%) aiPredictionAccuracy", "aiPredictionAccuracy", 0, 100, 5],
   ["AI 追球速度倍率 aiChaseSpeedMultiplier", "aiChaseSpeedMultiplier", 1, 2.5, 0.1],
+  ["AI 殺球隨機挑選機率(%) aiSpikeVariety", "aiSpikeVariety", 0, 100, 5],
+  ["AI 策略格數(N×N) aiStrategyGridSize", "aiStrategyGridSize", 2, 8, 1],
 
   ["AI 託管玩家(AI對AI互打) aiTakeoverEnabled", "aiTakeoverEnabled", 0, 0, 0, "bool"],
   ["自動開新局開關 autoRestartEnabled", "autoRestartEnabled", 0, 0, 0, "bool"],
   ["自動開新局等待時間 autoRestartDelay", "autoRestartDelay", 0.5, 15, 0.5, "sec"],
 
   ["球的路徑顯示 showBallPath", "showBallPath", 0, 0, 0, "bool"],
+  ["持續顯示碰撞框 showHitbox", "showHitbox", 0, 0, 0, "bool"],
+  ["顯示AI候選策略 showAiCandidates", "showAiCandidates", 0, 0, 0, "bool"],
 
   ["球速倍率 ballSpeedMultiplier", "ballSpeedMultiplier", 0.2, 2, 0.05],
   ["球重力 ballGravity", "ballGravity", 0.2, 3, 0.1],
@@ -858,13 +881,13 @@ const PARAM_CATEGORIES = [
   { kind: "player", title: "🤸 飛撲 Dive",
     keys: ["diveDistance", "diveSpeed", "diveDuration", "diveInitialVY"] },
   { kind: "player", title: "🏐 擊球判定（原版公式，見 resolveBallHit）",
-    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "hitXDivisor", "hitMinUpSpeed", "jumpSpikePower", "jumpSpikeUpMultiplier"] },
+    keys: ["hitboxWidthGround", "hitboxWidthJump", "hitboxHeight", "spikeHitboxExtra", "spikeHitboxForward", "spikeWindowFrames", "hitXDivisor", "hitMinUpSpeed", "jumpSpikePower", "jumpSpikeUpMultiplier"] },
   { kind: "ai", title: "🤖 AI　難度",
-    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier"] },
+    keys: ["aiJumpTriggerDistance", "aiSpikeChance", "aiDiveTriggerDistance", "aiPredictionEnabled", "aiPredictionAccuracy", "aiChaseSpeedMultiplier", "aiSpikeVariety", "aiStrategyGridSize"] },
   { kind: "toggle", title: "🎮 AI 託管／自動連續對戰",
     keys: ["aiTakeoverEnabled", "autoRestartEnabled", "autoRestartDelay"] },
   { kind: "toggle", title: "🐛 除錯顯示",
-    keys: ["showBallPath"] },
+    keys: ["showBallPath", "showHitbox", "showAiCandidates"] },
   { kind: "ball", title: "⚽ 排球物理", 
     keys: ["ballSpeedMultiplier", "ballGravity", "ballBounceRestitution", "ballWidth", "ballHeight"] },
   { kind: "ball", title: "🥅 球網",
@@ -938,9 +961,12 @@ class Pikachu {
     this.diveDirection = null;
 
     // 殺球容錯視窗：玩家按下殺球鍵那一刻（且當時正在跳躍），先把這個旗標打開，
-    // 之後每一格畫面都持續檢查球有沒有撞到，直到真的撞到、或落地為止才關閉，
-    // 不再要求「按下的那一格畫面」剛好跟球重疊，跟 AI 的 willSpike 邏輯一致。
+    // 之後每一格畫面都持續檢查球有沒有撞到；但跟原版一樣，這個視窗只維持
+    // GAME_PARAMS.spikeWindowFrames 格畫面（預設 9 格，對應原版「5 格延遲 + 4 格擊球動畫」），
+    // 超過這個格數球還沒撞到，視窗就自動關閉、退回普通跳躍（球再碰到只會是弱擊），
+    // 不是像之前那樣一路持續到落地為止。
     this.spikeArmed = false;
+    this.spikeArmedTimer = 0; // 視窗剩餘格數，隨每格畫面遞減，歸零就自動關閉 spikeArmed
 
     // 擊球瞬間短暫播放的動畫（跟 this.state 分開，不影響移動/跳躍/飛撲的狀態機，
     // 純粹是畫面上蓋一層擊球姿勢，播完 5 張圖就自動關閉，回到平常的圖）
@@ -1064,6 +1090,16 @@ class Pikachu {
   }
 
   update(ball) {
+    // 殺球容錯視窗倒數：每一格畫面遞減一次，跟原版一樣視窗只維持短短幾格畫面，
+    // 不是持續到落地為止；歸零就自動關閉，之後就算球撞到也只是普通擊球，不是殺球。
+    if (this.spikeArmed) {
+      this.spikeArmedTimer--;
+      if (this.spikeArmedTimer <= 0) {
+        this.spikeArmed = false;
+        this.spikeArmedTimer = 0;
+      }
+    }
+
     // 動畫：換圖間隔改由 GAME_PARAMS 控制，數字越大換圖越慢（撥放速度越慢）
     this.animTimer++;
     const threshold = this.state === "dive" ? GAME_PARAMS.diveAnimInterval : GAME_PARAMS.spriteAnimInterval;
@@ -1125,6 +1161,7 @@ class Pikachu {
         this.vy = 0;
         this.isJumping = false;
         this.spikeArmed = false; // 落地代表這次跳躍結束，殺球容錯視窗一併關閉
+        this.spikeArmedTimer = 0;
         if (this.diveMode) {
           // 原版：飛撲落地那一刻才切換成「躺地」狀態，並從這一刻才開始倒數，
           // 飛撲過程中在空中飛的那段時間不算在僵直時間內（這跟舊版直接從按下飛撲鍵就開始倒數不同）。
@@ -1343,13 +1380,33 @@ function willHitSelfDestruct(hitX, hitY, hitVx, hitVy, netRect, isLeftSide) {
 // 組合起來會落在球場上不同的位置。這裡讓 AI 在真正出手前，把每一種組合都「先在腦內打一次」，
 // 模擬出每種打法最後的落點，再比對對手目前站的位置跟腳程，挑一個對手最沒把握救到的組合出手，
 // 而不是像過去那樣每次都死板地固定用「前+下」硬扣。
+
+// 依 GAME_PARAMS.aiStrategyGridSize（N）動態產生 N×N 組候選策略，取代原本寫死的
+// 「左右鍵 2 種 × 上/放開/下鍵 3 種 = 6 種」固定組合，讓格數可以自由調整（例如 4×4=16）。
+// - xDir 對應「力道」：原版只有「沒按/按住」2 種（磁力倍率 1x / 2x，公式見 resolveBallHit 的
+//   `jumpSpikePower * (abs(xDir)+1)`），這裡把 1x~2x 這段範圍平均切成 N 等分，
+//   格數越多，力道的檔位就越細（不會突然從普通變兩倍力）。
+// - yDir 對應「角度」：原版是「高吊(-1) / 平擊(0) / 重扣(1)」3 種固定角度，這裡把 -1~1 這段
+//   角度範圍平均切成 N 等分，格數越多，可以打出的角度就越多樣，不再只有 3 種選擇。
+// N 太大時每次殺球要模擬 N*N 次球路徑，運算量會變多，所以有上限保護（見設定面板滑桿範圍）。
+function buildAiStrategyChoices() {
+  const n = Math.max(2, Math.min(8, Math.round(GAME_PARAMS.aiStrategyGridSize || 4)));
+  const xDirChoices = [];
+  const yDirChoices = [];
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1); // 0 ~ 1 平均切 N 等分
+    xDirChoices.push(t);          // 力道範圍 1x ~ 2x（對應原本的 0 ~ 1）
+    yDirChoices.push(-1 + t * 2); // 角度範圍 -1（高吊）~ 1（重扣），對應原本的 -1 ~ 1
+  }
+  return { xDirChoices, yDirChoices };
+}
+
 // 回傳 { xDir, yDir, landingX, steps, margin }（margin 越大代表對手越沒機會救到）；
 // 如果每一種組合都會自殺（例如卡在網邊很尷尬的位置），回傳 null。
 function chooseBestSpikeDirection(contactPoint, netRect, opponent, isLeftSide) {
   const netCenterX = SCREEN_WIDTH / 2;
-  const xDirChoices = [0, 1]; // 原版：左右鍵只影響力道是否加倍，不影響球飛的方向（方向永遠是往對面）
-  const yDirChoices = [-1, 0, 1]; // 上（高吊）／放開（平擊）／下（重扣）
-  let best = null;
+  const { xDirChoices, yDirChoices } = buildAiStrategyChoices();
+  const candidates = []; // 存下所有「不會自殺」的候選組合，供下面挑選用
 
   for (const xDir of xDirChoices) {
     for (const yDir of yDirChoices) {
@@ -1374,10 +1431,40 @@ function chooseBestSpikeDirection(contactPoint, netRect, opponent, isLeftSide) {
       const framesNeeded = distanceNeeded / GAME_PARAMS.playerSpeed;
       const margin = framesNeeded - result.steps;
 
-      const candidate = { xDir, yDir, landingX, steps: result.steps, margin, path: result.path };
-      if (!best || candidate.margin > best.margin) best = candidate;
+      candidates.push({ xDir, yDir, landingX, steps: result.steps, margin, path: result.path });
     }
   }
+  if (candidates.length === 0) return null;
+
+  // 找出真正的最佳解（margin 最大），當作保底
+  let best = candidates[0];
+  for (const c of candidates) if (c.margin > best.margin) best = c;
+
+  // ---- 從多組判斷中隨機採用一組 ----
+  // 原本這裡永遠回傳 best，導致同一顆來球（同樣的接球點/對手位置）一定打出同一種角度、
+  // 同一個落點，這是「AI 每局路徑都重複」的主因之一。改成：先把每一組候選依 margin 分數
+  // 由高到低排序，margin 越高、被隨機選中的機率越高（用簡單的加權抽籤），但分數較低、
+  // 甚至會讓對手輕鬆接到球的組合也還是有機會被選中——AI 因此會打出不只一種角度，
+  // 整體仍然偏向打出對對手較刁鑽的球，只是不再每次都固定同一組。
+  const variety = Math.max(0, Math.min(100, GAME_PARAMS.aiSpikeVariety || 0));
+  if (variety > 0 && Math.random() * 100 < variety && candidates.length > 1) {
+    // margin 可能是負數（對手接得到），先整體平移成正數再當權重用，
+    // 分數越高權重越大、越容易被抽到，但每一組都保留一定機率
+    const minMargin = Math.min(...candidates.map(c => c.margin));
+    const weights = candidates.map(c => (c.margin - minMargin) + 1); // +1 避免權重變成 0
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let roll = Math.random() * totalWeight;
+    let chosen = candidates[candidates.length - 1];
+    for (let i = 0; i < candidates.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) { chosen = candidates[i]; break; }
+    }
+    chosen.allCandidates = candidates; // 附上全部候選，供除錯畫面顯示「AI 考慮過哪些策略」
+    chosen.isVarietyPick = true;       // 標記這次是抽籤選出，不是固定最佳解，除錯畫面可用不同顏色標示
+    return chosen;
+  }
+  best.allCandidates = candidates;
+  best.isVarietyPick = false;
   return best;
 }
 
@@ -1394,6 +1481,9 @@ class AIPlayer extends Pikachu {
     this.spikeYDir = 1;
     // 這次挑中的打法模擬出來的完整路徑點陣列，只給除錯畫面畫「打法路徑」用，跟遊戲邏輯無關
     this.spikePlannedPath = null;
+    // 這次出手時，chooseBestSpikeDirection() 試算過的「全部候選打法」（含沒被選中的），
+    // 只給除錯畫面畫「AI 考慮過哪些策略」用，跟遊戲邏輯無關，不影響實際擊球結果
+    this.spikeAllCandidates = null;
 
     // ---- 原版特有的「膽量值 / 待命站位」個性化參數 ----
     // computerBoldness：0~4 隨機值，每一球開始前重骰一次（見 rerollComputerBoldness）。
@@ -1412,16 +1502,18 @@ class AIPlayer extends Pikachu {
     this.computerBoldness = Math.floor(Math.random() * 5);
   }
 
-  // 判斷「如果我現在跳下去，這一整段跳躍過程（起跳到落地）有沒有哪一格畫面真的會碰到球」。
+  // 判斷「如果我現在跳下去，這一整段跳躍過程（起跳到落地）有沒有哪些格畫面真的會碰到球」。
   // 跟原本「只看跳到最高點那一刻」的單點判斷不同：這裡完整模擬跳躍中每一格畫面的垂直位置
   // （公式跟 Pikachu.update() 的跳躍重力完全一致），同時假設 AI 會持續往預測站位（targetX）移動
   // （水平速度上限是 chaseSpeed，跟平常走位邏輯一致），再用跟 spikeRect getter 相同的公式
   // 算出每一格畫面的殺球判定框，逐格跟球的預測路徑（predictedFullPath）比對有沒有重疊。
-  // 只要整段跳躍完全沒有任何一格畫面碰得到球，就回傳 -1——代表「這球用跳的攔不到」，
-  // 這種情況就不該跳，跳了也是白跳（原地起跳、球從旁邊飛過），該做的是繼續走位或放棄這球。
-  // 有碰到球的話，回傳「第幾格畫面碰到」（>=0），方便呼叫端查出當時球的位置/垂直速度，
-  // 進一步模擬「打這一下之後，球最後會落在哪」（見 willHitSelfDestruct）。
-  canReachBallByJumping(targetX, chaseSpeed, predictedFullPath) {
+  // 回傳「整段跳躍中所有碰得到球的畫面格數」組成的陣列（可能有好幾格，因為判定框通常不只
+  // 一格畫面會重疊），完全碰不到就回傳空陣列——代表「這球用跳的攔不到」，這種情況就不該跳，
+  // 跳了也是白跳（原地起跳、球從旁邊飛過），該做的是繼續走位或放棄這球。
+  // 之所以要回傳「全部」而不是只回傳第一格：同一次跳躍裡，球在不同格畫面的高度/垂直速度
+  // 不一樣，打出去的效果也不同，呼叫端可以每一格都試算一次「瞄準弱點」，
+  // 挑一個對手最沒把握救到的格數再出手，而不是死板地永遠用「最早碰到」的那一格。
+  canReachBallByJumping(targetX, chaseSpeed, predictedFullPath, tolerance) {
     const touchY = GROUND_Y - this.height;
     let simY = touchY;
     let simVy = GAME_PARAMS.jumpVelocity;
@@ -1434,6 +1526,7 @@ class AIPlayer extends Pikachu {
     const bw = GAME_PARAMS.ballWidth || 24;
     const bh = GAME_PARAMS.ballHeight || 24;
     const maxFrames = predictedFullPath.length - 1;
+    const contactTicks = [];
 
     for (let t = 0; t <= maxFrames; t++) {
       // 垂直：跳躍物理，跟 Pikachu.update() 完全同一套離散公式
@@ -1446,10 +1539,18 @@ class AIPlayer extends Pikachu {
         break;
       }
 
-      // 水平：假設持續往預測站位移動，速度上限跟目前使用的追球速度一致
+      // 水平：假設持續往預測站位移動，速度上限跟目前使用的追球速度一致。
+      // 這裡改成跟 makeDecision() 裡真正的移動判斷邏輯完全對齊：
+      // 差距在 tolerance 容許範圍內時，真實角色會直接站著不動（判定成「已經到位」，
+      // 不會再繼續微調），而不是像原本這裡假設的那樣，會一路精準貼到 targetX 的
+      // 0 誤差位置。兩邊沒對齊時，規劃階段以為的起跳位置跟真正跳起來的位置會差
+      // 到 tolerance 這段距離，導致明明有算出殺球策略、真正跳起來時卻對不準球，
+      // 只好放棄改用一般碰球。
       const dx = targetX - simX;
-      if (Math.abs(dx) > chaseSpeed) simX += Math.sign(dx) * chaseSpeed;
-      else simX = targetX;
+      if (Math.abs(dx) > tolerance) {
+        simX += Math.sign(dx) * Math.min(chaseSpeed, Math.abs(dx));
+      }
+      // 否則（差距在 tolerance 內）：跟真實角色一樣站著不動，simX 維持原地。
 
       // 用跟 spikeRect getter 相同的公式，算出這一格畫面（模擬出來的 simX/simY）的殺球判定框
       let rx = this.side === "left" ? simX + (this.width - w) : simX;
@@ -1466,10 +1567,10 @@ class AIPlayer extends Pikachu {
       const bx = ballPt.x - bw / 2, by = ballPt.y - bh / 2;
 
       if (rectsOverlap({ x: rx, y: ry, w: rw, h: rh }, { x: bx, y: by, w: bw, h: bh })) {
-        return t;
+        contactTicks.push(t);
       }
     }
-    return -1;
+    return contactTicks;
   }
 
   makeDecision(ball, netRect, opponent) {
@@ -1588,15 +1689,26 @@ class AIPlayer extends Pikachu {
       if (ballOnMySide) {
         if (!this.isJumping) {
           if (predictedFullPath) {
-            const contactTick = this.canReachBallByJumping(targetX, chaseSpeed, predictedFullPath);
-            if (contactTick >= 0) {
+            const contactTicks = this.canReachBallByJumping(targetX, chaseSpeed, predictedFullPath, tolerance);
+            if (contactTicks.length > 0) {
               this.jump();
               // 原版特有的「瞄準弱點」邏輯：不是死板地固定用「前+下」硬扣，
               // 而是把左右鍵（力道加倍與否）跟上/放開/下鍵（高吊/平擊/重扣）的
               // 每一種組合都先在腦內模擬一次打出去的落點，再比對對手目前站的位置跟腳程，
               // 挑一個對手最沒把握救到的組合出手（同時已經排除掉會撞網自殺的組合）。
-              const contactPoint = predictedFullPath[contactTick];
-              const best = chooseBestSpikeDirection(contactPoint, netRect, opponent, this.side === "left");
+              // 這裡再多一層：整段跳躍裡有好幾格畫面都碰得到球（球在判定框裡停留不只一格），
+              // 不是只用「最早碰到」的那一格去試打，而是每一格畫面各自試算一次，
+              // 全部格數、全部方向組合放在一起比，挑 margin 最大（對手最沒把握救到）的
+              // 那一組出手——同一次跳躍，晚一點點碰、可能因為球的高度/角度不同，
+              // 反而打得出更刁鑽的落點。
+              let best = null;
+              for (const t of contactTicks) {
+                const contactPoint = predictedFullPath[t];
+                const candidate = chooseBestSpikeDirection(contactPoint, netRect, opponent, this.side === "left");
+                if (candidate && (!best || candidate.margin > best.margin)) {
+                  best = candidate;
+                }
+              }
               if (best) {
                 this.willSpike = true;
                 this.spikeXDir = best.xDir;
@@ -1604,6 +1716,8 @@ class AIPlayer extends Pikachu {
                 this.willSelfDestructIfSpike = false;
                 // 存下這次挑中的打法完整模擬路徑，供除錯畫面畫出「AI 算出的打法路徑」
                 this.spikePlannedPath = best.path;
+                // 存下這次出手全部試算過的候選策略（含沒被選中的），供除錯畫面顯示「AI 考慮過哪些策略」
+                this.spikeAllCandidates = best.allCandidates || null;
               } else {
                 // 找不到任何一種組合是安全的（例如剛好卡在網邊很尷尬的位置，怎麼打都會自殺），
                 // 放棄這次強力殺球，人還是照跳（卡住位置），球碰到時會落到下面 updatePlaying()
@@ -1979,6 +2093,7 @@ class Game {
     this.ai.willSpike = false;
     this.player.willSpike = false;
     this.player.spikeArmed = false;
+    this.player.spikeArmedTimer = 0;
 
     // 每一球開始前重骰「膽量值」(computerBoldness)：跟原版一致，每一局/每一球
     // 都重新骰一次 0~4 的隨機值，讓 AI 的積極度（多快出手、跳多勤、飛撲多勤）
@@ -2062,13 +2177,17 @@ class Game {
         const actionNow = !!(keys["Enter"] || keys["Space"]);
         if (actionNow && !this.actionHeld.player) {
           // 剛按下瞬間：只要當時正在跳躍，就先打開「殺球容錯視窗」，
-          // 不要求這一格畫面剛好跟球重疊——跟原版一樣，按鍵時機跟球撞到的時機分開判定。
+          // 不要求這一格畫面剛好跟球重疊——跟原版一樣，按鍵時機跟球撞到的時機分開判定；
+          // 但視窗只維持 GAME_PARAMS.spikeWindowFrames 格畫面（跟原版一樣有時間限制），
+          // 不是像之前那樣一路開到落地為止。
           if (p.isJumping) {
             p.spikeArmed = true;
+            p.spikeArmedTimer = GAME_PARAMS.spikeWindowFrames;
           }
         }
         // 容錯視窗開著的期間，每一格畫面都持續檢查球有沒有撞到（不只是按下的那一瞬間），
         // 這跟 AI 的 willSpike 邏輯一致；一旦撞到就立刻觸發殺球並關閉視窗，避免同一次跳躍連續觸發。
+        // 視窗本身會在 player.update() 裡每格倒數，超過 spikeWindowFrames 格還沒撞到就自動關閉。
         if (p.spikeArmed && p.isJumping && rectsOverlap(p.spikeRect, this.ball.rect)) {
           // 原版擊球方向完全依賴玩家「當下按住的方向鍵」：
           // 左右鍵決定殺球是平擊(0)還是加強(±1)，上/下鍵決定往上/往下（或不按=水平擊球）。
@@ -2250,9 +2369,15 @@ class Game {
 
     this.drawScore();
 
-    if (DEBUG_SHOW_HITBOX) this.drawDebugHitboxes();
-    if (GAME_PARAMS.showBallPath) this.drawPredictedBallPath();
-    if (GAME_PARAMS.showBallPath) this.drawSpikePlannedPath();
+    if (DEBUG_SHOW_HITBOX || GAME_PARAMS.showHitbox) this.drawDebugHitboxes();
+    if (GAME_PARAMS.showBallPath) this.drawPredictedBallPath(this.ai);
+    if (GAME_PARAMS.showBallPath) this.drawSpikePlannedPath(this.ai);
+    if (GAME_PARAMS.showAiCandidates) this.drawSpikeCandidatePaths(this.ai);
+    // 右側只有在「AI 託管」開啟、由 AI 自動操作時，makeDecision 才會產生預測路徑／候選策略資料，
+    // 沒開託管時 player 是玩家手動操作，這幾個欄位本來就是空的，畫出來也不會有東西，不用另外判斷
+    if (GAME_PARAMS.showBallPath) this.drawPredictedBallPath(this.player);
+    if (GAME_PARAMS.showBallPath) this.drawSpikePlannedPath(this.player);
+    if (GAME_PARAMS.showAiCandidates) this.drawSpikeCandidatePaths(this.player);
   }
 
   drawDebugHitboxes() {
@@ -2300,17 +2425,77 @@ class Game {
     ctx.restore();
   }
 
+  // 畫出 AI 這次殺球「試算過的所有候選打法」（chooseBestSpikeDirection 裡 xDir/yDir 六種組合
+  // 扣掉自殺球之後剩下的那些），讓你能觀察 AI 到底在哪些選項裡挑、其他選項原本會落在哪。
+  // 沒被選中的候選用淡色細虛線畫（顏色依 margin 分數由紅到綠：越綠代表對手越難救到、
+  // 是越好的選項；越紅代表對手輕鬆接得到、是比較差的選項），被選中的那一組則用較粗的
+  // 洋紅色畫、並在旁邊標出 margin 分數方便比對，跟 drawSpikePlannedPath() 的顏色呼應。
+  // 獨立用 GAME_PARAMS.showAiCandidates 開關控制，跟其他除錯顯示分開，預設關閉。
+  // aiEntity：要畫哪一邊的候選策略，傳 this.ai（左側）或 this.player（右側，僅託管時有資料）。
+  drawSpikeCandidatePaths(aiEntity) {
+    const candidates = aiEntity.spikeAllCandidates;
+    if (!(candidates && candidates.length > 0)) return;
+    const chosenPath = aiEntity.spikePlannedPath;
+
+    // margin 分數的最小/最大值，用來把顏色從紅（差）漸層到綠（好）
+    const margins = candidates.map(c => c.margin);
+    const minM = Math.min(...margins), maxM = Math.max(...margins);
+    const range = Math.max(1e-6, maxM - minM);
+
+    ctx.save();
+    for (const c of candidates) {
+      if (!(c.path && c.path.length > 1)) continue;
+      // 這一組就是被選中出手的那組，稍後用高亮方式另外畫，這裡先跳過避免重疊蓋色
+      if (c.path === chosenPath) continue;
+
+      const t = (c.margin - minM) / range; // 0=最差, 1=最好
+      const hue = Math.round(t * 120); // 0=紅, 120=綠（HSL 色相）
+      ctx.setLineDash([3, 4]);
+      ctx.strokeStyle = `hsla(${hue}, 80%, 55%, 0.55)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(c.path[0].x, c.path[0].y);
+      for (let i = 1; i < c.path.length; i++) ctx.lineTo(c.path[i].x, c.path[i].y);
+      ctx.stroke();
+      // 每條候選路徑的落點畫一個小點，並標上 margin 數值，方便跟被選中的那組比較
+      const last = c.path[c.path.length - 1];
+      ctx.fillStyle = `hsla(${hue}, 80%, 55%, 0.9)`;
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = "10px sans-serif";
+      ctx.fillText(c.margin.toFixed(1), last.x + 5, last.y - 5);
+    }
+    ctx.setLineDash([]);
+
+    // 被選中出手的那一組額外高亮標示「已選用」，跟其他候選路徑做出區隔
+    if (chosenPath && chosenPath.length > 1) {
+      const last = chosenPath[chosenPath.length - 1];
+      ctx.strokeStyle = "#ff4dff";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(last.x, last.y, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#ff4dff";
+      ctx.font = "bold 10px sans-serif";
+      ctx.fillText("已選用", last.x + 10, last.y - 8);
+    }
+    ctx.restore();
+  }
+
   // 畫出 AI 這次挑選出的殺球打法，模擬出來「打出去之後」球會怎麼飛、最後落在哪
   // （chooseBestSpikeDirection() 試打過的那一組勝出組合）。
   // 用跟「來球預測路徑」（黃色）不同的顏色（洋紅色）畫，一眼就能分辨哪條是「來球」、哪條是「打法」。
   // 跟來球預測路徑共用同一個開關 GAME_PARAMS.showBallPath，打開「球的路徑顯示」就會兩條一起畫出來，
   // 不需要額外打開設定面板的碰撞箱顯示。
-  drawSpikePlannedPath() {
-    const path = this.ai.spikePlannedPath;
+  drawSpikePlannedPath(aiEntity) {
+    const path = aiEntity.spikePlannedPath;
     if (!(path && path.length > 1)) return;
+    // 右側（AI 託管）用青色系跟左側的洋紅色區分，一眼就能看出這條線是哪一邊 AI 打的
+    const color = aiEntity.side === "left" ? "#ff4dff" : "#4dfff2";
     ctx.save();
     ctx.setLineDash([5, 5]);
-    ctx.strokeStyle = "#ff4dff";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(path[0].x, path[0].y);
@@ -2319,7 +2504,7 @@ class Game {
     ctx.setLineDash([]);
     // 打出去的起點（擊球瞬間）畫個小方塊，落點畫個小圓圈，方便分辨方向
     const first = path[0];
-    ctx.fillStyle = "#ff4dff";
+    ctx.fillStyle = color;
     ctx.fillRect(first.x - 3, first.y - 3, 6, 6);
     const last = path[path.length - 1];
     ctx.beginPath();
@@ -2331,10 +2516,11 @@ class Game {
   // 畫出 AI 目前「提前算好」的預測球路徑（只在有來球、且預測功能開啟時才有資料）。
   // 獨立用 GAME_PARAMS.showBallPath 開關控制，跟 DEBUG_SHOW_HITBOX（碰撞箱顯示、開設定面板才會亮）分開，
   // 不管設定面板有沒有打開，只要這個開關是 on 就會一直畫出來。
-  drawPredictedBallPath() {
-    if (!(this.ai._lastPredictedPath && this.ai._lastPredictedPath.length > 1)) return;
+  // aiEntity：要畫哪一邊的預測路徑，傳 this.ai（左側）或 this.player（右側，僅託管時有資料）。
+  drawPredictedBallPath(aiEntity) {
+    if (!(aiEntity._lastPredictedPath && aiEntity._lastPredictedPath.length > 1)) return;
     ctx.save();
-    const path = this.ai._lastPredictedPath;
+    const path = aiEntity._lastPredictedPath;
     ctx.setLineDash([5, 5]);
     ctx.strokeStyle = "#ffe14a";
     ctx.lineWidth = 2;
@@ -2661,6 +2847,23 @@ game = new Game();
       paramPanel.style.display = "none";
       DEBUG_SHOW_HITBOX = false;
       closeParamPanel.blur();
+    });
+  }
+
+  // 點面板以外的區域（遊戲畫面、右側空白處等）也能關閉設定面板：
+  // #paramPanel 本身 pointer-events:none，點擊會直接穿透打到底下的遊戲畫面，
+  // 所以改成在 document 上聽全域 click，只要「目前面板是開著的」且「這次點擊
+  // 不是點在面板實際內容（.param-side-panel）裡面、也不是點在設定齒輪本身上」，
+  // 就把面板關閉（齒輪本身的開關交給上面 settingsBtn 自己的 click listener 處理，
+  // 這裡刻意跳過它，避免兩邊互相打架，一開就馬上又被關掉）。
+  if(paramPanel){
+    document.addEventListener("click", function(e){
+      if(paramPanel.style.display === "none") return;
+      const panelBox = paramPanel.querySelector(".param-side-panel");
+      if(panelBox && panelBox.contains(e.target)) return;
+      if(settingsBtn && settingsBtn.contains(e.target)) return;
+      paramPanel.style.display = "none";
+      DEBUG_SHOW_HITBOX = false;
     });
   }
   if(copyParamsBtn && paramTextArea){
