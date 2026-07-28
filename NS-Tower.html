@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0041)https://game76420.github.io/ns-tower.html -->
-<html lang="zh-Hant"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>NS-Tower</title>
   <style>
@@ -288,35 +288,35 @@
       text-align: right;
     }
   </style>
-<input type="hidden" id="_o_dbjbempljhcmhlfpfacalomonjpalpko" data-inspect-config="7"><script type="text/javascript" src="chrome-extension://dbjbempljhcmhlfpfacalomonjpalpko/scripts/inspector.js"></script></head>
+</head>
 <body>
 <audio id="sfx-jump" src="Data_2.wav" preload="auto"></audio>
 <audio id="sfx-dead" src="Data_6.wav" preload="auto"></audio>
-<audio id="bgm" src="bgm1.mp3" preload="auto" loop=""></audio>
+<audio id="bgm" src="bgm1.mp3" preload="auto" loop></audio>
 <audio id="sfx-land" src="Data_1.wav" preload="auto"></audio>
 <audio id="sfx-spring-jump" src="Data_3.wav" preload="auto"></audio>
 <audio id="sfx-charge" src="Data_7.wav" preload="auto"></audio>
 <div id="hud">
   <span class="power-block">
     <span class="power-label">POWER</span>
-    <span class="hud-power"><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span><span style="display:inline-block;width:6px;height:12px;background:#111;border:1px solid #444;margin-right:1px;"></span></span>
+    <span class="hud-power"></span>
   </span>
-  <span class="hud-score" id="hud-score"><span class="score-num">0008</span><span class="score-unit">階</span></span>
-  <span class="hud-highscore" id="hud-highscore">最高 0069</span>
+  <span class="hud-score" id="hud-score"></span>
+  <span class="hud-highscore" id="hud-highscore"></span>
 </div>
 <!-- 新增底部控制區 -->
 <div id="bottom-controls">
   <button id="pause-toggle" type="button">⏸️ 暫停</button>
   <button id="sfx-toggle" type="button">🔊 音效</button>
-  <button id="bgm-toggle" type="button">🔇 音樂</button>
+  <button id="bgm-toggle" type="button">🎵 音樂</button>
   <button id="settings-toggle" type="button">⚙️ 設定</button>
   <button id="help-toggle" type="button">❓ 說明</button>
   <button id="about-toggle" type="button">ℹ️ 關於</button>
 </div>
-<canvas id="game" width="600" height="875" style="width: 480px; height: 700px; padding-bottom: 36px;"></canvas>
-<div id="gameover-modal" style="display: flex; position: fixed; z-index: 1000; left: 0px; top: 0px; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; flex-direction: column;">
+<canvas id="game"></canvas>
+<div id="gameover-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;">
   <div style="background:#222;padding:32px 24px 24px 24px;border-radius:18px;box-shadow:0 4px 24px #000a;max-width:90vw;text-align:center;user-select:none;">
-    <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;">遊戲結束！<br>樓層: <b style="color:yellow;">8</b></div>
+    <div id="gameover-msg" style="color:#fff;font-size:1.5rem;margin-bottom:18px;user-select:none;"></div>
     <button id="restart-btn" style="font-size:1.2rem;padding:10px 32px;background:#ff0;color:#222;border:none;border-radius:8px;box-shadow:0 2px 8px #0008;font-weight:bold;user-select:none;">重新開始</button>
   </div>
 </div>
@@ -482,11 +482,15 @@ let stairTypeShuffleIdx = 0;
 const stairXPattern = ['left', 'random', 'right', 'random'];
 let stairXPatternIdx = 0;
 // 新增：遊戲速度滑桿設定
-let gameSpeedMultiplier = 0; // -50 到 50，影響整體遊戲速度
+let gameSpeedMultiplier = 30; // -50 到 50，影響整體遊戲速度
 // 新增：時間控制變數
 let lastTime = 0;
 const FIXED_TIMESTEP = 1/60; // 固定時間步長 60FPS
 let accumulator = 0;
+// 新增：跨裝置一致速度用的影格差值因子。
+// 1 = 剛好每秒60次更新的量；螢幕更新率不同（如手機120Hz）時會自動等比縮放，
+// 確保物理與移動速度以「實際經過時間」計算，而不是以「幀數」計算。
+let dtFactor = 1;
 
 function shuffleArray(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -650,8 +654,7 @@ function initGame() {
   cameraTargetOffsetY = 0;
   resizeCanvas();
   paused = false;
-  lastTime = 0;
-  accumulator = 0;
+  lastTime = 0; // 重置時間基準，確保新一局開始時 dtFactor 計算正確
   score = 0;
   direction = Math.random() < 0.5 ? 1 : -1; // 1:右, -1:左
   jumpPending = false;
@@ -1308,7 +1311,7 @@ function updatePlayer() {
   const gameSpeedFactor = 1 + (gameSpeedMultiplier / 100);
   
   // 自動左右移動（受遊戲速度影響，使用固定時間步長）
-  player.x += player.vx * player.dir * gameSpeedFactor * FIXED_TIMESTEP * 60;
+  player.x += player.vx * player.dir * gameSpeedFactor * dtFactor;
   // 碰牆自動反向
   if (player.x < 0) {
     player.x = 0;
@@ -1351,13 +1354,13 @@ function updatePlayer() {
   // 2. 如果玩家在空中，施加重力並檢查是否落地
   if (!player.onStair) {
     // 重力（受遊戲速度影響，使用固定時間步長）
-    player.vy += player.gravity * gameSpeedFactor * FIXED_TIMESTEP * 60;
+    player.vy += player.gravity * gameSpeedFactor * dtFactor;
     // 限制最大下墜速度
     player.vy = Math.min(player.vy, 12);
     
     // 記錄前一幀底部
     let prevBottom = player.y + player.height;
-    player.y += player.vy * FIXED_TIMESTEP * 60;
+    player.y += player.vy * dtFactor;
     let currBottom = player.y + player.height;
 
     // 穿越平台計分邏輯
@@ -1417,9 +1420,9 @@ function updatePlayer() {
 
               // 處理剛落地時的平台效果（受遊戲速度影響，使用固定時間步長）
               if (s.type === 'conveyorL') {
-                  player.x -= 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  player.x -= 0.6 * gameSpeedFactor * dtFactor;
               } else if (s.type === 'conveyorR') {
-                  player.x += 0.6 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+                  player.x += 0.6 * gameSpeedFactor * dtFactor;
               }
               if (player.jumping) {
                   player.jumping = false;
@@ -1448,9 +1451,9 @@ function updatePlayer() {
     // 如果玩家在平台上，持續處理平台效果（受遊戲速度影響，使用固定時間步長）
     const s = player.landedOn;
     if (s && s.type === 'conveyorL') {
-        player.x -= 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        player.x -= 0.5 * gameSpeedFactor * dtFactor;
     } else if (s && s.type === 'conveyorR') {
-        player.x += 0.5 * gameSpeedFactor * FIXED_TIMESTEP * 60;
+        player.x += 0.5 * gameSpeedFactor * dtFactor;
     }
   }
 
@@ -1687,13 +1690,26 @@ function updateStairs() {
   }
 }
 
-// 執行一次「固定時間步長」的遊戲邏輯更新。
-// 不論裝置螢幕更新率為何(手機常見60Hz、平板90Hz、電腦顯示器144Hz/240Hz等)，
-// 這個函式每次呼叫代表遊戲世界前進固定的 1/60 秒，因此每秒被呼叫的次數固定，
-// 玩家移動/重力/集氣速度…等遊戲速度就不會因為畫面更新率不同而跑得比較快或比較慢。
-// 回傳 false 代表玩家死亡，應停止繼續更新。
-function updateGameStep() {
-  // -- 輸入狀態處理 --
+function gameLoop(timestamp) {
+  if (paused) return;
+
+  // --- 依實際經過時間計算 dtFactor，確保電腦/手機/平板（不同螢幕更新率）速度一致 ---
+  if (typeof timestamp !== 'number') timestamp = performance.now();
+  if (!lastTime) {
+    // 第一幀（或剛從暫停恢復）：沒有足夠資訊算差值，先當作標準 1 幀
+    dtFactor = 1;
+  } else {
+    const deltaMs = timestamp - lastTime;
+    // 60fps 下一幀約 16.667ms，dtFactor 應為 1；
+    // 120Hz 螢幕每幀約 8.3ms，dtFactor 會是 0.5，讓每幀移動量減半、總速度不變。
+    // 夾住範圍避免分頁切換回來後因間隔過大造成瞬移或穿牆。
+    dtFactor = Math.min(3, Math.max(0.2, deltaMs / (1000 / 60)));
+  }
+  lastTime = timestamp;
+
+  // --- 移除隨機跳過幀的慢動作邏輯 ---
+
+  // -- 輸入狀態處理 (移到迴圈前端，確保即時反應) --
   const wantsToCharge = inputState.isPressed || inputState.spacebar;
   if (wantsToCharge && player.alive) {
     if (player.onStair && !player.charging) {
@@ -1712,17 +1728,27 @@ function updateGameStep() {
     player.chargePending = false;
   }
 
-  // 每次固定步長遞減 jump buffer timer
+  // 每幀遞減 jump buffer timer
   if (jumpBufferTimer > 0) {
-    jumpBufferTimer -= FIXED_TIMESTEP;
+    jumpBufferTimer -= (1/60) * dtFactor;
     if (jumpBufferTimer < 0) jumpBufferTimer = 0;
   }
 
-  if (!updatePlayer()) return false;
-
+  ctx.clearRect(0, 0, getWidth(), getHeight());
+  // 背景（上半部 #3b0600 漸層到 #5a1b01）
+  let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
+  grad.addColorStop(0, "#3b0600");
+  grad.addColorStop(1, "#5a1b01");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, getWidth(), getHeight());
+  
+  drawStairs();
+  if (!updatePlayer()) return;
   // 鏡頭平滑移動
+  const cameraSpeed = 18; // 每幀最大移動像素
   if (Math.abs(cameraOffsetY - cameraTargetOffsetY) > 1) {
-    cameraOffsetY += (cameraTargetOffsetY - cameraOffsetY) * 0.08;
+    const camLerp = 1 - Math.pow(1 - 0.08, dtFactor);
+    cameraOffsetY += (cameraTargetOffsetY - cameraOffsetY) * camLerp;
     // 若很接近目標就直接到位
     if (Math.abs(cameraOffsetY - cameraTargetOffsetY) < 1) cameraOffsetY = cameraTargetOffsetY;
   } else {
@@ -1734,8 +1760,14 @@ function updateGameStep() {
     needScrollToStair = false;
   }
   updateStairs();
+  drawPlayer();
+  drawHUD();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 4;
+  ctx.strokeRect(0, 0, getWidth(), getHeight());
+  ctx.lineWidth = 1;
 
-  // 蓄力中每次固定步長增加力量
+  // 蓄力中每幀增加力量
   if (player && player.charging && player.onStair && !player.jumping) {
     // 力量重置開啟時，集氣速度較慢
     player.powerIncrement = powerAutoReset ? 2 : 4;
@@ -1745,60 +1777,9 @@ function updateGameStep() {
       player.power = Math.min(player.maxPower, player.power + player.powerIncrement);
     }
   }
-
-  return true;
-}
-
-// 純粹負責畫面繪製，依照裝置螢幕更新率呼叫（不影響遊戲速度，只影響畫面流暢度）
-function renderGame() {
-  ctx.clearRect(0, 0, getWidth(), getHeight());
-  // 背景（上半部 #3b0600 漸層到 #5a1b01）
-  let grad = ctx.createLinearGradient(0, 0, 0, getHeight());
-  grad.addColorStop(0, "#3b0600");
-  grad.addColorStop(1, "#5a1b01");
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, getWidth(), getHeight());
-
-  drawStairs();
-  drawPlayer();
-  drawHUD();
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 4;
-  ctx.strokeRect(0, 0, getWidth(), getHeight());
-  ctx.lineWidth = 1;
-}
-
-function gameLoop(currentTime) {
-  if (paused) return;
-
-  if (typeof currentTime !== 'number') currentTime = performance.now();
-  if (!lastTime) lastTime = currentTime;
-  let frameTime = (currentTime - lastTime) / 1000; // 這一幀實際經過的秒數
-  lastTime = currentTime;
-
-  // 分頁切到背景、裝置卡頓等狀況可能造成極大的時間差，限制上限避免瞬間補跑大量邏輯更新
-  if (frameTime > 0.25) frameTime = 0.25;
-
-  accumulator += frameTime;
-
-  // 依照實際經過時間，換算需要跑幾次固定步長的邏輯更新
-  // 例如電腦螢幕 144Hz 每次只經過 1/144 秒，累積到 1/60 秒才會跑一次更新；
-  // 手機 60Hz 每次剛好經過 1/60 秒，每個畫面都會跑一次更新——兩者遊戲世界前進的速度因此一致。
-  let alive = true;
-  while (accumulator >= FIXED_TIMESTEP) {
-    alive = updateGameStep();
-    accumulator -= FIXED_TIMESTEP;
-    if (!alive) {
-      accumulator = 0;
-      break;
-    }
-  }
-
-  renderGame();
-
-  if (alive) {
-    animationFrameId = requestAnimationFrame(gameLoop);
-  }
+  
+  // 根據遊戲速度調整下一幀的延遲
+  animationFrameId = requestAnimationFrame(gameLoop);
 }
 
 function showGameOverModal(score, isNewRecord) {
@@ -2139,8 +2120,8 @@ window.addEventListener('DOMContentLoaded', function() {
       paused = !paused;
       pauseToggle.textContent = paused ? '▶️ 繼續' : '⏸️ 暫停';
       if (!paused) {
-        lastTime = 0; // 避免暫停期間的時間被計入，導致恢復瞬間跳幀
-        animationFrameId = requestAnimationFrame(gameLoop);
+        lastTime = 0; // 重置時間基準，避免暫停期間的長間隔被當成一次巨大位移
+        gameLoop();
       }
     });
   }
@@ -2234,6 +2215,5 @@ window.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
 initGame();
 </script>
-
- 
-</body></html>
+</body>
+</html> 
