@@ -415,10 +415,18 @@
                 <option value="normal">一般尺寸</option>
                 <option value="large">大尺寸</option>
             </select>
+            <select class="menu-button" id="orientation-select" onchange="setOrientation(this.value)">
+                <option value="landscape">橫式</option>
+                <option value="portrait">直式</option>
+            </select>
             <select class="menu-button" onchange="setStyle(this.value)">
                 <option value="panel">方塊風格</option>
                 <option value="marble">彈珠風格</option>
             </select>
+            <label class="menu-button" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                <input type="checkbox" id="balance-checkbox" onchange="setBalanceColors(this.checked)" style="cursor:pointer;">
+                平均方塊數量
+            </label>
         </div>
         <div id="game-board" class="game-board"></div>
         <div class="status-bar">
@@ -468,6 +476,8 @@
         let gameState = {
             size: 'normal',
             style: 'panel',
+            boardOrientation: 'landscape', // 玩家手動選擇的版面方向：landscape(橫式) / portrait(直式)
+            balanceColors: false, // 預設不平均分配方塊數量（每格隨機顏色）
             soundEnabled: true,
             board: [],
             initBoard: [],
@@ -490,34 +500,26 @@
         // Initialize game
         function initGame() {
             loadScores();
+            document.getElementById('balance-checkbox').checked = gameState.balanceColors;
+            document.getElementById('orientation-select').value = gameState.boardOrientation;
             setBoardSize();
             generateBoard();
             drawBoard();
             updateStatus();
         }
 
-        // 監聽螢幕方向改變，自動重設盤面
-        let lastOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+        // 視窗大小改變時，僅重新計算格子尺寸（不自動切換直式／橫式，也不重新開局）
         let resizeTimeout;
-        
-        function handleOrientationChange() {
-            const currentOrientation = window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
-            if (currentOrientation !== lastOrientation) {
-                lastOrientation = currentOrientation;
-                // 延遲重新開始遊戲，避免頻繁觸發
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    newGame();
-                }, 300);
-            }
+
+        function handleWindowResize() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                setBoardSize();
+                drawBoard();
+            }, 200);
         }
-        
-        window.addEventListener('resize', handleOrientationChange);
-        
-        // 監聽設備方向變化（適用於支援的設備）
-        if (window.screen && window.screen.orientation) {
-            window.screen.orientation.addEventListener('change', handleOrientationChange);
-        }
+
+        window.addEventListener('resize', handleWindowResize);
 
         // Set board size
         function setBoardSize() {
@@ -529,24 +531,23 @@
                 rows = 15;
                 cols = 25;
             }
-            
-            // 根據螢幕方向自動對調（僅直屏時對調長短邊）
-            const isLandscape = window.innerWidth > window.innerHeight;
-            const isMobile = window.innerWidth < 900;
-            const isTablet = window.innerWidth >= 900 && window.innerWidth <= 1200;
-            
-            if (isMobile && !isLandscape) {
-                // 手機直屏時，對調長短邊
+
+            // 版面方向由玩家在面板上手動選擇決定，不依裝置實際翻轉狀態判斷
+            if (gameState.boardOrientation === 'portrait') {
+                // 直式：對調長短邊
                 [rows, cols] = [cols, rows];
             }
-            
+
             gameState.rows = rows;
             gameState.cols = cols;
-            
+
+            const isMobile = window.innerWidth < 900;
+            const isTablet = window.innerWidth >= 900 && window.innerWidth <= 1200;
+
             // 動態計算格子大小以適應螢幕
             let cellSize = CELL_SIZE;
             if (isMobile) {
-                // 無論橫直都根據螢幕寬度計算格子大小
+                // 手機版：以當下選擇的版面方向狀態，依螢幕寬度計算格子大小
                 const maxWidth = window.innerWidth * 0.95; // 95% 的螢幕寬度
                 cellSize = Math.min(36, Math.floor(maxWidth / cols));
             }
@@ -570,26 +571,34 @@
         // Generate new board
         function generateBoard() {
             const totalCells = gameState.rows * gameState.cols;
-            const baseCount = Math.floor(totalCells / 5);
-            const remainder = totalCells % 5;
-
-            // 先分配每種顏色的數量
-            const colorCounts = Array(5).fill(baseCount);
-            // 多餘的格子隨機分配
-            for (let i = 0; i < remainder; i++) {
-                colorCounts[i]++;
-            }
-
-            // 建立顏色陣列
             let colorArray = [];
-            for (let i = 0; i < 5; i++) {
-                colorArray = colorArray.concat(Array(colorCounts[i]).fill(i));
-            }
 
-            // 洗牌（Fisher-Yates）
-            for (let i = colorArray.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [colorArray[i], colorArray[j]] = [colorArray[j], colorArray[i]];
+            if (gameState.balanceColors) {
+                // 平均分配每種顏色的數量
+                const baseCount = Math.floor(totalCells / 5);
+                const remainder = totalCells % 5;
+
+                const colorCounts = Array(5).fill(baseCount);
+                // 多餘的格子隨機分配
+                for (let i = 0; i < remainder; i++) {
+                    colorCounts[i]++;
+                }
+
+                // 建立顏色陣列
+                for (let i = 0; i < 5; i++) {
+                    colorArray = colorArray.concat(Array(colorCounts[i]).fill(i));
+                }
+
+                // 洗牌（Fisher-Yates）
+                for (let i = colorArray.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [colorArray[i], colorArray[j]] = [colorArray[j], colorArray[i]];
+                }
+            } else {
+                // 不平均：每格獨立隨機選色
+                for (let i = 0; i < totalCells; i++) {
+                    colorArray.push(Math.floor(Math.random() * 5));
+                }
             }
 
             // 填入盤面
@@ -1028,9 +1037,19 @@
             newGame();
         }
 
+        function setOrientation(orientation) {
+            gameState.boardOrientation = orientation;
+            newGame();
+        }
+
         function setStyle(style) {
             gameState.style = style;
             drawBoard();
+        }
+
+        function setBalanceColors(checked) {
+            gameState.balanceColors = checked;
+            newGame();
         }
 
         function closeModal(modalId) {
