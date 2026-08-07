@@ -1,1 +1,78 @@
-f
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>焼き肉亭</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div id="stage" class="stage" aria-label="遊戲舞台">
+
+      <div id="titleScreen" class="screen title-screen" aria-label="標題頁">
+        <img class="title-stone-bg" src="./assets/images/title_stone_bg.png" alt="" draggable="false" />
+        <img class="title-banner-img" src="./assets/images/title_banner.png" alt="焼き肉亭" draggable="false" />
+        <p class="title-sub">焼き肉シュミレーションゲーム</p>
+
+        <section class="title-info" aria-label="說明區塊">
+          <p class="info-heading">＜お召し上がり方＞</p>
+          <p class="info-line">肉のおもてとうらを焼き、たれにつけて<br />お召し上がり下さい。</p>
+          <ul class="info-list">
+            <li>連続でおいしく食べ続けると、ボーナス点が増えていきます。</li>
+            <li>生肉や、焦げた肉はダメージになり、体力メーターが減ります。</li>
+            <li>皿の肉をすべて食べてしまわないと肉は追加されません。</li>
+            <li>制限時間の２分が過ぎるか、体力がなくなると終了です。</li>
+          </ul>
+        </section>
+
+        <section class="title-footer" aria-label="開始按鈕">
+          <button id="startBtn" class="start-btn" type="button" aria-label="食べる（開始）">
+            <img id="startBtnImg" src="./assets/images/btn_start_up.png" alt="食べる" draggable="false" />
+          </button>
+        </section>
+      </div>
+
+      <div id="gameScreen" class="screen game-screen" hidden aria-label="遊戲頁">
+        <img class="game-bg" src="./assets/images/bg_stone.png" alt="" draggable="false" />
+        <img class="grill-img" src="./assets/images/game_grill.png" alt="烤網" draggable="false" />
+        <img class="plate-img" id="plateImg" src="./assets/images/sara_f1.png" alt="肉盤" draggable="false" />
+        <img class="bowl-img" src="./assets/images/game_bowl.png" alt="醬料碗" draggable="false" />
+
+        <div id="nikuLayer" class="niku-layer" aria-label="肉片圖層"></div>
+
+        <div id="fukidasiEl" class="fukidasi" aria-live="polite"></div>
+        <div id="bonusEl" class="bonus-popup" aria-live="polite"></div>
+
+        <div class="hud" aria-label="遊戲資訊列">
+          <p id="hudTimer" class="hud-timer">120秒</p>
+          <div class="hud-bar-track" aria-label="體力條">
+            <div id="hudBarFill" class="hud-bar-fill"></div>
+          </div>
+          <p id="hudScore" class="hud-score">SCORE: 0</p>
+        </div>
+
+        <div id="limitOverScreen" class="ending-screen" hidden aria-label="LimitOver 結局畫面">
+          <div class="ending-banner limit-over-banner">
+            <p class="ending-title">ゲームオーバー</p>
+          </div>
+          <p class="ending-subtitle">もうちょっと上手に焼いてよ〜</p>
+          <button id="limitOverRestartBtn" class="start-btn ending-restart-btn" type="button" aria-label="もう一度（重新開始）">
+            <img id="limitOverRestartBtnImg" src="./assets/images/btn_restart_up.png" alt="もう一度" draggable="false" />
+          </button>
+        </div>
+
+        <div id="timeOverScreen" class="ending-screen" hidden aria-label="TimeOver 結局畫面">
+          <div class="ending-banner time-over-banner">
+            <p class="ending-title">タイムオーバー</p>
+          </div>
+          <button id="timeOverRestartBtn" class="start-btn ending-restart-btn" type="button" aria-label="もう一度（重新開始）">
+            <img id="timeOverRestartBtnImg" src="./assets/images/btn_restart_up.png" alt="もう一度" draggable="false" />
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

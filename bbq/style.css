@@ -1,0 +1,1217 @@
+* {
+  box-sizing: border-box;
+}
+
+/*
+  Step 10：字型替代方案。
+  素材包內三個字型檔實際上是「內嵌子集字型」，只包含原始遊戲畫面用到的少數文字，
+  用 fontTools 檢查每個字型的字符集後，對照出以下用途：
+  - font_17_ShinGoW7.ttf：只有「〜きたっべるゲシミムュョレンー減焼肉腹食」等字，
+    剛好對應標題頁小標「焼き肉シュミレーションゲーム」用到的所有字，判斷是小標字型。
+  - font_10_JTC-Win-R8.ttf：字符集最大，涵蓋整段＜お召し上がり方＞說明文的所有漢字假名，
+    也包含 S C O R E 等大寫字母與數字、半形冒號，判斷是說明文與 HUD 分數字型。
+  - font_56_JTC-WinX-S10.ttf：只有數字 0-9、「秒」與少數片假名（イオゲタバムー，
+    很可能是給之後「タイムオーバー」時間到訊息用的），判斷是倒數秒數字型。
+  大標題「焼き肉亭」的「亭」字，三個字型檔都沒有收錄，判斷原始畫面的大標題
+  是直接畫成向量圖形（在反編譯素材的 shapes 資料夾裡），不是用動態文字欄位＋字型顯示，
+  所以大標題這裡先維持系統粗體字型，不強行套用子集字型（套了也會缺字）。
+*/
+@font-face {
+  font-family: "BBQ-SubTitle";
+  src: url("./assets/fonts/font_17_ShinGoW7.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "BBQ-InfoText";
+  src: url("./assets/fonts/font_10_JTC-Win-R8.ttf") format("truetype");
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "BBQ-Timer";
+  src: url("./assets/fonts/font_56_JTC-WinX-S10.ttf") format("truetype");
+  font-display: swap;
+}
+
+/*
+  Step 8（第 2 次工作階段）：舞台長寬比修正。
+  直接解析 bbq.swf 檔頭 RECT，原始舞台是 450 x 360 px（比例 5:4 = 1.25）。
+  舊值 550x520（比例 ≈1.0577）明顯偏「瘦高」，跟原版不符。
+  改成等比放大原始尺寸（x1.2222 倍 => 550 x 440），維持原本大致的
+  寬度手感（寬度沿用 550px 不變），但高度改成正確比例算出來的 440px，
+  讓標題頁/遊戲頁裡所有用百分比定位的元件跟著自動修正到正確的相對位置。
+*/
+:root {
+  --stage-width: 550px;
+  --stage-height: 440px;
+}
+
+/*
+  Step 45：拿掉外圍的說明文字／捲動紀錄／除錯表格，只留遊戲畫面本身，
+  並讓 .stage 用等比例（contain）方式撐滿整個瀏覽器視窗。
+
+  做法：
+  - html/body 設成 100% 高、overflow: hidden，不再是可捲動的文件版面，
+    背景改純黑，避免縮放後舞台四周露出的空白看起來像瀏覽器留白。
+  - body 用 flex 置中 .stage，.stage 本身維持原本 --stage-width/
+    --stage-height 的固定 550x440 版面尺寸不變（裡面所有子元素的
+    百分比定位都是相對這個尺寸算的，不能改），改成靠 main.js 動態算出
+    的 transform: scale(...) 等比例放大/縮小到「視窗寬高其中較小的
+    那一邊」，效果等同 CSS background-size: contain，四周留黑邊但
+    不會變形、也不會被裁切。
+  - transform-origin 改成 center center（原本 top center 是配合舊版
+    「上方還有說明文字」的版面，置中滿版後應該讓舞台整個居中）。
+*/
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #000;
+}
+
+body {
+  font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 手機／平板：整個舞台禁用瀏覽器內建的縮放、雙指手勢、位移捲動，
+     避免拖曳肉片、點按鈕時被系統手勢打斷（單片肉片本身另有更嚴格的
+     touch-action: none，這裡是整個畫面的保底設定）。 */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stage {
+  position: relative;
+  width: var(--stage-width);
+  height: var(--stage-height);
+  flex: 0 0 auto;
+  overflow: hidden;
+  background-color: #2c2c2c;
+  transform-origin: center center;
+}
+
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.12));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/*
+  Step 9（第 2 次工作階段）：標題頁換上真正的原版美術素材。
+  用 BBQ_HTML5/tools/dump_root_timeline.py 直接解析 bbq.swf root
+  timeline frame_4（標題頁）的 PlaceObject2 tag，量出兩張圖在 450x360
+  原始舞台座標系底下的精確世界座標（換算方式：shape 自己的 SVG
+  <g transform> 位移量，反過來推回 shape 局部座標原點，再加上
+  PlaceObject2 tx/ty），得到：
+    - title_stone_bg.png（char_id=15，石紋背景，跟遊戲畫面共用同一張
+      材質）：世界座標 (x=0, y=32)，尺寸 450x330（幾乎鋪滿全舞台，
+      上緣留 32px 空隙，這段一定會被下面的紅色橫幅蓋住，不影響觀感）。
+    - title_banner.png（char_id=23，就是使用者截圖裡那張完整的
+      「焼き肉亭」美術字 + 紅色漸層合成圖，原版本來就是向量圖形，
+      不是系統字型畫出來的）：世界座標 (x=-20, y=0)，尺寸 480x144，
+      左右各外溢一點點（-20px ~ 460px，舞台寬只有 450px），是原版
+      本來就設計成滿版出血的效果，靠 .stage { overflow: hidden } 自然
+      裁掉多出來的部分。
+  換算成百分比（分母是 450x360 原始舞台尺寸，套用在 --stage-width/
+  --stage-height 变数上一樣成立，因為比例已經在 Step 8 修正成一致的
+  5:4）：
+    stone bg：left 0% / top 8.89% / width 100% / height 91.67%
+    banner  ：left -4.44% / top 0% / width 106.67%
+  小標題「焼き肉シュミレーションゲーム」是另一個獨立的 DefineText
+  （char_id=24，世界座標 tx=93.1 ty=25.5），維持用 HTML 文字 + 內嵌
+  子集字型（font_17_ShinGoW7）呈現（本來就是對的，只是換成絕對定位
+  蓋在橫幅圖片上面，不再跟系統字型畫的大標題共用同一個 flex 容器）。
+  中段說明區／下方按鈕區改成透明背景，讓底下的石紋背景圖透出來，
+  取代原本純色 CSS 色塊，垂直位置維持原本 Step 04 就量好的
+  34% / 46% / 20% 三段式比例（改用絕對定位 top/height 百分比實作，
+  不再用 flex，理由：flex 容器的 margin-top 百分比是相對「寬度」換算，
+  沒辦法用來精準控制三段各自的起始高度）。
+*/
+.title-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.title-stone-bg {
+  position: absolute;
+  left: 0;
+  top: 8.89%;
+  width: 100%;
+  height: 91.67%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.title-banner-img {
+  position: absolute;
+  left: -4.44%;
+  top: 0;
+  width: 106.67%;
+  height: auto;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.title-sub {
+  position: absolute;
+  left: 0;
+  top: 6.5%;
+  width: 100%;
+  z-index: 2;
+  margin: 0;
+  text-align: center;
+  font-family: "BBQ-SubTitle", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.title-info {
+  position: absolute;
+  left: 0;
+  top: 39%;
+  width: 100%;
+  height: 41%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  text-align: center;
+  background: transparent;
+}
+
+.title-footer {
+  position: absolute;
+  left: 0;
+  top: 80%;
+  width: 100%;
+  height: 20%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: transparent;
+}
+
+.ph-note {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+}
+
+.info-heading {
+  margin: 0;
+  font-family: "BBQ-InfoText", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #000000;
+  text-align: center;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.info-line {
+  margin: 0;
+  font-family: "BBQ-InfoText", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #000000;
+  text-align: center;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+}
+
+.info-list {
+  margin: 0;
+  align-self: center;
+  font-family: "BBQ-InfoText", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  padding-left: 0;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+  color: #000000;
+  text-align: left;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.35);
+  display: inline-block;
+}
+
+.info-list li {
+  margin-bottom: 4px;
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.info-list li::before {
+  content: "・";
+}
+
+/*
+  Step 06：開始按鈕三態。
+  按鈕本體用原版素材 DefineButton2_22 匯出的 up/over/down 三張圖直接切換，
+  不用 CSS 畫按鈕，確保視覺跟原版一致。
+*/
+.start-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.start-btn img {
+  display: block;
+  width: 124px;
+  height: 44px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.start-btn:focus-visible {
+  outline: 2px solid #ffe9a8;
+  outline-offset: 4px;
+}
+
+/*
+  Step 07：畫面切換。
+  舞台內改成兩個 .screen 容器（標題頁 / 遊戲頁），
+  用 [hidden] 屬性切換顯示，同一時間只顯示一個畫面。
+*/
+.screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.title-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.game-screen {
+  display: block;
+  overflow: hidden;
+  background: #2c2c2c;
+}
+
+/*
+  Step 44：左上角招牌「旗尾」裝飾三角。
+  對照使用者提供的「HTML5 vs Flash 原版」並排截圖，原版 HUD 招牌左側並不是
+  單純的矩形，招牌背後那塊木紋色（跟 .hud 一樣的深棕色，不是另外的橘色—
+  用 PIL 對截圖取色，兩邊量出來都是 rgb(102,51,0) 同一色）在畫面最左上角
+  往下拖出一個三角形尾巴，蓋在石紋桌面上，直到舞台高度約 37% 處收尖。
+  用截圖像素座標換算：三角形頂邊沿 HUD 下緣（y=9%，跟 .hud 的 height:9%
+  對齊）從左緣延伸到寬度約 17% 處，右下角的斜邊收尖到左緣、高度約 37% 處。
+  用 clip-path 三角形 + 跟 .hud 相同色調的漸層來還原，z-index 1（跟烤網同層，
+  但兩者位置不重疊，靠 DOM 順序讓烤網疊在上面）。
+*/
+.game-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(160deg, #7a4a12 0%, #663300 55%, #542900 100%);
+  clip-path: polygon(0% 9%, 17% 9%, 0% 37%);
+}
+
+/*
+  Step 29 修正：補上 [hidden] 屬性的顯示規則。
+
+  原本只靠瀏覽器內建 UA 樣式表的 `[hidden] { display: none; }` 來隱藏畫面，
+  但 CSS 的 author 樣式（不管選擇器優先度多低）永遠會蓋過瀏覽器內建的 UA
+  樣式表，不是看選擇器優先度比大小。上面 `.title-screen { display: flex; }`
+  跟 `.game-screen { display: block; }` 這兩條都是 author 樣式，只要元素
+  同時符合這些 class 選擇器，就會蓋掉 UA 樣式表那條 `[hidden]` 規則，
+  不管有沒有 `hidden` 屬性都一樣被強制顯示。
+
+  實測結果：即使 JS 正確把 `gameScreen.hidden = true`，`#gameScreen` 的
+  computed display 仍然是 `block`，畫面本身其實沒有真的被隱藏，只是因為
+  DOM 順序讓另一個畫面疊在上面、視覺上看不出來而已（用
+  `document.querySelector("#titleScreen").hidden` 之類的方式直接檢查
+  computed style 才會發現）。這個 bug 其實從 Step 07 兩個 .screen 都存在
+  開始就一直都在，只是過去沒有測試過「頁面剛載入、還沒點開始」這個情境
+  的 computed style，一直沒被發現。
+
+  修正方式：另外補一條 `.screen[hidden] { display: none; }`，選擇器優先度
+  是 (0,0,2,0)，比上面兩條單一 class 選擇器的 (0,0,1,0) 更精確，同樣是
+  author 樣式互相比較時，優先度較高的這條會贏，成功蓋掉 display:flex／
+  display:block，讓 `hidden` 屬性重新生效。
+*/
+.screen[hidden] {
+  display: none;
+}
+
+/*
+  Step 08：遊戲頁靜態底圖。
+  對照使用者提供的遊戲畫面截圖，用像素座標換算出百分比位置：
+  - 背景：石紋底圖鋪滿整個遊戲頁
+  - 烤網（game_grill.png）：畫面中上偏左右置中
+  - 肉盤（sara_f1.png）：畫面左下角
+  - 醬料碗（game_bowl.png）：畫面右下角
+  高度預留了原截圖上方 HUD 招牌區的空間比例（Step 09 才會放入 HUD 內容），
+  所以烤網等元素目前偏上方，之後加入 HUD 文字不會需要大幅調整位置。
+
+  Step 43（2026-08-07）：畫面跑掉修正，重新量測烤網／肉盤／醬料碗定位。
+  用 Python(PIL) 對使用者提供的「HTML5 vs Flash 原版」並排截圖分別框出
+  兩邊的舞台範圍（排除 Flash Player 視窗本身的標題列／選單列），畫上
+  5%／2% 間距的網格後逐格比對像素座標，換算成百分比：
+
+  1. 烤網：Step 08 當初量出來的 74% 寬明顯比原版（實測約 69%）大了一圈，
+     導致烤網視覺上把下面的肉盤／醬料碗往下擠。改成 left 20% / top 16% /
+     width 69%（69% * 188/360（game_grill.png 原始比例）* 550/440
+     ≈ 45.04% 高度，下面 GRILL_BOUNDS 常數會同步更新）。
+
+  2. 肉盤：這是這次「畫面跑掉」最主要的原因。原本 top 64.6% + width 43%
+     是照 Step 26 之前用的 game_plate.png（226×135px，幾乎滿版無留白）
+     算的，但 main.js 的 spawnNewPlate() 後來已經改成實際載入
+     sara_f1.png（226×159px，上方多留 24px 給疊肉動畫用），兩邊尺寸沒
+     同步更新，造成 <img> 的實際高度比當初預估的更高，top+height 換算
+     下來落在 102.4%（超出舞台底部 100% 邊界），可視內容因此被
+     `.game-screen { overflow: hidden }` 從下緣硬生生切掉，跟 Flash
+     原版「盤子完整可見、底下還留一截石紋背景」的畫面對不起來。
+     改成 left 1% / top 54% / width 49%，讓 sara_f1.png 內實際有畫面的
+     瓷盤範圍（扣掉上方留白）落在舞台內、底部留出跟原版接近的空隙，
+     下面 main.js 的 PLATE_ELLIPSE_* 系列常數（生肉在盤面上的散開範圍）
+     會同步跟著重算。
+*/
+.game-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.grill-img {
+  position: absolute;
+  left: 20%;
+  top: 16%;
+  width: 69%;
+  height: auto;
+  z-index: 1;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+.plate-img {
+  position: absolute;
+  left: 1%;
+  top: 54%;
+  width: 49%;
+  height: auto;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+/*
+  Step 26：換盤視覺回饋。
+  原版換盤當下會換一張新的盤子圖（/sara 序列圖）並播 NEXTsnd 音效。
+
+  （2026-08-07 更新）當初寫這段時還沒抽出 /sara 對應的圖檔，先用同一張
+  game_plate.png 反覆使用、只靠這個縮放回彈動畫代替視覺提示；現在
+  main.js 的 spawnNewPlate() 已經改成真的切換 assets/images/sara/
+  sara_f1.png ~ sara_f10.png（逐格疊盤子），這個動畫繼續保留，變成
+  「換圖 + 回彈」雙重回饋。動畫結束後 class 不會自動移除（沿用
+  fukidasiPop/bonusPop 的做法），下一次換盤會由 main.js 先移除再重新
+  加回去，強制從頭重新播放。
+*/
+.plate-img.plate-changed {
+  animation: plateChangedPulse 0.4s ease-out;
+}
+
+@keyframes plateChangedPulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  }
+  40% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) brightness(1.3);
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  }
+}
+
+/*
+  Step 43：醬料碗跟著烤網一起微調，理由同上方 Step 43 大註解——原版底下
+  留白比原本量出來的略多，改成 left 66% / top 67% / width 30%（下面
+  BOWL_BOUNDS 常數同步更新）。
+*/
+.bowl-img {
+  position: absolute;
+  left: 66%;
+  top: 67%;
+  width: 30%;
+  height: auto;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+/*
+  Step 34b：命中區域除錯可視化（?debugHit=1 才會出現在畫面中）。
+  這個 canvas 由 main.js 動態建立，位置/尺寸對齊 GRILL_BOUNDS / BOWL_BOUNDS
+  （跟 .grill-img / .bowl-img 共用同一組百分比）。z-index 4 蓋過烤網/醬料碗
+  本身（z-index 1/2）與 HUD（z-index 3），但低於拖曳中的肉片（z-index 50），
+  這樣拖著肉片移動時還是看得到肉片本身蓋在遮罩上面。pointer-events: none
+  確保這層純視覺，不會擋到底下的拖曳/點擊事件。
+*/
+.hit-debug-overlay {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/*
+  Step 09：HUD 靜態版。
+  對照原截圖招牌區量測像素座標換算百分比：
+  - HUD 整條高度約佔遊戲頁高度 9%，寬度貼齊畫面左右兩側。
+  - 秒數文字在最左側，體力條在中間偏左，SCORE 文字在右側。
+  這一步只放固定假資料（120秒 / SCORE：0 / 體力條約 70% 綠色，對應
+  main.js gameState.limit 初始值 70，Step 44 之後血條公式改成
+  `min(limit,100)%`，70 直接等於 70%），倒數、體力增減、分數都還沒接
+  遊戲邏輯。
+*/
+.hud {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 9%;
+  z-index: 3;
+  background: linear-gradient(180deg, #7a4a12 0%, #663300 55%, #542900 100%);
+  border-bottom: 2px solid #3a1c00;
+  display: flex;
+  align-items: center;
+  /*
+    Step 44：右側留白調整。
+    對照截圖量出來，原版 SCORE 文字並不是貼齊右邊界，右側留了約 15~17%
+    的空白（跟左側 2~3% 的留白明顯不對稱）；HTML5 版原本靠 .hud-score
+    的 margin-left: auto 把文字硬推到最右邊，兩邊留白幾乎相等，跟原版
+    看起來不一樣。改成右側 padding 直接留 15%，並拿掉 .hud-score 的
+    margin-left: auto（見下方），讓 SCORE 文字改成貼著體力條右側（用
+    gap 隔開），空白留在最右邊而不是文字跟體力條之間。
+  */
+  padding: 0 15% 0 2.5%;
+  box-sizing: border-box;
+  gap: 2%;
+}
+
+.hud-timer {
+  margin: 0;
+  flex: 0 0 auto;
+  /*
+    秒數靠右對齊固定寬度：原本沒有設定寬度，靠 flex: 0 0 auto 讓文字寬度
+    決定盒子寬度，「120秒」(3位數) 跟「9秒」(1位數) 寬度差很多，會害
+    右邊的體力條、SCORE 跟著左右晃動。改成固定寬度（用 3 位數字＋「秒」
+    的寬度估）＋ text-align: right，秒數變化只在這個固定盒子裡靠右對齊，
+    不會影響後面元素的位置。
+  */
+  width: 3.6em;
+  text-align: right;
+  font-family: "BBQ-Timer", "Noto Sans TC", sans-serif;
+  /*
+    Step 44：秒數字級放大。
+    原本 24px 相對 HUD 高度（9% * 440px 舞台高 ≈ 39.6px）明顯偏小，
+    對照截圖裡「70秒」幾乎頂滿整條招牌高度；用截圖上「文字實際墨色
+    範圍高度 ÷ HUD 招牌高度」這個跟螢幕縮放無關的比例（右邊 Flash
+    截圖量出來約 0.77，遠高於 HTML5 版原本的 0.56）反推，新字級約
+    34px 才會有接近的視覺比例。
+  */
+  font-size: 34px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  color: #ffee33;
+  text-shadow: 1px 1px 0 #5c3a00, -1px -1px 0 #5c3a00, 2px 2px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+.hud-bar-track {
+  flex: 1 1 auto;
+  max-width: 35%;
+  /*
+    Step 44：體力條改成藥丸形＋深棕紅底色。
+    原本 height:46% + border-radius:4px + 白底（其實是 #3a1a00 深棕，
+    但視覺上跟原版比明顯不夠「藥丸感」），對照截圖放大後（bar_zoom）
+    原版是兩端全圓角的藥丸形，未填滿的底色是暗棕紅（截圖取色約
+    rgb(102,30,0)），邊框是偏亮的米黃色（截圖取色約 rgb(255,255,102)）。
+  */
+  height: 42%;
+  border: 2px solid #fff066;
+  border-radius: 999px;
+  background: #5c1c00;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.hud-bar-fill {
+  width: 70%;
+  height: 100%;
+  /*
+    Step 44：填色改成中段偏亮、上下略暗的直向漸層，對照截圖
+    （bar_zoom）中段亮綠、上下邊緣顏色略深，比原本單純上淺下深
+    的兩段漸層更接近「藥丸表面反光」的質感。
+  */
+  background: linear-gradient(180deg, #2f7a08 0%, #8ef000 50%, #2f7a08 100%);
+}
+
+.hud-score {
+  margin: 0;
+  flex: 0 0 auto;
+  font-family: "BBQ-InfoText", "Noto Sans TC", sans-serif;
+  /* Step 44：字級跟著 HUD 招牌整體放大比例微調（20px → 25px）。 */
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  text-shadow: 1px 1px 0 #3a1c00, 2px 2px 3px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
+}
+
+/*
+  Step 45：移除了外層的頁首/頁尾說明文字與 Step 12 的除錯資料表格
+  （原本的 .debug-panel／.debug-title／.debug-pre／.debug-controls，
+  以及 index.html 裡對應的 <section class="debug-panel">），因為
+  index.html 現在只剩 #stage 本身、沒有這些除錯用的 DOM 節點了，
+  對應的 CSS 規則留著也不會生效，所以一併清掉，避免 stylesheet 裡
+  留一堆指不到任何元素的死規則。main.js 裡 btnFlip／btnModeUp／
+  nikuDebug 這些變數的 querySelector 已經是 `if (el) {...}` 寫法，
+  找不到元素時會安靜地變成 no-op，不需要額外處理。
+*/
+
+/*
+  Step 13：單片肉正面顯示（佔位版）。
+  .niku-layer 是肉片的容器，鋪滿整個遊戲頁，內部肉片用 position: absolute
+  搭配 left/top 百分比定位，百分比是從原始 Flash 舞台座標（450x360px）換算而來。
+
+  Step 32b 之前，.niku-piece 用簡單的橢圓色塊佔位代表「生肉（熟度0）正面」，
+  因為 assets_map.json 裡 shapes/ 資料夾 42 個素材用途都還「未確認」，
+  依照專案硬性規則「碰到不確定素材先做可替代版，不卡在單一步驟太久」，
+  先用色塊讓資料模型與畫面對得起來，之後確認素材後再替換成真實圖形/圖片。
+
+  Step 32b：改成套用 Step 32a 切出的 4 張真實材質圖（data-m-num 決定用哪
+  一張，見下方「材質種類」區塊），色塊本身保留下來當「熟度色調」，用
+  ::before 疊一層半透明色蓋在材質圖上面（mix-blend-mode: multiply），
+  這樣材質花紋還看得到，同時仍然能一眼分辨熟度階段，不需要真的去為每種
+  材質 x 每個熟度畫一張獨立圖。
+*/
+.niku-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.niku-piece {
+  position: absolute;
+  width: 63px; /* 使用者調整：原本盤子上 46px、烤網上 63px 會有放大效果，
+    使用者要求取消這個差異，改成盤子和烤網都用 63px（原烤網尺寸），
+    肉片放到烤網上不再變大。 */
+  aspect-ratio: 121 / 90; /* Step 38：肉片畫格比例校正。之前用固定 height: 25px
+    搭配 width: 34px（比例 34:25 ≈ 1.36），跟素材裁切後的 121:90（≈1.344）
+    仍有約 1.2% 的誤差，肉眼幾乎看不出來但不是精確值。改用 aspect-ratio
+    直接鎖定素材本身的長寬比，讓瀏覽器依 width 自動算出精確的 height
+    （34 * 90/121 ≈ 25.29px），徹底消除因四捨五入到整數 px 造成的形變，
+    不需要再手動維護一組「跟素材比例差不多」的 height 數值。*/
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: grab;
+  transition: transform 0.15s ease-in, width 0.2s ease-out;
+  touch-action: none; /* Step 20：拖曳時避免瀏覽器把手勢當成滑動頁面處理 */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%; /* niku_m{1-4}_d{0-3}.png 已裁切成 121x90，跟上面
+    aspect-ratio 鎖定的比例完全一致，100% 100% 貼滿不會再有任何形變。 */
+  /* 移除橢圓形外框（原本的 border-radius / border / box-shadow / 備援底色），
+     只保留材質 png 本身的形狀顯示，肉片透明背景外的區域不再有任何額外樣式。 */
+}
+
+/*
+  使用者調整：原本 on-grill 會把肉片從 46px 放大到 63px，現在盤子基準
+  尺寸已經直接改成 63px，兩邊一致，所以這條規則不再需要額外放大，
+  保留空規則（或可整段移除）以維持 class 存在不會出錯，但視覺上不再
+  有尺寸變化。
+*/
+.niku-piece.on-grill {
+  width: 63px;
+}
+
+/*
+  Step 32b：材質種類（對應原始 Mnum 1~4，見 main.js createNiku 的註解與
+  Step 32a 文件）。用 data-m-num 選圖，圖檔來源 assets/images/niku/，
+  維持 Step 32a 切出來的原始檔名與像素內容，沒有另外調色或加工。
+
+  Step 33b：這組規則現在只當「備援」用（優先順序低於下面 data-m-num +
+  data-mode 兩個屬性一起選圖的規則，見下一段），正常情況下每片肉一定
+  同時有 data-m-num 與 data-mode，會直接命中下面熟度專用的畫格，不會
+  用到這裡；保留這組規則只是避免 data-mode 因故缺失時整片肉變成完全
+  透明看不到（保底显示對應材質種類的生肉樣式）。
+*/
+.niku-piece[data-m-num="1"] {
+  background-image: url("./assets/images/niku_type1.png");
+}
+.niku-piece[data-m-num="2"] {
+  background-image: url("./assets/images/niku_type2.png");
+}
+.niku-piece[data-m-num="3"] {
+  background-image: url("./assets/images/niku_type3.png");
+}
+.niku-piece[data-m-num="4"] {
+  background-image: url("./assets/images/niku_type4.png");
+}
+
+/*
+  Step 33b：材質種類 x 熟度＝16 種真實美術畫格（見 Step 33a 文件與
+  tools/extract_niku_real_frames.py）。data-m-num 與 data-mode 兩個屬性
+  一起選圖，兩個屬性選擇器疊加後的 specificity 比上面單一 data-m-num
+  規則高，會直接覆蓋掉備援規則，取代 Step 32b「材質圖 + ::before 半透明
+  疊色」的模擬做法——原版是熟度改變時直接切換不同的美術畫格（omote/niku、
+  ura/niku 兩個子物件 nextFrame()），這裡改成一樣的做法：不同熟度就是
+  不同的圖檔，不再用 mix-blend-mode 疊色調。
+  圖檔尺寸 180x140（來自 SWF 內嵌原始畫格），background-size 仍然維持
+  100% 100% 貼滿 .niku-piece 的色塊範圍，跟 Step 32b 处理方式一致。
+
+  修復（肉片外觀變成純色色塊 bug）：原始 180x140 的畫格裡，真正有內容的
+  肉塊只佔中間一小塊（約 109x78px，其餘都是透明留白），縮到 .niku-piece
+  實際顯示大小時，肉的紋理細節被壓縮到只剩幾個像素，視覺上幾乎跟
+  background-color 備援色（#c85a48）疊在一起分不出來，看起來就像圖片沒
+  載入、只剩一片純色橢圓 + ::after 熟度文字。修法：16 張畫格統一裁切成
+  一致的內容邊界框（121x90px，四張材質、四種熟度共用同一個裁切框，確保
+  切換熟度/翻面時肉塊位置不會跳動），把原本被浪費掉的透明留白去掉，讓
+  肉的紋理占滿畫格，才看得出紋理；.niku-piece 的長寬比例精確校正見下方
+  Step 38 完成說明。
+*/
+.niku-piece[data-m-num="1"][data-mode="0"] {
+  background-image: url("./assets/images/niku_m1_d0.png");
+}
+.niku-piece[data-m-num="1"][data-mode="1"] {
+  background-image: url("./assets/images/niku_m1_d1.png");
+}
+.niku-piece[data-m-num="1"][data-mode="2"] {
+  background-image: url("./assets/images/niku_m1_d2.png");
+}
+.niku-piece[data-m-num="1"][data-mode="3"] {
+  background-image: url("./assets/images/niku_m1_d3.png");
+}
+.niku-piece[data-m-num="2"][data-mode="0"] {
+  background-image: url("./assets/images/niku_m2_d0.png");
+}
+.niku-piece[data-m-num="2"][data-mode="1"] {
+  background-image: url("./assets/images/niku_m2_d1.png");
+}
+.niku-piece[data-m-num="2"][data-mode="2"] {
+  background-image: url("./assets/images/niku_m2_d2.png");
+}
+.niku-piece[data-m-num="2"][data-mode="3"] {
+  background-image: url("./assets/images/niku_m2_d3.png");
+}
+.niku-piece[data-m-num="3"][data-mode="0"] {
+  background-image: url("./assets/images/niku_m3_d0.png");
+}
+.niku-piece[data-m-num="3"][data-mode="1"] {
+  background-image: url("./assets/images/niku_m3_d1.png");
+}
+.niku-piece[data-m-num="3"][data-mode="2"] {
+  background-image: url("./assets/images/niku_m3_d2.png");
+}
+.niku-piece[data-m-num="3"][data-mode="3"] {
+  background-image: url("./assets/images/niku_m3_d3.png");
+}
+.niku-piece[data-m-num="4"][data-mode="0"] {
+  background-image: url("./assets/images/niku_m4_d0.png");
+}
+.niku-piece[data-m-num="4"][data-mode="1"] {
+  background-image: url("./assets/images/niku_m4_d1.png");
+}
+.niku-piece[data-m-num="4"][data-mode="2"] {
+  background-image: url("./assets/images/niku_m4_d2.png");
+}
+.niku-piece[data-m-num="4"][data-mode="3"] {
+  background-image: url("./assets/images/niku_m4_d3.png");
+}
+
+/*
+  Step 20：拖曳中的視覺回饋。
+  拖曳時提高 z-index（蓋在其他肉片與圖層之上，避免拖到一半被別的肉片擋住）、
+  稍微放大，讓玩家清楚知道「這片正在被拖」；cursor 改成 grabbing，放開後
+  （移除這個 class）就恢復原狀。
+  這裡刻意不對 left/top 加 transition，因為拖曳需要即時跟著指標移動，
+  加了 transition 反而會讓拖曳有延遲、跟不上手指/滑鼠的錯覺。
+
+  使用者需求調整：原本這裡還會加深一圈陰影（box-shadow），但玩家反應
+  肉片被選取／拖曳時四邊不需要陰影，所以拿掉，只保留放大＋提高圖層這兩個
+  回饋。
+*/
+.niku-piece.dragging {
+  cursor: grabbing;
+  z-index: 50;
+  transform: translate(-50%, -50%) scale(1.12);
+}
+
+/*
+  Step 21：落點：烤網。
+
+  放開肉片時如果判斷落在烤網範圍內，會動態產生一個 .grill-smoke-fx 元素，
+  播放一次「原版真實煙霧畫格」的動畫後自動移除，對應原始 ActionScript
+  `duplicateMovieClip("_flash0/smoke","smoke1",...)` 的效果。
+
+  使用者需求還原：原本這裡另外用一圈黃色外框脈動（on-grill-flash /
+  onGrillPulse）當作「放對地方了」的提示，但視覺上蓋過煙霧、看起來像
+  肉片突然變成黃色框，跟原版觀感不符，所以拿掉黃框，改成完全交給下面
+  這組真實煙霧動畫來表現落點回饋。
+*/
+
+/*
+  Step 45（2026-08-07）再次還原：核對過 DefineButton2_87 on(release) 原始碼
+  後發現，原版只是把複製出來的 smoke1 座標設成跟肉片一樣（`_X`/`_Y`），
+  本身完全沒有額外的縮放／位移動畫——「煙霧往上飄、變大、變淡」這個
+  視覺效果全部是那 12 格畫格本身內容的變化（畫格內容本來就一格比一格
+  往上飄、擴散、變淡），不是外層再疊加 CSS transform/opacity 動畫做出來
+  的。上一版額外加的 smokePuff（外層 translate + scale + opacity）等於
+  在原本就會動的畫格上再疊一層動作，兩層動畫相加後位移量／縮放量都被
+  放大，跟原版觀感差很多，所以這裡拿掉多餘的 smokePuff，只保留單純的
+  逐格播放，讓畫面回到「就是那 12 張圖依序播過去」的原版效果。
+*/
+@keyframes smokeFrames {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -744px 0;
+  }
+}
+
+.grill-smoke-fx {
+  position: absolute;
+  width: 62px;
+  height: 221px;
+  /* 原版把煙霧座標設成跟肉片一樣，畫格內容本身是從畫面下緣往上飄，
+     所以這裡用畫格「下緣中點」對齊肉片放開的位置（translate(-50%,-100%)），
+     而不是用整張 62x221 圖的正中心對齊，這樣煙霧才會像原版一樣從肉片
+     所在位置往上冒，而不是憑空從肉片上方一大截的地方冒出來。 */
+  transform: translate(-50%, -100%);
+  background-image: url("./assets/images/smoke_sheet.png");
+  background-repeat: no-repeat;
+  background-size: 744px 221px;
+  pointer-events: none;
+  z-index: 40;
+  animation: smokeFrames 0.6s steps(12) forwards;
+}
+
+/*
+  Step 22：落點：醬料碗。
+
+  跟 Step 21 烤網用一樣的「短暫外框脈動 + 動態產生的特效元素」手法，但
+  刻意換一套顏色與動畫形狀，讓玩家能一眼分辨「這次放開是進醬料碗」還是
+  「這次放開是放到烤網上」：
+  - 烤網：淺黃色光暈 + 向上飄散的煙霧圓點（模擬烤肉冒煙）。
+  - 醬料碗：焦糖棕色光暈 + 向外擴散的醬汁漣漪（模擬肉片沾到醬料濺起）。
+  漣漪一樣是先用簡單的 CSS 圓環動畫替代，還沒有對照原始素材。
+*/
+@keyframes onBowlPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(196, 108, 42, 0.9);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(196, 108, 42, 0);
+  }
+}
+
+.niku-piece.on-bowl-flash {
+  animation: onBowlPulse 0.5s ease-out;
+}
+
+@keyframes sauceSplash {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.3);
+    border-width: 6px;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.8);
+    border-width: 1px;
+  }
+}
+
+.sauce-splash-fx {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 6px solid rgba(178, 92, 30, 0.75);
+  background: transparent;
+  pointer-events: none;
+  z-index: 40;
+  animation: sauceSplash 0.5s ease-out forwards;
+}
+
+/*
+  使用者需求調整：翻面不要有中間經過壓扁／縮放的過渡動畫（視覺上很像在
+  旋轉），改成直接把肉片水平翻轉過去。做法是點擊當下立刻切換 data-face／
+  data-mode（JS 端 flipFace 已改成同步執行，不再用 setTimeout 卡時間點），
+  同時 toggle 這個 class，用 scaleX(-1) 把整個色塊水平鏡像過去，沒有中間
+  縮到接近 0 再放大的過程。
+*/
+.niku-piece.flip-mirrored {
+  transform: translate(-50%, -50%) scaleX(-1);
+}
+
+/*
+  使用者需求調整（重製更貼近原版視覺 - 第1項）：
+  原本這裡用 ::after 疊一個「生／半／焼／焦」文字當熟度除錯標示，但原版
+  Flash 從頭到尾沒有在肉塊上顯示任何文字，熟度差異完全靠美術畫格本身的
+  顏色/紋理呈現（見下面 data-m-num + data-mode 選圖規則，16 張真實畫格
+  已經足以分辨熟度）。使用者反映畫面上一堆「生」字讓盤子看起來像是貼紙
+  堆疊而不是自然擺放的生肉，因此把這個文字標示整個移除，不再輸出任何
+  ::after 內容。保留空規則位置（見下方 data-mode 各分支已清空 content），
+  避免之後还原時忘記這裡曾經放過除錯字。
+*/
+.niku-piece::after {
+  content: none;
+}
+
+/*
+  Step 15：熟度階段外觀（佔位版）。
+  data-mode 對應「目前顯示中那一面」的熟度值（omote 顯示 oMode，ura 顯示 uMode），
+  四個階段用顏色從紅潤生肉漸層到焦黑表示，文字標示同步換成對應的熟度說明字。
+  data-face 仍然保留用來切換邊框樣式（實線＝正面／虛線＝背面），
+  這樣同時看得出「哪一面」與「熟到什麼程度」兩個獨立資訊。
+*/
+/* Step 33e：外框已移除，翻面不再需要用邊框樣式（實線/虛線）區分正反面，
+   正反面的差異改由材質圖本身（data-m-num + data-mode 選圖）呈現。 */
+
+/*
+  Step 32b：熟度原本改成疊在材質圖上面的半透明色調（::before + mix-blend-mode），
+  取代原本直接蓋掉背景的 radial-gradient，這樣底下的材質圖花紋還能透出來。
+
+  Step 33b：熟度 0~3 現在各自對應一張真實美術畫格（見上面 data-m-num +
+  data-mode 的 background-image 規則），畫格本身就已經是「生／半熟／焼／焦」
+  對應的顏色與明暗（焼、焦兩階原版本來就是純黑色向量色塊），不需要再疊一層
+  半透明色調，否則會變成「黑色圖片上再疊一層更黑的色調」，反而看不出畫格
+  本身的形狀差異。::before 這個偽元素保留（inset:0 + border-radius:inherit
+  的裁切設定不變），但 background 一律設回 transparent，只當作之後如果想
+  再加其他疊層效果（例如選取中高亮）時的預留掛勾，目前不畫任何東西。
+*/
+.niku-piece::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background: transparent;
+}
+
+/* 使用者需求調整（第1項）：四個熟度的 ::after 文字標示已整個移除
+   （見上方 .niku-piece::after { content: none; }），這四條規則原本
+   分別設定「生／半／焼／焦」文字內容，現在保留選擇器但清空內容，
+   避免以後改動 data-mode 邏輯時需要重新確認這裡是否有殘留文字。 */
+.niku-piece[data-mode="0"]::after,
+.niku-piece[data-mode="1"]::after,
+.niku-piece[data-mode="2"]::after,
+.niku-piece[data-mode="3"]::after {
+  content: none;
+}
+
+/*
+  （Step 45：原本這裡的 .debug-controls 除錯按鈕樣式，因為
+  index.html 已經拿掉對應的除錯按鈕 DOM，一併移除。）
+*/
+
+/*
+  Step 23：吃掉時的淡出效果。
+  肉片被拖進醬料碗、eatNiku() 判定完成之後，加上這個 class 讓肉片在
+  300ms 內縮小＋淡出，配合 main.js 用 setTimeout 在同樣的 300ms 之後把
+  DOM 節點整個移除；這裡刻意跟 Step 21/22 的「短暫 flash」動畫分開，
+  因為這個是「肉片要永久消失」的動畫，不像 flash 動畫結束後元素還在。
+*/
+.niku-piece.eaten-fade {
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.4);
+  pointer-events: none;
+}
+
+/*
+  Step 24：吃肉台詞氣泡（fukidasi）與 Bonus 加分彈出動畫。
+
+  座標直接來自直接解析 bbq.swf 的 PlaceObject2 矩陣（不是用截圖目測）：
+  - fukidasi（DefineSprite_101）在原版舞台（450x360px）上的註冊點是
+    (373.15, 84)，換算成百分比是 left 82.9% / top 23.3%，也就是畫面
+    右上方偏中間，猜測是貼著「玩家角色」臉部附近（這個角色圖層這個
+    專案目前還沒做），先直接用這個換算位置放置氣泡。
+  - Bonus（DefineSprite_107）的註冊點是 (360, 288)，換算成 left 80% /
+    top 80%；巧的是原版醬料碗 Tare 的註冊點也是完全一樣的 (360, 288)，
+    等於 Bonus 加分數字本來就是直接疊在醬料碗正上方彈出，這裡改用
+    已經校正過的 .bowl-img 位置（left 66% / top 67%，Step 43 對照截圖
+    重新量出來的，跟醬料碗圖片實際疊合），比直接套用原始註冊點百分比
+    更準，因為註冊點不一定等於圖片可視範圍的左上角。
+
+  顯示時間換算自原版影格數／SWF 12fps（frame_rate 3072 in 8.8 fixed =
+  12fps）：
+  - fukidasi 外框動畫（DefineSprite_101）frame_1 是空白待機、frame_2
+    觸發子物件 kotoba 定格到對應 Mode、frame_11 gotoAndStop(1) 收回待機，
+    等於「顯示」的時間是 frame_2~frame_11 共 10 格，10/12 秒 ≈ 833ms。
+  - Bonus（DefineSprite_107）frame_1 空白待機、frame_7 gotoAndStop(1)
+    收回，顯示時間是 frame_2~frame_7 共 6 格，6/12 秒 = 500ms。
+*/
+.fukidasi {
+  position: absolute;
+  left: 82.9%;
+  top: 23.3%;
+  transform: translate(-50%, -50%) scale(0.5);
+  max-width: 40%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 3px solid #2a1a10;
+  color: #2a1a10;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 60;
+  transition: none;
+}
+
+.fukidasi::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  bottom: -10px;
+  border-width: 10px 8px 0 0;
+  border-style: solid;
+  border-color: #2a1a10 transparent transparent transparent;
+}
+
+.fukidasi.show {
+  animation: fukidasiPop 0.833s ease-out forwards;
+}
+
+@keyframes fukidasiPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+}
+
+/*
+  Step 42：結局清場 + 彈簧回彈進場。
+
+  跟 Step 28 最大差異有兩點：
+  1. 不再用半透明背景遮罩蓋住原本的遊戲畫面，而是由 JS 在
+     `.game-screen.ending-mode` 下直接把烤網／盤子／醬料碗／肉片／HUD／
+     浮字切成 display:none，讓結局畫面底下真的乾淨。
+  2. 結局內容本身改成多段 keyframes 的回彈（overshoot）進場，而不是
+     單純 opacity + translate 的 transition，手感更接近 Flash 原版的
+     彈簧式落位。
+*/
+.game-screen.ending-mode .grill-img,
+.game-screen.ending-mode .plate-img,
+.game-screen.ending-mode .bowl-img,
+.game-screen.ending-mode .niku-layer,
+.game-screen.ending-mode .hud,
+.game-screen.ending-mode .fukidasi,
+.game-screen.ending-mode .bonus-popup,
+.game-screen.ending-mode .hit-debug-overlay {
+  display: none;
+}
+
+.ending-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 32%;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.ending-screen > * {
+  opacity: 0;
+  transform: translateY(-42px) scale(0.78);
+}
+
+.ending-screen.is-visible {
+  pointer-events: auto;
+}
+
+.ending-screen.is-visible > * {
+  animation: endingSpringIn 620ms both;
+}
+
+.ending-screen.is-visible .ending-subtitle {
+  animation-delay: 70ms;
+}
+
+.ending-screen.is-visible .ending-restart-btn {
+  animation-delay: 130ms;
+}
+
+@keyframes endingSpringIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-42px) scale(0.78);
+  }
+  45% {
+    opacity: 1;
+    transform: translateY(14px) scale(1.1);
+  }
+  68% {
+    transform: translateY(-7px) scale(0.96);
+  }
+  84% {
+    transform: translateY(4px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ending-banner {
+  width: 108%;
+  padding: 14px 0;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.limit-over-banner {
+  background: linear-gradient(180deg, #ff8a8a 0%, #ff6666 55%, #d64a4a 100%);
+  border-top: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.25);
+}
+
+/*
+  Step 28b-2：TimeOver 結局畫面用的黃底橫幅版本。跟 .limit-over-banner
+  共用同一組 .ending-screen／.ending-banner／.ending-title，只換顏色，
+  對應 Step 28a 報告確認的原版差異：TimeOver 的 DefineShape 118 跟
+  LimitOver 的 DefineShape 111 尺寸完全一樣（780x60px），只有填色不同
+  （#ffff66 黃 vs #ff6666 紅）。
+*/
+.time-over-banner {
+  background: linear-gradient(180deg, #ffff99 0%, #ffff66 55%, #d6d64a 100%);
+  border-top: 2px solid rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.25);
+}
+
+.ending-title {
+  margin: 0;
+  font-family: "BBQ-InfoText", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-size: 26px;
+  font-weight: 900;
+  color: #3a1010;
+  letter-spacing: 0.1em;
+}
+
+.ending-subtitle {
+  margin: 0;
+  padding: 0 20px;
+  text-align: center;
+  font-family: "BBQ-InfoText", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  font-size: 15px;
+  color: #fff3d6;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/*
+  Step 28b-3：結局畫面的重新開始鈕。
+  沿用 .start-btn 既有的 padding/border/cursor/img 尺寸設定（見上面
+  Step 06 那組規則，選擇器 ".start-btn img" 對「有 start-btn 這個
+  class 的元素底下的 img」都會生效，不管該元素還掛了其他 class），
+  這裡只額外疊加「絕對定位到 stage 座標 (360,320)px 換算出的
+  80% / 88.9% 位置」這件事，跟 .start-btn 原本用 flex 排版置中的
+  標題頁按鈕不一樣，結局畫面按鈕需要精確對齊原版像素座標，所以用
+  position:absolute，數值直接相對 .ending-screen（inset:0，等同整個
+  舞台）換算，不受 .ending-screen 本身的 padding-top / flex 排版影響。
+  (360,320) 取的是原版 PlaceObject2 的左上角基準點，兩個結局畫面共用
+  同一個位置，不需要 transform 位移。
+*/
+.ending-restart-btn {
+  position: absolute;
+  left: 80%;
+  top: 88.9%;
+}
+
+.bonus-popup {
+  position: absolute;
+  left: 66%;
+  top: 67%;
+  transform: translate(-50%, -50%);
+  font-family: "BBQ-InfoText", "Noto Sans TC", sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff35a;
+  text-shadow: 1px 1px 0 #a33, -1px -1px 0 #a33, 2px 2px 3px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 61;
+  white-space: nowrap;
+}
+
+.bonus-popup.show {
+  animation: bonusPop 0.5s ease-out forwards;
+}
+
+@keyframes bonusPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(0) scale(0.6);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(-6px) scale(1.15);
+  }
+  60% {
+    transform: translate(-50%, -50%) translateY(-14px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-26px) scale(1);
+  }
+}
