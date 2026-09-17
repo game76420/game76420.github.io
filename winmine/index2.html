@@ -48,8 +48,11 @@ button,.menuPopup{touch-action:manipulation}
   left:50%;
   bottom:max(10px,env(safe-area-inset-bottom));
   transform:translateX(-50%);
-  z-index:100;
+  z-index:10000;
   gap:10px;
+  pointer-events:auto;
+  visibility:visible;
+  opacity:1;
   padding:8px;
   background:#c0c0c0;
   border:2px solid;
@@ -75,7 +78,10 @@ button,.menuPopup{touch-action:manipulation}
   padding-left:15px;
 }
 @media (pointer:coarse){
-  #mobileControls{display:flex}
+  #mobileControls{display:flex !important;visibility:visible !important;opacity:1 !important;pointer-events:auto !important}
+}
+@media (max-width:900px){
+  #mobileControls{display:flex;visibility:visible;opacity:1;pointer-events:auto}
 }
 
 </style>
@@ -739,8 +745,15 @@ class WinMineGame{
       e.preventDefault();
       pinchActive=false;this.press_face_button=false;this.press_face=false;this.paint();clearTouch();this.fitToViewport();
     },{passive:false});
-    document.getElementById("mobileOpen")?.addEventListener("click",()=>this.setMobileActionMode("open"));
-    document.getElementById("mobileFlag")?.addEventListener("click",()=>this.setMobileActionMode("flag"));
+    const mobileOpen=document.getElementById("mobileOpen"),mobileFlag=document.getElementById("mobileFlag");
+    const keepMobileControls=()=>{
+      const controls=document.getElementById("mobileControls");
+      if(controls){controls.style.display="flex";controls.style.visibility="visible";controls.style.opacity="1";}
+    };
+    mobileOpen?.addEventListener("click",()=>{this.setMobileActionMode("open");keepMobileControls()});
+    mobileFlag?.addEventListener("click",()=>{this.setMobileActionMode("flag");keepMobileControls()});
+    mobileOpen?.addEventListener("touchend",keepMobileControls,{passive:true});
+    mobileFlag?.addEventListener("touchend",keepMobileControls,{passive:true});
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
     // the native window is leaving.  A browser page has no WM_DESTROY, so the
