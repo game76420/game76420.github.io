@@ -2,12 +2,22 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>踩地雷</title>
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABL0lEQVR4nO1X0RLDIAiT/f8/u4dVS2kCKL3bS7nbdVpMAlJaW3utZv34bdunQt775N4WURHwiMnGmijaJUzPuRuf3lprKu0YUCbkZR3jYgIm2QBkxCIC7+l1QFROwBwEUTNhaNpOsCKcjpZcA4sIHQPRS1twYOTTrufsf48rfAxtKhG4zQIg5/hkHkbPCk6T2cI1ItI1cANGmUB7PkQCcoxvxmdvTUTK5pwM3Hh1BvpQjgijfqD9WQ0o/AmiPSDyiAJdEYld52m1Ai4ioi5YIL7wpluxJdkUsfYU6FTrqxdhtvqpIo3FwFkdBOTrrdgSIxEJYpfL24KzUAKiXXL3xmGlD84Mj5cB+jZcMdt4rC0VYdGWi1CLCDsmwXS/B6vW22+bSoeTv58LqlY+mr32BRi50izKCelYAAAAAElFTkSuQmCC">
 <style>
 html,body{margin:0;padding:0;background:#808080;font-family:"MS Sans Serif",Tahoma,sans-serif;font-size:13px;width:100%;height:100%;overflow:hidden}
-body{display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;touch-action:manipulation}
+/* touch-action:manipulation ALLOWS native pinch-zoom (it expands to
+   "pan-x pan-y pinch-zoom" per the CSS spec) — that is the actual root
+   cause of the floating HUD moving/scaling/disappearing: real browser/OS
+   pinch-zoom scales the WHOLE rendered page, including position:fixed
+   elements, and can pan them clean off the visible (zoomed) viewport.
+   position:fixed only exempts an element from scrolling, never from the
+   browser's own zoom level. The in-game zoom is implemented entirely by a
+   CSS transform on #app, so native page zoom must be fully disabled
+   everywhere or the two zoom systems fight each other. */
+html,body{touch-action:none !important;-ms-touch-action:none !important}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh}
 #app{display:block;position:absolute;left:50%;top:50%;background:#c0c0c0;transform-origin:center center;flex:none;will-change:transform}
 #menuBar{height:20px;display:flex;background:#c0c0c0;border-bottom:1px solid #808080;box-sizing:border-box}
 .menuRoot{position:relative}.menuRoot>button{border:0;background:transparent;padding:0 7px;height:20px;display:flex;align-items:center;justify-content:flex-start;box-sizing:border-box;line-height:20px;font:inherit}.menuRoot>button:hover,.menuRoot.open>button{background:#000080;color:#fff}
@@ -33,7 +43,11 @@ dialog label{display:block;margin:7px 0}dialog input{width:70px}.dialogButtons{t
    application is then fitted with one uniform scale factor, so desktop and
    mobile never stretch X and Y independently. */
 #window,#board,#counterBox,#timerBox,#faceButton{touch-action:none}
-button,.menuPopup{touch-action:manipulation}
+/* pan-x/pan-y keeps taps snappy (no 300ms delay) and permits normal
+   scrolling gestures, but — unlike "manipulation" — does NOT include the
+   browser's pinch-zoom gesture, so tapping a menu/button with a second
+   finger resting elsewhere on screen can never trigger native page zoom. */
+button,.menuPopup{touch-action:pan-x pan-y}
 @media (pointer:coarse){
   #menuBar{user-select:none;-webkit-user-select:none}
 }
@@ -67,7 +81,7 @@ button,.menuPopup{touch-action:manipulation}
   background:#c0c0c0;
   border:2px solid;
   border-color:#fff #404040 #404040 #fff;
-  touch-action:manipulation;
+  touch-action:none !important;
   user-select:none;
   -webkit-user-select:none;
   visibility:visible !important;
@@ -94,7 +108,7 @@ button,.menuPopup{touch-action:manipulation}
   color:#000;
   font:14px "MS Sans Serif",Tahoma,sans-serif !important;
   line-height:normal !important;
-  touch-action:manipulation;
+  touch-action:none !important;
 }
 .mobileAction.active{
   border-color:#404040 #fff #fff #404040;
@@ -857,6 +871,21 @@ class WinMineGame{
     document.getElementById("mobileFlag")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();try{this.setMobileActionMode("flag")}catch(err){console.error(err)}finally{this.keepMobileControls()}});
     document.getElementById("mobileControls")?.addEventListener("click",e=>e.stopPropagation());
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
+    // Global backstop against native browser/OS pinch-zoom and double-tap
+    // zoom, on top of the CSS touch-action:none rules and the
+    // maximum-scale=1/user-scalable=no viewport meta tag. Some older WebKit
+    // builds still recognize native pinch gestures even when touch-action is
+    // set, so any 2+ finger touch anywhere in the document is defused here
+    // too. This does not affect the game's own single-canvas pinch-to-zoom,
+    // which is implemented purely in JS on top of #app's CSS transform and
+    // already calls preventDefault() itself.
+    document.addEventListener("touchstart",e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+    document.addEventListener("touchmove",e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+    // Legacy Safari-only gesture events (pinch/rotate) bypass touch-action
+    // entirely on some iOS versions; neutralize them explicitly.
+    document.addEventListener("gesturestart",e=>e.preventDefault());
+    document.addEventListener("gesturechange",e=>e.preventDefault());
+    document.addEventListener("gestureend",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
     // the native window is leaving.  A browser page has no WM_DESTROY, so the
     // closest page-lifecycle equivalent is pagehide.  This only persists the
