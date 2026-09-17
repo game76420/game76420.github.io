@@ -1,1 +1,80 @@
-o
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>踩地雷</title>
+<link rel="icon" href="assets/Icon_100.ico">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <div id="menuBar">
+    <div class="menuRoot"><button data-menu="game">遊戲(&G)</button>
+      <div class="menuPopup" id="gameMenu">
+        <button data-cmd="new">開新檔案(&N)<span>F2</span></button>
+        <button data-cmd="beginner"><span>初學者(&B)</span><b class="menuCheck" id="checkBeginner">✓</b></button>
+        <button data-cmd="intermediate"><span>中級者(&I)</span><b class="menuCheck" id="checkIntermediate">✓</b></button>
+        <button data-cmd="expert"><span>進階者(&E)</span><b class="menuCheck" id="checkExpert">✓</b></button>
+        <button data-cmd="custom">依個人偏好修改(&C)...</button>
+        <div class="separator"></div>
+        <button data-cmd="mark"><span>標記(?)(&M)</span><b class="menuCheck" id="checkMark">✓</b></button>
+        <button data-cmd="color"><span>色彩(&l)</span><b class="menuCheck" id="checkColor">✓</b></button>
+        <button data-cmd="best">最快時間(&T)...</button>
+        <div class="separator"></div>
+        <button data-cmd="quit">結束(&X)</button>
+      </div>
+    </div>
+    <div class="menuRoot"><button data-menu="help">說明</button>
+      <div class="menuPopup" id="helpMenu">
+        <button data-cmd="web_help">遊戲說明</button>
+      </div>
+    </div>
+  </div>
+  <main id="window">
+    <canvas id="board"></canvas>
+    <div id="counterBox"><canvas id="counter" width="39" height="23"></canvas></div>
+    <button id="faceButton" aria-label="new game"><canvas id="face" width="24" height="24"></canvas></button>
+    <div id="timerBox"><canvas id="timer" width="39" height="23"></canvas></div>
+  </main>
+</div>
+<dialog id="customDialog">
+  <form method="dialog" id="customForm">
+    <h3>自定項目</h3>
+    <label>高度(&H): <input id="heightInput" type="number"></label>
+    <label>寬度(&W): <input id="widthInput" type="number"></label>
+    <label>地雷(&M): <input id="minesInput" type="number"></label>
+    <div class="dialogButtons"><button value="cancel">取消</button><button id="customOk" value="ok">OK</button></div>
+  </form>
+</dialog>
+<dialog id="bestDialog">
+  <h3>最快速的掃雷者</h3>
+  <div id="bestRows"></div>
+  <div class="dialogButtons"><button id="bestReset">重新計分(&R)</button><button id="bestOk">確定</button></div>
+</dialog>
+<dialog id="nameDialog">
+  <form method="dialog" id="nameForm">
+    <p id="namePrompt"></p>
+    <input id="nameInput" type="text" maxlength="127" autocomplete="off">
+    <div class="dialogButtons"><button value="cancel">取消</button><button id="nameOk" value="ok">確定</button></div>
+  </form>
+</dialog>
+<dialog id="helpDialog">
+  <h3>踩地雷 — 簡易說明</h3>
+  <div class="helpText">
+    <p><strong>桌面版</strong></p>
+    <p>左鍵點擊方格來開啟。右鍵點擊方格來標記。</p>
+    <p>臉部按鈕可重新開始遊戲。</p>
+    <p><strong>手機版</strong></p>
+    <p>單指點一下：開啟方格。</p>
+    <p>在方格上長按：約 0.55 秒：標記方格。</p>
+    <p>移動手指會取消長按，避免誤操作。</p>
+  </div>
+  <div class="dialogButtons"><button id="helpOk">確定</button></div>
+</dialog>
+<dialog id="aboutDialog">
+  <p id="aboutText"></p><button>確定</button>
+</dialog>
+<script src="game.js"></script>
+</body>
+</html>
