@@ -548,9 +548,23 @@ class WinMineGame{
     const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
     const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
     if(coarse||narrow){
-      // Visibility only.  Do not write position/transform/size here: the
-      // controls are intentionally independent of the game's zoom transform.
+      // Keep the control layer as the last child of <body>.  The game itself
+      // is a transformed stacking context during pinch zoom; the source
+      // gameplay transform must never become an ancestor of these controls.
+      if(mc.parentElement!==document.body)document.body.appendChild(mc);
+      // Visibility only.  Never derive position, size, or scale from
+      // mobileZoom/mobilePan; these controls stay in viewport CSS pixels.
       mc.style.setProperty("display","flex","important");
+      mc.style.setProperty("position","fixed","important");
+      mc.style.setProperty("left","50vw","important");
+      mc.style.setProperty("right","auto","important");
+      mc.style.setProperty("top","auto","important");
+      mc.style.setProperty("bottom","max(10px,env(safe-area-inset-bottom))","important");
+      mc.style.setProperty("width","max-content","important");
+      mc.style.setProperty("height","60px","important");
+      mc.style.setProperty("transform","translate3d(-50%,0,0) scale(1)","important");
+      mc.style.setProperty("zoom","1","important");
+      mc.style.setProperty("z-index","2147483647","important");
       mc.style.setProperty("visibility","visible","important");
       mc.style.setProperty("opacity","1","important");
       mc.style.setProperty("pointer-events","auto","important");
@@ -649,8 +663,11 @@ class WinMineGame{
     // the board canvas below, which already implements the source's face
     // hit-test (mousedown/mousemove/mouseup handlers above). No separate
     // click wiring is needed here anymore.
-    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");this.keepMobileControls()}));
+    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");this.keepMobileControls();requestAnimationFrame(()=>this.keepMobileControls())}));
     document.addEventListener("click",e=>{if(!e.target.closest(".menuRoot"))this.closeMenus()});
+    // Menu DOM changes must never be allowed to hide the independent mobile control layer.
+    const mcGuard=document.getElementById("mobileControls");
+    if(mcGuard&&window.MutationObserver){new MutationObserver(()=>this.keepMobileControls()).observe(mcGuard,{attributes:true,attributeFilter:["style","class"]})}
     document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>this.command(b.dataset.cmd)));
     document.addEventListener("keydown",e=>{
       if(e.key==="F2"){e.preventDefault();this.new_game();return}
