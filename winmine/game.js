@@ -50,6 +50,8 @@ class WinMineGame{
     this.mine_remaining=this.mine_total;this.started=false;this.finished=false;this.won=false;
     this.elapsed=0;this.timer_subtick=0;this.revealed_safe=0;this.hover_x=-1;this.hover_y=-1;
     this.left_down=false;this.chord=false;this.press_face=false;this.press_face_button=false;this.cheat_index=0;
+    // Mobile-only display zoom. This changes presentation scale only; source board coordinates and gameplay remain unchanged.
+    this.mobileZoom=1;this.mobilePanX=0;this.mobilePanY=0;
     this._rng=new SourceRNG((Date.now()>>>0)&0xffff);
     this.boardCanvas=document.getElementById("board");this.bctx=this.boardCanvas.getContext("2d");
     this.bctx.imageSmoothingEnabled=false;
@@ -324,11 +326,15 @@ class WinMineGame{
     const vw=Math.max(1,Math.floor(vv?vv.width:document.documentElement.clientWidth));
     const vh=Math.max(1,Math.floor(vv?vv.height:document.documentElement.clientHeight));
     const pad=4;
-    const scale=Math.max(0.01,Math.min((vw-pad)/naturalW,(vh-pad)/naturalH));
+    const fitScale=Math.max(0.01,Math.min((vw-pad)/naturalW,(vh-pad)/naturalH));
+    const zoom=(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches)?clamp(this.mobileZoom,1,3):1;
+    const scale=fitScale*zoom;
     app.style.width=naturalW+"px";
     app.style.height=naturalH+"px";
-    app.style.transform=`translate(-50%, -50%) scale(${scale})`;
+    app.style.transform=`translate(-50%, -50%) translate(${this.mobilePanX}px, ${this.mobilePanY}px) scale(${scale})`;
     app.dataset.scale=String(scale);
+    app.dataset.fitScale=String(fitScale);
+    app.dataset.mobileZoom=String(zoom);
     app.dataset.nativeWidth=String(naturalW);
     app.dataset.nativeHeight=String(naturalH);
   }
@@ -469,9 +475,20 @@ class WinMineGame{
     // The board coordinates still go through board_at()/toggle_mark(), so no
     // new mine/board rule is introduced for mobile.
     let touchTimer=0,touchPoint=null,touchRight=false,touchMoved=false,touchFace=false;
-    const clearTouch=()=>{if(touchTimer){clearTimeout(touchTimer);touchTimer=0}touchPoint=null;touchFace=false};
+    let pinchActive=false,pinchStartDistance=0,pinchStartZoom=1,pinchStartMidX=0,pinchStartMidY=0,pinchStartPanX=0,pinchStartPanY=0;
+    const clearTouch=()=>{if(touchTimer){clearTimeout(touchTimer);touchTimer=0}touchPoint=null;touchFace=false;touchRight=false;touchMoved=false};
+    const touchDistance=(a,b)=>Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+    const touchMidpoint=(a,b)=>({x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2});
+    const cancelSingleTouch=()=>{if(touchTimer){clearTimeout(touchTimer);touchTimer=0}touchPoint=null;touchFace=false;touchRight=false;touchMoved=true;this.press_face=false;this.press_face_button=false;this.paint()};
     canvas.addEventListener("touchstart",e=>{
-      if(e.touches.length!==1)return;
+      if(e.touches.length>=2){
+        e.preventDefault();cancelSingleTouch();
+        const a=e.touches[0],b=e.touches[1],mid=touchMidpoint(a,b);
+        pinchActive=true;pinchStartDistance=Math.max(1,touchDistance(a,b));pinchStartZoom=this.mobileZoom;
+        pinchStartMidX=mid.x;pinchStartMidY=mid.y;pinchStartPanX=this.mobilePanX;pinchStartPanY=this.mobilePanY;
+        return;
+      }
+      if(e.touches.length!==1||pinchActive)return;
       e.preventDefault();
       const t=e.touches[0], fake={clientX:t.clientX,clientY:t.clientY};
       touchPoint=fake;touchRight=false;touchMoved=false;
@@ -482,18 +499,32 @@ class WinMineGame{
       }
       const cell=this.board_at(x,y);
       if(cell&&!this.finished){
-        // Match the source's press_face visual state while the board is held.
-        // The actual cell action still occurs on touchend, as before.
         this.press_face=true;this.paint();
       }
       touchTimer=setTimeout(()=>{
-        touchTimer=0;if(!touchPoint||touchMoved)return;
+        touchTimer=0;if(!touchPoint||touchMoved||pinchActive)return;
         const heldCell=this.board_at(x,y);
         if(!this.finished&&heldCell){touchRight=true;this.toggle_mark(...heldCell);this.paint()}
       },550);
     },{passive:false});
     canvas.addEventListener("touchmove",e=>{
-      if(!touchPoint||e.touches.length!==1)return;
+      if(e.touches.length>=2){
+        e.preventDefault();
+        if(!pinchActive){
+          cancelSingleTouch();
+          const a=e.touches[0],b=e.touches[1],mid=touchMidpoint(a,b);
+          pinchActive=true;pinchStartDistance=Math.max(1,touchDistance(a,b));pinchStartZoom=this.mobileZoom;
+          pinchStartMidX=mid.x;pinchStartMidY=mid.y;pinchStartPanX=this.mobilePanX;pinchStartPanY=this.mobilePanY;
+        }
+        const a=e.touches[0],b=e.touches[1],mid=touchMidpoint(a,b),dist=Math.max(1,touchDistance(a,b));
+        this.mobileZoom=clamp(pinchStartZoom*(dist/pinchStartDistance),1,3);
+        // Two-finger midpoint movement provides simple panning while zoomed.
+        this.mobilePanX=pinchStartPanX+(mid.x-pinchStartMidX);
+        this.mobilePanY=pinchStartPanY+(mid.y-pinchStartMidY);
+        this.fitToViewport();
+        return;
+      }
+      if(!touchPoint||e.touches.length!==1||pinchActive)return;
       e.preventDefault();
       const t=e.touches[0], fake={clientX:t.clientX,clientY:t.clientY};
       const dx=fake.clientX-touchPoint.clientX,dy=fake.clientY-touchPoint.clientY;
@@ -506,6 +537,11 @@ class WinMineGame{
       }
     },{passive:false});
     canvas.addEventListener("touchend",e=>{
+      if(pinchActive){
+        e.preventDefault();
+        if(e.touches.length===0){pinchActive=false;this.fitToViewport()}
+        return;
+      }
       if(!touchPoint)return;
       e.preventDefault();
       const t=e.changedTouches[0],fake={clientX:t.clientX,clientY:t.clientY};
@@ -518,13 +554,15 @@ class WinMineGame{
         this.paint();clearTouch();return;
       }
       if(!touchMoved&&!touchRight){
-        const [bx,by]=[x,y];
-        const cell=this.board_at(bx,by);if(cell&&!this.finished)this.activate_cell(...cell,false);
+        const cell=this.board_at(x,y);if(cell&&!this.finished)this.activate_cell(...cell,false);
       }
       this.press_face=false;this.paint();
       clearTouch();
     },{passive:false});
-    canvas.addEventListener("touchcancel",()=>{this.press_face_button=false;this.press_face=false;this.paint();clearTouch()},{passive:false});
+    canvas.addEventListener("touchcancel",e=>{
+      e.preventDefault();
+      pinchActive=false;this.press_face_button=false;this.press_face=false;this.paint();clearTouch();this.fitToViewport();
+    },{passive:false});
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
     // the native window is leaving.  A browser page has no WM_DESTROY, so the
