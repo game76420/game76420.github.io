@@ -1,0 +1,23 @@
+{
+  "cell": {
+    "file": "Card_Bitmap_410.png",
+    "w": 16,
+    "h": 16,
+    "count": 16,
+    "source_index_visual": "count-1-source_index"
+  },
+  "counter": {
+    "file": "Card_Bitmap_420.png",
+    "w": 13,
+    "h": 23,
+    "count": 12,
+    "source_index_visual": "count-1-source_index"
+  },
+  "face": {
+    "file": "Card_Bitmap_430.png",
+    "w": 24,
+    "h": 24,
+    "count": 5,
+    "source_index_visual": "count-1-source_index"
+  }
+}
