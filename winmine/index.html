@@ -77,6 +77,24 @@ button,.menuPopup{touch-action:manipulation}
   contain:layout paint;
   flex:none !important;
 }
+/* Browser top-layer presentation: never participates in the zoomed game's stacking context. */
+#mobileControls:popover-open{
+  display:flex !important;
+  position:fixed !important;
+  left:50vw !important;
+  top:auto !important;
+  right:auto !important;
+  bottom:max(10px,env(safe-area-inset-bottom)) !important;
+  width:max-content !important;
+  height:60px !important;
+  transform:translate3d(-50%,0,0) scale(1) !important;
+  zoom:1 !important;
+  z-index:2147483647 !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+}
+#mobileControls::backdrop{display:none !important}
 .mobileAction{
   width:96px !important;
   min-width:96px !important;
@@ -141,7 +159,7 @@ button,.menuPopup{touch-action:manipulation}
     <div id="timerBox"><canvas id="timer" width="39" height="23"></canvas></div>
   </main>
 </div>
-<div id="mobileControls" aria-label="手機版操作">
+<div id="mobileControls" popover="manual" aria-label="手機版操作">
   <button type="button" id="mobileOpen" class="mobileAction active">踩格子</button>
   <button type="button" id="mobileFlag" class="mobileAction">插旗子</button>
 </div>
@@ -545,6 +563,11 @@ class WinMineGame{
   keepMobileControls(){
     const mc=document.getElementById("mobileControls");
     if(!mc)return;
+    // Put the mobile controls in the browser top layer. This makes them independent
+    // of every transformed/staking-context layer used by the zoomed game and menus.
+    if(typeof mc.showPopover==="function" && !mc.matches(":popover-open")){
+      try{mc.showPopover()}catch(_){}
+    }
     const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
     const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
     if(coarse||narrow){
@@ -665,9 +688,6 @@ class WinMineGame{
     // click wiring is needed here anymore.
     document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");this.keepMobileControls();requestAnimationFrame(()=>this.keepMobileControls())}));
     document.addEventListener("click",e=>{if(!e.target.closest(".menuRoot"))this.closeMenus()});
-    // Menu DOM changes must never be allowed to hide the independent mobile control layer.
-    const mcGuard=document.getElementById("mobileControls");
-    if(mcGuard&&window.MutationObserver){new MutationObserver(()=>this.keepMobileControls()).observe(mcGuard,{attributes:true,attributeFilter:["style","class"]})}
     document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>this.command(b.dataset.cmd)));
     document.addEventListener("keydown",e=>{
       if(e.key==="F2"){e.preventDefault();this.new_game();return}
@@ -811,8 +831,9 @@ class WinMineGame{
       e.preventDefault();
       pinchActive=false;this.press_face_button=false;this.press_face=false;this.paint();clearTouch();this.fitToViewport();
     },{passive:false});
-    document.getElementById("mobileOpen")?.addEventListener("click",()=>{this.setMobileActionMode("open");this.keepMobileControls()});
-    document.getElementById("mobileFlag")?.addEventListener("click",()=>{this.setMobileActionMode("flag");this.keepMobileControls()});
+    document.getElementById("mobileOpen")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("open");this.keepMobileControls()});
+    document.getElementById("mobileFlag")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("flag");this.keepMobileControls()});
+    document.getElementById("mobileControls")?.addEventListener("click",e=>e.stopPropagation());
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
     // the native window is leaving.  A browser page has no WM_DESTROY, so the
@@ -834,6 +855,7 @@ class WinMineGame{
     else if(c==="quit"){try{window.close()}catch(_){} }
     else if(c==="about"){document.getElementById("aboutText").textContent=SOURCE_STRINGS[13]+"\n"+SOURCE_STRINGS[14];aboutDialog.showModal();}
     this.syncMenuChecks();
+    this.keepMobileControls();
   }
   syncMenuChecks(){
     const map=[['checkBeginner',this.preset_index===0],['checkIntermediate',this.preset_index===1],['checkExpert',this.preset_index===2],['checkMark',!!this.mark_enabled],['checkColor',!!this.color_mode]];
