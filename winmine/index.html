@@ -543,31 +543,51 @@ class WinMineGame{
     const d=document.getElementById("customDialog");heightInput.value=this.height;widthInput.value=this.width;minesInput.value=this.mine_total;d.showModal()
   }
   keepMobileControls(){
-    const mc=document.getElementById("mobileControls");
-    if(!mc)return;
-    const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
-    const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
-    if(!(coarse||narrow))return;
-    // Permanent viewport HUD: never put this node under #app and never use
-    // the browser popover/top-layer mechanism.  The game zoom is implemented
-    // only by #app.transform, so this HUD remains in viewport CSS pixels.
-    if(mc.parentElement!==document.body)document.body.appendChild(mc);
-    mc.hidden=false;
-    mc.removeAttribute("hidden");
-    mc.style.setProperty("display","flex","important");
-    mc.style.setProperty("position","fixed","important");
-    mc.style.setProperty("left","50vw","important");
-    mc.style.setProperty("right","auto","important");
-    mc.style.setProperty("top","auto","important");
-    mc.style.setProperty("bottom","max(10px,env(safe-area-inset-bottom))","important");
-    mc.style.setProperty("width","max-content","important");
-    mc.style.setProperty("height","60px","important");
-    mc.style.setProperty("transform","translate3d(-50%,0,0)","important");
-    mc.style.setProperty("zoom","1","important");
-    mc.style.setProperty("z-index","2147483647","important");
-    mc.style.setProperty("visibility","visible","important");
-    mc.style.setProperty("opacity","1","important");
-    mc.style.setProperty("pointer-events","auto","important");
+    // This function must NEVER throw. It is called from many places (menu
+    // commands, touch handlers, resize, a background timer, a mutation
+    // observer...) specifically so the floating HUD can be repaired no
+    // matter what else happens on the page. If a future edit adds a call
+    // that could throw, the try/catch below keeps this a true safety net.
+    try{
+      const mc=document.getElementById("mobileControls");
+      if(!mc)return;
+      const coarse=!!(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches);
+      const narrow=!!(window.matchMedia&&window.matchMedia("(max-width:900px)").matches);
+      if(!(coarse||narrow))return;
+      // Permanent viewport HUD: never put this node under #app and never use
+      // the browser popover/top-layer mechanism.  The game zoom is implemented
+      // only by #app.transform, so this HUD remains in viewport CSS pixels.
+      if(mc.parentElement!==document.body)document.body.appendChild(mc);
+      // Always re-append as the LAST child of <body>. Any dialog, popup or
+      // future DOM insertion that lands after this node in paint order would
+      // otherwise be able to sit on top of it even with a huge z-index once
+      // a browser quirk (or a future code change) puts them in the same
+      // stacking context. Keeping mc last guarantees it paints on top.
+      else if(mc!==document.body.lastElementChild)document.body.appendChild(mc);
+      mc.hidden=false;
+      mc.removeAttribute("hidden");
+      mc.style.setProperty("display","flex","important");
+      mc.style.setProperty("position","fixed","important");
+      mc.style.setProperty("left","50vw","important");
+      mc.style.setProperty("right","auto","important");
+      mc.style.setProperty("top","auto","important");
+      mc.style.setProperty("bottom","max(10px,env(safe-area-inset-bottom))","important");
+      mc.style.setProperty("width","max-content","important");
+      mc.style.setProperty("height","60px","important");
+      mc.style.setProperty("transform","translate3d(-50%,0,0)","important");
+      mc.style.setProperty("zoom","1","important");
+      mc.style.setProperty("z-index","2147483647","important");
+      mc.style.setProperty("visibility","visible","important");
+      mc.style.setProperty("opacity","1","important");
+      mc.style.setProperty("pointer-events","auto","important");
+      for(const child of mc.children){
+        child.style.setProperty("pointer-events","auto","important");
+        child.style.setProperty("visibility","visible","important");
+        child.style.setProperty("opacity","1","important");
+      }
+    }catch(err){
+      console.error("keepMobileControls() error (ignored):",err);
+    }
   }
   setMobileActionMode(mode){
     this.mobileActionMode=(mode==="flag")?"flag":"open";
@@ -664,6 +684,17 @@ class WinMineGame{
     // click wiring is needed here anymore.
     document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");this.keepMobileControls();requestAnimationFrame(()=>this.keepMobileControls())}));
     document.addEventListener("click",e=>{if(!e.target.closest(".menuRoot"))this.closeMenus()});
+    // Blanket safety net: re-assert the floating HUD after ANY click/tap
+    // anywhere in the document, in the normal bubble phase. Because these
+    // are added on document itself, the browser still invokes them after a
+    // more specific handler on the actual click/tap target even if that
+    // handler threw an exception (each listener in the propagation path is
+    // invoked independently). This means no future menu/dialog/gameplay
+    // code path can "accidentally" leave the HUD hidden without this
+    // re-asserting it moments later.
+    ["click","pointerup","touchend"].forEach(type=>{
+      document.addEventListener(type,()=>this.keepMobileControls(),{passive:true});
+    });
     document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>this.command(b.dataset.cmd)));
     document.addEventListener("keydown",e=>{
       if(e.key==="F2"){e.preventDefault();this.new_game();return}
@@ -777,31 +808,40 @@ class WinMineGame{
       }
     },{passive:false});
     canvas.addEventListener("touchend",e=>{
-      if(pinchActive){
-        e.preventDefault();
-        if(e.touches.length===0){pinchActive=false;this.fitToViewport()}
-        return;
-      }
-      if(!touchPoint)return;
-      e.preventDefault();
-      const t=e.changedTouches[0],fake={clientX:t.clientX,clientY:t.clientY};
-      if(touchTimer)clearTimeout(touchTimer);
-      const [x,y]=pos(fake);
-      if(touchFace){
-        const inside=faceHit(x,y);
-        this.press_face_button=false;
-        if(inside&&!touchMoved)this.new_game();
-        this.paint();clearTouch();return;
-      }
-      if(!touchMoved&&!touchRight){
-        const cell=this.board_at(x,y);
-        if(cell&&!this.finished){
-          if(this.mobileActionMode==="flag")this.toggle_mark(...cell);
-          else this.activate_cell(...cell,false);
+      // try/finally: a flag/open action on the board must never be able to
+      // leave the floating mobile HUD in a broken state, even if something
+      // above throws (e.g. an unexpected board/zoom edge case).
+      try{
+        if(pinchActive){
+          e.preventDefault();
+          if(e.touches.length===0){pinchActive=false;this.fitToViewport()}
+          return;
         }
+        if(!touchPoint)return;
+        e.preventDefault();
+        const t=e.changedTouches[0],fake={clientX:t.clientX,clientY:t.clientY};
+        if(touchTimer)clearTimeout(touchTimer);
+        const [x,y]=pos(fake);
+        if(touchFace){
+          const inside=faceHit(x,y);
+          this.press_face_button=false;
+          if(inside&&!touchMoved)this.new_game();
+          this.paint();clearTouch();return;
+        }
+        if(!touchMoved&&!touchRight){
+          const cell=this.board_at(x,y);
+          if(cell&&!this.finished){
+            if(this.mobileActionMode==="flag")this.toggle_mark(...cell);
+            else this.activate_cell(...cell,false);
+          }
+        }
+        this.press_face=false;this.paint();
+        clearTouch();
+      }catch(err){
+        console.error("WinMine touchend error:",err);
+      }finally{
+        this.keepMobileControls();
       }
-      this.press_face=false;this.paint();
-      clearTouch();
     },{passive:false});
     canvas.addEventListener("touchcancel",e=>{
       e.preventDefault();
@@ -813,8 +853,8 @@ class WinMineGame{
     document.getElementById("mobileControls")?.addEventListener("pointerup",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
     document.getElementById("mobileControls")?.addEventListener("touchstart",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
     document.getElementById("mobileControls")?.addEventListener("touchend",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
-    document.getElementById("mobileOpen")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("open");this.keepMobileControls()});
-    document.getElementById("mobileFlag")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("flag");this.keepMobileControls()});
+    document.getElementById("mobileOpen")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();try{this.setMobileActionMode("open")}catch(err){console.error(err)}finally{this.keepMobileControls()}});
+    document.getElementById("mobileFlag")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();try{this.setMobileActionMode("flag")}catch(err){console.error(err)}finally{this.keepMobileControls()}});
     document.getElementById("mobileControls")?.addEventListener("click",e=>e.stopPropagation());
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
@@ -824,20 +864,30 @@ class WinMineGame{
     window.addEventListener("pagehide",()=>this.savePreferences());
   }
   command(c){
-    this.closeMenus();
-    if(c==="new")this.new_game();
-    else if(c==="beginner")this.setPreset(0);
-    else if(c==="intermediate")this.setPreset(1);
-    else if(c==="expert")this.setPreset(2);
-    else if(c==="custom")this.openCustom();
-    else if(c==="mark"){this.mark_enabled=!this.mark_enabled;this.syncMenuChecks();this.paint()}
-    else if(c==="color"){if(!this.color_supported)return;this.color_mode=!this.color_mode;this.loadSheets().then(()=>{this.syncMenuChecks();this.paint()})}
-    else if(c==="best")this.showBest();
-    else if(c==="web_help"){this.openWebHelp()}
-    else if(c==="quit"){try{window.close()}catch(_){} }
-    else if(c==="about"){document.getElementById("aboutText").textContent=SOURCE_STRINGS[13]+"\n"+SOURCE_STRINGS[14];aboutDialog.showModal();}
-    this.syncMenuChecks();
-    this.keepMobileControls();
+    // Wrapped in try/finally: whatever happens inside a menu command (new
+    // board allocation, preset switch, dialog open, ...), the floating
+    // mobile HUD must be re-asserted afterward. A finally block still runs
+    // even if something above throws or returns early, so the HUD can never
+    // be left in a broken state by a menu/difficulty action.
+    try{
+      this.closeMenus();
+      if(c==="new")this.new_game();
+      else if(c==="beginner")this.setPreset(0);
+      else if(c==="intermediate")this.setPreset(1);
+      else if(c==="expert")this.setPreset(2);
+      else if(c==="custom")this.openCustom();
+      else if(c==="mark"){this.mark_enabled=!this.mark_enabled;this.syncMenuChecks();this.paint()}
+      else if(c==="color"){if(!this.color_supported)return;this.color_mode=!this.color_mode;this.loadSheets().then(()=>{this.syncMenuChecks();this.paint();this.keepMobileControls()})}
+      else if(c==="best")this.showBest();
+      else if(c==="web_help"){this.openWebHelp()}
+      else if(c==="quit"){try{window.close()}catch(_){} }
+      else if(c==="about"){document.getElementById("aboutText").textContent=SOURCE_STRINGS[13]+"\n"+SOURCE_STRINGS[14];aboutDialog.showModal();}
+      this.syncMenuChecks();
+    }catch(err){
+      console.error("WinMine command() error:",err);
+    }finally{
+      this.keepMobileControls();
+    }
   }
   syncMenuChecks(){
     const map=[['checkBeginner',this.preset_index===0],['checkIntermediate',this.preset_index===1],['checkExpert',this.preset_index===2],['checkMark',!!this.mark_enabled],['checkColor',!!this.color_mode]];
@@ -912,21 +962,60 @@ window.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileContro
 // Keep the HUD alive after any menu/difficulty/action transition without
 // tying it to the game's zoom transform.  This checks only visibility; it
 // never changes the game state or board.
+//
+// IMPORTANT: this used to be a self-rescheduling requestAnimationFrame loop
+// (tick() calling requestAnimationFrame(tick) as its own last step). That
+// pattern is fragile: if ANYTHING inside a single tick ever threw, the loop
+// died silently and permanently for the rest of the page's life, because
+// nothing else was left to schedule the next frame. From that moment on the
+// "permanent" HUD had no safety net at all, which matches a bug that can
+// start at an arbitrary difficulty-change/zoom/flag action and never
+// recovers on its own. This rewrite uses two independent, exception-proof
+// mechanisms instead:
+//
+//   1. setInterval() — the browser reschedules the next call itself,
+//      regardless of whether the previous call threw. One bad frame can
+//      never stop future frames.
+//   2. MutationObserver — reacts within a single microtask/animation frame
+//      whenever mobileControls (or its children) are removed, reparented,
+//      or have their style/class/hidden attribute changed by ANY code path,
+//      instead of waiting for the next poll.
 (function lockMobileHud(){
   const mc=document.getElementById("mobileControls");
   if(!mc)return;
-  const tick=()=>{
-    if((window.matchMedia&&window.matchMedia("(pointer:coarse)").matches)||(window.matchMedia&&window.matchMedia("(max-width:900px)").matches)){
-      if(mc.parentElement!==document.body)document.body.appendChild(mc);
-      mc.hidden=false; mc.removeAttribute("hidden");
-      if(getComputedStyle(mc).display!=="flex"||getComputedStyle(mc).visibility!=="visible"||getComputedStyle(mc).opacity==="0"){
+  const isMobile=()=>!!((window.matchMedia&&window.matchMedia("(pointer:coarse)").matches)||(window.matchMedia&&window.matchMedia("(max-width:900px)").matches));
+  const heal=()=>{
+    try{
+      if(!isMobile())return;
+      const cs=getComputedStyle(mc);
+      if(mc.parentElement!==document.body||mc.hasAttribute("hidden")||cs.display!=="flex"||cs.visibility!=="visible"||cs.opacity==="0"||cs.pointerEvents==="none"){
         game.keepMobileControls();
       }
+    }catch(err){
+      console.error("lockMobileHud heal() error (ignored):",err);
     }
-    requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  // Mechanism 1: interval poll. setInterval is immune to a throwing
+  // callback — the browser keeps calling it on schedule regardless.
+  setInterval(heal,150);
+  // Mechanism 2: instant reaction to DOM/attribute tampering.
+  try{
+    const mo=new MutationObserver(()=>heal());
+    mo.observe(document.body,{childList:true});
+    mo.observe(mc,{attributes:true,attributeFilter:["style","class","hidden"]});
+  }catch(err){
+    console.error("MutationObserver setup failed (ignored):",err);
+  }
+  // Also heal immediately on the events most likely to disturb layout.
+  ["visibilitychange"].forEach(t=>document.addEventListener(t,heal,{passive:true}));
+  window.addEventListener("pageshow",heal,{passive:true});
+  heal();
 })();
+// Last-resort global safety net: if any uncaught error or unhandled promise
+// rejection happens anywhere in the app, still try to repair the HUD rather
+// than silently leaving it in whatever state it was in.
+window.addEventListener("error",()=>{try{game.keepMobileControls()}catch(_){}});
+window.addEventListener("unhandledrejection",()=>{try{game.keepMobileControls()}catch(_){}});
 window.addEventListener("orientationchange",()=>setTimeout(()=>{game.fitToViewport();game.keepMobileControls()},80),{passive:true});
 if(window.visualViewport)window.visualViewport.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileControls()},{passive:true});
 
