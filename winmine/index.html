@@ -77,24 +77,6 @@ button,.menuPopup{touch-action:manipulation}
   contain:layout paint;
   flex:none !important;
 }
-/* Browser top-layer presentation: never participates in the zoomed game's stacking context. */
-#mobileControls:popover-open{
-  display:flex !important;
-  position:fixed !important;
-  left:50vw !important;
-  top:auto !important;
-  right:auto !important;
-  bottom:max(10px,env(safe-area-inset-bottom)) !important;
-  width:max-content !important;
-  height:60px !important;
-  transform:translate3d(-50%,0,0) scale(1) !important;
-  zoom:1 !important;
-  z-index:2147483647 !important;
-  visibility:visible !important;
-  opacity:1 !important;
-  pointer-events:auto !important;
-}
-#mobileControls::backdrop{display:none !important}
 .mobileAction{
   width:96px !important;
   min-width:96px !important;
@@ -159,7 +141,7 @@ button,.menuPopup{touch-action:manipulation}
     <div id="timerBox"><canvas id="timer" width="39" height="23"></canvas></div>
   </main>
 </div>
-<div id="mobileControls" popover="manual" aria-label="手機版操作">
+<div id="mobileControls" aria-label="手機版操作">
   <button type="button" id="mobileOpen" class="mobileAction active">踩格子</button>
   <button type="button" id="mobileFlag" class="mobileAction">插旗子</button>
 </div>
@@ -563,35 +545,29 @@ class WinMineGame{
   keepMobileControls(){
     const mc=document.getElementById("mobileControls");
     if(!mc)return;
-    // Put the mobile controls in the browser top layer. This makes them independent
-    // of every transformed/staking-context layer used by the zoomed game and menus.
-    if(typeof mc.showPopover==="function" && !mc.matches(":popover-open")){
-      try{mc.showPopover()}catch(_){}
-    }
     const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
     const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
-    if(coarse||narrow){
-      // Keep the control layer as the last child of <body>.  The game itself
-      // is a transformed stacking context during pinch zoom; the source
-      // gameplay transform must never become an ancestor of these controls.
-      if(mc.parentElement!==document.body)document.body.appendChild(mc);
-      // Visibility only.  Never derive position, size, or scale from
-      // mobileZoom/mobilePan; these controls stay in viewport CSS pixels.
-      mc.style.setProperty("display","flex","important");
-      mc.style.setProperty("position","fixed","important");
-      mc.style.setProperty("left","50vw","important");
-      mc.style.setProperty("right","auto","important");
-      mc.style.setProperty("top","auto","important");
-      mc.style.setProperty("bottom","max(10px,env(safe-area-inset-bottom))","important");
-      mc.style.setProperty("width","max-content","important");
-      mc.style.setProperty("height","60px","important");
-      mc.style.setProperty("transform","translate3d(-50%,0,0) scale(1)","important");
-      mc.style.setProperty("zoom","1","important");
-      mc.style.setProperty("z-index","2147483647","important");
-      mc.style.setProperty("visibility","visible","important");
-      mc.style.setProperty("opacity","1","important");
-      mc.style.setProperty("pointer-events","auto","important");
-    }
+    if(!(coarse||narrow))return;
+    // Permanent viewport HUD: never put this node under #app and never use
+    // the browser popover/top-layer mechanism.  The game zoom is implemented
+    // only by #app.transform, so this HUD remains in viewport CSS pixels.
+    if(mc.parentElement!==document.body)document.body.appendChild(mc);
+    mc.hidden=false;
+    mc.removeAttribute("hidden");
+    mc.style.setProperty("display","flex","important");
+    mc.style.setProperty("position","fixed","important");
+    mc.style.setProperty("left","50vw","important");
+    mc.style.setProperty("right","auto","important");
+    mc.style.setProperty("top","auto","important");
+    mc.style.setProperty("bottom","max(10px,env(safe-area-inset-bottom))","important");
+    mc.style.setProperty("width","max-content","important");
+    mc.style.setProperty("height","60px","important");
+    mc.style.setProperty("transform","translate3d(-50%,0,0)","important");
+    mc.style.setProperty("zoom","1","important");
+    mc.style.setProperty("z-index","2147483647","important");
+    mc.style.setProperty("visibility","visible","important");
+    mc.style.setProperty("opacity","1","important");
+    mc.style.setProperty("pointer-events","auto","important");
   }
   setMobileActionMode(mode){
     this.mobileActionMode=(mode==="flag")?"flag":"open";
@@ -831,6 +807,12 @@ class WinMineGame{
       e.preventDefault();
       pinchActive=false;this.press_face_button=false;this.press_face=false;this.paint();clearTouch();this.fitToViewport();
     },{passive:false});
+    // Mobile HUD owns its pointer events.  Capture phase prevents menu/document
+    // handlers from treating a HUD click as a board/menu action.
+    document.getElementById("mobileControls")?.addEventListener("pointerdown",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
+    document.getElementById("mobileControls")?.addEventListener("pointerup",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
+    document.getElementById("mobileControls")?.addEventListener("touchstart",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
+    document.getElementById("mobileControls")?.addEventListener("touchend",e=>{e.stopPropagation();this.keepMobileControls()},{capture:true,passive:false});
     document.getElementById("mobileOpen")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("open");this.keepMobileControls()});
     document.getElementById("mobileFlag")?.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();this.setMobileActionMode("flag");this.keepMobileControls()});
     document.getElementById("mobileControls")?.addEventListener("click",e=>e.stopPropagation());
@@ -927,6 +909,24 @@ class WinMineGame{
 const game=new WinMineGame();
 game.init().then(()=>game.fitToViewport()).catch(e=>{document.body.innerHTML="<pre>WinMine initialization failed: "+String(e)+"</pre>";console.error(e)});
 window.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileControls()},{passive:true});
+// Keep the HUD alive after any menu/difficulty/action transition without
+// tying it to the game's zoom transform.  This checks only visibility; it
+// never changes the game state or board.
+(function lockMobileHud(){
+  const mc=document.getElementById("mobileControls");
+  if(!mc)return;
+  const tick=()=>{
+    if((window.matchMedia&&window.matchMedia("(pointer:coarse)").matches)||(window.matchMedia&&window.matchMedia("(max-width:900px)").matches)){
+      if(mc.parentElement!==document.body)document.body.appendChild(mc);
+      mc.hidden=false; mc.removeAttribute("hidden");
+      if(getComputedStyle(mc).display!=="flex"||getComputedStyle(mc).visibility!=="visible"||getComputedStyle(mc).opacity==="0"){
+        game.keepMobileControls();
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();
 window.addEventListener("orientationchange",()=>setTimeout(()=>{game.fitToViewport();game.keepMobileControls()},80),{passive:true});
 if(window.visualViewport)window.visualViewport.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileControls()},{passive:true});
 
