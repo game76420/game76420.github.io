@@ -10,7 +10,7 @@ html,body{margin:0;padding:0;background:#808080;font-family:"MS Sans Serif",Taho
 body{display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;touch-action:manipulation}
 #app{display:block;position:absolute;left:50%;top:50%;background:#c0c0c0;transform-origin:center center;flex:none;will-change:transform}
 #menuBar{height:20px;display:flex;background:#c0c0c0;border-bottom:1px solid #808080;box-sizing:border-box}
-.menuRoot{position:relative;z-index:100001}.menuRoot>button{border:0;background:transparent;padding:2px 7px;height:20px;font:inherit}.menuRoot>button:hover,.menuRoot.open>button{background:#000080;color:#fff}
+.menuRoot{position:relative}.menuRoot>button{border:0;background:transparent;padding:0 7px;height:20px;display:flex;align-items:center;justify-content:flex-start;box-sizing:border-box;line-height:20px;font:inherit}.menuRoot>button:hover,.menuRoot.open>button{background:#000080;color:#fff}
 .menuPopup{display:none;position:absolute;left:0;top:20px;min-width:205px;background:#c0c0c0;border:1px solid #000;z-index:20;padding:2px}.menuRoot.open .menuPopup{display:block}
 .menuPopup button{display:flex;justify-content:space-between;width:100%;border:0;background:#c0c0c0;text-align:left;padding:4px 8px;font:inherit;white-space:nowrap}.menuPopup button:hover{background:#000080;color:#fff}.separator{height:1px;background:#808080;border-top:1px solid #fff;margin:2px 0}
 #window{position:relative;background:#c0c0c0;box-sizing:border-box;overflow:hidden}
@@ -48,11 +48,8 @@ button,.menuPopup{touch-action:manipulation}
   left:50%;
   bottom:max(10px,env(safe-area-inset-bottom));
   transform:translateX(-50%);
-  z-index:100000;
+  z-index:2147483647 !important;
   gap:10px;
-  pointer-events:auto;
-  visibility:visible;
-  opacity:1;
   padding:8px;
   background:#c0c0c0;
   border:2px solid;
@@ -60,6 +57,10 @@ button,.menuPopup{touch-action:manipulation}
   touch-action:manipulation;
   user-select:none;
   -webkit-user-select:none;
+  visibility:visible !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+  isolation:isolate;
 }
 .mobileAction{
   min-width:96px;
@@ -81,7 +82,7 @@ button,.menuPopup{touch-action:manipulation}
   #mobileControls{display:flex !important;visibility:visible !important;opacity:1 !important;pointer-events:auto !important}
 }
 @media (max-width:900px){
-  #mobileControls{display:flex;visibility:visible;opacity:1;pointer-events:auto}
+  #mobileControls{display:flex !important;visibility:visible !important;opacity:1 !important;pointer-events:auto !important}
 }
 
 </style>
@@ -149,11 +150,9 @@ button,.menuPopup{touch-action:manipulation}
     <p>左鍵點擊方格來開啟。右鍵點擊方格來標記。</p>
     <p>臉部按鈕可重新開始遊戲。</p>
     <p><strong>手機版</strong></p>
-    <p>按下畫面上的「踩格子」，再點方格：開啟方格。</p>
-    <p>按下畫面上的「插旗子」，再點方格：插旗或取消旗子。</p>
-    <p>「踩格子／插旗子」按鈕會持續顯示，可隨時切換操作模式。</p>
-    <p>兩指捏合或張開：縮小或放大棋盤。</p>
-    <p>兩指拖動：移動放大的棋盤。</p>
+    <p>單指點一下：開啟方格。</p>
+    <p>在方格上長按：約 0.55 秒：標記方格。</p>
+    <p>移動手指會取消長按，避免誤操作。</p>
   </div>
   <div class="dialogButtons"><button id="helpOk">確定</button></div>
 </dialog>
@@ -352,7 +351,11 @@ class WinMineGame{
   }
   chord_cell(x,y){
     if(!this.in_board(x,y)||this.finished)return;const cell=this.board[y][x],state=cell&0x1f;
-    if(!(cell&0x40)||state<0||state>8||this.adjacent_flags(x,y)!==state)return;
+    // Source FUN_1000_1113 calls FUN_1000_1308(0xfffe,0xfffe) when
+    // the chord anchor/flag count is invalid, clearing the temporary
+    // pressed-neighbor preview instead of leaving it on the board.
+    if(!(cell&0x40)||state<0||state>8){this.preview_move(-2,-2);return;}
+    if(this.adjacent_flags(x,y)!==state){this.preview_move(-2,-2);return;}
     let hit=false;
     for(let yy=y-1;yy<=y+1;yy++)for(let xx=x-1;xx<=x+1;xx++){
       const c=this.board[yy][xx];
@@ -516,6 +519,18 @@ class WinMineGame{
   openCustom(){
     const d=document.getElementById("customDialog");heightInput.value=this.height;widthInput.value=this.width;minesInput.value=this.mine_total;d.showModal()
   }
+  keepMobileControls(){
+    const mc=document.getElementById("mobileControls");
+    if(!mc)return;
+    const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
+    const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
+    if(coarse||narrow){
+      mc.style.setProperty("display","flex","important");
+      mc.style.setProperty("visibility","visible","important");
+      mc.style.setProperty("opacity","1","important");
+      mc.style.setProperty("pointer-events","auto","important");
+    }
+  }
   setMobileActionMode(mode){
     this.mobileActionMode=(mode==="flag")?"flag":"open";
     const open=document.getElementById("mobileOpen"),flag=document.getElementById("mobileFlag");
@@ -543,7 +558,14 @@ class WinMineGame{
       }else if(e.button===2){
         e.preventDefault();
         const cell=this.board_at(x,y);
-        if(this.left_down){this.preview_move(-1,-1);this.chord=true}
+        if(this.left_down){
+          // Source WM_RBUTTONDOWN: FUN_1000_1308(0xfffd,0xfffd);
+          // DAT_1008_0012=1; POSTMESSAGE(...,WM_MOUSEMOVE).
+          // Reproduce the same clear -> chord -> current-cell preview sequence.
+          this.preview_move(-3,-3);
+          this.chord=true;
+          this.preview_move(x,y);
+        }
         else if(e.buttons&1){
           if(cell&&!this.finished){this.left_down=true;this.chord=true;this.hover_x=this.hover_y=-1;this.preview_move(x,y)}
         }else if(!this.finished&&cell)this.toggle_mark(...cell);
@@ -602,7 +624,7 @@ class WinMineGame{
     // the board canvas below, which already implements the source's face
     // hit-test (mousedown/mousemove/mouseup handlers above). No separate
     // click wiring is needed here anymore.
-    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");const mc=document.getElementById("mobileControls");if(mc){mc.style.display="flex";mc.style.visibility="visible";mc.style.opacity="1";mc.style.pointerEvents="auto"}}));
+    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");this.keepMobileControls()}));
     document.addEventListener("click",e=>{if(!e.target.closest(".menuRoot"))this.closeMenus()});
     document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>this.command(b.dataset.cmd)));
     document.addEventListener("keydown",e=>{
@@ -747,15 +769,8 @@ class WinMineGame{
       e.preventDefault();
       pinchActive=false;this.press_face_button=false;this.press_face=false;this.paint();clearTouch();this.fitToViewport();
     },{passive:false});
-    const mobileOpen=document.getElementById("mobileOpen"),mobileFlag=document.getElementById("mobileFlag");
-    const keepMobileControls=()=>{
-      const controls=document.getElementById("mobileControls");
-      if(controls){controls.style.display="flex";controls.style.visibility="visible";controls.style.opacity="1";}
-    };
-    mobileOpen?.addEventListener("click",()=>{this.setMobileActionMode("open");keepMobileControls()});
-    mobileFlag?.addEventListener("click",()=>{this.setMobileActionMode("flag");keepMobileControls()});
-    mobileOpen?.addEventListener("touchend",keepMobileControls,{passive:true});
-    mobileFlag?.addEventListener("touchend",keepMobileControls,{passive:true});
+    document.getElementById("mobileOpen")?.addEventListener("click",()=>{this.setMobileActionMode("open");this.keepMobileControls()});
+    document.getElementById("mobileFlag")?.addEventListener("click",()=>{this.setMobileActionMode("flag");this.keepMobileControls()});
     canvas.addEventListener("contextmenu",e=>e.preventDefault());
     // Source WM_ENDSESSION/WM_DESTROY persists the WinMine preferences when
     // the native window is leaving.  A browser page has no WM_DESTROY, so the
@@ -843,13 +858,13 @@ class WinMineGame{
     d.showModal();
     input.focus();input.select();
   }
-  closeMenus(){document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"))}
+  closeMenus(){document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));this.keepMobileControls()}
 }
 const game=new WinMineGame();
 game.init().then(()=>game.fitToViewport()).catch(e=>{document.body.innerHTML="<pre>WinMine initialization failed: "+String(e)+"</pre>";console.error(e)});
-window.addEventListener("resize",()=>game.fitToViewport(),{passive:true});
-window.addEventListener("orientationchange",()=>setTimeout(()=>game.fitToViewport(),80),{passive:true});
-if(window.visualViewport)window.visualViewport.addEventListener("resize",()=>game.fitToViewport(),{passive:true});
+window.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileControls()},{passive:true});
+window.addEventListener("orientationchange",()=>setTimeout(()=>{game.fitToViewport();game.keepMobileControls()},80),{passive:true});
+if(window.visualViewport)window.visualViewport.addEventListener("resize",()=>{game.fitToViewport();game.keepMobileControls()},{passive:true});
 
 </script>
 </body>
