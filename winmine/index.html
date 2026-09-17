@@ -42,15 +42,28 @@ button,.menuPopup{touch-action:manipulation}
 
 
 /* Mobile input controls: presentation/input adaptation only. */
+/* Mobile controls are a separate viewport-fixed layer.  They are deliberately
+   outside #app so the game's pinch zoom/pan transform can never scale, move,
+   or clip them.  Their geometry is fixed in CSS pixels. */
 #mobileControls{
   display:none;
-  position:fixed;
-  left:50%;
-  bottom:max(10px,env(safe-area-inset-bottom));
-  transform:translateX(-50%);
+  position:fixed !important;
+  left:50vw !important;
+  right:auto !important;
+  top:auto !important;
+  bottom:max(10px,env(safe-area-inset-bottom)) !important;
+  width:max-content !important;
+  height:60px !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  box-sizing:border-box !important;
+  transform:translate3d(-50%,0,0) scale(1) !important;
+  transform-origin:center bottom !important;
+  zoom:1 !important;
   z-index:2147483647 !important;
-  gap:10px;
-  padding:8px;
+  gap:10px !important;
+  padding:8px !important;
+  margin:0 !important;
   background:#c0c0c0;
   border:2px solid;
   border-color:#fff #404040 #404040 #fff;
@@ -61,22 +74,32 @@ button,.menuPopup{touch-action:manipulation}
   opacity:1 !important;
   pointer-events:auto !important;
   isolation:isolate;
+  contain:layout paint;
+  flex:none !important;
 }
 .mobileAction{
-  min-width:96px;
-  min-height:44px;
-  padding:7px 14px;
+  width:96px !important;
+  min-width:96px !important;
+  max-width:96px !important;
+  height:44px !important;
+  min-height:44px !important;
+  max-height:44px !important;
+  box-sizing:border-box !important;
+  flex:0 0 96px !important;
+  padding:7px 14px !important;
+  margin:0 !important;
   background:#c0c0c0;
   border:2px solid;
   border-color:#fff #404040 #404040 #fff;
   color:#000;
-  font:14px "MS Sans Serif",Tahoma,sans-serif;
+  font:14px "MS Sans Serif",Tahoma,sans-serif !important;
+  line-height:normal !important;
   touch-action:manipulation;
 }
 .mobileAction.active{
   border-color:#404040 #fff #fff #404040;
-  padding-top:8px;
-  padding-left:15px;
+  padding-top:8px !important;
+  padding-left:15px !important;
 }
 @media (pointer:coarse){
   #mobileControls{display:flex !important;visibility:visible !important;opacity:1 !important;pointer-events:auto !important}
@@ -514,7 +537,7 @@ class WinMineGame{
     app.dataset.nativeWidth=String(naturalW);
     app.dataset.nativeHeight=String(naturalH);
   }
-  resize(){this.paint();this.fitToViewport()}
+  resize(){this.paint();this.fitToViewport();this.keepMobileControls()}
   setPreset(i){this.preset_index=i;const p=PRESETS[i];this.width=p.width;this.height=p.height;this.mine_total=p.mines;this.custom=false;this.new_game();this.syncMenuChecks();this.closeMenus()}
   openCustom(){
     const d=document.getElementById("customDialog");heightInput.value=this.height;widthInput.value=this.width;minesInput.value=this.mine_total;d.showModal()
@@ -525,6 +548,8 @@ class WinMineGame{
     const coarse=window.matchMedia&&window.matchMedia("(pointer:coarse)").matches;
     const narrow=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;
     if(coarse||narrow){
+      // Visibility only.  Do not write position/transform/size here: the
+      // controls are intentionally independent of the game's zoom transform.
       mc.style.setProperty("display","flex","important");
       mc.style.setProperty("visibility","visible","important");
       mc.style.setProperty("opacity","1","important");
