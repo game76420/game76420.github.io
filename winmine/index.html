@@ -10,7 +10,7 @@ html,body{margin:0;padding:0;background:#808080;font-family:"MS Sans Serif",Taho
 body{display:flex;justify-content:center;align-items:center;min-height:100vh;min-height:100dvh;touch-action:manipulation}
 #app{display:block;position:absolute;left:50%;top:50%;background:#c0c0c0;transform-origin:center center;flex:none;will-change:transform}
 #menuBar{height:20px;display:flex;background:#c0c0c0;border-bottom:1px solid #808080;box-sizing:border-box}
-.menuRoot{position:relative}.menuRoot>button{border:0;background:transparent;padding:2px 7px;height:20px;font:inherit}.menuRoot>button:hover,.menuRoot.open>button{background:#000080;color:#fff}
+.menuRoot{position:relative;z-index:100001}.menuRoot>button{border:0;background:transparent;padding:2px 7px;height:20px;font:inherit}.menuRoot>button:hover,.menuRoot.open>button{background:#000080;color:#fff}
 .menuPopup{display:none;position:absolute;left:0;top:20px;min-width:205px;background:#c0c0c0;border:1px solid #000;z-index:20;padding:2px}.menuRoot.open .menuPopup{display:block}
 .menuPopup button{display:flex;justify-content:space-between;width:100%;border:0;background:#c0c0c0;text-align:left;padding:4px 8px;font:inherit;white-space:nowrap}.menuPopup button:hover{background:#000080;color:#fff}.separator{height:1px;background:#808080;border-top:1px solid #fff;margin:2px 0}
 #window{position:relative;background:#c0c0c0;box-sizing:border-box;overflow:hidden}
@@ -48,7 +48,7 @@ button,.menuPopup{touch-action:manipulation}
   left:50%;
   bottom:max(10px,env(safe-area-inset-bottom));
   transform:translateX(-50%);
-  z-index:10000;
+  z-index:100000;
   gap:10px;
   pointer-events:auto;
   visibility:visible;
@@ -149,9 +149,11 @@ button,.menuPopup{touch-action:manipulation}
     <p>左鍵點擊方格來開啟。右鍵點擊方格來標記。</p>
     <p>臉部按鈕可重新開始遊戲。</p>
     <p><strong>手機版</strong></p>
-    <p>單指點一下：開啟方格。</p>
-    <p>在方格上長按：約 0.55 秒：標記方格。</p>
-    <p>移動手指會取消長按，避免誤操作。</p>
+    <p>按下畫面上的「踩格子」，再點方格：開啟方格。</p>
+    <p>按下畫面上的「插旗子」，再點方格：插旗或取消旗子。</p>
+    <p>「踩格子／插旗子」按鈕會持續顯示，可隨時切換操作模式。</p>
+    <p>兩指捏合或張開：縮小或放大棋盤。</p>
+    <p>兩指拖動：移動放大的棋盤。</p>
   </div>
   <div class="dialogButtons"><button id="helpOk">確定</button></div>
 </dialog>
@@ -600,7 +602,7 @@ class WinMineGame{
     // the board canvas below, which already implements the source's face
     // hit-test (mousedown/mousemove/mouseup handlers above). No separate
     // click wiring is needed here anymore.
-    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open")}));
+    document.querySelectorAll("[data-menu]").forEach(b=>b.addEventListener("click",e=>{const root=e.currentTarget.parentElement;document.querySelectorAll(".menuRoot").forEach(x=>x.classList.remove("open"));root.classList.add("open");const mc=document.getElementById("mobileControls");if(mc){mc.style.display="flex";mc.style.visibility="visible";mc.style.opacity="1";mc.style.pointerEvents="auto"}}));
     document.addEventListener("click",e=>{if(!e.target.closest(".menuRoot"))this.closeMenus()});
     document.querySelectorAll("[data-cmd]").forEach(b=>b.addEventListener("click",()=>this.command(b.dataset.cmd)));
     document.addEventListener("keydown",e=>{
