@@ -1,1 +1,1173 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>FreeCell</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#008000;font-family:"MS Sans Serif","Microsoft JhengHei",sans-serif;color:#000}
+body{touch-action:none}
+#app{width:100%;height:100%;display:flex;flex-direction:column;background:#c0c0c0}
+.menubar{height:24px;min-height:24px;background:#c0c0c0;display:flex;align-items:center;padding-left:2px;border-bottom:1px solid #808080;position:relative;user-select:none}
+.menu-btn,.menu-label{border:0;background:transparent;height:22px;padding:2px 8px;font:13px "MS Sans Serif","Microsoft JhengHei",sans-serif;display:flex;align-items:center}
+.menu-btn{text-align:left}
+.menu-btn:hover,.menu-btn.active{background:#000080;color:#fff}
+.menu-spacer{flex:1 1 auto}
+.menu-label{margin-right:2px}
+.dropdown{position:absolute;top:24px;left:2px;min-width:190px;background:#c0c0c0;border:2px solid #fff;border-right-color:#404040;border-bottom-color:#404040;box-shadow:2px 2px #000;z-index:30;padding:2px}
+.dropdown button{display:block;width:100%;height:24px;border:0;background:#c0c0c0;text-align:left;padding:2px 12px;font:13px "MS Sans Serif","Microsoft JhengHei",sans-serif}
+.dropdown button:hover:not(:disabled){background:#000080;color:#fff}
+.dropdown button:disabled{color:#808080}
+.dropdown .sep{height:1px;margin:4px 2px;background:#808080;border-bottom:1px solid #fff}
+#stage{flex:1 1 auto;min-width:0;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;background:#008000;overflow:hidden;position:relative}
+#boardWrap{width:100%;height:100%;max-width:100%;max-height:100%;aspect-ratio:640/456;position:relative;flex:none;background:#008000;overflow:hidden}
+#board{width:100%;height:100%;display:block;image-rendering:auto;touch-action:none}
+#modalLayer{position:fixed;inset:0;background:rgba(0,0,0,.18);z-index:100;display:flex;align-items:center;justify-content:center;padding:12px}
+#modalLayer[hidden]{display:none}
+.modal{background:#c0c0c0;border:2px solid #fff;border-right-color:#404040;border-bottom-color:#404040;box-shadow:2px 2px #000;position:relative;max-width:min(94vw,380px);min-width:min(86vw,240px);padding:12px 14px 14px}
+.modal h2{font-size:16px;margin:0 0 10px}
+.modal p{margin:8px 0;line-height:1.45}
+.modal .row{margin:10px 0}
+.modal .row.center{text-align:center}
+.modal .field{width:100%;height:24px;border:2px solid #808080;border-right-color:#fff;border-bottom-color:#fff;background:#fff;padding:2px 6px;font:13px "MS Sans Serif","Microsoft JhengHei",sans-serif}
+.modal .check{display:flex;align-items:center;gap:6px;margin:10px 0}
+.actions{text-align:center;margin-top:12px}
+.btn{min-width:78px;height:25px;margin:0 6px;padding:0 12px;background:#c0c0c0;border:2px solid #fff;border-right-color:#404040;border-bottom-color:#404040;font:13px "MS Sans Serif","Microsoft JhengHei",sans-serif}
+.btn:active{border-color:#404040 #fff #fff #404040}
+.btn:disabled{color:#808080}
+.close-x{position:absolute;right:6px;top:4px;border:0;background:transparent;font-size:18px;line-height:1}
+.about{text-align:center}
+@media (max-width:640px){
+  .menubar{height:28px;min-height:28px}
+  .menu-btn,.menu-label{height:26px;font-size:14px}
+  .dropdown{top:28px}
+  .dropdown button{height:28px;font-size:14px}
+  .modal{padding:12px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="menubar">
+    <button id="gameMenuBtn" class="menu-btn" data-menu="game">遊戲(G)</button>
+    <button id="helpMenuBtn" class="menu-btn" data-menu="help">幫助(H)</button>
+    <div class="menu-spacer"></div>
+    <div id="leftInfo" class="menu-label">剩餘紙牌: 0</div>
+  </div>
 
+  <div id="gameMenu" class="dropdown" hidden>
+    <button data-action="new-random">開局(N)</button>
+    <button data-action="new-select">選局(S)</button>
+    <button data-action="restart">重玩(R)</button>
+    <div class="sep"></div>
+    <button disabled>戰況(T)</button>
+    <button disabled>選項(O)</button>
+    <div class="sep"></div>
+    <button id="undoBtn" data-action="undo" disabled>撤銷(U)</button>
+    <div class="sep"></div>
+    <button data-action="exit">退出(X)</button>
+  </div>
+
+  <div id="helpMenu" class="dropdown" hidden>
+    <button disabled>目錄(C)</button>
+    <button disabled>查找幫助主題(S)...</button>
+    <button disabled>如何使用幫助(H)</button>
+    <div class="sep"></div>
+    <button data-action="about">關於空當接龍(A)...</button>
+  </div>
+
+  <main id="stage">
+    <div id="boardWrap">
+      <canvas id="board" width="640" height="456"></canvas>
+    </div>
+  </main>
+</div>
+<div id="modalLayer" hidden></div>
+
+<script>
+'use strict';
+
+const CLIENT_W = 640;
+const CLIENT_H = 480;
+const MENU_H = 24;
+const BOARD_H = CLIENT_H - MENU_H;
+const CARD_W = 71;
+const CARD_H = 96;
+const STACK_DY = 18;
+const BOARD_BG = '#008000';
+const VB_GREEN = '#00ff00';
+const CANCEL_VALUE = -70514;
+
+const TABLEAU = [0,1,2,3,4,5,6,7];
+const CELL = [8,9,10,11];
+const FOUNDATION = [12,13,14,15];
+const TABLEAU_X = Array.from({length:8}, (_, i) => i * 78 + 7);
+const TABLEAU_Y = 106;
+const KING_X = 297;
+const KING_Y = 18;
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('board');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const ui = {
+  images: new Map(),
+  assetsReady: false,
+  kingFace: 'right',
+  hoveredPile: null,
+  hoverX: 0,
+  hoverY: 0,
+  endDialogOpen: false,
+  lastClick: null,
+  cursorDown: 'url("assets/DownArrow.cur") 0 0, auto'
+};
+
+function cardPath(index, highlighted = false) {
+  return `assets/${highlighted ? 'cards_hilite' : 'cards'}/${String(index).padStart(2, '0')}.png`;
+}
+
+function imageKey(name) {
+  return `misc:${name}`;
+}
+
+function loadImage(src, key = src) {
+  if (ui.images.has(key)) {
+    return ui.images.get(key);
+  }
+  const img = new Image();
+  img.decoding = 'async';
+  img.draggable = false;
+  img.src = src;
+  ui.images.set(key, img);
+  return img;
+}
+
+function imageReady(img) {
+  return Boolean(img && img.complete && img.naturalWidth > 0);
+}
+
+function preloadAssets() {
+  const jobs = [];
+  for (let i = 0; i < 52; i++) {
+    const normal = loadImage(cardPath(i), `card:${i}`);
+    const hilite = loadImage(cardPath(i, true), `hilite:${i}`);
+    jobs.push(waitForImage(normal), waitForImage(hilite));
+  }
+  jobs.push(
+    waitForImage(loadImage('assets/king/king_left.png', imageKey('king_left'))),
+    waitForImage(loadImage('assets/king/king_right.png', imageKey('king_right'))),
+    waitForImage(loadImage('assets/king/king_smile.png', imageKey('king_smile'))),
+    waitForImage(loadImage('assets/app_icon.png', imageKey('icon')))
+  );
+  return Promise.all(jobs).then(() => {
+    ui.assetsReady = true;
+    render();
+  });
+}
+
+function waitForImage(img) {
+  return new Promise((resolve) => {
+    if (imageReady(img) || img.complete) {
+      resolve(Boolean(img.naturalWidth));
+      return;
+    }
+    img.addEventListener('load', () => resolve(true), { once: true });
+    img.addEventListener('error', () => resolve(false), { once: true });
+  });
+}
+
+class Card {
+  constructor(index) {
+    this.index = index;
+    this.pile = null;
+    this.left = 0;
+    this.top = 0;
+    this.blink = null;
+    this.flink = null;
+  }
+
+  get spots() {
+    return Math.floor(this.index / 4);
+  }
+
+  get color() {
+    return Boolean((this.index + 1) & 2);
+  }
+}
+
+class MSRandom {
+  constructor() {
+    this.seed = 1;
+  }
+
+  srand(seed) {
+    this.seed = Number(seed) >>> 0;
+  }
+
+  rand() {
+    this.seed = (this.seed * 0x343FD + 0x269EC3) >>> 0;
+    return (this.seed >>> 16) & 0x7FFF;
+  }
+}
+
+class Pile {
+  constructor(game, pileType, left, top) {
+    this.game = game;
+    this.pileType = pileType;
+    this.left = left;
+    this.top = top;
+    this.baseTop = top;
+    this.width = CARD_W;
+    this.height = CARD_H;
+    this.cards = [];
+  }
+
+  get isFree() {
+    return this.cards.length === 0;
+  }
+
+  get last() {
+    return this.cards[this.cards.length - 1] || null;
+  }
+
+  get count() {
+    return this.cards.length;
+  }
+
+  push(card) {
+    card.pile = this;
+    card.left = this.left;
+    card.top = this.top;
+    if (this.pileType === 'tableau') {
+      this.top += STACK_DY;
+    }
+    const last = this.last;
+    if (last) {
+      last.flink = card;
+    }
+    card.blink = last;
+    this.cards.push(card);
+  }
+
+  pop() {
+    const card = this.cards.pop() || null;
+    if (!card) {
+      return null;
+    }
+    if (this.pileType === 'tableau') {
+      this.top -= STACK_DY;
+    }
+    card.pile = null;
+    return card;
+  }
+
+  clear() {
+    while (this.pop()) {}
+  }
+
+  cover(x, y) {
+    if (!this.isFree) {
+      return false;
+    }
+    if (x < this.left || x >= this.left + this.width) {
+      return false;
+    }
+    if (y < this.baseTop) {
+      return false;
+    }
+    if (this.pileType === 'tableau') {
+      return true;
+    }
+    return y < this.baseTop + this.height;
+  }
+
+  grab(src, tryOnly = false) {
+    let result = 0;
+    let current = src;
+
+    if (this.pileType === 'cell') {
+      if (this.isFree) {
+        result = 1;
+      }
+    } else if (this.pileType === 'foundation') {
+      if (this.isFree) {
+        if (src.index < 4) {
+          result = 1;
+        }
+      } else if (src.index === this.last.index + 4) {
+        result = 1;
+      }
+    } else if (this.pileType === 'tableau') {
+      const maxMove = this.game.freeCells(this.isFree);
+      for (let i = 1; i <= maxMove; i++) {
+        if (this.isFree) {
+          result = i;
+        } else if (current.spots + 1 === this.last.spots && current.color !== this.last.color) {
+          result = i;
+        }
+
+        const below = this.game.cardBlink(current);
+        if (!below) {
+          break;
+        }
+        if (current.spots + 1 !== below.spots || current.color === below.color) {
+          break;
+        }
+        current = below;
+      }
+    }
+
+    if (!tryOnly && result !== 0) {
+      this.game.performMove(current.pile, this, result);
+    }
+    return result;
+  }
+
+  grabOne(src) {
+    if (this.pileType === 'tableau' && this.isFree) {
+      this.game.performMove(src.pile, this, 1);
+      return 1;
+    }
+    return 0;
+  }
+}
+
+class Move {
+  constructor(previous, src, dst, count) {
+    this.previous = previous;
+    this.src = src;
+    this.dst = dst;
+    this.count = count;
+
+    const temp = [];
+    for (let i = 0; i < count; i++) {
+      temp.push(src.pop());
+    }
+    for (let i = 0; i < count; i++) {
+      dst.push(temp.pop());
+    }
+  }
+
+  rollback() {
+    const temp = [];
+    for (let i = 0; i < this.count; i++) {
+      temp.push(this.dst.pop());
+    }
+    for (let i = 0; i < this.count; i++) {
+      this.src.push(temp.pop());
+    }
+    return this.previous;
+  }
+}
+
+class FreeCellGame {
+  constructor() {
+    this.cards = Array.from({ length: 52 }, (_, i) => new Card(i));
+    this.random = new MSRandom();
+    this.random.srand(Date.now() >>> 0);
+    this.piles = [];
+    this.status = 'default';
+    this.index = 0;
+    this.selected = null;
+    this.lastMove = null;
+    this._makePiles();
+  }
+
+  _makePiles() {
+    this.piles = [];
+    for (let i = 0; i < 16; i++) {
+      if (i < 8) {
+        this.piles.push(new Pile(this, 'tableau', i * 78 + 7, 106));
+      } else if (i < 12) {
+        this.piles.push(new Pile(this, 'cell', (i - 8) * 71, 0));
+      } else {
+        this.piles.push(new Pile(this, 'foundation', (i - 12) * 71 + 348, 0));
+      }
+    }
+  }
+
+  clearAll() {
+    this.piles.forEach((pile) => pile.clear());
+    this.selected = null;
+    this.lastMove = null;
+    this.status = 'default';
+  }
+
+  freeCells(exclude) {
+    let t = TABLEAU.filter((i) => this.piles[i].isFree).length;
+    const c = CELL.filter((i) => this.piles[i].isFree).length;
+    if (!exclude) {
+      t += 1;
+    }
+    return (c + 1) * t;
+  }
+
+  cardBlink(card) {
+    return card ? card.blink : null;
+  }
+
+  cardsLeft() {
+    return [...TABLEAU, ...CELL].reduce((sum, i) => sum + this.piles[i].count, 0);
+  }
+
+  newGame(index) {
+    this.clearAll();
+    const deck = Array.from({ length: 52 }, (_, i) => i);
+    const rnd = new MSRandom();
+    rnd.srand(index);
+
+    for (let i = 0; i < 52; i++) {
+      const current = rnd.rand() % (52 - i);
+      const card = this.cards[deck[current]];
+      this.piles[i % 8].push(card);
+      deck[current] = deck[51 - i];
+    }
+
+    this.status = 'playing';
+    this.index = Number(index) || 0;
+    this.selected = null;
+    this.lastMove = null;
+  }
+
+  newRandom() {
+    const index = this.random.rand();
+    this.newGame(index);
+    return index;
+  }
+
+  reset() {
+    this.newGame(this.index);
+  }
+
+  performMove(src, dst, count) {
+    this.lastMove = new Move(this.lastMove, src, dst, count);
+  }
+
+  rollbackMove() {
+    if (!this.lastMove) {
+      return false;
+    }
+    this.selected = null;
+    this.lastMove = this.lastMove.rollback();
+    this.status = 'playing';
+    return true;
+  }
+
+  pileFromPoint(x, y) {
+    for (const pile of this.piles) {
+      if (pile.cover(x, y)) {
+        return pile;
+      }
+    }
+    for (const card of this.cards) {
+      if (cardCover(card, x, y)) {
+        return card.pile;
+      }
+    }
+    return null;
+  }
+
+  autoMove() {
+    let canMove = false;
+
+    while (true) {
+      let moved = false;
+      for (let srcIdx = 0; srcIdx < 12; srcIdx++) {
+        for (let dstIdx = 0; dstIdx < 16; dstIdx++) {
+          const card = this.piles[srcIdx].last;
+          if (!card) {
+            continue;
+          }
+          if (dstIdx >= 12) {
+            if (this.piles[dstIdx].grab(card) !== 0) {
+              moved = true;
+            }
+          } else {
+            if (this.piles[dstIdx].grab(card, true) !== 0) {
+              canMove = true;
+            }
+          }
+        }
+      }
+      if (!moved) {
+        break;
+      }
+    }
+
+    const left = this.cardsLeft();
+    if (left === 0) {
+      this.status = 'won';
+    } else if (!canMove) {
+      if (this.status !== 'lost') {
+        this.status = 'lost';
+      }
+    } else {
+      this.status = 'playing';
+    }
+  }
+
+  lbuttonDown(x, y) {
+    const pile = this.pileFromPoint(x, y);
+
+    if (this.selected === null) {
+      if (pile && pile.pileType !== 'foundation' && pile.last) {
+        this.selected = pile.last;
+        return { type: 'selected' };
+      }
+      return { type: 'none' };
+    }
+
+    const selected = this.selected;
+    const result = { type: 'none' };
+
+    if (pile && pile !== selected.pile) {
+      const cells = pile.grab(selected, true);
+      if (pile.isFree && cells > 1) {
+        return {
+          type: 'move_dialog',
+          src: selected.pile,
+          dst: pile,
+          card: selected,
+          count: cells
+        };
+      }
+
+      const moved = pile.grab(selected);
+      if (moved === 0) {
+        result.type = 'invalid';
+      }
+    }
+
+    this.autoMove();
+    this.selected = null;
+    return result;
+  }
+
+  doubleClick() {
+    if (!this.selected) {
+      return;
+    }
+    const selected = this.selected;
+    if (selected.pile && selected.pile.pileType === 'tableau') {
+      for (const i of CELL) {
+        if (this.piles[i].grab(selected) !== 0) {
+          break;
+        }
+      }
+      this.autoMove();
+    }
+    this.selected = null;
+  }
+
+  mouseTarget(x, y) {
+    const pile = this.pileFromPoint(x, y);
+    let cursor = 'arrow';
+    let king = null;
+
+    if (this.selected && pile) {
+      const possible = pile.grab(this.selected, true);
+      if (possible !== 0) {
+        if (pile.pileType !== 'tableau' || pile.isFree) {
+          cursor = 'up';
+        } else {
+          cursor = 'down';
+        }
+      }
+    }
+
+    if (pile) {
+      if (pile.pileType === 'cell') {
+        king = 'left';
+      } else if (pile.pileType === 'foundation') {
+        king = 'right';
+      }
+    }
+    return { cursor, king, pile };
+  }
+}
+
+const game = new FreeCellGame();
+
+function cardCover(card, x, y) {
+  return x >= card.left && x < card.left + CARD_W && y >= card.top && y < card.top + CARD_H;
+}
+
+function getCardImage(index, highlighted = false) {
+  return ui.images.get(`${highlighted ? 'hilite' : 'card'}:${index}`);
+}
+
+function getKingImage(face) {
+  return ui.images.get(imageKey(`king_${face}`));
+}
+
+function drawBox(x1, y1, x2, y2, c1 = '#000', c2 = VB_GREEN) {
+  ctx.strokeStyle = c1;
+  ctx.beginPath();
+  ctx.moveTo(x1 + 0.5, y1 + 0.5);
+  ctx.lineTo(x1 + 0.5, y2 + 0.5);
+  ctx.moveTo(x1 + 0.5, y1 + 0.5);
+  ctx.lineTo(x2 + 0.5, y1 + 0.5);
+  ctx.stroke();
+
+  ctx.strokeStyle = c2;
+  ctx.beginPath();
+  ctx.moveTo(x2 + 0.5, y1 + 1.5);
+  ctx.lineTo(x2 + 0.5, y2 + 1.5);
+  ctx.moveTo(x1 + 1.5, y2 + 0.5);
+  ctx.lineTo(x2 + 1.5, y2 + 0.5);
+  ctx.stroke();
+}
+
+function drawCard(card, highlighted = false) {
+  const img = getCardImage(card.index, highlighted);
+  if (!imageReady(img)) {
+    return;
+  }
+  ctx.drawImage(img, card.left, card.top, CARD_W, CARD_H);
+}
+
+function drawKing() {
+  drawBox(KING_X, KING_Y, KING_X + 37, KING_Y + 37, VB_GREEN, '#000');
+  const face = game.status === 'won' ? 'smile' : ui.kingFace;
+  const img = getKingImage(face);
+  if (imageReady(img)) {
+    ctx.drawImage(img, KING_X + 3, KING_Y + 3);
+  }
+}
+
+function render() {
+  ctx.clearRect(0, 0, CLIENT_W, BOARD_H);
+  ctx.fillStyle = BOARD_BG;
+  ctx.fillRect(0, 0, CLIENT_W, BOARD_H);
+
+  [...CELL, ...FOUNDATION].forEach((i) => {
+    const pile = game.piles[i];
+    drawBox(pile.left, pile.baseTop, pile.left + pile.width - 1, pile.baseTop + pile.height - 1, '#000', VB_GREEN);
+  });
+
+  drawKing();
+
+  for (let i = 0; i < 16; i++) {
+    const pile = game.piles[i];
+    if (!pile.cards.length) {
+      continue;
+    }
+    if (i < 8) {
+      for (const card of pile.cards) {
+        drawCard(card, false);
+      }
+      if (game.selected && game.selected.pile === pile) {
+        drawCard(game.selected, true);
+      }
+    } else {
+      drawCard(pile.last, false);
+      if (game.selected && game.selected.pile === pile) {
+        drawCard(game.selected, true);
+      }
+    }
+  }
+
+  updateLeftMenu(game.cardsLeft());
+  updateUndoUI();
+  maybeHandleEndState();
+}
+
+function updateLeftMenu(left) {
+  $('leftInfo').textContent = `剩餘紙牌: ${left}`;
+}
+
+function updateUndoUI() {
+  $('undoBtn').disabled = !game.lastMove;
+}
+
+function setTitle() {
+  document.title = game.status === 'default' || !game.index
+    ? 'FreeCell'
+    : `FreeCell #${game.index}`;
+}
+
+function setKingFace(face) {
+  if (game.status === 'won') {
+    ui.kingFace = 'smile';
+    return;
+  }
+  if (face === 'left' || face === 'right') {
+    ui.kingFace = face;
+  } else if (!ui.kingFace) {
+    ui.kingFace = 'right';
+  }
+}
+
+function setBoardCursor(mode) {
+  if (mode === 'down') {
+    canvas.style.cursor = ui.cursorDown;
+  } else if (mode === 'up') {
+    canvas.style.cursor = 'copy';
+  } else {
+    canvas.style.cursor = 'default';
+  }
+}
+
+function fitBoard() {
+  const stage = $('stage');
+  const wrap = $('boardWrap');
+  const sw = Math.max(1, stage.clientWidth);
+  const sh = Math.max(1, stage.clientHeight);
+  const scale = Math.min(sw / CLIENT_W, sh / BOARD_H);
+  wrap.style.width = `${Math.floor(CLIENT_W * scale)}px`;
+  wrap.style.height = `${Math.floor(BOARD_H * scale)}px`;
+}
+
+function boardPoint(event) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (event.clientX - rect.left) * CLIENT_W / rect.width,
+    y: (event.clientY - rect.top) * BOARD_H / rect.height
+  };
+}
+
+function vbVal(text) {
+  const match = String(text).match(/^\s*([+-]?(?:\d+(?:\.\d*)?|\.\d+))/);
+  if (!match) {
+    return 0;
+  }
+  const value = Number.parseInt(Number(match[1]), 10);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function closeMenus() {
+  $('gameMenu').hidden = true;
+  $('helpMenu').hidden = true;
+  document.querySelectorAll('.menu-btn').forEach((btn) => btn.classList.remove('active'));
+}
+
+function openMenu(name, button) {
+  const menu = $(name === 'game' ? 'gameMenu' : 'helpMenu');
+  const alreadyOpen = !menu.hidden;
+  closeMenus();
+  if (alreadyOpen) {
+    return;
+  }
+  const barRect = button.parentElement.getBoundingClientRect();
+  const rect = button.getBoundingClientRect();
+  menu.style.left = `${Math.round(rect.left - barRect.left)}px`;
+  menu.hidden = false;
+  button.classList.add('active');
+}
+
+function openDialog(html, init) {
+  const layer = $('modalLayer');
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (value) => {
+      if (done) {
+        return;
+      }
+      done = true;
+      layer.hidden = true;
+      layer.innerHTML = '';
+      resolve(value);
+    };
+    layer.innerHTML = html;
+    layer.hidden = false;
+    init(layer, finish);
+    layer.querySelectorAll('[data-close]').forEach((el) => {
+      el.addEventListener('click', () => finish(null));
+    });
+  });
+}
+
+function showInfo(title, text, okText = '確定') {
+  return openDialog(
+    `<div class="modal"><h2>${title}</h2><p>${text}</p><div class="actions"><button class="btn" id="infoOk">${okText}</button></div></div>`,
+    (layer, finish) => {
+      const ok = layer.querySelector('#infoOk');
+      ok.focus();
+      ok.onclick = () => finish(true);
+      layer.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === 'Escape') {
+          finish(true);
+        }
+      };
+    }
+  );
+}
+
+function showConfirm(title, text, yesText = '是(Y)', noText = '否(N)') {
+  return openDialog(
+    `<div class="modal"><h2>${title}</h2><p>${text}</p><div class="actions"><button class="btn" id="yesBtn">${yesText}</button><button class="btn" id="noBtn">${noText}</button></div></div>`,
+    (layer, finish) => {
+      const yes = layer.querySelector('#yesBtn');
+      const no = layer.querySelector('#noBtn');
+      yes.focus();
+      yes.onclick = () => finish(true);
+      no.onclick = () => finish(false);
+      layer.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+          finish(true);
+        } else if (event.key === 'Escape') {
+          finish(false);
+        }
+      };
+    }
+  );
+}
+
+function showSelectDialog(value) {
+  return openDialog(
+    `<div class="modal">
+      <h2>選局</h2>
+      <p class="row center">選局</p>
+      <p class="row center">從 1 到 1000000</p>
+      <div class="row"><input id="seedInput" class="field" value="${String(value)}"></div>
+      <div class="actions">
+        <button class="btn" id="seedOk">確定</button>
+        <button class="btn" id="seedCancel">取消</button>
+      </div>
+    </div>`,
+    (layer, finish) => {
+      const input = layer.querySelector('#seedInput');
+      const ok = layer.querySelector('#seedOk');
+      const cancel = layer.querySelector('#seedCancel');
+      input.focus();
+      input.select();
+      ok.onclick = () => finish(vbVal(input.value));
+      cancel.onclick = () => finish(CANCEL_VALUE);
+      layer.onkeydown = (event) => {
+        if (event.key === 'Enter') {
+          finish(vbVal(input.value));
+        } else if (event.key === 'Escape') {
+          finish(CANCEL_VALUE);
+        }
+      };
+    }
+  );
+}
+
+function showMoveDialog() {
+  return openDialog(
+    `<div class="modal">
+      <h2>移動到空列...</h2>
+      <div class="actions" style="display:flex;flex-direction:column;gap:8px;align-items:center">
+        <button class="btn" id="moveAll">移動整列(C)</button>
+        <button class="btn" id="moveOne">移動單張牌(S)</button>
+        <button class="btn" id="moveCancel">取消</button>
+      </div>
+    </div>`,
+    (layer, finish) => {
+      layer.querySelector('#moveAll').focus();
+      layer.querySelector('#moveAll').onclick = () => finish(1);
+      layer.querySelector('#moveOne').onclick = () => finish(2);
+      layer.querySelector('#moveCancel').onclick = () => finish(0);
+      layer.onkeydown = (event) => {
+        const key = event.key.toLowerCase();
+        if (event.key === 'Enter' || key === 'c') {
+          finish(1);
+        } else if (key === 's') {
+          finish(2);
+        } else if (event.key === 'Escape') {
+          finish(0);
+        }
+      };
+    }
+  );
+}
+
+function showEndDialog(won) {
+  const message = won
+    ? '恭喜，恭喜，您贏了!<br>再來一盤?'
+    : '投降吧! 您已經走投無路了。<br>還敢再玩嗎?';
+  const checkText = won ? '選局(S)' : '同一局(S)';
+  return openDialog(
+    `<div class="modal">
+      <h2>遊戲結束</h2>
+      <p>${message}</p>
+      <label class="check"><input type="checkbox" id="endCheck"> ${checkText}</label>
+      <div class="actions">
+        <button class="btn" id="endYes">是(Y)</button>
+        <button class="btn" id="endNo">否(N)</button>
+      </div>
+    </div>`,
+    (layer, finish) => {
+      const check = layer.querySelector('#endCheck');
+      const yes = layer.querySelector('#endYes');
+      const no = layer.querySelector('#endNo');
+      yes.focus();
+      yes.onclick = () => {
+        if (won) {
+          finish(check.checked ? 3 : 1);
+        } else {
+          finish(check.checked ? 2 : 1);
+        }
+      };
+      no.onclick = () => finish(0);
+      layer.onkeydown = (event) => {
+        const key = event.key.toLowerCase();
+        if (event.key === 'Enter' || key === 'y') {
+          yes.click();
+        } else if (key === 'n' || event.key === 'Escape') {
+          finish(0);
+        } else if (key === 's') {
+          check.checked = !check.checked;
+        }
+      };
+    }
+  );
+}
+
+async function showAbout() {
+  await openDialog(
+    `<div class="modal about">
+      <h2>FreeCell</h2>
+      <p>張書維 設計</p>
+      <p><a href="mailto:game76420@gmail.com">game76420@gmail.com</a></p>
+      <p><a href="https://www.facebook.com/changshuwei/" target="_blank" rel="noreferrer">https://www.facebook.com/changshuwei/</a></p>
+      <div class="actions"><button class="btn" id="aboutOk">確定</button></div>
+    </div>`,
+    (layer, finish) => {
+      const btn = layer.querySelector('#aboutOk');
+      btn.focus();
+      btn.onclick = () => finish(true);
+      layer.onkeydown = (event) => {
+        if (event.key === 'Enter' || event.key === 'Escape') {
+          finish(true);
+        }
+      };
+    }
+  );
+}
+
+async function confirmAbandon() {
+  if (game.status === 'playing') {
+    return showConfirm('FreeCell', '是否放棄本局?');
+  }
+  return true;
+}
+
+async function startRandomGame() {
+  if (!(await confirmAbandon())) {
+    return;
+  }
+  game.newRandom();
+  ui.kingFace = 'right';
+  setTitle();
+  render();
+}
+
+async function startSelectGame() {
+  if (!(await confirmAbandon())) {
+    return;
+  }
+  let value = game.random.rand();
+  while (true) {
+    value = await showSelectDialog(value);
+    if (value === CANCEL_VALUE || value === null) {
+      return;
+    }
+    if (value !== 0) {
+      break;
+    }
+  }
+  game.newGame(value);
+  ui.kingFace = 'right';
+  setTitle();
+  render();
+}
+
+async function restartGame() {
+  if (!(await confirmAbandon())) {
+    return;
+  }
+  game.reset();
+  ui.kingFace = 'right';
+  setTitle();
+  render();
+}
+
+function undoGame() {
+  if (game.rollbackMove()) {
+    render();
+  }
+}
+
+async function exitGame() {
+  if (!(await confirmAbandon())) {
+    return;
+  }
+  await showInfo('FreeCell', '網頁版無法直接關閉分頁，請自行關閉此頁面。');
+}
+
+async function maybeHandleEndState() {
+  if (ui.endDialogOpen) {
+    return;
+  }
+  if (game.status !== 'won' && game.status !== 'lost') {
+    return;
+  }
+  ui.endDialogOpen = true;
+  setTimeout(async () => {
+    const won = game.status === 'won';
+    if (won) {
+      ui.kingFace = 'smile';
+      render();
+    }
+    const result = await showEndDialog(won);
+    ui.endDialogOpen = false;
+    if (won) {
+      if (result === 1) {
+        await startRandomGame();
+      } else if (result === 3) {
+        await startSelectGame();
+      }
+    } else {
+      if (result === 1) {
+        await startRandomGame();
+      } else if (result === 2) {
+        await restartGame();
+      }
+    }
+  }, 0);
+}
+
+async function handleBoardClick(x, y) {
+  const result = game.lbuttonDown(x, y);
+
+  if (result.type === 'move_dialog') {
+    const choice = await showMoveDialog();
+    let moved = 0;
+    if (choice === 1) {
+      moved = result.dst.grab(result.card);
+    } else if (choice === 2) {
+      moved = result.dst.grabOne(result.card);
+    }
+    if ((choice === 1 || choice === 2) && moved === 0) {
+      await showInfo('FreeCell', '對不起，不能這樣移牌。');
+    }
+    game.autoMove();
+    game.selected = null;
+  } else if (result.type === 'invalid') {
+    await showInfo('FreeCell', '對不起，不能這樣移牌。');
+  }
+
+  setTitle();
+  render();
+}
+
+function handleBoardDoubleClick() {
+  game.doubleClick();
+  setBoardCursor('arrow');
+  setTitle();
+  render();
+}
+
+canvas.addEventListener('pointermove', (event) => {
+  const point = boardPoint(event);
+  ui.hoverX = point.x;
+  ui.hoverY = point.y;
+  const target = game.mouseTarget(point.x, point.y);
+  ui.hoveredPile = target.pile;
+  setBoardCursor(target.cursor);
+  if (target.king) {
+    setKingFace(target.king);
+  } else if (game.status !== 'won') {
+    ui.kingFace = 'right';
+  }
+  render();
+});
+
+canvas.addEventListener('pointerleave', () => {
+  ui.hoveredPile = null;
+  setBoardCursor('arrow');
+  if (game.status !== 'won') {
+    ui.kingFace = 'right';
+  }
+  render();
+});
+
+canvas.addEventListener('pointerup', async (event) => {
+  if ($('modalLayer').hidden === false) {
+    return;
+  }
+  const point = boardPoint(event);
+  const now = Date.now();
+  const last = ui.lastClick;
+  if (last && now - last.time < 320 && Math.hypot(point.x - last.x, point.y - last.y) < 8) {
+    ui.lastClick = null;
+    handleBoardDoubleClick();
+    return;
+  }
+  ui.lastClick = { x: point.x, y: point.y, time: now };
+  await handleBoardClick(point.x, point.y);
+});
+
+document.querySelectorAll('.menu-btn').forEach((btn) => {
+  btn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    openMenu(btn.dataset.menu, btn);
+  });
+});
+
+document.querySelectorAll('.dropdown').forEach((menu) => {
+  menu.addEventListener('click', async (event) => {
+    const btn = event.target.closest('[data-action]');
+    if (!btn || btn.disabled) {
+      return;
+    }
+    const action = btn.dataset.action;
+    closeMenus();
+    if (action === 'new-random') {
+      await startRandomGame();
+    } else if (action === 'new-select') {
+      await startSelectGame();
+    } else if (action === 'restart') {
+      await restartGame();
+    } else if (action === 'undo') {
+      undoGame();
+    } else if (action === 'about') {
+      await showAbout();
+    } else if (action === 'exit') {
+      await exitGame();
+    }
+  });
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.menubar,.dropdown')) {
+    closeMenus();
+  }
+});
+
+window.addEventListener('keydown', async (event) => {
+  if ($('modalLayer').hidden === false) {
+    return;
+  }
+  if (event.key === 'F2') {
+    event.preventDefault();
+    await startRandomGame();
+  } else if (event.key === 'F3') {
+    event.preventDefault();
+    await startSelectGame();
+  } else if (event.key === 'F9') {
+    event.preventDefault();
+    undoGame();
+  } else if (event.key === 'Escape') {
+    game.selected = null;
+    render();
+  }
+});
+
+window.addEventListener('resize', fitBoard, { passive: true });
+window.addEventListener('orientationchange', fitBoard, { passive: true });
+
+preloadAssets()
+  .catch(() => {})
+  .finally(() => {
+    setTitle();
+    fitBoard();
+    render();
+  });
+</script>
+</body>
+</html>
