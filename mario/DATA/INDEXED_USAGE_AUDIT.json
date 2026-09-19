@@ -1,0 +1,686 @@
+{
+  "schema_version": 1,
+  "project": "DOS Mario -> Python portable runtime",
+  "audit_target": "former ASSETS/INDEXED PNG assets",
+  "audit_basis": {
+    "runtime": "MARIO_PYTHON_PORTABLE.py",
+    "manifest": "DATA/baked_assets.js",
+    "method": "Static call/data-flow audit of runtime loaders and manifest mappings; no web or invented gameplay behavior. A file is runtime_used when a runtime code path can resolve/load that exact indexed asset; retained_only when it exists in the indexed archive but no runtime path resolves it."
+  },
+  "summary": {
+    "former_indexed_png_count": 111,
+    "runtime_used_before_migration": 111,
+    "retained_only_before_migration": 0,
+    "runtime_representation_now": "DATA/baked_assets.js source_images/background_images"
+  },
+  "important_finding": "The 111 runtime-used indexed PNG payloads were migrated into DATA/baked_assets.js. IDX_COIN_000.png was the previously retained-only asset and was already removed before this migration.",
+  "entries": [
+    {
+      "path": "ASSETS/INDEXED/IDX_BLOCK_000.png",
+      "asset_key": "BLOCK.000",
+      "status": "migrated_to_json",
+      "evidence": "Intro/game presentation indexed_surface/source_image for title assets; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BLOCK_001.png",
+      "asset_key": "BLOCK.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.draw -> _recolored_source_image(\"BLOCK\", 1, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK0_000.png",
+      "asset_key": "BRICK0.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK0_001.png",
+      "asset_key": "BRICK0.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK0_002.png",
+      "asset_key": "BRICK0.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK1_000.png",
+      "asset_key": "BRICK1.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK1_001.png",
+      "asset_key": "BRICK1.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK1_002.png",
+      "asset_key": "BRICK1.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK2_000.png",
+      "asset_key": "BRICK2.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK2_001.png",
+      "asset_key": "BRICK2.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BRICK2_002.png",
+      "asset_key": "BRICK2.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.__init__ / _bricks_for_options -> _load_source_image(prefix, i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BROWN_000.png",
+      "asset_key": "BROWN.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BROWN_001.png",
+      "asset_key": "BROWN.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BROWN_002.png",
+      "asset_key": "BROWN.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BROWN_003.png",
+      "asset_key": "BROWN.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_BROWN_004.png",
+      "asset_key": "BROWN.004",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_DES_000.png",
+      "asset_key": "DES.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_DES_001.png",
+      "asset_key": "DES.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_DES_002.png",
+      "asset_key": "DES.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_DES_003.png",
+      "asset_key": "DES.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_DES_004.png",
+      "asset_key": "DES.004",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FJLUI_000.png",
+      "asset_key": "FJLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FJLUI_001.png",
+      "asset_key": "FJLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FJMAR_000.png",
+      "asset_key": "FJMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FJMAR_001.png",
+      "asset_key": "FJMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FWLUI_000.png",
+      "asset_key": "FWLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FWLUI_001.png",
+      "asset_key": "FWLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FWMAR_000.png",
+      "asset_key": "FWMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_FWMAR_001.png",
+      "asset_key": "FWMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GRASS_000.png",
+      "asset_key": "GRASS.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GRASS_001.png",
+      "asset_key": "GRASS.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GRASS_002.png",
+      "asset_key": "GRASS.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GRASS_003.png",
+      "asset_key": "GRASS.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GRASS_004.png",
+      "asset_key": "GRASS.004",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GREEN_000.png",
+      "asset_key": "GREEN.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GREEN_001.png",
+      "asset_key": "GREEN.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GREEN_002.png",
+      "asset_key": "GREEN.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GREEN_003.png",
+      "asset_key": "GREEN.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_GREEN_004.png",
+      "asset_key": "GREEN.004",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_INTRO_000.png",
+      "asset_key": "INTRO.000",
+      "status": "migrated_to_json",
+      "evidence": "Intro/game presentation indexed_surface/source_image for title assets; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_INTRO_001.png",
+      "asset_key": "INTRO.001",
+      "status": "migrated_to_json",
+      "evidence": "Intro/game presentation indexed_surface/source_image for title assets; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_INTRO_002.png",
+      "asset_key": "INTRO.002",
+      "status": "migrated_to_json",
+      "evidence": "Intro/game presentation indexed_surface/source_image for title assets; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LJLUI_000.png",
+      "asset_key": "LJLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LJLUI_001.png",
+      "asset_key": "LJLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LJMAR_000.png",
+      "asset_key": "LJMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LJMAR_001.png",
+      "asset_key": "LJMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LWLUI_000.png",
+      "asset_key": "LWLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LWLUI_001.png",
+      "asset_key": "LWLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LWMAR_000.png",
+      "asset_key": "LWMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_LWMAR_001.png",
+      "asset_key": "LWMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_COIN_S00.png",
+      "asset_key": "COIN.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_FALL_S00.png",
+      "asset_key": "FALL.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_FALL_S01.png",
+      "asset_key": "FALL.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS1_S01.png",
+      "asset_key": "GRASS1.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS1_S02.png",
+      "asset_key": "GRASS1.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS2_S01.png",
+      "asset_key": "GRASS2.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS2_S02.png",
+      "asset_key": "GRASS2.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS3_S01.png",
+      "asset_key": "GRASS3.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_GRASS3_S02.png",
+      "asset_key": "GRASS3.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S00.png",
+      "asset_key": "LAVA2.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S01.png",
+      "asset_key": "LAVA2.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S02.png",
+      "asset_key": "LAVA2.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S03.png",
+      "asset_key": "LAVA2.$03",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S04.png",
+      "asset_key": "LAVA2.$04",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA2_S05.png",
+      "asset_key": "LAVA2.$05",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA_S00.png",
+      "asset_key": "LAVA.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_LAVA_S01.png",
+      "asset_key": "LAVA.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALBRICK_S00.png",
+      "asset_key": "PALBRICK.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM0_S01.png",
+      "asset_key": "PALM0.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM0_S02.png",
+      "asset_key": "PALM0.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM1_S01.png",
+      "asset_key": "PALM1.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM1_S02.png",
+      "asset_key": "PALM1.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM2_S01.png",
+      "asset_key": "PALM2.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM2_S02.png",
+      "asset_key": "PALM2.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM3_S01.png",
+      "asset_key": "PALM3.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALM3_S02.png",
+      "asset_key": "PALM3.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALPILL_S00.png",
+      "asset_key": "PALPILL.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALPILL_S01.png",
+      "asset_key": "PALPILL.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_PALPILL_S02.png",
+      "asset_key": "PALPILL.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_SMTREE_S00.png",
+      "asset_key": "SMTREE.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_SMTREE_S01.png",
+      "asset_key": "SMTREE.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_TREE_S00.png",
+      "asset_key": "TREE.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_TREE_S01.png",
+      "asset_key": "TREE.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_TREE_S02.png",
+      "asset_key": "TREE.$02",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_TREE_S03.png",
+      "asset_key": "TREE.$03",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_WINDOW_S00.png",
+      "asset_key": "WINDOW.$00",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PAS_WINDOW_S01.png",
+      "asset_key": "WINDOW.$01",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._parse_pas_image/_effect/_tree_image/_palm_images/_grass_images/_window_figure/_coin_image via pas_images manifest and source_pixels; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PIPE_000.png",
+      "asset_key": "PIPE.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._pipe_for_options -> _load_source_image(\"PIPE\", i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PIPE_001.png",
+      "asset_key": "PIPE.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._pipe_for_options -> _load_source_image(\"PIPE\", i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PIPE_002.png",
+      "asset_key": "PIPE.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._pipe_for_options -> _load_source_image(\"PIPE\", i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_PIPE_003.png",
+      "asset_key": "PIPE.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._pipe_for_options -> _load_source_image(\"PIPE\", i, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SAND_000.png",
+      "asset_key": "SAND.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SAND_001.png",
+      "asset_key": "SAND.001",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SAND_002.png",
+      "asset_key": "SAND.002",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SAND_003.png",
+      "asset_key": "SAND.003",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SAND_004.png",
+      "asset_key": "SAND.004",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet._init_wall/_wall_for_palette -> _load_indexed_wall(prefix, i); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SJLUI_000.png",
+      "asset_key": "SJLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SJLUI_001.png",
+      "asset_key": "SJLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SJMAR_000.png",
+      "asset_key": "SJMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SJMAR_001.png",
+      "asset_key": "SJMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_STAR_000.png",
+      "asset_key": "STAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceEnemyRenderer._img(\"star\") -> source_pixels(\"STAR.000\"); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SWLUI_000.png",
+      "asset_key": "SWLUI.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SWLUI_001.png",
+      "asset_key": "SWLUI.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SWMAR_000.png",
+      "asset_key": "SWMAR.000",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_SWMAR_001.png",
+      "asset_key": "SWMAR.001",
+      "status": "migrated_to_json",
+      "evidence": "SourcePlayerRuntime._source_player_image -> source_pixels(name) with dynamic state-selected prefix/index; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_WOOD_000.png",
+      "asset_key": "WOOD.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.draw -> _recolored_source_image(\"WOOD\", 0, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/IDX_XBLOCK_000.png",
+      "asset_key": "XBLOCK.000",
+      "status": "migrated_to_json",
+      "evidence": "SourceFigureSet.draw -> _recolored_source_image(\"XBLOCK\", 0, ...); payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/INDEXED_BG_BOGEN26_BK.png",
+      "asset_key": "BOGEN26.BK",
+      "status": "migrated_to_json",
+      "evidence": "background_map(name) -> SourceBackground/SourceBackGrMap presentation paths; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/INDEXED_BG_BOGEN7_BK.png",
+      "asset_key": "BOGEN7.BK",
+      "status": "migrated_to_json",
+      "evidence": "background_map(name) -> SourceBackground/SourceBackGrMap presentation paths; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/INDEXED_BG_BOGEN_BK.png",
+      "asset_key": "BOGEN.BK",
+      "status": "migrated_to_json",
+      "evidence": "background_map(name) -> SourceBackground/SourceBackGrMap presentation paths; payload preserved in DATA/baked_assets.js"
+    },
+    {
+      "path": "ASSETS/INDEXED/INDEXED_BG_MOUNT_BK.png",
+      "asset_key": "MOUNT.BK",
+      "status": "migrated_to_json",
+      "evidence": "background_map(name) -> SourceBackground/SourceBackGrMap presentation paths; payload preserved in DATA/baked_assets.js"
+    }
+  ],
+  "migration": "completed"
+}

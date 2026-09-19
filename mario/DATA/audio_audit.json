@@ -1,1 +1,67 @@
-
+{
+  "scope": "Source-backed audio audit for FIXED7",
+  "required_beep_frequencies": [
+    10,
+    30,
+    50,
+    80,
+    90,
+    100,
+    110,
+    130,
+    220,
+    800,
+    1760,
+    2420,
+    3520
+  ],
+  "present_beep_frequencies": [
+    10,
+    30,
+    50,
+    80,
+    90,
+    100,
+    110,
+    130,
+    220,
+    800,
+    1760,
+    2420,
+    3520
+  ],
+  "missing_beep_frequencies": [],
+  "required_music_tracks": [
+    "LifeMusic",
+    "GrowMusic",
+    "CoinMusic",
+    "PipeMusic",
+    "FireMusic",
+    "HitMusic",
+    "DeadMusic",
+    "NoteMusic",
+    "StarMusic"
+  ],
+  "present_music_tracks": [
+    "LifeMusic",
+    "GrowMusic",
+    "CoinMusic",
+    "PipeMusic",
+    "FireMusic",
+    "HitMusic",
+    "DeadMusic",
+    "NoteMusic",
+    "StarMusic"
+  ],
+  "beep_asset_count": 30,
+  "music_asset_count": 9,
+  "notes": [
+    "800 Hz covers enemy stomp and Koopa shell collision paths.",
+    "50 Hz covers ShowFire.",
+    "100 Hz covers ShowStar.",
+    "30 Hz covers the player falling/landing branch.",
+    "2420 Hz covers HitCoin.",
+    "10/90/130 Hz cover the source rising-item expression 130 - 20*j for even j values.",
+    "All BEEP assets are finite one-shot MP3 files; the runtime uses loops=0."
+  ]
+}

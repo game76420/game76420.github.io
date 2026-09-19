@@ -1,0 +1,33 @@
+{
+  "version": "FIXED8",
+  "basis": [
+    "Dos_source/SRC/MUSIC.PAS",
+    "Dos_source/SRC/BUFFERS.PAS",
+    "Dos_source/SRC/VGA256.PAS",
+    "Dos_source/SRC/PLAY.PAS"
+  ],
+  "changes": [
+    "Rebuilt BEEP_*.mp3 as PC-speaker-like 50% duty square-wave samples instead of sine-wave tones.",
+    "Rebuilt the nine MUSIC_*.mp3 tracks from the exact MUSIC.PAS byte sequences and source note frequencies.",
+    "Modelled MUSIC.PAS PlayMusic as a source event stream: NoSound each call, then Beep only when the source state reaches a note byte.",
+    "Used 70 Hz source timing because VGA256.PAS SetViewport waits for vertical retrace and PLAY.PAS calls PlayMusic immediately after ShowPage.",
+    "Changed Python audio presentation to one shared pygame mixer channel for music and sound effects, matching the single DOS PC-speaker path in BUFFERS.PAS.",
+    "Removed same-frequency suppression: every source Beep call now replaces/restarts the speaker sample, matching Crt.Sound semantics.",
+    "Kept the gameplay/render loop timing unchanged; only the audio scheduler follows the source 70 Hz cadence."
+  ],
+  "source_note_frequencies": {
+    "c0": 58,
+    "c1": 117,
+    "c2": 233,
+    "c3": 466,
+    "e3": 587,
+    "g3": 698,
+    "c4": 932,
+    "e4": 1175,
+    "g4": 1397,
+    "c5": 1865,
+    "e5": 2349,
+    "c6": 3729
+  },
+  "runtime_note": "The full MUSIC_*.mp3 files are retained as source-timed reference/presentation assets. Runtime playback uses the MP3 BEEP samples plus the translated MUSIC.PAS state machine so a gameplay Beep can interrupt music on the same channel, as in DOS."
+}

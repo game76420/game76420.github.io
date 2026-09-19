@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "project": "DOS Mario -> Python portable runtime",
+  "change": "FIXED10 remove ASSETS/INDEXED PNG runtime dependency",
+  "source_basis": "Existing audited CLEAN package only; no new gameplay behavior or assets invented.",
+  "runtime_representation": "DATA/baked_assets.js source_images/background_images",
+  "former_runtime_indexed_png_count": 111,
+  "runtime_indexed_png_count": 0,
+  "retained_only_indexed_png_count": 0,
+  "palette_behavior": "Preserved source palette indices; active DOS palette is still applied at the presentation boundary.",
+  "alpha_behavior": "Preserved per-pixel alpha for all former indexed sprite/source images.",
+  "background_behavior": "Preserved background pixel-index maps.",
+  "deleted_directory": "ASSETS/INDEXED",
+  "manifest_entries": {
+    "sprites": 70,
+    "pas_images": 37,
+    "backgrounds": 4
+  },
+  "embedded_payloads": {
+    "source_images": 107,
+    "background_images": 4
+  },
+  "verification": [
+    "111 former runtime-used indexed PNG payloads are embedded in DATA/baked_assets.js",
+    "ASSETS/INDEXED directory is absent",
+    "MARIO_PYTHON_PORTABLE.py compiles successfully",
+    "Bundled baked_assets module compiles successfully",
+    "Every embedded source image has matching pixel and alpha lengths",
+    "Every embedded background map has matching dimensions",
+    "Manifest runtime image entries resolve through source_data JSON keys",
+    "Palette-index data remains unchanged in representation (red-channel source index preserved)"
+  ]
+}

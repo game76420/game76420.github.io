@@ -1,0 +1,44 @@
+{
+  "fix_id": "FIXED11",
+  "bug": "Mario does not get hurt or die when colliding with the vertical flying fish.",
+  "source": {
+    "file": "Dos_source/SRC/ENEMIES.PAS",
+    "procedure": "MoveEnemies",
+    "lines": "1189-1199",
+    "logic": "not ((Tp = tpVertFish) and (not (Abs(DelayCounter - MoveDelay) <= 1)) or (Tp in [tpLiftStart..tpLiftEnd]))",
+    "effect": "cdHit := 1"
+  },
+  "python_before": {
+    "module": "source_enemy_move.py",
+    "logic": "elif not (e.tp == TP_VERT_FISH and abs(e.delay_counter - e.move_delay) <= 1):",
+    "problem": "The vertical-fish timing exception was inverted. Python set cdHit when the delay difference was greater than 1 and suppressed cdHit when it was <= 1; the supplied Pascal source does the opposite."
+  },
+  "python_after": {
+    "module": "source_enemy_move.py",
+    "logic": "elif not ((e.tp == TP_VERT_FISH and not (abs(e.delay_counter - e.move_delay) <= 1)) or (TP_LIFT_START <= e.tp <= TP_LIFT_END)):",
+    "effect": "For a vertical fish, cd_hit is set exactly when Abs(DelayCounter - MoveDelay) <= 1, matching the Pascal boolean expression."
+  },
+  "player_damage_path": {
+    "source": "PLAYERS.PAS MovePlayer, lines 858-878",
+    "python": "SourcePlayerRuntime._move_player_state_effects",
+    "small_mario": "cd_hit -> Blinking := True -> StartDemo(dmDead) -> DeadMusic -> Exit",
+    "large_or_fire_mario": "cd_hit -> Data.Mode := mdSmall -> Blinking := True -> HitMusic"
+  },
+  "death_demo": {
+    "source": "PLAYERS.PAS StartDemo, dmDead branch",
+    "python": "player_vertical_core.start_demo",
+    "verified": "dmDead sets YVel=-3 and emits Beep(220); the existing Python translation already contained these source operations."
+  },
+  "regression": {
+    "test": "Direct SourceEnemyMover._check_player_collisions regression against the source boolean boundary",
+    "results": [
+      {"delay_counter": 9, "move_delay": 10, "difference": 1, "expected_cd_hit": 1, "actual_cd_hit": 1},
+      {"delay_counter": 10, "move_delay": 10, "difference": 0, "expected_cd_hit": 1, "actual_cd_hit": 1},
+      {"delay_counter": 11, "move_delay": 10, "difference": 1, "expected_cd_hit": 1, "actual_cd_hit": 1},
+      {"delay_counter": 8, "move_delay": 10, "difference": 2, "expected_cd_hit": 0, "actual_cd_hit": 0},
+      {"delay_counter": 12, "move_delay": 10, "difference": 2, "expected_cd_hit": 0, "actual_cd_hit": 0}
+    ],
+    "status": "PASS"
+  },
+  "scope": "Only the source-backed vertical-fish collision boolean translation was corrected. No new gameplay rule, damage rule, collision shape, or invented behavior was added."
+}
