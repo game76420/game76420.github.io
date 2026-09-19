@@ -2497,10 +2497,14 @@ function drawStaticForeground(ctx,w,s,cam){
       // FIGURES.PAS::Redraw, case $F7, Design=2:
       //   if Above=$F0 then PutImage(SMTREE.$01);
       //   then ConvertGrass/DrawImage selects the actual grass figure.
-      // The previous HTML stopped after the tree overlay, so the grass
-      // segment became the bottom of the neighbouring hill instead of the
-      // source grass artwork.
+      // Python SourceFigureSet.draw() also performs the common pre-dispatch
+      // overlay when Above=18: wall[5] is painted FIRST, then the grass.
+      // This is required by 5A (WallType1=0) where the $F7 grass cells at
+      // x=53..54,y=10 sit directly below wall figure 18. Without this exact
+      // source-backed overlay the wall's bottom pixels are absent and the
+      // sky/background shows through as a rectangular hole.
       if(above===240)drawIndexedSourceSprite(ctx,'SMTREE.$01',px,py,W,H,s.options);
+      if(above===18)drawSourceWall(ctx,w,s,xx,y,cam,5);
       drawSourceGrass(ctx,w,s,xx,y,cam,grassCounter);
     }else if(c===246 && design===1){
       // FIGURES.PAS::Redraw, case $F6, Design=1: the white-palm segment uses

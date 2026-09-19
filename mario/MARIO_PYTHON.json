@@ -1,0 +1,90 @@
+{
+  "sound": true,
+  "sline": true,
+  "use_js": false,
+  "games": [
+    {
+      "num_players": 1,
+      "progress": [
+        0,
+        0
+      ],
+      "lives": [
+        3,
+        3
+      ],
+      "coins": [
+        0,
+        0
+      ],
+      "score": [
+        0,
+        0
+      ],
+      "mode": [
+        0,
+        0
+      ]
+    },
+    {
+      "num_players": 1,
+      "progress": [
+        0,
+        0
+      ],
+      "lives": [
+        3,
+        3
+      ],
+      "coins": [
+        0,
+        0
+      ],
+      "score": [
+        0,
+        0
+      ],
+      "mode": [
+        0,
+        0
+      ]
+    },
+    {
+      "num_players": 1,
+      "progress": [
+        0,
+        0
+      ],
+      "lives": [
+        3,
+        3
+      ],
+      "coins": [
+        0,
+        0
+      ],
+      "score": [
+        0,
+        0
+      ],
+      "mode": [
+        0,
+        0
+      ]
+    }
+  ],
+  "jsdat": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ]
+}
