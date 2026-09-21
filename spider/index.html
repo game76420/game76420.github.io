@@ -2,12 +2,12 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>蜘蛛</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"SimSun","PMingLiU","Microsoft JhengHei",serif;font-size:9pt;background:#c0c0c0}
-body{display:flex;flex-direction:column}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;font-family:"SimSun","PMingLiU","Microsoft JhengHei",serif;font-size:9pt;background:#c0c0c0}
+body{display:flex;flex-direction:column;touch-action:none}
 #menubar{height:25px;background:#eee;border-bottom:1px solid #777;display:flex;align-items:stretch;user-select:none}
 .menu{position:relative;height:24px}
 .menu>button{height:24px;border:0;background:transparent;padding:0 10px;font:9pt SimSun;cursor:pointer}
@@ -19,7 +19,7 @@ body{display:flex;flex-direction:column}
 .item.disabled{color:#888;pointer-events:none}
 .sep{height:1px;background:#aaa;margin:3px 2px}
 #boardWrap{flex:1;min-height:0;position:relative;background:#008000}
-#board{display:block;width:100%;height:100%;cursor:default}
+#board{display:block;width:100%;height:100%;cursor:default;touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 /* ===== Win32/Tk dialog layer =====
    Every dialog is built from the same dialog-unit (DLU) rectangles that spider.py
    feeds to _place_dlu().  1 DLU = 1.5 px (SimSun 9pt: base unit 6x12 px -> 4x8 DLU).
@@ -96,9 +96,10 @@ body{display:flex;flex-direction:column}
    embedded in this single index.html; original PNG/BMP/WAV/ICO resources remain
    external under assets/. */
 const CARD_W=71,CARD_H=96,COLS=10;
+const MIN_BOARD_W=COLS*CARD_W; /* narrowest logical width that fits 10 cards with zero gap */
 const A="assets/";
 const board=document.getElementById("board"),ctx=board.getContext("2d");
-let W=1018,H=700,dpr=1;
+let W=1018,H=700,dpr=1,scale=1;
 const audio={};
 for(const id of [124,125,126,127,128,129]) audio[id]=new Audio(A+id+".wav");
 function sound(id){if(!prefs.Sound)return;try{audio[id].currentTime=0;audio[id].play().catch(()=>{});}catch(e){}}
@@ -349,10 +350,23 @@ function draw(){
    first only the face-down cards are shown, then each face-up card is dealt onto them. */
 function dealPending(c,p){if(!dealAnim.active)return false;const t=dealAnim.current;if(t&&t.col===c&&t.pos===p)return true;return dealAnim.queue.some(q=>q.col===c&&q.pos===p)}
 function drawCard(c,p){let bmp=game.bitmap(c,p),x=xLeft(c),y=game.cardTop(c,p);ctx.drawImage(cards[bmp],x,y);if((bmp>=14&&bmp<=23)||(bmp>=27&&bmp<=36)){ctx.strokeStyle="#000";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y+2);ctx.lineTo(x,y+93);ctx.lineTo(x+2,y+95);ctx.lineTo(x+68,y+95);ctx.lineTo(x+70,y+93);ctx.lineTo(x+70,y+2);ctx.lineTo(x+68,y);ctx.lineTo(x+2,y);ctx.closePath();ctx.stroke()}}
-function resize(){let r=board.getBoundingClientRect();dpr=Math.max(1,devicePixelRatio||1);W=Math.max(1,Math.floor(r.width));H=Math.max(1,Math.floor(r.height));board.width=W*dpr;board.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);game.y_gap.fill(28);game.rebuildGaps(H);draw()}
+function resize(){
+  let r=board.getBoundingClientRect();
+  dpr=Math.max(1,devicePixelRatio||1);
+  let physW=Math.max(1,Math.floor(r.width)),physH=Math.max(1,Math.floor(r.height));
+  /* On narrow (portrait phone) screens the board is scaled down as a whole so the fixed-size
+     71px-wide cards (10 columns) always fit inside the actual viewport instead of overflowing it.
+     W/H below stay in this "logical" (unscaled) coordinate space that all layout math uses;
+     the canvas itself is still rendered at full device-pixel sharpness via scale*dpr. */
+  scale=physW<MIN_BOARD_W?physW/MIN_BOARD_W:1;
+  W=Math.max(1,Math.floor(physW/scale));H=Math.max(1,Math.floor(physH/scale));
+  board.width=Math.floor(physW*dpr);board.height=Math.floor(physH*dpr);
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
+  game.y_gap.fill(28);game.rebuildGaps(H);draw()
+}
 new ResizeObserver(resize).observe(document.getElementById("boardWrap"));
 
-function mousePos(e){let r=board.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+function mousePos(e){let r=board.getBoundingClientRect();return{x:(e.clientX-r.left)/scale,y:(e.clientY-r.top)/scale}}
 board.addEventListener("pointerdown",e=>{if(e.button!==0||dealAnim.active||removeAnim.active)return;let p=mousePos(e),h=hit(p.x,p.y);if(!h)return;let[c,pos]=h;if(pos>=0&&game.validSource(c,pos)){drag={col:c,pos,x:p.x,y:p.y,curX:p.x,curY:p.y};board.setPointerCapture(e.pointerId);sound(128);draw()}});
 board.addEventListener("pointermove",e=>{if(!drag)return;let p=mousePos(e);drag.curX=p.x;drag.curY=p.y;draw()});
 board.addEventListener("pointerup",e=>{if(dealAnim.active||removeAnim.active){drag=null;return}let p=mousePos(e);if(!drag){let[nl,nt,nr,nb]=newStacksRect();if(!game.won&&game.deals<5&&nl<p.x&&p.x<nr&&nt<p.y&&p.y<nb)deal();let[sx,sy,ex,ey]=scoreRect();if(sx<=p.x&&p.x<ex&&sy<=p.y&&p.y<ey&&!game.won)hint();return}let d=drag;drag=null;try{board.releasePointerCapture(e.pointerId)}catch(_){}
