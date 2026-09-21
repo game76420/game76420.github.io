@@ -1,1 +1,492 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>蜘蛛</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:"SimSun","PMingLiU","Microsoft JhengHei",serif;font-size:9pt;background:#c0c0c0}
+body{display:flex;flex-direction:column}
+#menubar{height:25px;background:#eee;border-bottom:1px solid #777;display:flex;align-items:stretch;user-select:none}
+.menu{position:relative;height:24px}
+.menu>button{height:24px;border:0;background:transparent;padding:0 10px;font:9pt SimSun;cursor:pointer}
+.menu>button:hover,.menu.open>button{background:#d6d6d6}
+.dropdown{display:none;position:absolute;left:0;top:24px;min-width:250px;background:#f3f3f3;border:1px solid #555;box-shadow:2px 2px 3px #555;z-index:1000;padding:2px 0}
+.menu.open .dropdown{display:block}
+.item{display:block;height:24px;padding:4px 28px 4px 24px;white-space:nowrap;position:relative;cursor:pointer}
+.item:hover{background:#0a246a;color:white}
+.item.disabled{color:#888;pointer-events:none}
+.sep{height:1px;background:#aaa;margin:3px 2px}
+#boardWrap{flex:1;min-height:0;position:relative;background:#008000}
+#board{display:block;width:100%;height:100%;cursor:default}
+/* ===== Win32/Tk dialog layer =====
+   Every dialog is built from the same dialog-unit (DLU) rectangles that spider.py
+   feeds to _place_dlu().  1 DLU = 1.5 px (SimSun 9pt: base unit 6x12 px -> 4x8 DLU).
+   Widgets are opaque and stacked in creation order, exactly like Tk .place(). */
+.modalShade{position:fixed;left:0;right:0;top:25px;bottom:0;z-index:2000;display:flex;align-items:center;justify-content:center;background:transparent}
+.modalShade.br{align-items:flex-end;justify-content:flex-end;padding:0 20px 10px 0}
+.dialog{position:relative;background:#f0f0f0;border:1px solid #6d6d6d;box-shadow:0 6px 18px rgba(0,0,0,.35);color:#000;border-radius:0;
+  font:12px/12px "SimSun","NSimSun","MingLiU","PMingLiU","Microsoft JhengHei",serif;user-select:none}
+.dialog .title{height:30px;display:flex;align-items:center;justify-content:space-between;background:#fff;padding-left:9px;
+  font:12px/16px "Segoe UI","Microsoft JhengHei UI","Microsoft JhengHei",sans-serif}
+.dialog .xbtn{width:46px;height:30px;border:0;margin:0;padding:0;background:transparent;font:13px/30px "Segoe UI","Microsoft JhengHei UI",sans-serif;cursor:default}
+.dialog .xbtn:hover{background:#e81123;color:#fff}
+.dialog .client{position:relative;overflow:hidden;background:#f0f0f0}
+.client>*{position:absolute;margin:0;box-sizing:border-box}
+/* tk.Label: opaque, default anchor=center (add .w for anchor='w') */
+.tk-lbl{display:flex;align-items:center;justify-content:center;background:#f0f0f0;white-space:pre;overflow:hidden;padding:0 1px;line-height:12px;tab-size:48px;-moz-tab-size:48px}
+.tk-lbl.w{justify-content:flex-start}
+.tk-lbl img{display:block;flex:none;width:20px;height:20px}
+/* tk.Button: classic raised Win32 button */
+.tk-btn{display:flex;align-items:center;justify-content:center;padding:0;background:#f0f0f0;color:#000;font:12px/12px "SimSun","NSimSun","MingLiU","PMingLiU","Microsoft JhengHei",serif;
+  border:1px solid;border-color:#fff #404040 #404040 #fff;box-shadow:inset -1px -1px #a0a0a0;cursor:default;border-radius:0}
+.tk-btn:active{border-color:#404040 #fff #fff #404040;box-shadow:inset 1px 1px #a0a0a0;padding:1px 0 0 1px}
+/* tk.Radiobutton / tk.Checkbutton: default anchor=center, so indicator+text are centered as one group */
+.tk-chk{display:flex;align-items:center;justify-content:center;background:#f0f0f0;white-space:nowrap;cursor:default;overflow:hidden}
+.tk-chk input{-webkit-appearance:none;appearance:none;position:relative;flex:none;box-sizing:border-box;width:13px;height:13px;margin:0 4px 0 0;background:#fff;border:1px solid #6f6f6f;
+  box-shadow:inset 1px 1px 0 #d4d4d4}
+.tk-chk input[type=radio]{border-radius:50%}
+/* indicator interior is 11x11 px; a 5x5 dot with inset:0 + margin:auto sits exactly in the middle (3 px each side) */
+.tk-chk input[type=radio]:checked::after{content:"";position:absolute;inset:0;margin:auto;width:5px;height:5px;border-radius:50%;background:#000}
+.tk-chk input[type=checkbox]:checked::after{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' shape-rendering='crispEdges'%3E%3Cpath d='M2 5h1v1h1v1h1V6h1V5h1V4h1V3h1v1H8v1H7v1H6v1H5v1H4V8H3V7H2z' fill='%23000'/%3E%3C/svg%3E") 0 0/11px 11px no-repeat}
+/* tk.LabelFrame (bd=1, relief=groove): title straddles the top border line */
+.tk-lf{background:#f0f0f0}
+.tk-lf::before{content:"";position:absolute;left:0;right:0;top:6px;bottom:0;border:1px solid;border-color:#fff #a0a0a0 #a0a0a0 #fff}
+.tk-lf span{position:absolute;left:10px;top:0;height:12px;padding:0 2px;background:#f0f0f0;line-height:12px;white-space:pre}
+/* ttk.Notebook: tabs are natural width and left aligned, pages are gray tk.Frame */
+.nb-tabs{position:absolute;left:0;top:0;height:23px;display:flex;align-items:flex-end}
+.nb-tab{height:20px;padding:0 4px;margin:0;border:1px solid #d9d9d9;border-bottom:0;background:#f0f0f0;font:12px/12px "SimSun","NSimSun","MingLiU","PMingLiU","Microsoft JhengHei",serif;
+  color:#000;cursor:default;border-radius:0;position:relative}
+.nb-tab.sel{height:23px;padding:0 6px;margin:0 -2px;background:#fff;z-index:2;border-bottom:1px solid #fff}
+.nb-pane{position:absolute;left:0;right:0;bottom:0;top:22px;border:1px solid #d9d9d9;background:#fff;padding:2px}
+.nb-page{width:100%;height:100%;background:#f0f0f0}
+.about-txt{line-height:12px;white-space:normal;background:transparent;color:#000}
+.hidden{display:none!important}
+#toast{position:fixed;left:50%;bottom:15px;transform:translateX(-50%);background:#111;color:#fff;padding:5px 10px;display:none;z-index:3000}
+</style>
+</head>
+<body>
+<div id="menubar">
+  <div class="menu" data-menu="game"><button>遊戲(&G)</button><div class="dropdown">
+    <div class="item" data-cmd="new">開局(&N)<span style="float:right">F2</span></div>
+    <div class="item" data-cmd="restart">重新開局(&R)</div><div class="sep"></div>
+    <div class="item disabled" data-cmd="undo">復原(&U)<span style="float:right">Ctrl+Z</span></div>
+    <div class="item" data-cmd="deal">新一輪發牌(&D)<span style="float:right">D</span></div>
+    <div class="item" data-cmd="hint">顯示可行的操作(&M)<span style="float:right">M</span></div><div class="sep"></div>
+    <div class="item" data-cmd="difficulty">難易級別(&I)...<span style="float:right">F3</span></div>
+    <div class="item" data-cmd="stats">戰況(&T)...<span style="float:right">F4</span></div>
+    <div class="item" data-cmd="options">選項(&P)...<span style="float:right">F5</span></div><div class="sep"></div>
+    <div class="item" data-cmd="save">儲存本次遊戲(&S)<span style="float:right">Ctrl+S</span></div>
+    <div class="item disabled" data-cmd="load">開啟上次儲存的遊戲(&O)<span style="float:right">Ctrl+O</span></div><div class="sep"></div>
+    <div class="item" data-cmd="exit">結束(&X)</div>
+  </div></div>
+  <div class="menu" data-menu="deal"><button>發牌(&D)</button></div>
+  <div class="menu" data-menu="help"><button>說明(&H)</button><div class="dropdown">
+    <div class="item" data-cmd="about">關於蜘蛛(&A)...</div>
+  </div></div>
+</div>
+<div id="boardWrap"><canvas id="board"></canvas></div>
+<div id="toast"></div>
+<div id="modalRoot"></div>
+<script>
+"use strict";
+/* Source boundary: this browser implementation is a direct behavioral rewrite
+   of the supplied spider.py R115 core/UI.  CSS and JavaScript are intentionally
+   embedded in this single index.html; original PNG/BMP/WAV/ICO resources remain
+   external under assets/. */
+const CARD_W=71,CARD_H=96,COLS=10;
+const A="assets/";
+const board=document.getElementById("board"),ctx=board.getContext("2d");
+let W=1018,H=700,dpr=1;
+const audio={};
+for(const id of [124,125,126,127,128,129]) audio[id]=new Audio(A+id+".wav");
+function sound(id){if(!prefs.Sound)return;try{audio[id].currentTime=0;audio[id].play().catch(()=>{});}catch(e){}}
+const images={};
+function img(name){if(!images[name]){images[name]=new Image();images[name].src=A+name}return images[name]}
+const cards={};
+for(let i=1;i<=52;i++)cards[i]=img("CARD"+i+".png");
+cards[104]=img("CARDBACK.png");cards[108]=img("108.png");
+const felt=img("FELT.bmp");
 
+function msvcRand(seed){return new MSR(seed)}
+class MSR{
+  constructor(seed){this.state=seed>>>0}
+  rand(){this.state=Math.imul(this.state,214013)+2531011>>>0;return (this.state>>>16)&0x7fff}
+}
+class Deck{
+  constructor(suits=4){this.num_suits=suits;this.cards=new Array(104);this.next_index=0;this.shuffle_seed=0;this.rng=new MSR(0);this.shuffle(Date.now()/1000|0)}
+  shuffle(seed){
+    this.shuffle_seed=seed>>>0;const rng=new MSR(this.shuffle_seed),used=new Uint8Array(104),out=new Array(104);
+    for(let d=0;d<2;d++)for(let s=0;s<4;s++)for(let v=0;v<13;v++){
+      let p;do{p=rng.rand()%104}while(used[p]);used[p]=1;
+      let suit=s;if(this.num_suits===1)suit=3;else if(this.num_suits===2){if(suit===0)suit=3;if(suit===1)suit=2}
+      out[p]={card_id:p,suit,value:v,shown:false};
+    }
+    this.cards=out;this.rng=rng;this.next_index=0;
+  }
+  get(){if(this.next_index>=104)return null;return this.cards[this.next_index++]}
+}
+class Game{
+  constructor(suits=4){this.num_suits=suits;this.deck=new Deck(suits);this.columns=Array.from({length:10},()=>[]);this.hidden_count=new Array(10).fill(0);this.score=0;this.moves=0;this.deals=0;this.suits_removed=0;this.suit_counts=[0,0,0,0];this.removed_suits=[];this.undo=[];this.move_list=[];this.move_cursor=0;this.move_list_valid=false;this.won=false;this.y_gap=new Array(10).fill(28);this.newGame()}
+  clear(){this.columns=Array.from({length:10},()=>[]);this.hidden_count=new Array(10).fill(0)}
+  add(c,id,shown){this.columns[c].push(id);if(!shown)this.hidden_count[c]++}
+  cardId(c,p){return c>=0&&c<10&&p>=0&&p<this.columns[c].length?this.columns[c][p]:-1}
+  shown(id){return this.deck.cards[id].shown}
+  start(seed){
+    this.deck=new Deck(this.num_suits);this.deck.shuffle(seed>>>0);this.clear();this.score=500;this.moves=0;this.deals=0;this.suits_removed=0;this.suit_counts=[0,0,0,0];this.removed_suits=[];this.undo=[];this.move_list=[];this.move_cursor=0;this.move_list_valid=false;this.won=false;
+    for(let i=0;i<5;i++)for(let j=0;j<10;j++)if(i!==4||j<=3){let c=this.deck.get();c.shown=false;this.add(j,c.card_id,false)}
+    for(let j=0;j<10;j++){let c=this.deck.get();c.shown=true;this.add(j,c.card_id,true)}
+    this.native_remaining_cards=this.deck.next_index;this.rebuildGaps();
+  }
+  newGame(seed){if(seed==null)seed=Date.now()/1000|0;this.start(seed)}
+  cardTop(c,p,gap=null){if(p===-1)return 10;let h=this.hidden_count[c],g=gap==null?this.y_gap[c]:gap;return p>=h?g*(p-h)+7*h+10:7*p+10}
+  getCardsRect(c,first,last,gap=null){let top=this.cardTop(c,first,gap);if(!this.columns[c].length)return [0,top,71,top+96];let h=this.hidden_count[c],g=gap==null?this.y_gap[c]:gap,extra;if(first>=h)extra=g*(last-first);else if(last>=h)extra=g*(last-h)+7*h+106;else extra=7*(last-first);return [0,top,71,top+96+extra]}
+  getTopRect(c,first,gap=null){return this.getCardsRect(c,first,this.columns[c].length-1,gap)}
+  rebuildGaps(ch=H){let bottom=Math.max(0,ch-106),changed=false;if(ch<=106)return 0;for(let c=0;c<10;c++){if(!this.columns[c].length)continue;let old=this.y_gap[c],g=28,last=this.columns[c].length-1;while(true){let r=this.getTopRect(c,last,g);if(r[3]<bottom)break;if(g<16&&r[1]<bottom-16)break;if(g<1)break;g--}this.y_gap[c]=g;changed|=g!==old}return changed?1:0}
+  cardPos(c,y){if(y<10)return -2;let v=y-10;if(!this.columns[c].length&&v<96)return -1;let h=this.hidden_count[c],g=this.y_gap[c],count=this.columns[c].length,hs=7*h;if(v<hs)return Math.floor(v/7);let vs=hs+g*(count-h-1);if(v<vs)return h+Math.floor((v-hs)/g);if(v<vs+96)return count-1;return -2}
+  newStacks(){let rem=104-this.deck.next_index;return Math.max(0,Math.floor((rem+9)/10))}
+  bitmap(c,p){if(p===-1)return 108;let id=this.cardId(c,p),cd=this.deck.cards[id];return cd.shown?13*cd.suit+cd.value+1:104}
+  validSource(c,p){if(!this.columns[c].length||p<0||p>=this.columns[c].length||!this.shown(this.cardId(c,p)))return false;let last=this.columns[c].length-1;if(p>=last)return true;let suit=this.deck.cards[this.cardId(c,p)].suit,v=this.deck.cards[this.cardId(c,p)].value,exp=v-1;for(let q=p+1;q<=last;q++){let cd=this.deck.cards[this.cardId(c,q)];if(cd.suit!==suit||cd.value!==exp)return false;exp--}return true}
+  validMove(sc,sp,dc){if(sc===dc||!this.columns[sc].length)return false;if(!this.columns[dc].length)return true;let d=this.deck.cards[this.cardId(dc,this.columns[dc].length-1)],s=this.deck.cards[this.cardId(sc,sp)];return d.shown&&s.shown&&s.value+1===d.value}
+  addUndo(r){if(this.undo.length===150)this.undo.shift();this.undo.push(r)}
+  moveCards(sc,sp,dc,record=true,validate=true,kind=0){if(validate&&(!this.validSource(sc,sp)||!this.validMove(sc,sp,dc)))return false;if(!this.columns[sc].length||sp<0||sp>=this.columns[sc].length)return false;let old=this.columns[dc].length;let moving=this.columns[sc].splice(sp);this.columns[dc].push(...moving);if(record){if(this.columns[sc].length){let p=this.columns[sc].length-1,id=this.cardId(sc,p);if(!this.shown(id)){this.hidden_count[sc]=Math.max(0,this.hidden_count[sc]-1);this.deck.cards[id].shown=true}}this.addUndo({kind:this.columns[sc].length&&false?1:0,src_col:sc,dst_col:dc,dst_pos:old,reserved:0}); /* corrected below */ 
+      let rec=this.undo[this.undo.length-1]; let exposeId=this.columns[sc].length?this.cardId(sc,this.columns[sc].length-1):-1;
+      /* Native kind is whether a hidden card was exposed. */
+      rec.kind=(exposeId>=0 && this.deck.cards[exposeId].shown && this.hidden_count[sc]>=0)?0:0;
+    }else if(kind){let hide=old-1;if(hide>=0&&hide<this.columns[dc].length){let id=this.cardId(dc,hide);if(this.deck.cards[id].shown){this.deck.cards[id].shown=false;this.hidden_count[dc]++}}}
+    this.moves++;this.score=Math.max(0,this.score-1);this.move_list_valid=false;this.rebuildGaps();return true}
+  /* Python's record kind must be captured before exposing the source top. */
+  moveCardsExact(sc,sp,dc){
+    if(!this.validSource(sc,sp)||!this.validMove(sc,sp,dc))return false;
+    let old=this.columns[dc].length;this.columns[dc].push(...this.columns[sc].splice(sp));
+    let flipped=0;if(this.columns[sc].length){let p=this.columns[sc].length-1,id=this.cardId(sc,p);if(!this.shown(id)){this.hidden_count[sc]=Math.max(0,this.hidden_count[sc]-1);this.deck.cards[id].shown=true;flipped=1}}
+    this.addUndo({kind:flipped,src_col:sc,dst_col:dc,dst_pos:old,reserved:0});this.moves++;this.score=Math.max(0,this.score-1);this.move_list_valid=false;this.rebuildGaps();return true
+  }
+  wholeSuit(c){let n=this.columns[c].length;if(n<13)return false;let last=this.cardId(c,n-1),s=this.deck.cards[last].suit,exp=this.deck.cards[last].value+1,count=2;for(let p=n-2;p>=0;p--){let cd=this.deck.cards[this.cardId(c,p)];if(!cd.shown||cd.value!==exp||cd.suit!==s)return false;exp++;count++;if(count>13)return true}return false}
+  removeSuit(c){
+    let n=this.columns[c].length;if(n<13)return null;
+    const slot=this.suits_removed;
+    const captured=[];
+    for(let p=n-13;p<n;p++){const id=this.cardId(c,p);captured.push({bmp:this.bitmap(c,p),x:xLeft(c),y:this.cardTop(c,p),slot});}
+    let s=this.deck.cards[this.cardId(c,n-1)].suit;
+    if(this.removed_suits.length<8)this.removed_suits.push(s);
+    if(s>=0&&s<4)this.suit_counts[s]++;
+    this.suits_removed=this.suit_counts.reduce((a,b)=>a+b,0);
+    this.native_remaining_cards-=13;
+    this.columns[c].splice(n-13);
+    this.undo=[];this.score+=100;this.rebuildGaps();
+    if(this.columns[c].length){let p=this.columns[c].length-1,id=this.cardId(c,p);if(!this.shown(id)){this.hidden_count[c]=Math.max(0,this.hidden_count[c]-1);this.deck.cards[id].shown=true}}
+    if(this.native_remaining_cards<=0)this.win();
+    return {slot,cards:captured};
+  }
+  win(){this.won=true}
+  deal(){
+    if(this.deals>=5)return [false,"",[]];
+    if(this.columns.some(c=>!c.length))return [false,"有空位時不允許發牌。",[]];
+    for(let c=0;c<10;c++){let card=this.deck.get();if(!card)return [false,"",[]];card.shown=true;this.add(c,card.card_id,true)}
+    this.native_remaining_cards+=10;this.deals++;this.undo=[];this.move_list_valid=false;this.rebuildGaps();
+    const removed=[];
+    for(let c=0;c<10;c++)if(this.wholeSuit(c)){const r=this.removeSuit(c);if(r)removed.push(...r.cards);}
+    return [true,"",removed];
+  }
+  buildMoves(){this.move_list=[];for(let src=0;src<10;src++){if(!this.columns[src].length)continue;let last=this.columns[src].length-1,start=last;if(last>0){let v3=last,v14=last-1;while(v3>0){let a=this.deck.cards[this.cardId(src,v3)],b=this.deck.cards[this.cardId(src,v14)];if(a.suit!==b.suit||a.value!==b.value-1||!b.shown)break;start=v14;v3--;v14--}}for(let dst=0;dst<10;dst++){if(src===dst||!this.validMove(src,start,dst))continue;let dp=this.columns[dst].length-1,ss=this.deck.cards[this.cardId(src,start)].suit,ds=this.columns[dst].length?this.deck.cards[this.cardId(dst,dp)].suit:-1,r=ss===ds?3:(this.columns[dst].length?2:1);if(this.move_list.length<31)this.move_list.push({same_suit:ss===ds?1:0,src_col:src,src_pos:start,dst_col:dst,dst_pos:dp,rating:r})}}this.move_list.sort((a,b)=>b.rating-a.rating);this.move_cursor=0;this.move_list_valid=true}
+  hint(){if(!this.move_list_valid)this.buildMoves();if(!this.move_list.length)return null;let m=this.move_list[this.move_cursor];this.move_cursor=(this.move_cursor+1)%this.move_list.length;return m}
+  undoMove(){if(!this.undo.length)return false;let r=this.undo[this.undo.length-1];if(r.dst_col<0||r.dst_col>=10||r.src_col<0||r.src_col>=10||r.dst_pos<0||r.dst_pos>=this.columns[r.dst_col].length)return false;let ok=this.moveCardsUndo(r.dst_col,r.dst_pos,r.src_col,r.kind);if(ok)this.undo.pop();return ok}
+  moveCardsUndo(sc,sp,dc,kind){let old=this.columns[dc].length;this.columns[dc].push(...this.columns[sc].splice(sp));if(kind){let hide=old-1;if(hide>=0&&hide<this.columns[dc].length){let id=this.cardId(dc,hide);if(this.deck.cards[id].shown){this.deck.cards[id].shown=false;this.hidden_count[dc]++}}}this.moves++;this.score=Math.max(0,this.score-1);this.move_list_valid=false;this.rebuildGaps();return true}
+  save(){return {num_suits:this.num_suits,seed:this.deck.shuffle_seed,next:this.deck.next_index,app:this.native_remaining_cards,moves:this.moves,deals:this.deals,suit_counts:this.suit_counts,removed:this.removed_suits,columns:this.columns,hidden:this.hidden_count,score:this.score}}
+  load(o){try{if(!o||![1,2,4].includes(o.num_suits))return false;this.num_suits=o.num_suits;this.deck=new Deck(this.num_suits);this.deck.shuffle(o.seed>>>0);this.deck.next_index=o.next>>>0;this.native_remaining_cards=o.app>>>0;this.moves=o.moves>>>0;this.deals=o.deals>>>0;this.suit_counts=o.suit_counts.slice(0,4);this.removed_suits=o.removed.slice(0,8);this.clear();for(let c=0;c<10;c++){this.columns[c]=o.columns[c].slice();this.hidden_count[c]=Math.min(o.hidden[c],this.columns[c].length);for(let p=0;p<this.columns[c].length;p++)this.deck.cards[this.columns[c][p]].shown=p>=this.hidden_count[c]}this.score=o.score>>>0;this.won=false;this.undo=[];this.move_list=[];this.move_cursor=0;this.move_list_valid=false;this.suits_removed=this.suit_counts.reduce((a,b)=>a+b,0);this.rebuildGaps();return true}catch(e){return false}}
+}
+
+let prefs=loadPrefs();
+let game=new Game(+prefs.NumSuits||4),gameOver=false,drag=null,hintTimer=0,hoverHint=null,firstLaunch=false;
+let dealAnim={active:false,queue:[],current:null,start:0,source:null,dest:null,bmp:0};
+let removeAnim={active:false,queue:[],current:null,start:0,source:null,dest:null,bmp:0,slot:0};
+function defaultPrefs(){return {WndState:1,WndWidth:1018,WndHeight:700,WndX:null,WndY:null,NumSuits:4,AnimDeal:1,SaveOnExit:0,LoadAtStart:0,PromptSave:1,PromptLoad:1,Sound:1,HighScore:[0,0,0],Wins:[0,0,0],Losses:[0,0,0],StreakWins:[0,0,0],StreakLosses:[0,0,0],StreakCurrent:[0,0,0],FWinStreak:[0,0,0]}}
+function loadPrefs(){let d=defaultPrefs();try{let x=JSON.parse(localStorage.getItem("spider_prefs")||"null");if(x)Object.assign(d,x)}catch(e){}return d}
+function savePrefs(){try{localStorage.setItem("spider_prefs",JSON.stringify(prefs))}catch(e){}}
+function difficultyIndex(){return {1:0,2:1,4:2}[game.num_suits]}
+function toast(t){let e=document.getElementById("toast");e.textContent=t;e.style.display="block";clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display="none",1400)}
+function newGame(seed=null,confirmActive=true){
+  if(dealAnim.active||removeAnim.active)return false;
+  if(confirmActive&&!gameOver&&(game.moves||game.deals)&&!confirm("是否從頭開始這次遊戲？"))return false;
+  if(!gameOver)updateStats(false);
+  game.num_suits=+prefs.NumSuits;game.newGame(seed);gameOver=false;syncMenus();
+  const remainingBefore=104-game.deck.next_index, targets=[];
+  for(let col=0;col<10;col++){
+    const remaining=remainingBefore-col;
+    const stackIndex=Math.max(0,Math.floor((remaining+9)/10)-1);
+    targets.push({col,pos:game.columns[col].length-1,stackIndex});
+  }
+  if(!beginDealAnimation(targets))draw();
+  return true
+}
+function restartGame(){
+  if(dealAnim.active||removeAnim.active)return;
+  if((game.moves||game.deals)&&!confirm("是否從頭開始這次遊戲？"))return;
+  updateStats(false);game.num_suits=+prefs.NumSuits;game.start(game.deck.shuffle_seed);gameOver=false;syncMenus();
+  const remainingBefore=104-game.deck.next_index,targets=[];
+  for(let col=0;col<10;col++){
+    const remaining=remainingBefore-col;
+    const stackIndex=Math.max(0,Math.floor((remaining+9)/10)-1);
+    targets.push({col,pos:game.columns[col].length-1,stackIndex});
+  }
+  if(!beginDealAnimation(targets))draw();
+}
+function updateStats(won){
+  let i=difficultyIndex();if(!won){if(!(game.moves||game.deals))return;if(!game.suit_counts.some(c=>c<2))return;if(prefs.FWinStreak[i]){prefs.FWinStreak[i]=0;prefs.StreakCurrent[i]=1}else prefs.StreakCurrent[i]++;prefs.StreakLosses[i]=Math.max(prefs.StreakLosses[i],prefs.StreakCurrent[i]);prefs.Losses[i]++}
+  else{if(prefs.FWinStreak[i])prefs.StreakCurrent[i]++;else{prefs.FWinStreak[i]=1;prefs.StreakCurrent[i]=1}prefs.StreakWins[i]=Math.max(prefs.StreakWins[i],prefs.StreakCurrent[i]);prefs.Wins[i]++}savePrefs()
+}
+function saveGame(){if(localStorage.getItem("spider_save")&&prefs.PromptSave&&!confirm("已存在儲存的遊戲。是否以目前的遊戲取代上次儲存的遊戲？"))return false;try{localStorage.setItem("spider_save",JSON.stringify(game.save()));syncMenus();return true}catch(e){alert("無法儲存遊戲。");return false}}
+function loadGame(){let s=localStorage.getItem("spider_save");if(!s){alert("無法載入遊戲。");return false}if(!gameOver&&prefs.PromptLoad&&!confirm("是否放棄目前正在進行的遊戲，載入上次儲存的遊戲？"))return false;try{if(!game.load(JSON.parse(s)))throw 0;prefs.NumSuits=game.num_suits;gameOver=false;savePrefs();syncMenus();draw();return true}catch(e){alert("無法載入遊戲。");return false}}
+function beginDealAnimation(targets){
+  if(!prefs.AnimDeal||!targets.length||dealAnim.active||removeAnim.active)return false;
+  dealAnim={active:true,queue:targets.slice(),current:null,start:0,source:null,dest:null,bmp:0,curX:0,curY:0,x:0,y:0};
+  startNextDealAnimation();return true;
+}
+function startNextDealAnimation(){
+  if(!dealAnim.queue.length){
+    dealAnim.active=false;dealAnim.current=null;draw();syncMenus();
+    if(game.native_remaining_cards<=0&&!gameOver)winGame();
+    return;
+  }
+  const t=dealAnim.queue.shift(),sx=newStackLeft(t.stackIndex),sy=bottomTop(),dx=xLeft(t.col),dy=game.cardTop(t.col,t.pos);
+  dealAnim.current=t;dealAnim.start=performance.now();dealAnim.source=[sx,sy];dealAnim.dest=[dx,dy];
+  dealAnim.bmp=game.bitmap(t.col,t.pos);dealAnim.curX=sx;dealAnim.curY=sy;dealAnim.x=sx;dealAnim.y=sy;
+  draw();requestAnimationFrame(dealAnimationTick);
+}
+function dealAnimationTick(now){
+  if(!dealAnim.active||!dealAnim.current)return;
+  const f=Math.max(0,Math.min(1,(now-dealAnim.start)*0.01));
+  dealAnim.curX=dealAnim.source[0]+(dealAnim.dest[0]-dealAnim.source[0])*f;
+  dealAnim.curY=dealAnim.source[1]+(dealAnim.dest[1]-dealAnim.source[1])*f;
+  draw();
+  if(f>=1){
+    dealAnim.curX=dealAnim.dest[0];dealAnim.curY=dealAnim.dest[1];
+    if(prefs.Sound)sound(124);
+    startNextDealAnimation();
+  }else requestAnimationFrame(dealAnimationTick);
+}
+function beginRemoveAnimations(items){
+  if(!items.length)return false;
+  removeAnim={active:true,queue:items.slice(),current:null,start:0,source:null,dest:null,bmp:0,slot:0,curX:0,curY:0};
+  startNextRemoveAnimation();return true;
+}
+function startNextRemoveAnimation(){
+  if(!removeAnim.queue.length){
+    removeAnim.active=false;removeAnim.current=null;draw();syncMenus();
+    if(game.native_remaining_cards<=0&&!gameOver)winGame();
+    return;
+  }
+  const item=removeAnim.queue.shift(),sx=item.x,sy=item.y,tx=xLeft(0)+12*item.slot,ty=bottomTop();
+  removeAnim.current=item;removeAnim.start=performance.now();removeAnim.source=[sx,sy];removeAnim.dest=[tx,ty];
+  removeAnim.bmp=item.bmp;removeAnim.curX=sx;removeAnim.curY=sy;removeAnim.x=sx;removeAnim.y=sy;
+  draw();requestAnimationFrame(removeAnimationTick);
+}
+function removeAnimationTick(now){
+  if(!removeAnim.active||!removeAnim.current)return;
+  const f=Math.max(0,Math.min(1,(now-removeAnim.start)*0.01));
+  removeAnim.curX=removeAnim.source[0]+(removeAnim.dest[0]-removeAnim.source[0])*f;
+  removeAnim.curY=removeAnim.source[1]+(removeAnim.dest[1]-removeAnim.source[1])*f;
+  draw();
+  if(f>=1){
+    removeAnim.curX=removeAnim.dest[0];removeAnim.curY=removeAnim.dest[1];
+    if(prefs.Sound)sound(124);
+    startNextRemoveAnimation();
+  }else requestAnimationFrame(removeAnimationTick);
+}
+
+function deal(){
+  if(gameOver||game.deals>=5||dealAnim.active||removeAnim.active)return;
+  const before=104-game.deck.next_index;
+  const [ok,msg,removed]=game.deal();
+  if(!ok){if(msg)alert(msg);return}
+  const targets=[];
+  for(let col=0;col<10;col++){
+    const remaining=before-col;
+    targets.push({col,pos:game.columns[col].length-1,stackIndex:Math.max(0,Math.floor((remaining+9)/10)-1)});
+  }
+  const started=beginDealAnimation(targets);
+  if(!started&&prefs.Sound)sound(124);
+  if(!started){draw();syncMenus();if(game.native_remaining_cards<=0&&!gameOver)winGame()}
+}
+function undo(){if(game.undoMove()){draw();syncMenus()}}
+function hint(){let m=game.hint();if(!m){sound(127);return}sound(126);draw();let a=xLeft(m.src_col),b=game.cardTop(m.src_col,m.src_pos),c=xLeft(m.dst_col),d=game.columns[m.dst_col].length?game.cardTop(m.dst_col,game.columns[m.dst_col].length-1):bottomTop();ctx.strokeStyle="#000080";ctx.lineWidth=3;ctx.strokeRect(a,b,71,96);ctx.strokeRect(c,d,71,96);clearTimeout(hintTimer);hintTimer=setTimeout(draw,500)}
+function winGame(){if(gameOver)return;gameOver=true;game.won=true;syncMenus();updateStats(true);draw();sound(129);showWin()}
+function showWin(){
+  /* Resource 130: 166x69 DLU, no system menu, docked to the parent's bottom-right (right-20, bottom-10). */
+  const body=lbl(7,7,152,8,"恭喜恭喜，你贏了！","w")+lbl(7,23,152,8,"是否開始新一輪遊戲？","w")+btn("winYes",25,48,50,14,"是(&Y)")+btn("winNo",91,48,50,14,"否(&N)");
+  showModal(dlgHTML({title:"遊戲結束",w:166,h:69,cls:"win",close:false,body}),dlg=>{dlg.querySelector("#winYes").onclick=()=>{closeModal();setTimeout(()=>newGame(null,false),0)};dlg.querySelector("#winNo").onclick=closeModal},"br")
+}
+function xLeft(c){let gap=Math.max(0,Math.floor((W-710)/11));return gap+c*(gap+71)}
+function bottomTop(){return Math.max(0,H-106)}
+function newStackLeft(i){let gap=Math.max(0,Math.floor((W-710)/11));return gap+9*(gap+71)-12*i}
+function newStacksRect(){let rem=104-game.deck.next_index,leftIndex=Math.floor((rem+9)/10)-1,left=newStackLeft(leftIndex),right=newStackLeft(0)+71,top=bottomTop();return[left,top,right,top+96]}
+function scoreRect(){let x=Math.max(0,Math.floor((W-200)/2)),y=bottomTop();return[x,y,x+200,Math.max(0,H-10)]}
+function cardSlot(x){let gap=Math.max(0,Math.floor((W-710)/11));if(x<gap)return-2;let v=Math.floor(x-gap),stride=gap+71,slot=Math.floor(v/stride);if(v%stride>71||slot>=10)return-2;return slot}
+function hit(x,y){let gap=Math.max(0,Math.floor((W-710)/11));if(x<gap)return null;let rel=x-gap,stride=gap+71,col=Math.floor(rel/stride);if(rel%stride>71||col>=10)return null;let pos=game.cardPos(col,Math.floor(y));return pos===-2?null:[col,pos]}
+function rectFor(col,pos){let x=xLeft(col),y=game.cardTop(col,pos);if(pos===-1)return[x,y,x+71,y+96];let r=game.getTopRect(col,pos);return[x,r[1],x+71,r[3]]}
+function draw(){
+  if(!W||!H)return;ctx.clearRect(0,0,W,H);
+  for(let y=0;y<H;y+=64)for(let x=0;x<W;x+=64)ctx.drawImage(felt,x,y);
+  for(let c=0;c<10;c++){
+    if(!game.columns[c].length){ctx.drawImage(cards[108],xLeft(c),10);continue}
+    for(let p=0;p<game.columns[c].length;p++){if(drag&&drag.col===c&&p>=drag.pos)continue;if(dealPending(c,p))continue;drawCard(c,p)}
+  }
+  let rem=game.newStacks();for(let i=0;i<rem;i++)ctx.drawImage(cards[104],newStackLeft(i),bottomTop());
+  for(let i=0;i<game.suits_removed&&i<game.removed_suits.length;i++)ctx.drawImage(cards[13*(game.removed_suits[i]+1)],xLeft(0)+12*i,bottomTop());
+  let [sx,sy,ex,ey]=scoreRect();ctx.fillStyle="#007f00";ctx.fillRect(sx,sy,200,Math.max(0,ey-sy));ctx.strokeStyle="#000";ctx.strokeRect(sx+.5,sy+.5,199,Math.max(0,ey-sy)-1);ctx.fillStyle="#fff";ctx.font="9pt 'Microsoft JhengHei'";ctx.fillText("分數：",sx+10,sy+30);ctx.fillText("操作：",sx+10,sy+50);ctx.fillText(String(game.score),sx+110,sy+30);ctx.fillText(String(game.moves),sx+110,sy+50);
+  if(removeAnim.active&&removeAnim.current){
+    const dx=removeAnim.curX-removeAnim.x,dy=removeAnim.curY-removeAnim.y;
+    ctx.drawImage(cards[removeAnim.bmp],removeAnim.curX,removeAnim.curY);
+  }
+  if(dealAnim.active&&dealAnim.current){
+    ctx.drawImage(cards[dealAnim.bmp],dealAnim.curX,dealAnim.curY);
+  }
+  if(drag){let dx=drag.curX-drag.x,dy=drag.curY-drag.y;for(let p=drag.pos;p<game.columns[drag.col].length;p++){let bmp=game.bitmap(drag.col,p);ctx.drawImage(cards[bmp],xLeft(drag.col)+dx,game.cardTop(drag.col,p)+dy)}}
+}
+/* Cards the running deal animation has not delivered yet (the one in flight + the queue) are not on the table yet:
+   first only the face-down cards are shown, then each face-up card is dealt onto them. */
+function dealPending(c,p){if(!dealAnim.active)return false;const t=dealAnim.current;if(t&&t.col===c&&t.pos===p)return true;return dealAnim.queue.some(q=>q.col===c&&q.pos===p)}
+function drawCard(c,p){let bmp=game.bitmap(c,p),x=xLeft(c),y=game.cardTop(c,p);ctx.drawImage(cards[bmp],x,y);if((bmp>=14&&bmp<=23)||(bmp>=27&&bmp<=36)){ctx.strokeStyle="#000";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y+2);ctx.lineTo(x,y+93);ctx.lineTo(x+2,y+95);ctx.lineTo(x+68,y+95);ctx.lineTo(x+70,y+93);ctx.lineTo(x+70,y+2);ctx.lineTo(x+68,y);ctx.lineTo(x+2,y);ctx.closePath();ctx.stroke()}}
+function resize(){let r=board.getBoundingClientRect();dpr=Math.max(1,devicePixelRatio||1);W=Math.max(1,Math.floor(r.width));H=Math.max(1,Math.floor(r.height));board.width=W*dpr;board.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);game.y_gap.fill(28);game.rebuildGaps(H);draw()}
+new ResizeObserver(resize).observe(document.getElementById("boardWrap"));
+
+function mousePos(e){let r=board.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+board.addEventListener("pointerdown",e=>{if(e.button!==0||dealAnim.active||removeAnim.active)return;let p=mousePos(e),h=hit(p.x,p.y);if(!h)return;let[c,pos]=h;if(pos>=0&&game.validSource(c,pos)){drag={col:c,pos,x:p.x,y:p.y,curX:p.x,curY:p.y};board.setPointerCapture(e.pointerId);sound(128);draw()}});
+board.addEventListener("pointermove",e=>{if(!drag)return;let p=mousePos(e);drag.curX=p.x;drag.curY=p.y;draw()});
+board.addEventListener("pointerup",e=>{if(dealAnim.active||removeAnim.active){drag=null;return}let p=mousePos(e);if(!drag){let[nl,nt,nr,nb]=newStacksRect();if(!game.won&&game.deals<5&&nl<p.x&&p.x<nr&&nt<p.y&&p.y<nb)deal();let[sx,sy,ex,ey]=scoreRect();if(sx<=p.x&&p.x<ex&&sy<=p.y&&p.y<ey&&!game.won)hint();return}let d=drag;drag=null;try{board.releasePointerCapture(e.pointerId)}catch(_){}
+  let dx=p.x-d.x,dy=p.y-d.y,drLeft=xLeft(d.col)+dx,drTop=game.cardTop(d.col,d.pos)+dy,r0=game.getCardsRect(d.col,d.pos,game.columns[d.col].length-1),drWidth=r0[2],drHeight=r0[3]-game.cardTop(d.col,d.pos),drRight=drLeft+drWidth,drBottom=drTop+drHeight;
+  let ls=cardSlot(drLeft),rs=cardSlot(drRight);if(rs<0)rs=Math.min(ls+1,9);let moved=false,start=Math.max(0,ls);if(start<=rs)for(let c=start;c<=rs;c++){if(c===d.col)continue;let n=game.columns[c].length,rc=n?rectFor(c,n-1):rectFor(c,-1),inter=!(drRight<=rc[0]||drLeft>=rc[2]||drBottom<=rc[1]||drTop>=rc[3]);if(inter&&game.validMove(d.col,d.pos,c)){moved=game.moveCardsExact(d.col,d.pos,c);if(moved)break}}
+  if(moved){
+    const removed=[];
+    for(let c=0;c<10;c++)if(game.wholeSuit(c)){const r=game.removeSuit(c);if(r)removed.push(...r.cards)}
+    if(removed.length)beginRemoveAnimations(removed);
+    else if(game.native_remaining_cards<=0&&!gameOver)winGame();
+  }
+  draw();syncMenus()
+});
+board.addEventListener("pointercancel",()=>{drag=null;draw()});
+board.addEventListener("contextmenu",e=>{e.preventDefault();if(dealAnim.active||removeAnim.active)return;let p=mousePos(e),h=hit(p.x,p.y);if(!h)return;let[c,pos]=h;if(pos>=0&&game.validSource(c,pos)){ctx.strokeStyle="#000080";ctx.lineWidth=2;ctx.strokeRect(xLeft(c),game.cardTop(c,pos),71,game.cardTop(c,game.columns[c].length-1)-game.cardTop(c,pos)+96)}});
+
+function syncMenus(){
+  const gameMenu=document.querySelector('[data-menu="game"]');
+  const items=[...gameMenu.querySelectorAll(".item")];const active=!gameOver;
+  const set=(cmd,on)=>{let e=items.find(x=>x.dataset.cmd===cmd);if(e)e.classList.toggle("disabled",!on)};
+  const busy=dealAnim.active||removeAnim.active;
+  set("restart",active&&!busy);set("hint",active&&!busy);set("save",active&&!busy);set("undo",game.undo.length>0&&!busy);set("deal",active&&game.deals<5&&!busy);set("load",!!localStorage.getItem("spider_save")&&!busy);document.querySelector('[data-menu="deal"] button').classList.toggle("disabled",!(active&&game.deals<5&&!busy))
+}
+document.querySelectorAll(".menu>button").forEach(b=>b.addEventListener("click",e=>{let m=b.parentElement;document.querySelectorAll(".menu").forEach(x=>{if(x!==m)x.classList.remove("open")});m.classList.toggle("open")}));
+document.addEventListener("click",e=>{
+  const it=e.target.closest(".dropdown .item");
+  if(it && !it.classList.contains("disabled")){
+    e.preventDefault();
+    e.stopPropagation();
+    const cmd=it.dataset.cmd;
+    document.querySelectorAll(".menu").forEach(x=>x.classList.remove("open"));
+    command(cmd);
+    return;
+  }
+  if(!e.target.closest(".menu"))document.querySelectorAll(".menu").forEach(x=>x.classList.remove("open"));
+})
+function command(c){({new:()=>newGame(),restart:restartGame,undo,deal,hint,difficulty,stats:statistics,options,save:saveGame,load:loadGame,exit:onClose,about}[c]||(()=>{}))()}
+document.querySelector('[data-menu="deal"] button').onclick=deal;
+
+/* ---- Win32/Tk dialog helpers: mirror spider.py _dlu/_place_dlu/_dialog_geometry ---- */
+const DLU_X=1.5,DLU_Y=1.5;   /* SimSun 9pt -> dialog base unit 6x12 px -> 1 DLU = 1.5 px */
+function pyRound(v){const f=Math.floor(v),d=v-f;if(d<0.5)return f;if(d>0.5)return f+1;return f%2===0?f:f+1} /* Python round(): half to even */
+const dx=v=>pyRound(v*DLU_X),dy=v=>pyRound(v*DLU_Y);
+const rect=(x,y,w,h)=>`left:${dx(x)}px;top:${dy(y)}px;width:${dx(w)}px;height:${dy(h)}px`;
+const lbl=(x,y,w,h,t,cls="",id="")=>`<div class="tk-lbl ${cls}"${id?` id="${id}"`:""} style="${rect(x,y,w,h)}">${t}</div>`;
+const btn=(id,x,y,w,h,t)=>`<button type="button" class="tk-btn" id="${id}" style="${rect(x,y,w,h)}">${t}</button>`;
+function dlgHTML(o){return `<div class="dialog ${o.cls||""}" style="width:${dx(o.w)+2}px"><div class="title"><span>${o.title}</span>${o.close===false?"":'<button type="button" class="xbtn" aria-label="關閉">✕</button>'}</div><div class="client" style="width:${dx(o.w)}px;height:${dy(o.h)}px">${o.body}</div></div>`}
+function showModal(content,setup,pos){let root=document.getElementById("modalRoot");root.innerHTML='<div class="modalShade'+(pos?" "+pos:"")+'">'+content+'</div>';let dlg=root.firstElementChild.firstElementChild;let x=dlg.querySelector(".xbtn");if(x)x.onclick=()=>dlg.querySelector("#cancel,#ok")?.click();setup(dlg)}
+function closeModal(){document.getElementById("modalRoot").innerHTML=""}
+function difficulty(){
+  if((game.moves||game.deals)&&!gameOver){if(confirm("關閉此遊戲之前是否要儲存？"))saveGame()}
+  /* Resource 119: 197x109 DLU.  Creation order == paint order (same as spider.py difficulty()). */
+  const icons=[["121",17,62],["120",26,62],["122",35,46],["122",35,62],["123",44,30],["123",44,46],["123",44,62]];
+  const radios=[[1,"初級(&E)：單色",29],[2,"中級(&M)：雙色",45],[4,"高級(&D)：四色",61]];
+  const body=lbl(7,7,183,19,"請選擇遊戲的難易級別：")
+    +icons.map(([f,x,y])=>lbl(x,y,20,20,`<img src="${A}${f}.ico" alt="">`)).join("")
+    +radios.map(([v,t,y])=>`<label class="tk-chk" style="${rect(52,y,138,10)}"><input type="radio" name="dif" value="${v}"><span>${t}</span></label>`).join("")
+    +btn("ok",40,88,50,14,"確定")+btn("cancel",106,88,50,14,"取消");
+  showModal(dlgHTML({title:"難易級別",w:197,h:109,cls:"diff",body}),dlg=>{
+    dlg.querySelector(`input[value="${game.num_suits}"]`).checked=true;
+    dlg.querySelector("#ok").onclick=()=>{let v=+dlg.querySelector("input[name=dif]:checked").value;prefs.NumSuits=v;savePrefs();closeModal();newGame(null,false)};
+    dlg.querySelector("#cancel").onclick=closeModal;
+  })
+}
+function statistics(selected=0){
+  /* Resource 118: 167x198 DLU.  ttk.Notebook (7,7,153,163) + 3 LabelFrames + 7 Labels + 2 Buttons,
+     all siblings on the dialog, painted in spider.py creation order. */
+  const tabNames=["初級","中級","高級"];
+  const body=`<div style="${rect(7,7,153,163)}"><div class="nb-tabs">${tabNames.map(n=>`<button type="button" class="nb-tab">${n}</button>`).join("")}</div><div class="nb-pane"><div class="nb-page"></div></div></div>`
+    +`<div class="tk-lf" style="${rect(15,25,137,24)}"><span>最高紀錄</span></div>`
+    +lbl(26,35,107,11,"","w","hv")
+    +`<div class="tk-lf" style="${rect(15,52,137,55)}"><span>百分比</span></div>`
+    +lbl(26,65,107,11,"","w","wv")+lbl(26,78,107,11,"","w","lv")+lbl(26,91,107,11,"","w","rv")
+    +`<div class="tk-lf" style="${rect(15,110,137,55)}"><span>連續</span></div>`
+    +lbl(26,122,107,11,"","w","sw")+lbl(26,136,107,11,"","w","sl")+lbl(26,150,107,11,"","w","cu")
+    +btn("ok",22,177,50,14,"確定")+btn("reset",88,177,50,14,"重設(&R)");
+  showModal(dlgHTML({title:"蜘蛛統計資料",w:167,h:198,cls:"stats",body}),dlg=>{
+    const tabs=[...dlg.querySelectorAll(".nb-tab")],$=id=>dlg.querySelector("#"+id);
+    function render(i){
+      tabs.forEach((b,k)=>b.classList.toggle("sel",k===i));
+      let hs=prefs.HighScore[i],w=prefs.Wins[i],l=prefs.Losses[i],rate=w+l?Math.floor(w*100/(w+l)):0;
+      $("hv").textContent="\t\t"+hs;
+      $("wv").textContent="勝:\t\t"+w;
+      $("lv").textContent="負:\t\t"+l;
+      $("rv").textContent="獲勝比率:\t"+rate+" %";
+      $("sw").textContent="最高連勝:\t"+prefs.StreakWins[i];
+      $("sl").textContent="最高連負:\t"+prefs.StreakLosses[i];
+      $("cu").textContent="目前:\t\t"+prefs.StreakCurrent[i]+" "+(prefs.FWinStreak[i]?"勝":"負");
+      selected=i;
+    }
+    tabs.forEach((b,i)=>b.onclick=()=>render(i));
+    render(Math.max(0,Math.min(2,selected)));
+    $("reset").onclick=()=>{if(!confirm("是否要重設所有遊戲統計資料？"))return;for(const k of ["HighScore","Wins","Losses","StreakWins","StreakLosses","StreakCurrent","FWinStreak"])prefs[k]=[0,0,0];if(!gameOver)prefs.HighScore[difficultyIndex()]=game.score;savePrefs();closeModal();statistics(selected)};
+    $("ok").onclick=closeModal;
+  })
+}
+function options(){
+  /* Resource 117: 199x140 DLU, checkbuttons (9,y,174,14). */
+  const keys=[["AnimDeal","發牌時進行動畫處理(&A)",9],["SaveOnExit","結束時自動儲存遊戲(&S)",26],["LoadAtStart","啟動時自動開啟上次遊戲(&O)",43],["PromptSave","儲存遊戲前提示(&P)",60],["PromptLoad","開啟已儲存的遊戲前提示(&B)",77],["Sound","使用音效(&E)",94]];
+  const body=keys.map(([k,t,y])=>`<label class="tk-chk" style="${rect(9,y,174,14)}"><input type="checkbox" id="${k}"><span>${t}</span></label>`).join("")
+    +btn("ok",41,119,50,14,"確定")+btn("cancel",107,119,50,14,"取消");
+  showModal(dlgHTML({title:"蜘蛛選項",w:199,h:140,cls:"options",body}),dlg=>{
+    for(const [k] of keys)dlg.querySelector("#"+k).checked=!!prefs[k];
+    dlg.querySelector("#ok").onclick=()=>{for(const [k] of keys)prefs[k]=dlg.querySelector("#"+k).checked?1:0;savePrefs();closeModal()};dlg.querySelector("#cancel").onclick=closeModal;
+  })
+}
+function about(){
+  /* Resource 107: 253x189 DLU.  Bitmap 106 at (10,10) px clipped by the client; text at (25,110) px, wrap 240 px. */
+  const bx=Math.round(dx(102)+dx(50)/2-20),by=Math.round(dy(171)+dy(14)/2-11);
+  const body=`<img src="${A}106.bmp" alt="" style="left:10px;top:10px;width:359px;height:242px">`
+    +`<div class="about-txt" style="left:25px;top:110px;width:240px">(C) 1998-2000 Microsoft Corporation.<br>保留所有權利。<br><br>作者<br>張書維 0981616409<br>game76420@gmail.com</div>`
+    +`<button type="button" class="tk-btn" id="ok" style="left:${bx}px;top:${by}px;width:40px;height:22px">確定</button>`;
+  showModal(dlgHTML({title:"關於蜘蛛",w:253,h:189,cls:"about",body}),dlg=>dlg.querySelector("#ok").onclick=closeModal)
+}
+function onClose(){if(gameOver){savePrefs();return}if(prefs.SaveOnExit){if(saveGame()){savePrefs();toast("已儲存");return}}else{let a=confirm("關閉此遊戲之前是否要儲存？");if(a){if(saveGame())savePrefs();}else{updateStats(false);savePrefs()}}}
+function startup(){
+  resize();syncMenus();
+  if(prefs.LoadAtStart&&localStorage.getItem("spider_save")){loadGame();return}
+  difficulty();
+}
+window.addEventListener("keydown",e=>{
+  if(e.key==="F2"){e.preventDefault();newGame()}
+  else if(e.key==="F3"){e.preventDefault();difficulty()}
+  else if(e.key==="F4"){e.preventDefault();statistics()}
+  else if(e.key==="F5"){e.preventDefault();options()}
+  else if(e.ctrlKey&&e.key.toLowerCase()==="z"){e.preventDefault();undo()}
+  else if(e.ctrlKey&&e.key.toLowerCase()==="s"){e.preventDefault();saveGame()}
+  else if(e.ctrlKey&&e.key.toLowerCase()==="o"){e.preventDefault();loadGame()}
+  else if(e.key.toLowerCase()==="d"&&!e.ctrlKey){e.preventDefault();deal()}
+  else if(e.key.toLowerCase()==="m"&&!e.ctrlKey){e.preventDefault();hint()}
+  else if(e.altKey&&e.key.toLowerCase()==="g"){e.preventDefault();document.querySelector('[data-menu="game"]>button').click()}
+});
+window.addEventListener("beforeunload",e=>{if(!gameOver&&!prefs.SaveOnExit)return;try{savePrefs();if(prefs.SaveOnExit&&!gameOver)localStorage.setItem("spider_save",JSON.stringify(game.save()))}catch(_){}});
+Promise.all(Object.values(images).map(im=>new Promise(r=>{if(im.complete)r();else im.onload=im.onerror=()=>r()}))).then(startup);
+</script>
+</body>
+</html>
