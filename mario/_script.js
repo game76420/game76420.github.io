@@ -1833,31 +1833,100 @@ function sourceBackGrHeight(type,raw){
   // BACKGR.PAS::InitBackGr applies Height - value + 1 only to 1, 9, 10.
   const t=Number(type); return (t===1||t===9||t===10) ? 26-Number(raw)+1 : Number(raw);
 }
-/* STEP154: TAINT-SAFE SOURCE BACKGR PRESENTATION */
+/* STEP154/STEP185: TAINT-SAFE SOURCE BACKGR PRESENTATION
+ *
+ * Performance finding (2026-09-23):
+ *   1A = BackGrType 1.  The previous implementation executed roughly
+ *   320*26 conditional pixel tests and potentially one Canvas fillRect for
+ *   EVERY simulation frame.  When XView moved, this was especially visible
+ *   as scrolling stutter because the whole BackGrMap was re-rasterized even
+ *   though the source map only changes its exposed left/right column every
+ *   3 source pixels (XStart = floor(XView/3)).
+ *
+ * Source behaviour is unchanged.  Only the browser presentation primitive is
+ * cached: keep one 320x26 viewport raster for the current source XStart and
+ * rebuild it only when XStart, the relevant scene options, or the sky palette
+ * inputs change.  The gameplay world/camera/collision state is untouched.
+ */
+let sourceBackGrViewportCache=null;
+
+function clearSourceBackGrViewportCache(){
+  sourceBackGrViewportCache=null;
+}
+
 function drawSourceBackGrMap(ctx,s,cam){
   // BACKGR.PAS::PutBackGr @Fill without Canvas readback.
   const type=Number(s.options?.BackGrType??0);
-  const name=sourceBackGrMapName(type); if(!name||!window.MARIO_BAKED_DATA)return false;
+  const name=sourceBackGrMapName(type);
+  if(!name||!window.MARIO_BAKED_DATA)return false;
   const rec=window.MARIO_BAKED_DATA.background_images?.[name];
   if(!rec||!Array.isArray(rec.pixels))return false;
-  const horizon=Number(s.options?.Horizon??0), yBase=horizon-26;
+
+  const horizon=Number(s.options?.Horizon??0);
+  const yBase=horizon-26;
   const xStart=Math.floor((Number(cam)||0)/3);
+
+  // Only BackGrMap's two source sky colours are relevant to this layer.
+  // Avoid using the whole animated runtime palette as a cache key: Star,
+  // waterfall and grass palette animation do not alter the E0/F0 values used
+  // by this source operation.
   const pal=sourceRuntimePalette(s.options||{});
-  for(let sx=0;sx<320;sx++){
-    const mi=xStart+sx; if(mi<0||mi>=rec.pixels.length)continue;
-    // InitBackGr stores the 60x26 source map unchanged; BackGrMap is the height value itself.
-    const hi=Math.max(0,Math.min(26,Number(rec.pixels[mi])));
-    for(let row=0;row<26;row++){
-      const localY=yBase+row, sy=localY+9;
-      if(sy<9||sy>=191)continue;
-      const cur=sourceSkyIndexAt(s.options||{},localY);
-      if(cur===0xF0 && row<hi){ctx.fillStyle=sourceVgaRgb(pal[0xE0]||[0,0,0]);ctx.fillRect(sx,sy,1,1);}
-      else if(cur===0xE0 && row>=hi){ctx.fillStyle=sourceVgaRgb(pal[0xF0]||[0,0,0]);ctx.fillRect(sx,sy,1,1);}
+  const e0=pal[0xE0]||[0,0,0];
+  const f0=pal[0xF0]||[0,0,0];
+  const cacheKey=JSON.stringify([
+    type,xStart,horizon,
+    Number(s.options?.SkyType??0),
+    Number(s.options?.BackGrColor1??0),
+    Number(s.options?.BackGrColor2??0),
+    e0,f0
+  ]);
+
+  let cache=sourceBackGrViewportCache;
+  if(!cache||cache.key!==cacheKey){
+    const page=document.createElement('canvas');
+    page.width=320; page.height=26;
+    const pctx=page.getContext('2d');
+    pctx.imageSmoothingEnabled=false;
+
+    // Build the same 320x26 source layer in one ImageData write instead of
+    // thousands of destination fillRect calls on every animation frame.
+    const image=pctx.createImageData(320,26);
+    const data=image.data;
+
+    for(let sx=0;sx<320;sx++){
+      const mi=xStart+sx;
+      if(mi<0||mi>=rec.pixels.length)continue;
+      const hi=Math.max(0,Math.min(26,Number(rec.pixels[mi])));
+
+      for(let row=0;row<26;row++){
+        const localY=yBase+row;
+        const sy=localY+9;
+        if(sy<9||sy>=191)continue;
+
+        const cur=sourceSkyIndexAt(s.options||{},localY);
+        let rgb=null;
+        if(cur===0xF0 && row<hi) rgb=e0;
+        else if(cur===0xE0 && row>=hi) rgb=f0;
+        if(!rgb)continue;
+
+        const off=(row*320+sx)*4;
+        data[off]=Math.round(rgb[0]*255/63);
+        data[off+1]=Math.round(rgb[1]*255/63);
+        data[off+2]=Math.round(rgb[2]*255/63);
+        data[off+3]=255;
+      }
     }
+
+    pctx.putImageData(image,0,0);
+    cache={key:cacheKey,canvas:page,y:yBase+9};
+    sourceBackGrViewportCache=cache;
   }
+
+  ctx.drawImage(cache.canvas,0,cache.y);
   window.__sourceBackGrLastXView=Number(cam)||0;
   return true;
 }
+
 const specialBackGrCache=new Map();
 const sourceSpecialBrickTileCache=new Map();
 
@@ -3393,7 +3462,7 @@ function draw(ctx){
 // currentPlayerIndex at creation, and every normal/recolor/demo/fire draw path
 // resolves MARIO vs LUIGI from that source player index.
 function reset(key,carry=null){
-  stage=makeStage(key)||makeStage('1a'); initTempObjects(); bumpBlockState=null; lavaCounter=0; grassCounter=-12; waterfallCounter=0; coinCounter=74; blinkCounter=-3; waterfallStarted=true; skyCache=null; foregroundCache=null; specialBackGrCache.clear();sourceSpecialTileCache.clear();sourceStaticTileCache.clear();clearPillarViewportCache();sourceGrassTileCache.clear(); sourceFirstRender=true; player=new Player(stage); if(assetsReady)prewarmLevel2ABackground(stage);
+  stage=makeStage(key)||makeStage('1a'); initTempObjects(); bumpBlockState=null; lavaCounter=0; grassCounter=-12; waterfallCounter=0; coinCounter=74; blinkCounter=-3; waterfallStarted=true; skyCache=null; foregroundCache=null; clearSourceBackGrViewportCache(); specialBackGrCache.clear();sourceSpecialTileCache.clear();sourceStaticTileCache.clear();clearPillarViewportCache();sourceGrassTileCache.clear(); sourceFirstRender=true; player=new Player(stage); if(assetsReady)prewarmLevel2ABackground(stage);
   if(carry){ player.lives=carry.lives; player.score=carry.score; player.coins=carry.coins; player.mode=carry.mode; player.level_score=0; player.small=(player.mode===0); }
   sourcePlayers[currentPlayerIndex].progress=Number(sourceProgress);
   sourcePlayers[currentPlayerIndex].lives=Number(player.lives);
