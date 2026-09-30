@@ -75,6 +75,11 @@ function commonWord(ch){
   if(!commonWord.map){commonWord.map=new Map(); for(const [w,c] of Object.entries(CP950)) commonWord.map.set(c,parseInt(w,16));}
   return commonWord.map.get(ch)||null;
 }
+// 每局使用不同的亂數種子（原版固定 srand(1)，導致每局出字順序完全相同）
+function randomSeed(){
+  try{const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]||1}
+  catch(e){return (((Math.random()*4294967296)>>>0)^(Date.now()>>>0))||1}
+}
 class RNG{
   constructor(seed=1){this.state=seed>>>0}
   next(){this.state=Math.imul(214013,this.state)+2531011; this.state>>>=0; return (this.state>>>16)&0x7fff;}
@@ -109,7 +114,7 @@ class Game{
  configureSpeed(k){this.speedKey=k;this.interval=CONFIG.speeds[k][0];this.restartTimer();this.emit()}
  setCommon(v){this.commonChars=v;this.emit()}
  setSound(v){this.soundEnabled=v;this.emit()}
- start(){this.over=false;this.base=(performance.now()|0)&0xffff;this.rng=new RNG(1);this.running=true;this.paused=false;this.resetBoard();this.blocks=[];this.matched=[];this.count168=this.count172=this.count176=this.count180=this.count184=0;this.score=0;this.pending=false;this.emit();this.restartTimer()}
+ start(seed){this.over=false;this.seed=(seed==null?randomSeed():seed>>>0);this.base=randomSeed()&0xffff;this.rng=new RNG(this.seed);this.running=true;this.paused=false;this.resetBoard();this.blocks=[];this.matched=[];this.count168=this.count172=this.count176=this.count180=this.count184=0;this.score=0;this.pending=false;this.emit();this.restartTimer()}
  stop(){this.over=false;this.running=false;this.paused=false;clearTimeout(this.timer);this.blocks=[];this.resetBoard();this.emit()}
  pause(){if(!this.running)return;this.paused=!this.paused;this.restartTimer();this.emit()}
  restartTimer(){clearTimeout(this.timer);if(this.running&&!this.paused)this.timer=setTimeout(()=>{this.timer=null;this.tick();this.restartTimer()},Math.max(1,this.interval))}
