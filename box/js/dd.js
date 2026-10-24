@@ -281,5 +281,5 @@ function buildD(L,W,H,T){
 
  // 插舌與 n/s 的「耳」須向盒內折（否則會穿出牆面）；dir=-1 代表反向旋轉
  P.forEach(p=>{if(p.n==='插舌'||p.n==='耳')p.dir=-1});
- return {P, Hn, SL:[], SWd:0, yT:0, D:{ox:oxBase, oy:oyBase, a:L, b:W, h:H}};
+ return {P, Hn, SL:[], SWd:0, yT:0, D:{ox:oxBase, oy:oyBase, a:L, b:W, h:H}, D2:{ox:oxLid, oy:oyLid, a:a2, b:b2, h:h2}};
 }

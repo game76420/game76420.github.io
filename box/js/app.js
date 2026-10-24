@@ -28,7 +28,8 @@ function draw(){
   const hd=(x,y,dx,dy)=>{const a=sw*7,b=sw*3,nx=-dy,ny=dx;return `<polygon points="${x},${y} ${x-dx*a+nx*b},${y-dy*a+ny*b} ${x-dx*a-nx*b},${y-dy*a-ny*b}" fill="#1677ff"/>`};
   const dm=(ax,ay,bx,by,t)=>{const cx=(ax+bx)/2,cy=(ay+by)/2,w=t.length*fs*.6+fs*1.2,n=Math.hypot(bx-ax,by-ay)||1,ux=(bx-ax)/n,uy=(by-ay)/n;
    return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#1677ff" stroke-width="${sw*1.1}"/>${hd(ax,ay,-ux,-uy)}${hd(bx,by,ux,uy)}<g transform="translate(${cx} ${cy})"><rect x="${-w/2}" y="${-fs*.95}" width="${w}" height="${fs*1.9}" rx="${fs*.3}" style="fill:@CV"/><text y="${fs*.35}" font-size="${fs}" text-anchor="middle" fill="#1677ff">${t}</text></g>`};
-  s+=S.kind==='dd'?dm(g.D.ox,g.D.oy+g.D.b*.75,g.D.ox+g.D.a,g.D.oy+g.D.b*.75,dv[0])+dm(g.D.ox+g.D.a*.8,g.D.oy,g.D.ox+g.D.a*.8,g.D.oy+g.D.b,dv[1])+dm(g.D.ox-g.D.h,g.D.oy+g.D.b*.12,g.D.ox,g.D.oy+g.D.b*.12,dv[2]):S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0])}
+  const ddDm=(D,v)=>dm(D.ox,D.oy+D.b*.75,D.ox+D.a,D.oy+D.b*.75,v[0])+dm(D.ox+D.a*.8,D.oy,D.ox+D.a*.8,D.oy+D.b,v[1])+dm(D.ox-D.h,D.oy+D.b*.12,D.ox,D.oy+D.b*.12,v[2]);
+  s+=S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0])}
  s+='</svg>';
  G={raw:s,P,cut,fold:fold.map(h=>({a:h[0],b:h[1]})),slots,vx,vy,vw,vh};
  if(!V||!touched)V={x:vx,y:vy,w:vw,h:vh};
