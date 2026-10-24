@@ -1,1 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>飛機盒刀模生成器</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="home">
+ <div class="top"><i></i>刀版生成器</div>
+ <h1>刀模模板</h1><div class="hs">選擇盒型，自訂尺寸與材質後即可下載刀版</div>
+ <div class="gal" id="gal">
+  <div class="gi" data-b="mailer"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div><div class="tg"><span>可印刷</span><span>可下載</span></div></div><div class="nm">飛機盒</div></div>
+  <div class="gi" data-b="rsc"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div><div class="tg"><span>可印刷</span><span>可下載</span></div></div><div class="nm">方形運輸箱</div></div>
+  <div class="gi" data-b="tuck"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div><div class="tg"><span>可印刷</span><span>可下載</span></div></div><div class="nm">插口式軟件盒</div></div><div class="gi" data-b="gtuck"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div><div class="tg"><span>可印刷</span><span>可下載</span></div></div><div class="nm">插口式遊戲盒</div></div><div class="gi" data-b="dd"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div><div class="tg"><span>可印刷</span><span>可下載</span></div></div><div class="nm">天地盒</div></div>
+ </div>
+</div>
+<div class="app">
+<section class="box left">
+ <nav class="rail" id="rail">
+  <div data-t="mock"><b>📦</b>樣機</div>
+  <div class="on" data-t="base"><b>📐</b>基礎</div>
+  <div data-t="adv"><b>📏</b>進階</div>
+  <hr>
+  <div data-t="more"><b>⋯</b>更多</div>
+  <div data-t="help" style="margin-top:auto"><b>ⓘ</b></div>
+ </nav>
+ <div class="pn">
+  <div class="back" id="back">‹ 返回刀模列表</div>
+  <div id="tBase"><h3 style="display:none">盒型</h3><div class="ty" id="kd" style="display:none"><button class="on" data-b="mailer">飛機盒</button><button data-b="rsc">方形運輸箱</button><button data-b="tuck">插口式軟件盒</button><button data-b="dd">天地盒</button><button data-b="gtuck">插口式遊戲盒</button></div>
+   <h3>自訂尺寸 <span class="ii" title="輸入盒子的長、寬、高">i</span><span class="pill" id="unit"><span class="on" data-u="mm">mm</span><span data-u="in">in</span></span></h3>
+   <div class="g2">
+    <div class="fld"><label>長度</label><div><input id="L" type="number" step="any"><span class="u">mm</span></div></div>
+    <div class="fld"><label>寬度</label><div><input id="W" type="number" step="any"><span class="u">mm</span></div></div>
+    <div class="fld"><label>高度</label><div><input id="H" type="number" step="any"><span class="u">mm</span></div></div>
+   </div>
+   <h3 class="m">自訂厚度</h3><div class="sub" id="tr">(0.2~5mm)</div>
+   <div class="step"><button id="tm">−</button><input id="T" type="number" step="any"><button id="tp">+</button></div>
+   <h3 class="m" style="margin-bottom:18px">選擇材質 <span class="ii" title="選擇材質會自動帶入對應的紙張厚度">i</span></h3>
+   <div class="msel" id="matBox"><i id="dot"></i><span id="matName">瓦楞紙E(三層)</span><svg viewBox="0 0 16 16"><path d="M2 10.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+   <h3 class="m">尺寸類型 <span class="ii" title="製造尺寸：刀模實際使用的尺寸；內尺寸：可裝入物品的空間；外尺寸：成品盒外觀">i</span></h3>
+   <div class="ty" id="ty"><button class="on" data-k="mfg">製造尺寸</button><button data-k="in">內尺寸</button><button data-k="out">外尺寸</button></div>
+  </div>
+  <div id="tMock" style="display:none"><div class="mk-seg" id="mkSeg"><span class="on" data-s="lib">資源庫</span><span data-s="mine">我的</span></div>
+   <div class="mk-q">🔍<input id="mkQ" placeholder="搜尋刀模名稱"></div><div class="mk-ch" id="mkChips"></div><div id="mkList"></div></div>
+  <div id="tAdv" style="display:none">
+   <h3>進階顯示</h3>
+   <label class="chk"><input type="checkbox" id="oBleed" checked>顯示出血線（外擴 3mm）</label>
+   <label class="chk"><input type="checkbox" id="oDim" checked>顯示尺寸標註</label>
+   <label class="chk"><input type="checkbox" id="oName">顯示面板名稱</label>
+   <label class="chk"><input type="checkbox" id="oSlot" checked>顯示鎖扣槽孔</label>
+  </div>
+ </div>
+</section>
 
+<section class="mid">
+ <div class="leg"><div class="l"><span><i style="border-color:#3aa800"></i>出血線</span><span><i style="border-color:#1c1ccf"></i>割線</span><span><i style="border-color:#e11"></i>折線</span></div>
+  <p>製造尺寸<br><span id="s1"></span></p><p>內尺寸<br><span id="s2"></span></p><p>外尺寸<br><span id="s3"></span></p></div>
+ <div class="stage" id="stage"></div>
+ <div class="tb"><button id="bSel" class="on" title="選取">⬉</button><button id="bHand" title="平移">✋</button><hr><button id="zi" title="放大">＋</button><button id="zo" title="縮小">－</button><hr><button id="bDim" class="on" title="尺寸標註">✎</button><button id="bSet" title="進階設定">⚙</button></div>
+</section>
+
+<aside class="right">
+ <div class="pv" id="pvBox"><canvas id="pvc"></canvas>
+  <svg class="r3" id="r3" viewBox="0 0 40 34"><text x="20" y="16" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="17" fill="#111">3D</text><path d="M5 22Q20 33 35 22" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round"/><path d="M36 17l1 8-7-2z" fill="#111"/></svg>
+  <div class="peel"></div>
+  <div class="sl"><span>展開</span><input type="range" id="fold" min="0" max="100" value="100"><span>閉合</span></div></div>
+ <div class="box ff"><h3>檔案格式</h3>
+  <div class="fb">
+   <button class="on" id="dAI"><b style="background:#d97706;font-size:12px">Ai</b>AI 刀版</button>
+   <button id="dPDF"><b style="background:#e5334b">PDF</b>PDF 刀版</button>
+   <button id="dDXF"><b style="background:#222">DXF</b>DXF 刀版</button>
+   <button id="dPNG"><b style="background:#16a34a">JPG</b>3D 樣機</button>
+  </div>
+  <h3 style="margin-top:22px">你將獲得</h3>
+  <ul><li>所有刀版文件都可以在幾分鐘內生成並下載。</li><li>所有刀版文件都經過嚴格檢查，包括尺寸、厚度和材質描述，可直接進行列印。</li><li>所有刀版文件都沒有浮水印，並可以在本地使用 Adobe Illustrator 進行編輯。</li></ul>
+ </div>
+</aside>
+</div>
+<div class="toast" id="toast"></div>
+<script src="vendor/three.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/diecuts/mailer.js"></script>
+<script src="js/diecuts/rsc.js"></script>
+<script src="js/diecuts/tuck.js"></script>
+<script src="js/diecuts/dd.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
