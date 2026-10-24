@@ -67,21 +67,9 @@ function readIn(commitClamp){
   raw[2] = maxH; // 內部刀模與 3D 立即使用安全上限繪製，避免破圖
   clearTimeout(dimWarnTimer);
   if(commitClamp){
+   // 使用者輸入完成（失焦 / Enter / 滾輪）才修正欄位，輸入過程中不動數字
    $('H').value = nf(maxH / k);
    dimWarnTimer = setTimeout(()=>showDimWarn(false), 1800);
-  } else {
-   // 使用者輸入停頓 900ms 後自動將高度欄位修正為 min(L, W)，與原版行為一致
-   dimWarnTimer = setTimeout(()=>{
-    const curL = Math.max(Number($('L').value)||1,1)*k;
-    const curW = Math.max(Number($('W').value)||1,1)*k;
-    const curH = Math.max(Number($('H').value)||1,1)*k;
-    const limitH = Math.min(curL, curW);
-    if((S.kind === 'dd' || S.kind === 'mailer') && curH > limitH + 1e-6){
-     $('H').value = nf(limitH / k);
-     readIn(true);
-     refit();
-    }
-   }, 900);
   }
  } else {
   clearTimeout(dimWarnTimer);
@@ -141,7 +129,7 @@ $('rail').onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;const v=
  if(v==='base'||v==='adv'||v==='mock')tab(v);else toast('此功能即將推出')};
 // 長/寬/高：游標停在欄位上時，滾輪向上 +1、向下 −1（in 模式每格 0.1），最小為 1
 ['L','W','H'].forEach(id=>{let last=0;$(id).addEventListener('wheel',e=>{e.preventDefault();const n=performance.now();if(n-last<50||!e.deltaY)return;last=n;
- const el=$(id),st=S.unit==='in'?.1:1,v=(+el.value||0)+(e.deltaY<0?st:-st);el.value=Math.max(1,Math.round(v*1e4)/1e4);el.oninput()},{passive:false})});
+ const el=$(id),st=S.unit==='in'?.1:1,v=(+el.value||0)+(e.deltaY<0?st:-st);el.value=Math.max(1,Math.round(v*1e4)/1e4);el.oninput();readIn(true);syncT();refit()},{passive:false})});
 ['oBleed','oDim','oName','oSlot'].forEach(id=>$(id).onchange=()=>{$('bDim').classList.toggle('on',$('oDim').checked);draw()});
 $('bDim').onclick=()=>{$('oDim').checked=!$('oDim').checked;$('bDim').classList.toggle('on',$('oDim').checked);draw()};
 $('bSet').onclick=()=>tab('adv');

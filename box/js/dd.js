@@ -48,7 +48,7 @@ function buildD(L,W,H,T){
  const c = T > 1 ? Math.min(1, T - 1) : 0;
 
  // 若使用者在介面上選擇「內尺寸 (in)」或「外尺寸 (out)」，反推正確的製造尺寸 L, W, H
- // 並執行原版防呆：當高度 H > min(L, W) 時，顯示紅色錯誤提示並自動將高度修正為 min(L, W)
+ // 防呆：當高度 H > min(L, W) 時，預覽以 min(L, W) 繪製（欄位修正與警告由 core.js 處理，等使用者輸入完才改）
  if(typeof document !== 'undefined'){
   const kBtn = document.querySelector('#ty button.on');
   const kind = kBtn ? kBtn.getAttribute('data-k') : 'mfg';
@@ -62,38 +62,10 @@ function buildD(L,W,H,T){
   const rawW = parseFloat(elW?.value) * scale;
   let rawH = parseFloat(elH?.value) * scale;
 
-  // 建立或取得與原版一致的粉紅底紅字警告框
-  let warnEl = document.getElementById('ddDimWarn');
-  if(!warnEl){
-   const g2 = document.querySelector('#tBase .g2');
-   if(g2){
-    warnEl = document.createElement('div');
-    warnEl.id = 'ddDimWarn';
-    warnEl.style.cssText = 'display:none;margin:4px 0 10px;padding:12px 14px;border-radius:10px;background:#fff1f2;color:#ef4444;font-size:13px;line-height:1.5;';
-    warnEl.innerHTML = '您設置的尺寸可能會導致打印錯誤 <span title="高度不能超過長度或寬度的較小值，系統已自動修正" style="display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:help;margin-left:2px">?</span>';
-    g2.insertAdjacentElement('afterend', warnEl);
-   }
-  }
-
   if(Number.isFinite(rawL) && Number.isFinite(rawW) && Number.isFinite(rawH)){
    const limitH = Math.min(rawL, rawW);
-   if(rawH > limitH + 1e-6){
-    rawH = limitH;
-    if(warnEl) warnEl.style.display = 'block';
-    clearTimeout(buildD._warnTimer);
-    buildD._warnTimer = setTimeout(()=>{
-     if(elH){
-      const fmtH = isIn ? Math.round((limitH / scale) * 1e4) / 1e4 : Math.round((limitH / scale) * 100) / 100;
-      elH.value = fmtH;
-     }
-     if(typeof S !== 'undefined' && Array.isArray(S.m)){
-      const dIn = ddOffs('in', T), dOut = ddOffs('out', T);
-      S.m[2] = kind === 'in' ? limitH + dIn[2] : kind === 'out' ? limitH - dOut[2] : limitH;
-     }
-    }, 650);
-   } else {
-    if(warnEl) warnEl.style.display = 'none';
-   }
+   // 輸入過程中只用安全上限繪製預覽，不改動欄位；真正修正由 core.js 在輸入完成（失焦 / Enter）時處理
+   if(rawH > limitH + 1e-6) rawH = limitH;
 
    const dIn = ddOffs('in', T), dOut = ddOffs('out', T);
    if(kind === 'mfg'){
