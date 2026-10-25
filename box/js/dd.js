@@ -42,6 +42,8 @@ function ddOffs(dir, T){
  return [r05(9.5*T - 0.5), r05(9.5*T - 0.5), r1(3*T - 1)];
 }
 
+// ===== 天地盒（四折天地盒）：依原站截圖量測。底＝製造尺寸；蓋中心面＝外尺寸、側板高＝外尺寸高。
+// 每件：中心面＋4 側板；上下側板外接 [折邊條 3.15T → 內襯折邊 H−T → 插舌] 並在內襯兩側帶耳；左右側板外接梯形折邊條→內襯→尖插舌，並在側板上下帶 .4L 的角耳 =====
 function buildD(L,W,H,T){
  const P=[],Hn=[],one=(n,l,id,par,hg,w,o3,ang)=>P.push({n,...shape(l),id,par,hg,w,o3,ang});
  const hasStrip = T > 0.8;

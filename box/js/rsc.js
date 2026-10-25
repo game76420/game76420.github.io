@@ -1,3 +1,4 @@
+// ===== 方形運輸箱（RSC 標準開槽箱）：4 面板 + 糊邊 + 上下各 4 片蓋；L 面為大蓋、W 面為小蓋 =====
 function buildR(L,W,H,T){
  const s=T,fh=W/2+T/2,gw=Math.min(47,.6*W),gc=Math.min(.28*gw,.2*H),X=[0,L,L+W,2*L+W,2*L+2*W],P=[],Hn=[],N=['L面','W面','L面','W面'],WN=[[0,0],[0,.3],[.05,.4],[.1,.5]];
  const one=(n,l,id,par,hg,w,sh)=>P.push({n,...shape(l),id,par,hg,w,sh});
@@ -9,4 +10,3 @@ function buildR(L,W,H,T){
  one('糊邊',[[0,0],[-gw,gc],[-gw,H-gc],[0,H]],'gl','p0',[[0,0],[0,H]],[.3,.45]);
  Hn.push([[0,0],[0,H]]);
  return {P,Hn,SL:[],SWd:0,yT:0}}
-// ===== 插口式軟件盒（反向插口 Reverse Tuck End）：A/B/C/D 四面 + 左側糊邊；A 面上方為蓋、C 面下方為底插片，B/D 面上下各有防塵翼 =====

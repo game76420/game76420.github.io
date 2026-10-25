@@ -19,17 +19,30 @@ const DKT=[.2,.5,1,1.5,2,3,4,5],
 DKI=[[4.2,4.2,.2],[4.4,4.4,.6],[7,7,1],[11,11,2],[12,12,2],[20,20,4],[27,27,5],[34,34,6]],
 DKO=[[4.7,4.7,.6],[5.7,5.7,1.4],[9.5,9.5,3],[15,15,4],[17,17,6],[28,28,8],[37.5,37.5,11],[47,47,14]];
 const ddO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*ip(T,DKT,(t==='in'?DKI:DKO).map(r=>r[j])));
-const offs=(t,T)=>t==='mfg'?[0,0,0]:S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
-// 厚度上限隨高度變化（原站：H=62→5mm，H=100→3mm）
-const maxT=()=>S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
+
+// 插口端山形盒專用補償公式（依據 15 組實測截圖精確擬合）
+const tgO=(t,T)=>{
+ if(t==='mfg')return[0,0,0];
+ if(t==='in'){
+  const d=T<=.5?T:Math.round(T+1);
+  return[-d,-d,-d];
+ }
+ const dxy=T<=.5?T:T<=1.5?1:Math.round(T-1);
+ const dz=T<=.5?2*T:T===1?1.5:T===1.5?2.5:2*T-1;
+ return[dxy,dxy,dz];
+};
+
+const offs=(t,T)=>t==='mfg'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+// 厚度上限隨尺寸變化
+const maxT=()=>S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
 const S={unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false};
-const nm=()=>S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
+const nm=()=>S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
 const nf=v=>S.unit==='in'?Math.round(v*1e4)/1e4:r2(v);
 function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',2400)}
 
-// ===== 尺寸防呆警告區塊（與原版相同：紅底提示 + 自動修正高度為 min(L, W)） =====
+// ===== 尺寸防呆警告區塊 =====
 let dimWarnTimer = null;
 function ensureDimWarnBox(){
  let w = $('dimWarn');
@@ -39,43 +52,47 @@ function ensureDimWarnBox(){
   w = document.createElement('div');
   w.id = 'dimWarn';
   w.style.cssText = 'display:none;margin:4px 0 10px;padding:12px 14px;border-radius:10px;background:#fff1f2;color:#ef4444;font-size:13px;line-height:1.5;';
-  w.innerHTML = '您設置的尺寸可能會導致列印錯誤 <span title="高度不能大於長度或寬度，系統將自動修正為長與寬的較小值" style="display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:help;margin-left:2px">?</span>';
+  w.innerHTML = '您設置的尺寸可能會導致列印錯誤 <span title="尺寸比例不合適" style="display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:help;margin-left:2px">?</span>';
   g2.insertAdjacentElement('afterend', w);
  }
  return w;
 }
 const gableWarn=(m)=>S.kind==='gable'&&m[2]>1.2*Math.min(m[0],m[1])+1e-6;
+const tgableWarn=(m)=>S.kind==='tgable'&&(m[1]<0.18*m[0]||m[2]>3.5*m[1]);
+const warnCheck=(m)=>S.kind==='tgable'?tgableWarn(m):gableWarn(m);
+
 function showDimWarn(show){
  const w = ensureDimWarnBox();
  if(!w) return;
- const tip=w.querySelector('span');if(tip)tip.title=S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
+ const tip=w.querySelector('span');
+ if(tip){
+  tip.title=S.kind==='tgable'?'寬度相對長度過小或高度過大，卡扣底與山形頂部可能無法閉合':S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
+ }
  w.style.display = show ? 'block' : 'none';
 }
 
 function fill(){const k=kk();['L','W','H'].forEach((id,i)=>$(id).value=nf((S.m[i]+offs(S.type,S.T)[i])/k));
  $('T').value=nf(S.T/k);$('tr').textContent=S.unit==='in'?`(0.0079~${maxT()===5?'0.1970':(maxT()/25.4).toFixed(4)}in)`:`(0.2~${maxT()}mm)`;$('tm').disabled=S.T<=.2;$('tp').disabled=S.T>=maxT()-1e-9;document.querySelectorAll('.u').forEach(e=>e.textContent=S.unit);
- showDimWarn(gableWarn(S.m))}
+ showDimWarn(warnCheck(S.m))}
 
 function readIn(commitClamp){
  const k=kk();
  let raw=['L','W','H'].map(id=>Math.max(Number($(id).value)||1,1)*k);
 
- // 防呆檢查：當高度 > min(長, 寬) 時（天地盒與折疊盒通用防呆）
  const maxH = Math.min(raw[0], raw[1]);
  const isInvalidH = (S.kind === 'dd' || S.kind === 'mailer') && raw[2] > maxH + 1e-6;
 
  if(isInvalidH){
   showDimWarn(true);
-  raw[2] = maxH; // 內部刀模與 3D 立即使用安全上限繪製，避免破圖
+  raw[2] = maxH;
   clearTimeout(dimWarnTimer);
   if(commitClamp){
-   // 使用者輸入完成（失焦 / Enter / 滾輪）才修正欄位，輸入過程中不動數字
    $('H').value = nf(maxH / k);
    dimWarnTimer = setTimeout(()=>showDimWarn(false), 1800);
   }
  } else {
   clearTimeout(dimWarnTimer);
-  showDimWarn(gableWarn(raw));
+  showDimWarn(warnCheck(raw));
  }
 
  S.T=Math.max(.2,(Number($('T').value)*k)||1.5);
@@ -88,7 +105,6 @@ function readIn(commitClamp){
  }
  const o=offs(S.type,S.T);
  S.m=raw.map((x,i)=>Math.max(1,x-o[i]));
- // 確保製造尺寸的 H 也不超過 min(L, W)
  if(S.kind === 'dd' || S.kind === 'mailer'){
   S.m[2] = Math.min(S.m[2], Math.min(S.m[0], S.m[1]));
  }
@@ -129,7 +145,6 @@ addEventListener('resize',closeMat);document.querySelector('.pn').addEventListen
 function tab(v){document.querySelectorAll('#rail [data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===v));$('tBase').style.display=v==='base'?'':'none';$('tAdv').style.display=v==='adv'?'':'none';$('tMock').style.display=v==='mock'?'':'none';if(v==='mock')renderMock()}
 $('rail').onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;const v=t.dataset.t;
  if(v==='base'||v==='adv'||v==='mock')tab(v);else toast('此功能即將推出')};
-// 長/寬/高：游標停在欄位上時，滾輪向上 +1、向下 −1（in 模式每格 0.1），最小為 1
 ['L','W','H'].forEach(id=>{let last=0;$(id).addEventListener('wheel',e=>{e.preventDefault();const n=performance.now();if(n-last<50||!e.deltaY)return;last=n;
  const el=$(id),st=S.unit==='in'?.1:1,v=(+el.value||0)+(e.deltaY<0?st:-st);el.value=Math.max(1,Math.round(v*1e4)/1e4);el.oninput();readIn(true);syncT();refit()},{passive:false})});
 ['oBleed','oDim','oName','oSlot'].forEach(id=>$(id).onchange=()=>{$('bDim').classList.toggle('on',$('oDim').checked);draw()});
