@@ -19,11 +19,11 @@ const DKT=[.2,.5,1,1.5,2,3,4,5],
 DKI=[[4.2,4.2,.2],[4.4,4.4,.6],[7,7,1],[11,11,2],[12,12,2],[20,20,4],[27,27,5],[34,34,6]],
 DKO=[[4.7,4.7,.6],[5.7,5.7,1.4],[9.5,9.5,3],[15,15,4],[17,17,6],[28,28,8],[37.5,37.5,11],[47,47,14]];
 const ddO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*ip(T,DKT,(t==='in'?DKI:DKO).map(r=>r[j])));
-const offs=(t,T)=>t==='mfg'?[0,0,0]:S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+const offs=(t,T)=>t==='mfg'?[0,0,0]:S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
 // 厚度上限隨高度變化（原站：H=62→5mm，H=100→3mm）
 const maxT=()=>S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
 const S={unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false};
-const nm=()=>S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
+const nm=()=>S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
 const nf=v=>S.unit==='in'?Math.round(v*1e4)/1e4:r2(v);
@@ -44,15 +44,17 @@ function ensureDimWarnBox(){
  }
  return w;
 }
+const gableWarn=(m)=>S.kind==='gable'&&m[2]>1.2*Math.min(m[0],m[1])+1e-6;
 function showDimWarn(show){
  const w = ensureDimWarnBox();
  if(!w) return;
+ const tip=w.querySelector('span');if(tip)tip.title=S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
  w.style.display = show ? 'block' : 'none';
 }
 
 function fill(){const k=kk();['L','W','H'].forEach((id,i)=>$(id).value=nf((S.m[i]+offs(S.type,S.T)[i])/k));
  $('T').value=nf(S.T/k);$('tr').textContent=S.unit==='in'?`(0.0079~${maxT()===5?'0.1970':(maxT()/25.4).toFixed(4)}in)`:`(0.2~${maxT()}mm)`;$('tm').disabled=S.T<=.2;$('tp').disabled=S.T>=maxT()-1e-9;document.querySelectorAll('.u').forEach(e=>e.textContent=S.unit);
- showDimWarn(false)}
+ showDimWarn(gableWarn(S.m))}
 
 function readIn(commitClamp){
  const k=kk();
@@ -73,7 +75,7 @@ function readIn(commitClamp){
   }
  } else {
   clearTimeout(dimWarnTimer);
-  showDimWarn(false);
+  showDimWarn(gableWarn(raw));
  }
 
  S.T=Math.max(.2,(Number($('T').value)*k)||1.5);

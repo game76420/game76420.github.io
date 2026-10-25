@@ -1,9 +1,12 @@
 $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b;[...$('kd').children].forEach(c=>c.classList.toggle('on',c.dataset.b===b));
  S.type='mfg';[...$('ty').children].forEach(c=>c.classList.toggle('on',c.dataset.k==='mfg'));
- const r=b!=='mailer'&&b!=='dd';S.m=b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:[315,202,62];cur=b==='rsc'?{c:1,i:2}:(b==='tuck'||b==='gtuck')?{c:0,i:0}:{c:1,i:1};const it=MATS[cur.c].items[cur.i];S.T=b==='dd'?1.5:(b==='tuck'||b==='gtuck')?.5:it.t;TH.yaw=r?-.5:0;TH.zoom=1;TH.panX=0;TH.panY=0;
- $('matName').textContent=it.n;$('dot').style.background=it.col;$('dot').style.border=it.w?'1px solid #ebebeb':'0';setMat3d(it.col);fill();refit()};
+ const r=b!=='mailer'&&b!=='dd';S.m=b==='gable'?[302,152,182]:b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:[315,202,62];cur=b==='rsc'?{c:1,i:2}:(b==='tuck'||b==='gtuck')?{c:0,i:0}:{c:1,i:1};const it=MATS[cur.c].items[cur.i];S.T=b==='dd'||b==='gable'?1.5:(b==='tuck'||b==='gtuck')?.5:it.t;TH.yaw=r?-.5:0;TH.zoom=1;TH.panX=0;TH.panY=0;
+ $('matName').textContent=it.n;$('dot').style.background=it.col;$('dot').style.border=it.w?'1px solid #ebebeb':'0';setMat3d(it.col);
+ // 拱型盒原站只有「製造尺寸 / 內尺寸」兩種尺寸類型，隱藏外尺寸
+ [...$('ty').children].forEach(c=>{if(c.dataset.k==='out')c.style.display=b==='gable'?'none':''});$('s3').parentElement.style.display=b==='gable'?'none':'';
+ fill();refit()};
 function draw(){
- const [L,W,H]=S.m,T=S.T,g=({mailer:build,rsc:buildR,tuck:buildT,gtuck:(L,W,H,T)=>buildT(L,W,H,T,1),dd:buildD})[S.kind](L,W,H,T),{P,Hn}=g,B=3;
+ const [L,W,H]=S.m,T=S.T,g=({mailer:build,rsc:buildR,tuck:buildT,gtuck:(L,W,H,T)=>buildT(L,W,H,T,1),dd:buildD,gable:buildG})[S.kind](L,W,H,T),{P,Hn}=g,B=3;
  const hk=new Set(Hn.map(h=>key(h[0],h[1])));
  const cut=[];
  for(const p of P)for(const q of p.e){if(!q.c1){if(q.a[0]===q.b[0]&&q.a[1]===q.b[1])continue;if(hk.has(key(q.a,q.b)))continue}cut.push(q)}
@@ -17,19 +20,20 @@ function draw(){
  const notch=S.T<.85&&slots.length>0,fold=notch?Hn.flatMap(h=>{const x=h[0][0];if(x!==h[1][0]||(Math.abs(x)>1e-9&&Math.abs(x-L)>1e-9))return [h];let seg=[[Math.min(h[0][1],h[1][1]),Math.max(h[0][1],h[1][1])]];for(const [a,b] of g.SL)seg=seg.flatMap(([p,q])=>a>=q||b<=p?[[p,q]]:[[p,Math.max(p,a)],[Math.min(q,b),q]].filter(([u,v])=>v-u>1e-9));return seg.map(([p,q])=>[[x,p],[x,q]])}):Hn;
  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" font-family="sans-serif">`;
  if($('oBleed').checked){const ps=P.map(p=>`<path d="${pathD(p.e)}"/>`).join(''),bw=sw*1.1;
-  s+=`<g fill="#5dbb1a" stroke="#5dbb1a" stroke-width="${2*B+bw}" stroke-linejoin="round">${ps}</g><g style="fill:@CV;stroke:@CV" stroke-width="${2*B-bw}" stroke-linejoin="round">${ps}</g>`}
- s+=P.map(p=>`<path d="${pathD(p.e)}" style="fill:@PF"/>`).join('');
- s+=`<path d="${fold.map(h=>`M${h[0][0]} ${h[0][1]}L${h[1][0]} ${h[1][1]}`).join('')}" stroke="#e11" stroke-width="${sw*1.1}" stroke-dasharray="${sw*3} ${sw*1.6}" fill="none"/>`;
+  s+=`<g id="Bleed"><g fill="#5dbb1a" stroke="#5dbb1a" stroke-width="${2*B+bw}" stroke-linejoin="round">${ps}</g><g style="fill:@CV;stroke:@CV" stroke-width="${2*B-bw}" stroke-linejoin="round">${ps}</g></g>`}
+ s+='<g id="Fill">'+P.map(p=>`<path d="${pathD(p.e)}" style="fill:@PF"/>`).join('')+'</g>';
+ s+=`<g id="Fold"><path d="${fold.map(h=>`M${h[0][0]} ${h[0][1]}L${h[1][0]} ${h[1][1]}`).join('')}" stroke="#e11" stroke-width="${sw*1.1}" stroke-dasharray="${sw*3} ${sw*1.6}" fill="none"/></g>`;
+ s+='<g id="Cut">';
  s+=slots.map(q=>S.T<.85?`<polyline points="${pt(slotPts(q))}" fill="none" stroke="#1c1ccf" stroke-width="${sw*1.3}" stroke-linejoin="round"/>`:`<rect x="${q[0]}" y="${q[1]}" width="${q[2]}" height="${q[3]}" rx="${q[2]/2}" style="fill:@PF" stroke="#333" stroke-width="${sw*1.3}"/>`).join('');
- s+=`<path d="${cutD}" stroke="#1c1ccf" stroke-width="${sw*1.3}" stroke-linejoin="round" fill="none"/>`;
- if($('oName').checked)for(const p of P){if(!p.n)continue;const a=p.pts.map(q=>q[0]),b=p.pts.map(q=>q[1]);
-  s+=`<text x="${(Math.min(...a)+Math.max(...a))/2}" y="${(Math.min(...b)+Math.max(...b))/2}" font-size="${fs}" text-anchor="middle" fill="#8a91a0">${p.n}</text>`}
- if($('oDim').checked){const k=kk(),dv=S.m.map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit);
+ s+=`<path d="${cutD}" stroke="#1c1ccf" stroke-width="${sw*1.3}" stroke-linejoin="round" fill="none"/></g>`;
+ if($('oName').checked){s+='<g id="Labels">';for(const p of P){if(!p.n)continue;const a=p.pts.map(q=>q[0]),b=p.pts.map(q=>q[1]);
+  s+=`<text x="${(Math.min(...a)+Math.max(...a))/2}" y="${(Math.min(...b)+Math.max(...b))/2}" font-size="${fs}" text-anchor="middle" fill="#8a91a0">${p.n}</text>`}s+='</g>'}
+ if($('oDim').checked){s+='<g id="Dimensions">';const k=kk(),dv=S.m.map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit);
   const hd=(x,y,dx,dy)=>{const a=sw*7,b=sw*3,nx=-dy,ny=dx;return `<polygon points="${x},${y} ${x-dx*a+nx*b},${y-dy*a+ny*b} ${x-dx*a-nx*b},${y-dy*a-ny*b}" fill="#1677ff"/>`};
   const dm=(ax,ay,bx,by,t)=>{const cx=(ax+bx)/2,cy=(ay+by)/2,w=t.length*fs*.6+fs*1.2,n=Math.hypot(bx-ax,by-ay)||1,ux=(bx-ax)/n,uy=(by-ay)/n;
    return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#1677ff" stroke-width="${sw*1.1}"/>${hd(ax,ay,-ux,-uy)}${hd(bx,by,ux,uy)}<g transform="translate(${cx} ${cy})"><rect x="${-w/2}" y="${-fs*.95}" width="${w}" height="${fs*1.9}" rx="${fs*.3}" style="fill:@CV"/><text y="${fs*.35}" font-size="${fs}" text-anchor="middle" fill="#1677ff">${t}</text></g>`};
   const ddDm=(D,v)=>dm(D.ox,D.oy+D.b*.75,D.ox+D.a,D.oy+D.b*.75,v[0])+dm(D.ox+D.a*.8,D.oy,D.ox+D.a*.8,D.oy+D.b,v[1])+dm(D.ox-D.h,D.oy+D.b*.12,D.ox,D.oy+D.b*.12,v[2]);
-  s+=S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0])}
+  s+=S.kind==='gable'?dm(0,H*.62,L,H*.62,dv[0])+dm(L,H*.37,L+W,H*.37,dv[1])+dm(2*L+W+W*.747,0,2*L+W+W*.747,H,dv[2]):S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0]);s+='</g>'}
  s+='</svg>';
  G={raw:s,P,cut,fold:fold.map(h=>({a:h[0],b:h[1]})),slots,vx,vy,vw,vh};
  if(!V||!touched)V={x:vx,y:vy,w:vw,h:vh};
@@ -114,6 +118,10 @@ function build3d(P,T){
    for(let i=0;i<=12;i++){const a=Math.PI*i/12;hp.push([cx+r*Math.cos(a),hy+r-r*Math.sin(a)])}
    for(let i=0;i<=12;i++){const a=Math.PI*i/12;hp.push([cx-r*Math.cos(a),hy+hh-r+r*Math.sin(a)])}
    shp.holes.push(new T3.Path(hp.map(q=>new T3.Vector2(q[0]-A[0],-(q[1]-A[1])))))}
+  for(const [cx,cy,w,h] of p.hs||[]){const r=h/2,a=w/2-r,hp=[];
+   for(let i=0;i<=12;i++){const t=-Math.PI/2+Math.PI*i/12;hp.push([cx+a+r*Math.cos(t),cy+r*Math.sin(t)])}
+   for(let i=0;i<=12;i++){const t=Math.PI/2+Math.PI*i/12;hp.push([cx-a+r*Math.cos(t),cy+r*Math.sin(t)])}
+   shp.holes.push(new T3.Path(hp.map(q=>new T3.Vector2(q[0]-A[0],-(q[1]-A[1])))))}
   grp.add(new T3.Mesh(new T3.ExtrudeGeometry(shp,{depth:T,bevelEnabled:false}),TH.mat));
   grp.userData={p,A};by[p.id]=grp;list.push(grp)}
  for(const grp of list){const {p,A}=grp.userData;
@@ -170,7 +178,7 @@ async function save(name,data){
   const e=$('toast');e.innerHTML='';e.append('已下載：'+name+'　若沒有自動下載，');const l=document.createElement('a');l.href=u;l.download=name;l.textContent='請點此儲存';l.style.cssText='color:#7cc4ff;text-decoration:underline;cursor:pointer';e.appendChild(l);e.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>e.style.display='none',9000);setTimeout(()=>URL.revokeObjectURL(u),120000)}catch(e){toast('下載失敗：'+((e&&e.message)||e))}}
 const slotPts=([x,y,w,h])=>{if(S.T<.85){const t=Math.min(w,S.T);return x>0?[[x+w,y],[x,y+t],[x,y+h-t],[x+w,y+h]]:[[x,y],[x+w,y+t],[x+w,y+h-t],[x,y+h]]}const r=w/2,o=[];for(let i=0;i<=8;i++){const a=Math.PI*i/8;o.push([x+r-r*Math.cos(a),y+r-r*Math.sin(a)])}for(let i=0;i<=8;i++){const a=Math.PI*i/8;o.push([x+r+r*Math.cos(a),y+h-r+r*Math.sin(a)])}return o};
 const pick=id=>{document.querySelectorAll('.fb button').forEach(b=>b.classList.toggle('on',b.id===id))};
-const svgOut=()=>G.raw.replace(/@PF/g,'#ffffff').replace(/@CV/g,'#ffffff');
+const svgOut=()=>G.raw.replace(/@PF/g,'#ffffff').replace(/@CV/g,'#ffffff').replace('<svg ',`<svg width="${G.vw.toFixed(3)}mm" height="${G.vh.toFixed(3)}mm" `);
 const svgBlob=()=>new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+svgOut()],{type:'image/svg+xml'});
 const toPng=(svg,w,h,name)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);c.toBlob(b=>save(name,b),'image/png')};img.onerror=()=>toast('圖片轉換失敗');
  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)};
@@ -191,7 +199,7 @@ function zip(name,text){const e=new TextEncoder(),nm=e.encode(name),d=e.encode(t
  const cd=[0x50,0x4b,1,2,...u16(20),...u16(20),...u16(0x800),...u16(0),...u16(0),...u16(0x21),...u32(c),...u32(n),...u32(n),...u16(nm.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(0)];
  const eo=[0x50,0x4b,5,6,0,0,0,0,...u16(1),...u16(1),...u32(cd.length+nm.length),...u32(lh.length+nm.length+n),...u16(0)];
  return new Blob([new Uint8Array(lh),nm,d,new Uint8Array(cd),nm,new Uint8Array(eo)],{type:'application/zip'})}
-$('dDXF').onclick=()=>{pick('dDXF');let t='0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n0\nTABLE\n2\nLAYER\n70\n2\n0\nLAYER\n2\nCUT\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nLAYER\n2\nCREASE\n70\n0\n62\n1\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n';
+$('dDXF').onclick=()=>{pick('dDXF');let t=`0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n9\n$MEASUREMENT\n70\n1\n9\n$LUNITS\n70\n2\n9\n$EXTMIN\n10\n${G.vx.toFixed(3)}\n20\n${(-G.vy-G.vh).toFixed(3)}\n30\n0\n9\n$EXTMAX\n10\n${(G.vx+G.vw).toFixed(3)}\n20\n${(-G.vy).toFixed(3)}\n30\n0\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n0\nTABLE\n2\nLAYER\n70\n2\n0\nLAYER\n2\nCUT\n70\n0\n62\n5\n6\nCONTINUOUS\n0\nLAYER\n2\nCREASE\n70\n0\n62\n1\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n`;
  const L=(a,b,ly,co)=>t+=`0\nLINE\n8\n${ly}\n62\n${co}\n10\n${a[0].toFixed(3)}\n20\n${(-a[1]).toFixed(3)}\n30\n0\n11\n${b[0].toFixed(3)}\n21\n${(-b[1]).toFixed(3)}\n31\n0\n`;
  G.cut.forEach(q=>{if(!q.c1)return L(q.a,q.b,'CUT',5);let l=q.a;for(let i=1;i<=24;i++){const m=bz(q,i/24);L(l,m,'CUT',5);l=m}});G.fold.forEach(q=>L(q.a,q.b,'CREASE',1));
  G.slots.forEach(q=>{const p=slotPts(q);p.forEach((a,i)=>{if(!(S.T<.85&&i===p.length-1))L(a,p[(i+1)%p.length],'CUT',5)})});
@@ -207,7 +215,7 @@ function thumbSVG(){
  const sl=G.slots.map(q=>'M'+slotPts(q).map(v=>v[0]+' '+v[1]).join('L')+'Z').join('');
  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${G.vx} ${G.vy} ${G.vw} ${G.vh}" preserveAspectRatio="xMidYMid meet"><path d="${fd}" stroke="#e4535e" stroke-width="1" vector-effect="non-scaling-stroke" fill="none"/><path d="${d}${sl}" stroke="#4d52a6" stroke-width="1" vector-effect="non-scaling-stroke" stroke-linejoin="round" fill="none"/></svg>`}
 function makeThumbs(){
- const cfg={mailer:{fold:76,yaw:.6},rsc:{fold:76,yaw:-.5},tuck:{fold:88,yaw:-.5},gtuck:{fold:88,yaw:-.5},dd:{fold:92,yaw:.6}};
+ const cfg={mailer:{fold:76,yaw:.6},rsc:{fold:76,yaw:-.5},tuck:{fold:88,yaw:-.5},gtuck:{fold:88,yaw:-.5},dd:{fold:92,yaw:.6},gable:{fold:96,yaw:-.5}};
  document.querySelectorAll('.gi').forEach(g=>{const b=g.dataset.b;
   if(b!==S.kind)$('kd').querySelector('[data-b="'+b+'"]').click();
   g.querySelector('.dl').innerHTML=thumbSVG();
@@ -219,7 +227,7 @@ document.querySelectorAll('.gi').forEach(g=>g.onclick=()=>openKind(g.dataset.b))
 $('back').onclick=()=>go('home');
 
 // ===== 樣機資源庫：單欄由上往下排列，點選即切換刀模 =====
-const MK=[{b:'mailer',n:'飛機盒',c:'折疊盒'},{b:'rsc',n:'方形運輸箱',c:'運輸箱'},{b:'tuck',n:'插口式軟件盒',c:'插口盒'},{b:'gtuck',n:'插口式遊戲盒',c:'插口盒'},{b:'dd',n:'天地盒',c:'禮盒'}];
+const MK=[{b:'mailer',n:'飛機盒',c:'折疊盒'},{b:'rsc',n:'方形運輸箱',c:'運輸箱'},{b:'tuck',n:'插口式軟件盒',c:'插口盒'},{b:'gtuck',n:'插口式遊戲盒',c:'插口盒'},{b:'gable',n:'手提拱型盒',c:'手提盒'},{b:'dd',n:'天地盒',c:'禮盒'}];
 let mkSeg='lib',mkCat='全部',mkQ='';
 function renderMock(){
  const cats=['全部',...new Set(MK.map(m=>m.c))];
