@@ -12,7 +12,9 @@ const svgBlob=()=>new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+svgOut()]
 const toPng=(svg,w,h,name)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);c.toBlob(b=>save(name,b),'image/png')};img.onerror=()=>toast('圖片轉換失敗');
  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg)};
 $('dAI').onclick=()=>{pick('dAI');save(nm()+'.svg',svgBlob())};
-$('dPNG').onclick=()=>{pick('dPNG');if(!TH.r){toast('3D 預覽載入失敗');return}TH.fit=true;syncLid(true);show();const s=TH.r.domElement,c=document.createElement('canvas');c.width=s.width;c.height=s.height;const x=c.getContext('2d'),gr=x.createLinearGradient(0,0,0,c.height);gr.addColorStop(0,'#b9b9b9');gr.addColorStop(1,'#ebebeb');x.fillStyle=gr;x.fillRect(0,0,c.width,c.height);x.drawImage(s,0,0);TH.fit=false;show();c.toBlob(b=>save(nm().replace('刀模','')+'3D樣機.jpg',b),'image/jpeg',.92)};
+$('dPNG').onclick=()=>{pick('dPNG');const k=Math.min(150/25.4,4096/Math.max(G.vw,G.vh)),w=Math.round(G.vw*k),h=Math.round(G.vh*k),img=new Image();
+ img.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);c.toBlob(b=>save(nm()+'.jpg',b),'image/jpeg',.92)};
+ img.onerror=()=>toast('圖片轉換失敗');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgOut())};
 $('dPDF').onclick=()=>{pick('dPDF');const sc=2.83465,w=G.vw*sc,h=G.vh*sc,X=x=>((x-G.vx)*sc).toFixed(2),Y=y=>(h-(y-G.vy)*sc).toFixed(2);
  const ln=a=>a.map(q=>q.c1?`${X(q.a[0])} ${Y(q.a[1])} m ${X(q.c1[0])} ${Y(q.c1[1])} ${X(q.c2[0])} ${Y(q.c2[1])} ${X(q.b[0])} ${Y(q.b[1])} c`:`${X(q.a[0])} ${Y(q.a[1])} m ${X(q.b[0])} ${Y(q.b[1])} l`).join('\n')+'\nS\n';
  const sl=G.slots.map(q=>{const a=slotPts(q);return a.map((v,i)=>`${X(v[0])} ${Y(v[1])} ${i?'l':'m'}`).join('\n')+(S.T<.85?'\nS\n':'\nh S\n')}).join('');

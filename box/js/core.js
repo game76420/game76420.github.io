@@ -142,14 +142,11 @@ function openMat(){closeMat();const box=$('matBox'),r=box.getBoundingClientRect(
 $('matBox').onclick=e=>{document.querySelector('.m1')?closeMat():openMat();e.stopPropagation()};
 document.addEventListener('click',e=>{if(!e.target.closest('.mp'))closeMat()});
 addEventListener('resize',closeMat);document.querySelector('.pn').addEventListener('scroll',closeMat);
-function tab(v){document.querySelectorAll('#rail [data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===v));$('tBase').style.display=v==='base'?'':'none';$('tAdv').style.display=v==='adv'?'':'none';$('tMock').style.display=v==='mock'?'':'none';if(v==='mock')renderMock()}
-$('rail').onclick=e=>{const t=e.target.closest('[data-t]');if(!t)return;const v=t.dataset.t;
- if(v==='base'||v==='adv'||v==='mock')tab(v);else toast('此功能即將推出')};
 ['L','W','H'].forEach(id=>{let last=0;$(id).addEventListener('wheel',e=>{e.preventDefault();const n=performance.now();if(n-last<50||!e.deltaY)return;last=n;
  const el=$(id),st=S.unit==='in'?.1:1,v=(+el.value||0)+(e.deltaY<0?st:-st);el.value=Math.max(1,Math.round(v*1e4)/1e4);el.oninput();readIn(true);syncT();refit()},{passive:false})});
 ['oBleed','oDim','oName','oSlot'].forEach(id=>$(id).onchange=()=>{$('bDim').classList.toggle('on',$('oDim').checked);draw()});
 $('bDim').onclick=()=>{$('oDim').checked=!$('oDim').checked;$('bDim').classList.toggle('on',$('oDim').checked);draw()};
-$('bSet').onclick=()=>tab('adv');
+$('bSet').onclick=()=>{const d=$('tAdv');d.open=true;d.scrollIntoView({block:'nearest'})};
 $('bSel').onclick=()=>{S.hand=false;$('bSel').classList.add('on');$('bHand').classList.remove('on');$('stage').classList.add('sel')};
 $('bHand').onclick=()=>{S.hand=true;$('bHand').classList.add('on');$('bSel').classList.remove('on');$('stage').classList.remove('sel')};
 function setV(){const s=$('stage').firstChild;if(s)s.setAttribute('viewBox',`${V.x} ${V.y} ${V.w} ${V.h}`)}

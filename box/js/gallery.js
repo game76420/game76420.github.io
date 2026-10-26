@@ -20,28 +20,6 @@ function makeThumbs(){
 document.querySelectorAll('.gi').forEach(g=>g.onclick=()=>openKind(g.dataset.b));
 $('back').onclick=()=>go('home');
 
-// ===== 樣機資源庫：單欄由上往下排列，點選即切換刀模 =====
-const MK=[
- {b:'tgable',n:'插口端山形盒',c:'手提盒'},
- {b:'mailer',n:'飛機盒',c:'折疊盒'},
- {b:'rsc',n:'方形運輸箱',c:'運輸箱'},
- {b:'tuck',n:'插口式軟件盒',c:'插口盒'},
- {b:'gtuck',n:'插口式遊戲盒',c:'插口盒'},
- {b:'gable',n:'手提拱型盒',c:'手提盒'},
- {b:'dd',n:'天地盒',c:'禮盒'}
-];
-let mkSeg='lib',mkCat='全部',mkQ='';
-function renderMock(){
- const cats=['全部',...new Set(MK.map(m=>m.c))];
- $('mkChips').innerHTML=cats.map(c=>`<span class="${c===mkCat?'on':''}" data-c="${c}">${c}</span>`).join('');
- const l=MK.filter(m=>(mkCat==='全部'||m.c===mkCat)&&m.n.includes(mkQ));
- $('mkList').innerHTML=mkSeg==='mine'?'<div class="mk-empty">尚無儲存的樣機</div>':l.length?l.map(m=>`<div class="mk-c${m.b===S.kind?' on':''}" data-b="${m.b}"><div class="mk-p"></div><div class="mk-n">${m.n}</div></div>`).join(''):'<div class="mk-empty">找不到符合的刀模</div>';
- $('mkList').querySelectorAll('.mk-c').forEach(c=>{const g=document.querySelector('.gi[data-b="'+c.dataset.b+'"]'),im=g&&g.querySelector('.pr img'),p=c.firstChild;
-  if(im&&im.getAttribute('src'))p.innerHTML='<img src="'+im.src+'" alt="">';else if(g)p.innerHTML=g.querySelector('.dl').innerHTML})}
-$('mkSeg').onclick=e=>{const v=e.target.dataset.s;if(!v)return;mkSeg=v;[...$('mkSeg').children].forEach(c=>c.classList.toggle('on',c.dataset.s===v));renderMock()};
-$('mkQ').oninput=e=>{mkQ=e.target.value.trim();renderMock()};
-$('mkChips').onclick=e=>{const c=e.target.dataset.c;if(!c)return;mkCat=c;renderMock()};
-$('mkList').onclick=e=>{const c=e.target.closest('.mk-c');if(!c)return;const b=c.dataset.b;if(b!==S.kind)$('kd').querySelector('[data-b="'+b+'"]').click();tab('base')};
 
 // ===== 啟動 =====
 init3d();$('stage').classList.add('sel');fill();draw();
