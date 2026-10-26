@@ -18,24 +18,29 @@
   <div class="gi" data-b="gtuck"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">插口式遊戲盒</div></div>
   <div class="gi" data-b="gable"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">手提拱型盒</div></div>
   <div class="gi" data-b="dd"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">天地盒</div></div>
+  <div class="gi" data-b="divider"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">箱內隔板</div></div>
  </div>
 </div>
 <div class="app">
 <section class="box left">
  <div class="pn">
   <div class="back" id="back">‹ 返回刀模列表</div>
-  <div id="tBase"><h3 style="display:none">盒型</h3><div class="ty" id="kd" style="display:none"><button class="on" data-b="mailer">飛機盒</button><button data-b="tgable">插口端山形盒</button><button data-b="rsc">方形運輸箱</button><button data-b="tuck">插口式軟件盒</button><button data-b="dd">天地盒</button><button data-b="gtuck">插口式遊戲盒</button><button data-b="gable">手提拱型盒</button></div>
+  <div id="tBase"><h3 style="display:none">盒型</h3><div class="ty" id="kd" style="display:none"><button class="on" data-b="mailer">飛機盒</button><button data-b="tgable">插口端山形盒</button><button data-b="rsc">方形運輸箱</button><button data-b="tuck">插口式軟件盒</button><button data-b="dd">天地盒</button><button data-b="gtuck">插口式遊戲盒</button><button data-b="gable">手提拱型盒</button><button data-b="divider">箱內隔板</button></div>
    <h3>自訂尺寸 <span class="ii" title="輸入盒子的長、寬、高">i</span><span class="pill" id="unit"><span class="on" data-u="mm">mm</span><span data-u="in">in</span></span></h3>
    <div class="g2">
     <div class="fld"><label>長度</label><div><input id="L" type="number" step="any"><span class="u">mm</span></div></div>
     <div class="fld"><label>寬度</label><div><input id="W" type="number" step="any"><span class="u">mm</span></div></div>
     <div class="fld"><label>高度</label><div><input id="H" type="number" step="any"><span class="u">mm</span></div></div>
+    <div class="fld dv" style="display:none"><label>長度方向隔間數</label><div><input id="NL" type="number" step="1" min="1" max="30"><span class="uu">間</span></div></div>
+    <div class="fld dv" style="display:none"><label>寬度方向隔間數</label><div><input id="NW" type="number" step="1" min="1" max="30"><span class="uu">間</span></div></div>
+    <div class="fld dv" style="display:none;grid-column:1/-1"><label class="chk" style="margin:6px 3px 8px;display:flex;padding:0;gap:8px;align-items:center"><input type="checkbox" id="dvOut" checked style="width:auto;padding:0;flex:none">含四周外牆（外框＋格柵，如實物圖）<span class="ii" title="勾選：A、B 隔板各多 1 片作為外牆，長/寬為外牆外緣尺寸；取消：只做內部隔板">i</span></label></div>
+    <div class="fld dv" style="display:none"><label>穿出外牆距離 <span class="ii" title="四周隔板兩端穿出外牆外緣的長度；0 = 不穿出（板端與外牆齊平）">i</span></label><div><input id="DE" type="number" step="any" min="0"><span class="u">mm</span></div></div>
    </div>
-   <h3 class="m">自訂厚度</h3><div class="sub" id="tr">(0.2~5mm)</div>
+   <h3 class="m" id="thH">自訂厚度</h3><div class="sub" id="tr">(0.2~5mm)</div>
    <div class="step"><button id="tm">−</button><input id="T" type="number" step="any"><button id="tp">+</button></div>
    <h3 class="m" style="margin-bottom:18px">選擇材質 <span class="ii" title="選擇材質會自動帶入對應的紙張厚度">i</span></h3>
    <div class="msel" id="matBox"><i id="dot"></i><span id="matName">瓦楞紙E(三層)</span><svg viewBox="0 0 16 16"><path d="M2 10.5l6-6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-   <h3 class="m">尺寸類型 <span class="ii" title="製造尺寸：刀模實際使用的尺寸；內尺寸：可裝入物品的空間；外尺寸：成品盒外觀">i</span></h3>
+   <h3 class="m" id="tyH">尺寸類型 <span class="ii" title="製造尺寸：刀模實際使用的尺寸；內尺寸：可裝入物品的空間；外尺寸：成品盒外觀">i</span></h3>
    <div class="ty" id="ty"><button class="on" data-k="mfg">製造尺寸</button><button data-k="in">內尺寸</button><button data-k="out">外尺寸</button></div>
     <details class="adv" id="tAdv"><summary>進階</summary>
    <label class="chk"><input type="checkbox" id="oBleed" checked>顯示出血線（外擴 3mm）</label>
@@ -49,7 +54,7 @@
 
 <section class="mid">
  <div class="leg"><div class="l"><span><i style="border-color:#3aa800"></i>出血線</span><span><i style="border-color:#1c1ccf"></i>割線</span><span><i style="border-color:#e11"></i>折線</span></div>
-  <p>製造尺寸<br><span id="s1"></span></p><p>內尺寸<br><span id="s2"></span></p><p>外尺寸<br><span id="s3"></span></p></div>
+  <p><em id="l1" style="font-style:normal">製造尺寸</em><br><span id="s1"></span></p><p><em id="l2" style="font-style:normal">內尺寸</em><br><span id="s2"></span></p><p><em id="l3" style="font-style:normal">外尺寸</em><br><span id="s3"></span></p></div>
  <div class="stage" id="stage"></div>
  <div class="tb"><button id="bSel" class="on" title="選取">⬉</button><button id="bHand" title="平移">✋</button><hr><button id="zi" title="放大">＋</button><button id="zo" title="縮小">－</button><hr><button id="bDim" class="on" title="尺寸標註">✎</button><button id="bSet" title="進階設定">⚙</button></div>
 </section>
@@ -78,6 +83,7 @@
 <script src="js/dd.js"></script>
 <script src="js/gable.js"></script>
 <script src="js/tgable.js"></script>
+<script src="js/divider.js"></script>
 <script src="js/render2d.js"></script>
 <script src="js/preview3d.js"></script>
 <script src="js/export.js"></script>
