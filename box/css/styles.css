@@ -6,12 +6,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:14px -apple-system,"Pi
 .app{display:grid;grid-template-columns:400px minmax(0,1fr) 312px;gap:14px;padding:14px;height:100vh}
 @media(max-width:1100px){.app{grid-template-columns:1fr;height:auto}.stage{height:62vh!important}}
 .box{background:var(--panel);border-radius:16px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-.left{display:grid;grid-template-columns:100px 1fr;overflow:auto}
-.rail{border-right:1px solid var(--line);margin:12px 0;padding:6px 0;display:flex;flex-direction:column;gap:20px;align-items:center;font-size:12px;background:linear-gradient(var(--in),var(--panel))}
-.rail div{text-align:center;color:var(--text);cursor:pointer;width:100%;padding:4px 0}
-.rail div b{display:block;font-size:26px;font-weight:400;filter:grayscale(1) opacity(.8)}
-.rail .on{color:var(--brand)}.rail .on b{filter:none}
-.rail hr{width:60%;border:0;border-top:1px solid var(--line);margin:0}
+.left{display:grid;grid-template-columns:1fr;overflow:auto}
 .pn{padding:22px 16px;min-width:0}
 .pn h3{margin:0 0 12px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:6px}
 .pn h3.m{margin-top:26px}
@@ -72,7 +67,7 @@ input[type=number]::-webkit-inner-spin-button{display:none}input[type=number]{-m
 .fb{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fb button{display:flex;align-items:center;gap:6px;justify-content:center;height:60px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);cursor:pointer;font-size:14px}
 .fb button.on{border:2px solid var(--brand)}
-.fb b{font-size:10px;padding:3px 4px;border-radius:4px;color:#fff;line-height:1}
+.fb b{font-size:15px;padding:6px 12px;border-radius:4px;color:#fff;line-height:1}
 .ff ul{padding-left:20px;color:#6b7280;font-size:14px;line-height:1.55;margin:10px 0 0}.ff li{margin-bottom:10px}
 .chat{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;background:#111;color:#fff;border:0;font-size:26px;cursor:pointer;z-index:5}
 .toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;display:none;z-index:9}
@@ -85,30 +80,20 @@ input[type=number]::-webkit-inner-spin-button{display:none}input[type=number]{-m
 #home .hs{margin:0 28px 22px;color:var(--muted);font-size:15px}
 .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(440px,100%),1fr));gap:30px 28px;padding:0 28px 48px}
 .gi{cursor:pointer}
-.gc{position:relative;height:275px;grid-template-rows:100%;border-radius:26px;background:#f0f0f0;border:1px solid #bdbdbd;display:grid;grid-template-columns:1.05fr 1fr;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.gc{position:relative;height:275px;grid-template-rows:100%;border-radius:26px;background:#f0f0f0;border:1px solid #bdbdbd;display:grid;grid-template-columns:1fr 1.05fr;overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .gi:hover .gc{border:2px solid #111;box-shadow:0 4px 16px rgba(0,0,0,.08)}
 .gc .dl,.gc .pr{min-height:0;min-width:0}
-.gc .dl{overflow:hidden;display:flex;align-items:center;justify-content:center;padding:26px 8px 26px 22px;min-width:0}
+.gc .dl{overflow:hidden;display:flex;align-items:center;justify-content:center;padding:26px 22px 26px 8px;min-width:0;order:2}
 .gc .dl svg{width:100%;height:100%;display:block}
-.gc .pr{margin:26px 26px 26px 0;border-radius:6px;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.gc .pr{order:1;margin:26px 0 26px 26px;border-radius:6px;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .gc .pr img{width:100%;height:100%;object-fit:contain;display:block}
-.gc .tg{position:absolute;right:14px;top:14px;display:flex;gap:6px}
-.gc .tg span{background:#fff;color:#777;font-size:14px;padding:4px 10px;border-radius:8px}
 .gi .nm{margin:12px 6px 0;font-size:20px;color:#888}
 .gi:hover .nm{color:#111}
 .back{display:inline-flex;align-items:center;gap:4px;margin:-8px 0 14px;padding:6px 12px 6px 8px;border-radius:99px;border:1px solid var(--line);background:var(--in);color:var(--text);font-size:13px;cursor:pointer}
 .back:hover{border-color:var(--brand);color:var(--brand)}
-.mk-seg{display:flex;background:var(--in);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:12px}
-.mk-seg span{flex:1;text-align:center;padding:9px 0;border-radius:10px;cursor:pointer;font-size:15px;font-weight:600}
-.mk-seg .on{background:var(--brand);color:#fff}
-.mk-q{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:0 12px;margin-bottom:12px;background:var(--panel)}
-.mk-q input{flex:1;border:0;background:transparent;color:var(--text);font-size:15px;padding:11px 0;outline:0;min-width:0}
-.mk-ch{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.mk-ch span{padding:6px 12px;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:15px}
-.mk-ch .on{border-color:var(--brand);color:var(--brand);background:var(--soft)}
-.mk-c{cursor:pointer;margin-bottom:16px}
-.mk-p{height:210px;border:1px solid var(--line);border-radius:12px;background:#f3f3f3;display:grid;place-items:center;overflow:hidden}
-.mk-p img,.mk-p svg{width:100%;height:100%;object-fit:contain;display:block}
-.mk-c:hover .mk-p{border-color:#999}.mk-c.on .mk-p{border:2px solid var(--brand)}
-.mk-n{text-align:center;font-size:14px;margin-top:6px}.mk-c.on .mk-n{color:var(--brand)}
-.mk-empty{color:var(--muted);text-align:center;padding:40px 0;font-size:14px}
+
+.adv{margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+.adv summary{cursor:pointer;font-size:17px;font-weight:600;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.adv summary::-webkit-details-marker{display:none}
+.adv summary::after{content:'';width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s;margin-right:4px}
+.adv[open] summary::after{transform:rotate(-135deg)}
