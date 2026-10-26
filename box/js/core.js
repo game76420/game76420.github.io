@@ -32,11 +32,11 @@ const tgO=(t,T)=>{
  return[dxy,dxy,dz];
 };
 
-const offs=(t,T)=>t==='mfg'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
 // 厚度上限隨尺寸變化
-const maxT=()=>S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
-const S={unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false};
-const nm=()=>S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
+const maxT=()=>S.kind==='divider'?5:S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
+const S={unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
+const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
 const nf=v=>S.unit==='in'?Math.round(v*1e4)/1e4:r2(v);
@@ -59,20 +59,21 @@ function ensureDimWarnBox(){
 }
 const gableWarn=(m)=>S.kind==='gable'&&m[2]>1.2*Math.min(m[0],m[1])+1e-6;
 const tgableWarn=(m)=>S.kind==='tgable'&&(m[1]<0.18*m[0]||m[2]>3.5*m[1]);
-const warnCheck=(m)=>S.kind==='tgable'?tgableWarn(m):gableWarn(m);
+const dvWarn=(m)=>{if(S.kind!=='divider')return false;const o=S.dvOut?1:-1;return (m[0]-(S.nL+o)*S.T)/S.nL<5||(m[1]-(S.nW+o)*S.T)/S.nW<5};
+const warnCheck=(m)=>S.kind==='tgable'?tgableWarn(m):S.kind==='divider'?dvWarn(m):gableWarn(m);
 
 function showDimWarn(show){
  const w = ensureDimWarnBox();
  if(!w) return;
  const tip=w.querySelector('span');
  if(tip){
-  tip.title=S.kind==='tgable'?'寬度相對長度過小或高度過大，卡扣底與山形頂部可能無法閉合':S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
+  tip.title=S.kind==='divider'?'隔間淨寬小於 5mm，隔板厚度或隔間數過大，請減少隔間數或縮小厚度':S.kind==='tgable'?'寬度相對長度過小或高度過大，卡扣底與山形頂部可能無法閉合':S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
  }
  w.style.display = show ? 'block' : 'none';
 }
 
 function fill(){const k=kk();['L','W','H'].forEach((id,i)=>$(id).value=nf((S.m[i]+offs(S.type,S.T)[i])/k));
- $('T').value=nf(S.T/k);$('tr').textContent=S.unit==='in'?`(0.0079~${maxT()===5?'0.1970':(maxT()/25.4).toFixed(4)}in)`:`(0.2~${maxT()}mm)`;$('tm').disabled=S.T<=.2;$('tp').disabled=S.T>=maxT()-1e-9;document.querySelectorAll('.u').forEach(e=>e.textContent=S.unit);
+ $('T').value=nf(S.T/k);$('NL').value=S.nL;$('NW').value=S.nW;$('dvOut').checked=S.dvOut;$('DE').value=nf(S.dvE/k);$('DE').disabled=!S.dvOut;$('DE').closest('.fld').style.opacity=S.dvOut?'':'.45';$('tr').textContent=S.unit==='in'?`(0.0079~${maxT()===5?'0.1970':(maxT()/25.4).toFixed(4)}in)`:`(0.2~${maxT()}mm)`;$('tm').disabled=S.T<=.2;$('tp').disabled=S.T>=maxT()-1e-9;document.querySelectorAll('.u').forEach(e=>e.textContent=S.unit);
  showDimWarn(warnCheck(S.m))}
 
 function readIn(commitClamp){
@@ -117,6 +118,14 @@ function refit(){touched=false;draw()}
  $(id).onblur=()=>{if(id!=='T'){readIn(true);syncT();refit()}};
  $(id).addEventListener('keydown',e=>{if(e.key==='Enter'&&id!=='T'){readIn(true);syncT();refit()}});
 });
+['NL','NW'].forEach(id=>{const f=()=>{let n=Math.min(30,Math.max(1,Math.round(+$(id).value)||1));S[id==='NL'?'nL':'nW']=n;return n};
+ $(id).oninput=()=>{f();showDimWarn(warnCheck(S.m));refit()};
+ $(id).onblur=()=>{let a=f();if(S.nL===1&&S.nW===1&&!S.dvOut){S.nW=2;toast('不含外牆時至少需要一道隔板，已將寬度方向隔間數設為 2')}$(id).value=S[id==='NL'?'nL':'nW'];$('NL').value=S.nL;$('NW').value=S.nW;showDimWarn(warnCheck(S.m));refit()};
+ $(id).addEventListener('wheel',e=>{e.preventDefault();$(id).value=Math.max(1,(+$(id).value||1)+(e.deltaY<0?1:-1));$(id).oninput();$(id).onblur()},{passive:false})});
+$('dvOut').onchange=()=>{S.dvOut=$('dvOut').checked;$('DE').disabled=!S.dvOut;$('DE').closest('.fld').style.opacity=S.dvOut?'':'.45';if(!S.dvOut&&S.nL===1&&S.nW===1){S.nW=2;$('NW').value=2;toast('不含外牆時至少需要一道隔板，已將寬度方向隔間數設為 2')}showDimWarn(warnCheck(S.m));refit()};
+$('DE').oninput=()=>{S.dvE=Math.max(0,(+$('DE').value||0)*kk());refit()};
+$('DE').onblur=()=>{$('DE').value=nf(S.dvE/kk())};
+$('DE').addEventListener('wheel',e=>{e.preventDefault();const st=S.unit==='in'?.1:1;$('DE').value=Math.max(0,Math.round(((+$('DE').value||0)+(e.deltaY<0?st:-st))*1e4)/1e4);$('DE').oninput()},{passive:false});
 $('tm').onclick=()=>setT(S.T-.1);
 $('tp').onclick=()=>setT(S.T+.1);
 $('unit').onclick=e=>{const u=e.target.dataset.u;if(!u)return;S.unit=u;[...$('unit').children].forEach(c=>c.classList.toggle('on',c.dataset.u===u));fill();draw()};

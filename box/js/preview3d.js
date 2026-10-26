@@ -66,6 +66,7 @@ function init3d(){
 function build3d(P,T){
  if(!TH.r)return;const T3=THREE;
  while(TH.content.children.length){const o=TH.content.children[0];TH.content.remove(o);o.traverse(x=>{if(x.geometry)x.geometry.dispose()})}
+ TH.div=false;if(S.kind==='divider'){buildDiv3d(P,T);return}
  const by={},list=[];
  for(const p of P){if(!p.id)continue;const A=p.hg?p.hg[0]:[0,0],pts=[];
   for(const q of p.pts){const v=[q[0]-A[0],-(q[1]-A[1])],l=pts[pts.length-1];if(!l||Math.hypot(l.x-v[0],l.y-v[1])>1e-6)pts.push(new T3.Vector2(v[0],v[1]))}
@@ -93,6 +94,25 @@ function build3d(P,T){
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true);TH.lidP=undefined;
  TH.fixBox=S.kind==='dd'?new T3.Box3().setFromObject(TH.content):null}
 
+// 箱內隔板 3D：展開=平放於刀模排版位置，閉合=A/B 板十字插接成格柵
+function buildDiv3d(P,T){
+ const T3=THREE,[L,W,H]=S.m,V3=(x,y,z)=>new T3.Vector3(x,y,z),
+  all=P.flatMap(p=>p.pts),mx=Math.min(...all.map(q=>q[0])),Mx=Math.max(...all.map(q=>q[0])),my=Math.min(...all.map(q=>q[1])),My=Math.max(...all.map(q=>q[1])),
+  offx=L/2-(mx+Mx)/2,offy=W/2+(my+My)/2,list=[];
+ for(const p of P){const d=p.dv;if(!d)continue;
+  const pts=[];for(const q of p.pts){const v=new T3.Vector2(q[0]-d.ox,d.oy+d.b-q[1]),l=pts[pts.length-1];if(!l||l.distanceTo(v)>1e-6)pts.push(v)}
+  if(pts.length>2&&pts[0].distanceTo(pts[pts.length-1])<1e-6)pts.pop();
+  const g=new T3.Group();g.add(new T3.Mesh(new T3.ExtrudeGeometry(new T3.Shape(pts),{depth:T,bevelEnabled:false}),TH.mat));
+  const A=d.kind==='A',m=new T3.Matrix4().makeBasis(A?V3(1,0,0):V3(0,1,0),V3(0,0,1),A?V3(0,-1,0):V3(1,0,0));
+  g.userData={dv:d.kind,qf:new T3.Quaternion(),qa:new T3.Quaternion().setFromRotationMatrix(m),
+   pf:V3(d.ox+offx,-(d.oy+d.b)+offy,0),pa:A?V3(0,d.s+T,0):V3(d.s,0,0)};
+  g.position.copy(g.userData.pf);TH.content.add(g);list.push(g)}
+ TH.content.rotation.x=0;TH.list=list;TH.built=true;TH.div=true;TH.fixBox=null;TH.lidP=undefined;
+ TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true)}
+function poseDiv(t){
+ const H=S.m[2];
+ for(const g of TH.list){const u=g.userData,e=u.dv==='A'?sm(t/.8):sm((t-.2)/.8);
+  g.quaternion.copy(u.qf).slerp(u.qa,e);g.position.lerpVectors(u.pf,u.pa,e);g.position.z+=Math.sin(Math.PI*e)*H*.5}}
 function syncLid(snap){}
 
 function show(){
@@ -113,6 +133,7 @@ function show(){
   const ax=new T3.Vector3(1,-tilt,0).normalize();
   g.quaternion.setFromAxisAngle(ax,th);
   g.position.copy(pc).sub(c.clone().applyAxisAngle(ax,th))}
+ if(TH.div)poseDiv(t);
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true);
  const bx=(TH.fixBox&&!TH.fit)?TH.fixBox:new T3.Box3().setFromObject(TH.content),c=bx.getCenter(new T3.Vector3()),sz=bx.getSize(new T3.Vector3());
  TH.content.position.set(-c.x,-c.y,-c.z);TH.spin.rotation.z=TH.yaw;
