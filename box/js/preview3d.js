@@ -24,11 +24,9 @@ function init3d(){
  const sc=document.createElement('canvas');sc.width=sc.height=128;const sx=sc.getContext('2d'),gr=sx.createRadialGradient(64,64,4,64,64,64);gr.addColorStop(0,'rgba(0,0,0,.38)');gr.addColorStop(1,'rgba(0,0,0,0)');sx.fillStyle=gr;sx.fillRect(0,0,128,128);
  TH.sh=new T3.Mesh(new T3.PlaneGeometry(1,1),new T3.MeshBasicMaterial({map:new T3.CanvasTexture(sc),transparent:true,depthWrite:false}));TH.spin.add(TH.sh);
 
- // 禁用右鍵選單，讓右鍵拖曳可直接平移 3D 畫面
  cv.addEventListener('contextmenu',e=>e.preventDefault());
  let d=null;
  cv.addEventListener('pointerdown',e=>{
-  // 右鍵(button===2)、中鍵(button===1)、Shift+左鍵、或左側工具列切換為「平移手型(S.hand)」時進行平移，其餘為旋轉
   const isPan = e.button===2 || e.button===1 || e.shiftKey || S.hand;
   d={x:e.clientX,y:e.clientY,pan:isPan};
   cv.setPointerCapture(e.pointerId);
@@ -50,7 +48,6 @@ function init3d(){
  cv.addEventListener('pointerup',()=>d=null);
  cv.addEventListener('pointercancel',()=>d=null);
 
- // 滾輪拉近 / 拉遠 (Zoom)
  cv.addEventListener('wheel',e=>{
   e.preventDefault();
   const factor = e.deltaY < 0 ? 0.9 : 1.11;
@@ -58,11 +55,11 @@ function init3d(){
   show();
  },{passive:false});
 
- // 雙擊或點選右上角 3D 按鈕重置旋轉、縮放與平移
  const reset3d=()=>{TH.yaw=S.kind==='rsc'?-.5:0;TH.el=.55;TH.zoom=1;TH.panX=0;TH.panY=0;show()};
  $('r3').onclick=reset3d;
  cv.addEventListener('dblclick',reset3d);
  new ResizeObserver(show).observe($('pvBox'))}
+
 function build3d(P,T){
  if(!TH.r)return;const T3=THREE;
  while(TH.content.children.length){const o=TH.content.children[0];TH.content.remove(o);o.traverse(x=>{if(x.geometry)x.geometry.dispose()})}
@@ -90,11 +87,10 @@ function build3d(P,T){
   const par=by[p.par],Ap=par.userData.A;par.add(grp);grp.position.set(A[0]-Ap[0],-(A[1]-Ap[1]),0);grp.userData.y0=grp.position.y;
   const B=p.hg[1],ux=B[0]-A[0],uy=-(B[1]-A[1]),n=Math.hypot(ux,uy),cx=p.pts.reduce((a,q)=>a+q[0],0)/p.pts.length-A[0],cy=-(p.pts.reduce((a,q)=>a+q[1],0)/p.pts.length-A[1]);
   grp.userData.axis=new T3.Vector3(ux/n,uy/n,0);grp.userData.sgn=(Math.sign((ux/n)*cy-(uy/n)*cx)||1)*(p.dir||1)}
- TH.content.rotation.x=S.kind!=='mailer'&&S.kind!=='dd'?Math.PI/2:0;TH.list=list;TH.built=true;
+ TH.content.rotation.x=S.kind!=='mailer'&&S.kind!=='dd'&&S.kind!=='drawer'?Math.PI/2:0;TH.list=list;TH.built=true;
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true);TH.lidP=undefined;
- TH.fixBox=S.kind==='dd'?new T3.Box3().setFromObject(TH.content):null}
+ TH.fixBox=(S.kind==='dd'||S.kind==='drawer')?new T3.Box3().setFromObject(TH.content):null}
 
-// 箱內隔板 3D：展開=平放於刀模排版位置，閉合=A/B 板十字插接成格柵
 function buildDiv3d(P,T){
  const T3=THREE,[L,W,H]=S.m,V3=(x,y,z)=>new T3.Vector3(x,y,z),
   all=P.flatMap(p=>p.pts),mx=Math.min(...all.map(q=>q[0])),Mx=Math.max(...all.map(q=>q[0])),my=Math.min(...all.map(q=>q[1])),My=Math.max(...all.map(q=>q[1])),
@@ -109,6 +105,7 @@ function buildDiv3d(P,T){
   g.position.copy(g.userData.pf);TH.content.add(g);list.push(g)}
  TH.content.rotation.x=0;TH.list=list;TH.built=true;TH.div=true;TH.fixBox=null;TH.lidP=undefined;
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true)}
+
 function poseDiv(t){
  const H=S.m[2];
  for(const g of TH.list){const u=g.userData,e=u.dv==='A'?sm(t/.8):sm((t-.2)/.8);
@@ -119,20 +116,29 @@ function show(){
  if(!TH.r||!TH.built)return;const t=$('fold').value/100,T3=THREE;
  $('fold').style.setProperty('--p',$('fold').value+'%');
  for(const g of TH.list){const u=g.userData;if(!u.axis)continue;const w=u.p.w;{const x=Math.min(1,Math.max(0,(t-w[0])/(w[1]-w[0]))),k=u.p.bump?Math.sin(Math.PI*x):u.p.id==='lid'?x*x:u.p.id==='flap'?Math.pow(x,2.5):sm(x),ang=u.p.bump||u.p.ang||Math.PI/2;g.quaternion.setFromAxisAngle(u.axis,u.sgn*ang*k);if(u.p.sh)g.position.y=u.y0+u.p.sh*k}}
+ 
  for(const g of TH.list){const lid=g.userData.lid;if(!lid)continue;
   const o=lid.o3,c=lid.c,Hbox=o[3]||o[2];
-  const eMove=sm((t-0.74)/(0.90-0.74));
-  const eFlip=sm((t-0.74)/(0.89-0.74));
-  const eDrop=sm((t-0.88)/(0.96-0.88));
-  const th=Math.PI*eFlip;
-  const cf=new T3.Vector3(c.x+o[0],o[1],o[2]),pc=c.clone().lerp(cf,eMove);
-  const arcZ=Math.max(20,Hbox*1.35)*Math.sin(Math.PI*eMove);
-  const hoverZ=Hbox*1.15*eMove*(1-eDrop);
-  pc.z+=arcZ+hoverZ;
-  const tilt=(1-eFlip)*0.85;
-  const ax=new T3.Vector3(1,-tilt,0).normalize();
-  g.quaternion.setFromAxisAngle(ax,th);
-  g.position.copy(pc).sub(c.clone().applyAxisAngle(ax,th))}
+  if(S.kind==='drawer'){
+   // 抽屜滑入動作：折疊進度在 0.70 ~ 0.98 時托盤平滑滑入套筒
+   const eSlide=sm((t-0.70)/(0.98-0.70));
+   g.position.x=o[0]*eSlide;
+  }else{
+   // 天地盒蓋子翻轉動作
+   const eMove=sm((t-0.74)/(0.90-0.74));
+   const eFlip=sm((t-0.74)/(0.89-0.74));
+   const eDrop=sm((t-0.88)/(0.96-0.88));
+   const th=Math.PI*eFlip;
+   const cf=new T3.Vector3(c.x+o[0],o[1],o[2]),pc=c.clone().lerp(cf,eMove);
+   const arcZ=Math.max(20,Hbox*1.35)*Math.sin(Math.PI*eMove);
+   const hoverZ=Hbox*1.15*eMove*(1-eDrop);
+   pc.z+=arcZ+hoverZ;
+   const tilt=(1-eFlip)*0.85;
+   const ax=new T3.Vector3(1,-tilt,0).normalize();
+   g.quaternion.setFromAxisAngle(ax,th);
+   g.position.copy(pc).sub(c.clone().applyAxisAngle(ax,th));
+  }
+ }
  if(TH.div)poseDiv(t);
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true);
  const bx=(TH.fixBox&&!TH.fit)?TH.fixBox:new T3.Box3().setFromObject(TH.content),c=bx.getCenter(new T3.Vector3()),sz=bx.getSize(new T3.Vector3());
@@ -143,6 +149,7 @@ function show(){
  TH.lastDist=dist;
  TH.cam.position.set(panX,-dist*Math.cos(TH.el),dist*Math.sin(TH.el)+sz.z*.05+panY);
  TH.cam.lookAt(panX,0,sz.z*-.05+panY);
+ {const pr=Math.hypot(panX,panY),mg=rad*1.6+pr;TH.cam.near=Math.max(dist-mg,dist*.05,.5);TH.cam.far=dist+mg+rad;}
  TH.cam.updateProjectionMatrix();
  const m=Math.max(sz.x,sz.y)*1.5;TH.sh.scale.set(m,m*.7,1);TH.sh.position.set(0,0,-sz.z/2-.3);
  TH.r.render(TH.sc,TH.cam)}

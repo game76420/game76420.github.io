@@ -1,14 +1,14 @@
 // ===== 盒型切換 + 2D 刀模繪製 =====
 $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b;[...$('kd').children].forEach(c=>c.classList.toggle('on',c.dataset.b===b));
  S.type='mfg';[...$('ty').children].forEach(c=>c.classList.toggle('on',c.dataset.k==='mfg'));
- const r=b!=='mailer'&&b!=='dd';
- S.m=b==='divider'?[300,200,100]:b==='tgable'?[302,152,182]:b==='gable'?[302,152,182]:b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:[315,202,62];
- cur=b==='rsc'||b==='divider'?{c:1,i:2}:(b==='tuck'||b==='gtuck')?{c:0,i:0}:{c:1,i:1};
+ const r=b!=='mailer'&&b!=='dd'&&b!=='drawer';
+ S.m=b==='divider'?[300,200,100]:b==='drawer'?[341.6,241.6,61]:b==='tgable'?[302,152,182]:b==='gable'?[302,152,182]:b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:[315,202,62];
+ cur=b==='rsc'||b==='divider'?{c:1,i:2}:(b==='tuck'||b==='gtuck'||b==='drawer')?{c:0,i:0}:{c:1,i:1};
  const it=MATS[cur.c].items[cur.i];
- S.T=b==='dd'||b==='gable'||b==='tgable'?1.5:(b==='tuck'||b==='gtuck')?.5:it.t;
+ S.T=b==='dd'||b==='gable'||b==='tgable'?1.5:(b==='tuck'||b==='gtuck'||b==='drawer')?.5:it.t;
  TH.yaw=r?-.5:0;TH.zoom=1;TH.panX=0;TH.panY=0;
  $('matName').textContent=it.n;$('dot').style.background=it.col;$('dot').style.border=it.w?'1px solid #ebebeb':'0';setMat3d(it.col);
- // 拱型盒原站只有「製造尺寸 / 內尺寸」，插口端山形盒則支援全部三種
+ // 拱型盒原站只有「製造尺寸 / 內尺寸」，其餘盒型支援全部三種
  [...$('ty').children].forEach(c=>{if(c.dataset.k==='out')c.style.display=b==='gable'?'none':''});
  $('s3').parentElement.style.display=b==='gable'||b==='divider'?'none':'';
  S.nL=4;S.nW=3;S.dvOut=true;S.dvE=10;const dvk=b==='divider';
@@ -34,7 +34,8 @@ function draw(){
   dd:buildD,
   divider:buildDV,
   gable:buildG,
-  tgable:buildTG
+  tgable:buildTG,
+  drawer:buildDrawer
  })[S.kind](L,W,H,T);
  const {P,Hn}=g,B=3;
  const hk=new Set(Hn.map(h=>key(h[0],h[1])));
@@ -62,7 +63,14 @@ function draw(){
   const dm=(ax,ay,bx,by,t,rot)=>{const cx=(ax+bx)/2,cy=(ay+by)/2,w=t.length*fs*.6+fs*1.2,n=Math.hypot(bx-ax,by-ay)||1,ux=(bx-ax)/n,uy=(by-ay)/n;
    return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#1677ff" stroke-width="${sw*1.1}"/>${hd(ax,ay,-ux,-uy)}${hd(bx,by,ux,uy)}<g transform="translate(${cx} ${cy})${rot?` rotate(${rot})`:''}"><rect x="${-w/2}" y="${-fs*.95}" width="${w}" height="${fs*1.9}" rx="${fs*.3}" style="fill:@CV"/><text y="${fs*.35}" font-size="${fs}" text-anchor="middle" fill="#1677ff">${t}</text></g>`};
   const ddDm=(D,v)=>dm(D.ox,D.oy+D.b*.75,D.ox+D.a,D.oy+D.b*.75,v[0])+dm(D.ox+D.a*.8,D.oy,D.ox+D.a*.8,D.oy+D.b,v[1])+dm(D.ox-D.h,D.oy+D.b*.12,D.ox,D.oy+D.b*.12,v[2]);
-  s+=S.kind==='divider'?g.D.map(D=>dm(D.ox,D.oy-g.gut*.5,D.ox+D.a,D.oy-g.gut*.5,'長 '+nf(D.a/k)+' '+S.unit)+dm(D.ox-g.gut*.5,D.oy,D.ox-g.gut*.5,D.oy+D.b,'寬 '+nf(D.b/k)+' '+S.unit,-90)).join(''):S.kind==='tgable'?dm(0,H*.27,L,H*.27,dv[0])+dm(L,H*.73,L+W,H*.73,dv[1])+dm(L+W+L*.28,0,L+W+L*.28,H,dv[2]):S.kind==='gable'?dm(0,H*.62,L,H*.62,dv[0])+dm(L,H*.37,L+W,H*.37,dv[1])+dm(2*L+W+W*.747,0,2*L+W+W*.747,H,dv[2]):S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0]);s+='</g>'}
+  s+=S.kind==='divider'?g.D.map(D=>dm(D.ox,D.oy-g.gut*.5,D.ox+D.a,D.oy-g.gut*.5,'長 '+nf(D.a/k)+' '+S.unit)+dm(D.ox-g.gut*.5,D.oy,D.ox-g.gut*.5,D.oy+D.b,'寬 '+nf(D.b/k)+' '+S.unit,-90)).join(''):
+     S.kind==='drawer'&&g.D?dm(g.D.ox,g.D.oy+g.D.b*.75,g.D.ox+g.D.a,g.D.oy+g.D.b*.75,dv[0])+dm(g.D.ox+g.D.a*.8,g.D.oy,g.D.ox+g.D.a*.8,g.D.oy+g.D.b,dv[1])+dm(g.D.ox+g.D.a*.15,g.D.oy-H+1,g.D.ox+g.D.a*.15,g.D.oy,dv[2]):
+     S.kind==='tgable'?dm(0,H*.27,L,H*.27,dv[0])+dm(L,H*.73,L+W,H*.73,dv[1])+dm(L+W+L*.28,0,L+W+L*.28,H,dv[2]):
+     S.kind==='gable'?dm(0,H*.62,L,H*.62,dv[0])+dm(L,H*.37,L+W,H*.37,dv[1])+dm(2*L+W+W*.747,0,2*L+W+W*.747,H,dv[2]):
+     S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):
+     S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'?dm(L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),0,L+W+L*(S.kind==='tuck'||S.kind==='gtuck'?.75:.33),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):
+     dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0]);
+  s+='</g>'}
  s+='</svg>';
  G={raw:s,P,cut,fold:fold.map(h=>({a:h[0],b:h[1]})),slots,vx,vy,vw,vh};
  if(!V||!touched)V={x:vx,y:vy,w:vw,h:vh};

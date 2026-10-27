@@ -35,11 +35,27 @@ const tgO=(t,T)=>{
  return[dxy,dxy,dz];
 };
 
-const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
-// 厚度上限隨尺寸變化
-const maxT=()=>S.kind==='divider'?5:S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
+// 抽屜盒 (Drawer Box) 專用補償公式（依據 7 組截圖：T=0.2, 0.5, 1, 1.5, 2, 2.5, 3 精確比對）
+function drawerOffs(dir, T){
+ const r1=x=>Math.round((x+1e-9)*10)/10;
+ const Ts=[.2, .5, 1, 1.5, 2, 2.5, 3];
+ const I=[[40.6,40.6,.4],[41.6,41.6,1],[43,43,2],[45,45,3],[46,46,4],[48,48,5],[50,50,6]];
+ const O=[[.4,1,.6],[.9,2.4,1.4],[2,5,3],[2.5,7,4],[4,10,6],[4.5,12,7],[5,14,8]];
+ const K=dir==='in'?I:O;
+ T=Math.min(3,Math.max(.2,T));
+ let b=1;while(b<Ts.length-1&&T>Ts[b])b++;
+ const a=b-1,t=(T-Ts[a])/(Ts[b]-Ts[a]);
+ return K[a].map((v,j)=>r1(v+(K[b][j]-v)*t));
+}
+const drawerO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*drawerOffs(t==='in'?'in':'out',T)[j]);
+
+const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='drawer'?drawerO(t,T):S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+
+// 厚度上限隨尺寸變化（依原站截圖 8、9、10：尺寸小於 55mm 時上限為 0.5mm，小於 100mm 為 1mm，大於等於 100mm 為 3mm）
+const maxT=()=>S.kind==='divider'?5:S.kind==='drawer'?(Math.min(S.m[0],S.m[1])<=55?.5:Math.min(S.m[0],S.m[1])<=100?1:3):S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
+
 const S={lid:'A',lidStyle:'std',unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
-const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
+const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='drawer'?'抽屜盒刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
 const nf=v=>S.unit==='in'?Math.round(v*1e4)/1e4:r2(v);
@@ -62,15 +78,16 @@ function ensureDimWarnBox(){
 }
 const gableWarn=(m)=>S.kind==='gable'&&m[2]>1.2*Math.min(m[0],m[1])+1e-6;
 const tgableWarn=(m)=>S.kind==='tgable'&&(m[1]<0.18*m[0]||m[2]>3.5*m[1]);
+const drawerWarn=(m)=>S.kind==='drawer'&&(m[2]>m[1]||m[0]<40||m[1]<40);
 const dvWarn=(m)=>{if(S.kind!=='divider')return false;const o=S.dvOut?1:-1;return (m[0]-(S.nL+o)*S.T)/S.nL<5||(m[1]-(S.nW+o)*S.T)/S.nW<5};
-const warnCheck=(m)=>S.kind==='tgable'?tgableWarn(m):S.kind==='divider'?dvWarn(m):gableWarn(m);
+const warnCheck=(m)=>S.kind==='drawer'?drawerWarn(m):S.kind==='tgable'?tgableWarn(m):S.kind==='divider'?dvWarn(m):gableWarn(m);
 
 function showDimWarn(show){
  const w = ensureDimWarnBox();
  if(!w) return;
  const tip=w.querySelector('span');
  if(tip){
-  tip.title=S.kind==='divider'?'隔間淨寬小於 5mm，隔板厚度或隔間數過大，請減少隔間數或縮小厚度':S.kind==='tgable'?'寬度相對長度過小或高度過大，卡扣底與山形頂部可能無法閉合':S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
+  tip.title=S.kind==='drawer'?'高度過大或長寬過小可能導致托盤折疊干涉':S.kind==='divider'?'隔間淨寬小於 5mm，隔板厚度或隔間數過大，請減少隔間數或縮小厚度':S.kind==='tgable'?'寬度相對長度過小或高度過大，卡扣底與山形頂部可能無法閉合':S.kind==='gable'?'高度相對長、寬過大，刀版可能無法正常成型或列印（拱型盒不會自動修正高度）':'高度不能大於長度或寬度，系統將自動修正為長與寬的較小值';
  }
  w.style.display = show ? 'block' : 'none';
 }
