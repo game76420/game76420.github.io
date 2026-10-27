@@ -16,10 +16,11 @@ $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b
  $('tyH').style.display=$('ty').style.display=dvk?'none':'';
  $('l1').textContent=dvk?'A 長向隔板':'製造尺寸';$('l2').textContent=dvk?'B 寬向隔板':'內尺寸';
  $('thH').textContent=dvk?'紙板厚度':'自訂厚度';
- S.lid='A';syncLidUI();
+ S.lid='A';S.lidStyle='std';syncLidUI();
  fill();refit()};
 
-function syncLidUI(){const on=S.kind==='tuck'||S.kind==='gtuck';$('tLid').style.display=on?'':'none';[...$('lidPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.lid||'A')))}
+function syncLidUI(){const on=S.kind==='tuck'||S.kind==='gtuck';$('tLid').style.display=on?'':'none';[...$('lidPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.lid||'A')));[...$('lidSty').children].forEach(c=>c.classList.toggle('on',c.dataset.s===(S.lidStyle||'std')))}
+$('lidSty').onclick=e=>{const v=e.target.dataset.s;if(!v||v===S.lidStyle)return;S.lidStyle=v;syncLidUI();fill();refit()};
 $('lidPos').onclick=e=>{const l=e.target.dataset.l;if(!l||l===S.lid)return;S.lid=l;syncLidUI();refit()};
 
 function draw(){
@@ -27,8 +28,8 @@ function draw(){
  const g=({
   mailer:buildM,
   rsc:buildR,
-  tuck:(L,W,H,T)=>buildT(L,W,H,T,0,S.lid==='C'),
-  gtuck:(L,W,H,T)=>buildT(L,W,H,T,1,S.lid==='C'),
+  tuck:(L,W,H,T)=>buildT(L,W,H,T,0,S.lid==='C',S.lidStyle==='lock'),
+  gtuck:(L,W,H,T)=>buildT(L,W,H,T,1,S.lid==='C',S.lidStyle==='lock'),
   dd:buildD,
   divider:buildDV,
   gable:buildG,
@@ -47,7 +48,7 @@ function draw(){
  const notch=S.T<.85&&slots.length>0,fold=notch?Hn.flatMap(h=>{const x=h[0][0];if(x!==h[1][0]||(Math.abs(x)>1e-9&&Math.abs(x-L)>1e-9))return [h];let seg=[[Math.min(h[0][1],h[1][1]),Math.max(h[0][1],h[1][1])]];for(const [a,b] of g.SL)seg=seg.flatMap(([p,q])=>a>=q||b<=p?[[p,q]]:[[p,Math.max(p,a)],[Math.min(q,b),q]].filter(([u,v])=>v-u>1e-9));return seg.map(([p,q])=>[[x,p],[x,q]])}):Hn;
  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" font-family="sans-serif">`;
  if($('oBleed').checked){const ps=P.map(p=>`<path d="${pathD(p.e)}"/>`).join(''),bw=sw*1.1;
-  s+=`<g id="Bleed"><g fill="#5dbb1a" stroke="#5dbb1a" stroke-width="${2*B+bw}" stroke-linejoin="round">${ps}</g><g style="fill:@CV;stroke:@CV" stroke-width="${2*B-bw}" stroke-linejoin="round">${ps}</g></g>`}
+  s+=`<g id="Bleed"><g fill="#5dbb1a" stroke="#5dbb1a" stroke-width="${2*B+bw}" stroke-linejoin="round">${ps}</g><g style="fill:@CV;stroke:@CV" stroke-width="${2*B-bw}" stroke-linejoin="round">${ps}</g>${(g.HL||[]).map(h=>`<path d="${pathD(h.e)}" style="fill:@CV"/>`).join('')}</g>`}
  s+='<g id="Fill">'+P.map(p=>`<path d="${pathD(p.e)}" style="fill:@PF"/>`).join('')+'</g>';
  s+=`<g id="Fold"><path d="${fold.map(h=>`M${h[0][0]} ${h[0][1]}L${h[1][0]} ${h[1][1]}`).join('')}" stroke="#e11" stroke-width="${sw*1.1}" stroke-dasharray="${sw*3} ${sw*1.6}" fill="none"/></g>`;
  s+='<g id="Cut">';

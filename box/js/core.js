@@ -13,6 +13,9 @@ const lerpK=(K,T)=>{let a,b;
 const TKT=[.2,.5,1,2,3],TKI=[[.2,.2,.2],[.6,.6,1.1],[1,1,2],[2,2,3],[4,4,6]],TKO=[[.2,.2,.6],[.4,.4,.9],[1,1,2],[2,2,5],[2,2,6]];
 const tkO=(t,T)=>t==='mfg'?[0,0,0]:(t==='in'?lerpK2(TKI,T).map(v=>-v):lerpK2(TKO,T));
 function lerpK2(K,T){T=Math.min(3,Math.max(.2,T));let b=1;while(b<TKT.length-1&&T>TKT[b])b++;const a=b-1,t=(T-TKT[a])/(TKT[b]-TKT[a]);return K[a].map((v,j)=>v+(K[b][j]-v)*t)}
+// 指扣鎖扣蓋（插口式軟件盒）的內/外尺寸補償：依 T=0.2/0.5/1/1.5/2/2.5/3 七張截圖實測
+const TLT=[.2,.5,1,1.5,2,2.5,3],TLI=[[.2,.2,.2],[.6,.6,1.1],[1,1,2],[2,2,3.5],[2,2,3],[3,3,4.5],[4,4,6]],TLO=[[.2,.2,.6],[.4,.4,.9],[1,1,2],[1,1,2.5],[2,2,5],[2,2,5.5],[2,2,6]];
+const tlO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*ip(Math.min(3,Math.max(.2,T)),TLT,(t==='in'?TLI:TLO).map(r=>r[j])));
 const gtO=(t,T)=>{if(t==='mfg')return[0,0,0];const X=[.2,.5,1.5,3],I=[[.2,.2,.2],[.6,.6,1.1],[2,2,3.5],[4,4,7]],O=[[.2,.2,.6],[.4,.4,.9],[1,1,2.5],[2,2,5]],K=t==='in'?I:O;T=Math.min(3,Math.max(.2,T));let b=1;while(b<3&&T>X[b])b++;const a=b-1,f=(T-X[a])/(X[b]-X[a]),v=K[a].map((q,j)=>q+(K[b][j]-q)*f);return t==='in'?v.map(q=>-q):v};
 // 天地盒內/外尺寸補償：依原版兩張截圖校準。
 const DKT=[.2,.5,1,1.5,2,3,4,5],
@@ -32,10 +35,10 @@ const tgO=(t,T)=>{
  return[dxy,dxy,dz];
 };
 
-const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
 // 厚度上限隨尺寸變化
 const maxT=()=>S.kind==='divider'?5:S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
-const S={lid:'A',unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
+const S={lid:'A',lidStyle:'std',unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
 const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;

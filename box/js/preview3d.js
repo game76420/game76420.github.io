@@ -118,7 +118,7 @@ function syncLid(snap){}
 function show(){
  if(!TH.r||!TH.built)return;const t=$('fold').value/100,T3=THREE;
  $('fold').style.setProperty('--p',$('fold').value+'%');
- for(const g of TH.list){const u=g.userData;if(!u.axis)continue;const w=u.p.w;{const x=Math.min(1,Math.max(0,(t-w[0])/(w[1]-w[0]))),k=u.p.id==='lid'?x*x:u.p.id==='flap'?Math.pow(x,2.5):sm(x),ang=u.p.ang||Math.PI/2;g.quaternion.setFromAxisAngle(u.axis,u.sgn*ang*k);if(u.p.sh)g.position.y=u.y0+u.p.sh*k}}
+ for(const g of TH.list){const u=g.userData;if(!u.axis)continue;const w=u.p.w;{const x=Math.min(1,Math.max(0,(t-w[0])/(w[1]-w[0]))),k=u.p.bump?Math.sin(Math.PI*x):u.p.id==='lid'?x*x:u.p.id==='flap'?Math.pow(x,2.5):sm(x),ang=u.p.bump||u.p.ang||Math.PI/2;g.quaternion.setFromAxisAngle(u.axis,u.sgn*ang*k);if(u.p.sh)g.position.y=u.y0+u.p.sh*k}}
  for(const g of TH.list){const lid=g.userData.lid;if(!lid)continue;
   const o=lid.o3,c=lid.c,Hbox=o[3]||o[2];
   const eMove=sm((t-0.74)/(0.90-0.74));
