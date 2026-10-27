@@ -35,18 +35,7 @@ const tgO=(t,T)=>{
  return[dxy,dxy,dz];
 };
 
-// 抽屜盒 (Drawer Box) 專用補償公式（依據 7 組截圖：T=0.2, 0.5, 1, 1.5, 2, 2.5, 3 精確比對）
-function drawerOffs(dir, T){
- const r1=x=>Math.round((x+1e-9)*10)/10;
- const Ts=[.2, .5, 1, 1.5, 2, 2.5, 3];
- const I=[[40.6,40.6,.4],[41.6,41.6,1],[43,43,2],[45,45,3],[46,46,4],[48,48,5],[50,50,6]];
- const O=[[.4,1,.6],[.9,2.4,1.4],[2,5,3],[2.5,7,4],[4,10,6],[4.5,12,7],[5,14,8]];
- const K=dir==='in'?I:O;
- T=Math.min(3,Math.max(.2,T));
- let b=1;while(b<Ts.length-1&&T>Ts[b])b++;
- const a=b-1,t=(T-Ts[a])/(Ts[b]-Ts[a]);
- return K[a].map((v,j)=>r1(v+(K[b][j]-v)*t));
-}
+// 抽屜盒 (Drawer Box) 內/外尺寸補償：drawerOffs() 與全部厚度參數統一定義在 drawer.js（單一資料來源，依原站 7 個厚度 JSON 反推）
 const drawerO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*drawerOffs(t==='in'?'in':'out',T)[j]);
 
 const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='drawer'?drawerO(t,T):S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
