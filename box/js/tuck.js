@@ -31,7 +31,7 @@ function tabGeom(xc,ey,s,L,W,T){
   x0=xc-tw/2,x1=xc+tw/2,Y=d=>ey+s*d;
  return {pts:[[x0-g,ey],[x0-g,Y(td+ts)],[x0,Y(td+ts)],[x0,Y(td)],[x1,Y(td)],[x1,Y(td+ts)],[x1+g,Y(td+ts)],[x1+g,ey]],
   inn:[[x0,Y(td)],[x1,Y(td)],[x1,ey],[x0,ey]],out:[[x0,ey],[x1,ey],[x1,Y(-tu),rt],[x0,Y(-tu),rt]],h2:[[x0,Y(td)],[x1,Y(td)]],h1:[[x0,ey],[x1,ey]]}}
-function buildT(L,W,H,T,game,lidC,lock){
+function buildT(L,W,H,T,game,lidC,lock,botA){
  // 依原站截圖（25/35/50/100 立方體、120×60×160 五種厚度）量測：C、D 面相對 A、B 面下移 sh（取代舊的補強邊）
  const sg=Math.min(4.7,.095*W),ti=.5,tg=Math.min(14.6,Math.max(5,.22*W)),u=Math.min(1,Math.max(0,(T-.75)/1.25)),
   sh=game?ip(T,[.2,.5,1,1.5,2,3],[.2,.5,.9,1.3,1.6,2]):ip(T,[.2,.5,1,2,3],[.2,.5,.8,.8,2]),
@@ -42,21 +42,22 @@ function buildT(L,W,H,T,game,lidC,lock){
   one=(n,l,id,par,hg,w)=>P.push({n,...shape(l),id,par,hg,w}),
   Hs=H+sh;
  const TT=lock?(lidC?{p:'p0',...tabGeom(L/2,0,1,L,W,T)}:{p:'p2',...tabGeom((b+c)/2,sh,1,L,W,T)}):null,
-  TB=lock&&!game?{p:'p0',...tabGeom(L/2,H,-1,L,W,T)}:null;
- one('A面',[[0,0],...(TT&&lidC?TT.pts:[]),[L,0],[L,H],...(TB?TB.pts.slice().reverse():[]),[0,H]],'p0',null,null,[0,0]);
+  TB=lock&&!game?(botA?{p:'p2',...tabGeom((b+c)/2,Hs,-1,L,W,T)}:{p:'p0',...tabGeom(L/2,H,-1,L,W,T)}):null;
+ const bx0=botA?0:b,bx1=botA?L:c,by=botA?H:Hs,bp=botA?'p0':'p2';
+ one('A面',[[0,0],...(TT&&lidC?TT.pts:[]),[L,0],[L,H],...(TB&&!botA?TB.pts.slice().reverse():[]),[0,H]],'p0',null,null,[0,0]);
  one('B面',[[a,0],...(arcOn?[{arc:[a+rx,0,rx,ry,180,0]}]:[[a+gb,0]]),[b,0],[b,sh],[b,H],...(game?[]:arcOn?[{arc:[b-rx,H,rx,ry,0,-180]}]:[[b-gb,H]]),[a,H]],'p1','p0',[[a,0],[a,H]],[0,.3]);
- one('C面',[[b,sh],...(TT&&!lidC?TT.pts:[]),[c,sh],[c,Hs],[b,Hs],[b,H]],'p2','p1',[[b,sh],[b,H]],[.05,.4]);
+ one('C面',[[b,sh],...(TT&&!lidC?TT.pts:[]),[c,sh],[c,Hs],...(TB&&botA?TB.pts.slice().reverse():[]),[b,Hs],[b,H]],'p2','p1',[[b,sh],[b,H]],[.05,.4]);
  one('D面',[[c,sh],...(arcOn?[{arc:[d-rx,sh,rx,ry,180,0]}]:[[d-gb,sh],[d,sh]]),[d,Hs],...(game?[]:arcOn?[{arc:[c+rx,Hs,rx,ry,0,-180]}]:[[c+gb,Hs]]),[c,Hs]],'p3','p2',[[c,sh],[c,Hs]],[.1,.5]);
  one('糊邊',[[0,0],[-gw,gc],[-gw,H-gc],[0,H]],'gl','p0',[[0,0],[0,H]],[.3,.45]);
  // 蓋位置：預設在 A 面上方；lidC 時改接在 C 面上方（C 面頂邊為 y=sh）
  const lx0=lidC?b:0,lx1=lidC?c:L,ly=lidC?sh:0;
  if(!lock)one('蓋',[[lx0,ly],[lx1,ly],[lx1,ly-W],[lx1-tl,ly-W],[lx0+tl,ly-W],[lx0,ly-W]],'lid',lidC?'p2':'p0',[[lx0,ly],[lx1,ly]],[.62,.84]);
  if(!lock)one('插舌',[[lx0+ti,ly-W],[lx0+tl,ly-W],[lx1-tl,ly-W],[lx1-ti,ly-W],[lx1-ti,ly-W-tg,ri],[lx0+ti,ly-W-tg,ri]],'lt','lid',[[lx0+tl,ly-W],[lx1-tl,ly-W]],[.82,.97]);
- if(!game&&!lock)one('底',[[b,Hs],[c,Hs],[c,Hs+W],[c-tl,Hs+W],[b+tl,Hs+W],[b,Hs+W]],'bf','p2',[[b,Hs],[c,Hs]],[.62,.84]);
- if(!game&&!lock)one('插舌',[[b+ti,Hs+W],[b+tl,Hs+W],[c-tl,Hs+W],[c-ti,Hs+W],[c-ti,Hs+W+tg,ri],[b+ti,Hs+W+tg,ri]],'bt','bf',[[b+tl,Hs+W],[c-tl,Hs+W]],[.82,.97]);
+ if(!game&&!lock)one('底',[[bx0,by],[bx1,by],[bx1,by+W],[bx1-tl,by+W],[bx0+tl,by+W],[bx0,by+W]],'bf',bp,[[bx0,by],[bx1,by]],[.62,.84]);
+ if(!game&&!lock)one('插舌',[[bx0+ti,by+W],[bx0+tl,by+W],[bx1-tl,by+W],[bx1-ti,by+W],[bx1-ti,by+W+tg,ri],[bx0+ti,by+W+tg,ri]],'bt','bf',[[bx0+tl,by+W],[bx1-tl,by+W]],[.82,.97]);
  if(lock){
   const o=lockLid(lx0,lx1,ly,-1,W,T);HL.push(o.hole);one('蓋',o.lid,'lid',lidC?'p2':'p0',[[lx0,ly],[lx1,ly]],[.62,.84]);one('插舌',o.tg,'lt','lid',o.hg,[.82,.97]);o.fold.forEach(q=>Hn.push(q));
-  if(!game){const o2=lockLid(b,c,Hs,1,W,T);HL.push(o2.hole);one('底',o2.lid,'bf','p2',[[b,Hs],[c,Hs]],[.62,.84]);one('插舌',o2.tg,'bt','bf',o2.hg,[.82,.97]);o2.fold.forEach(q=>Hn.push(q))}
+  if(!game){const o2=lockLid(bx0,bx1,by,1,W,T);HL.push(o2.hole);one('底',o2.lid,'bf',bp,[[bx0,by],[bx1,by]],[.62,.84]);one('插舌',o2.tg,'bt','bf',o2.hg,[.82,.97]);o2.fold.forEach(q=>Hn.push(q))}
   [[TT,'t1'],[TB,'t2']].forEach(([q,k])=>{if(!q)return;one('鎖扣舌',q.inn,'ti'+k,q.p,q.h2,[.86,.97]);P[P.length-1].bump=.5;one('鎖扣舌',q.out,'to'+k,'ti'+k,q.h1,[.9,.97]);Hn.push(q.h2,q.h1)})}
  // 防塵翼：頂端圓角後接陡斜邊，再接 45° 小斜邊回到折線端點
  one('防塵翼',[[a+gb,0],[a+g,-dh,rd],[a+.87*W,-dh,rd],[a+.94*W,-.3*dh],[b,-sg],[b,0]],'dBt','p1',[[a+gb,0],[b,0]],[.5,.64]);
@@ -65,7 +66,7 @@ function buildT(L,W,H,T,game,lidC,lock){
  if(!game)one('防塵翼',[[c+gb,Hs],[c+g,Hs+dh,rd],[d-.13*W,Hs+dh,rd],[d-.06*W,Hs+.3*dh],[d,Hs+sg],[d,Hs]],'dDb','p3',[[c+gb,Hs],[d,Hs]],[.5,.64]);
  [0,a].forEach(x=>Hn.push([[x,0],[x,H]]));Hn.push([[b,sh],[b,H]],[[c,sh],[c,Hs]]);
  Hn.push([[a+gb,0],[b,0]],[[a,H],[b-(game?0:gb),H]],[[c,sh],[d-gb,sh]],[[c+(game?0:gb),Hs],[d,Hs]],
-  [[0,H],[L,H]],[[b,sh],[c,sh]],[[b,Hs],[c,Hs]]);if(!lock)Hn.push([[lx0+tl,ly-W],[lx1-tl,ly-W]]);if(!lidC)Hn.push([[0,0],[L,0]]);if(!game&&!lock)Hn.push([[b+tl,Hs+W],[c-tl,Hs+W]]);
+  [[0,H],[L,H]],[[b,sh],[c,sh]],[[b,Hs],[c,Hs]]);if(!lock)Hn.push([[lx0+tl,ly-W],[lx1-tl,ly-W]]);if(!lidC)Hn.push([[0,0],[L,0]]);if(!game&&!lock)Hn.push([[bx0+tl,by+W],[bx1-tl,by+W]]);
 
  // 自動鎖底：A 面底襯（中間缺口）、C 面底襯（斜肩＋中央舌片）、B/D 面斜肩小翼
  if(game){const r_=Math.max(0,Math.min(1.3,L/W-1)),fl=W<10.6?.745*W:W>60.6?.815*W:ip(W,[10.6,25,50,60.6],[7.9,18.9,39,49.4]),

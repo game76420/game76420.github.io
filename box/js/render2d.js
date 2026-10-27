@@ -16,11 +16,12 @@ $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b
  $('tyH').style.display=$('ty').style.display=dvk?'none':'';
  $('l1').textContent=dvk?'A 長向隔板':'製造尺寸';$('l2').textContent=dvk?'B 寬向隔板':'內尺寸';
  $('thH').textContent=dvk?'紙板厚度':'自訂厚度';
- S.lid='A';S.lidStyle='std';syncLidUI();
+ S.lid='A';S.bot='C';S.lidStyle='std';syncLidUI();
  fill();refit()};
 
-function syncLidUI(){const on=S.kind==='tuck'||S.kind==='gtuck';$('tLid').style.display=on?'':'none';[...$('lidPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.lid||'A')));[...$('lidSty').children].forEach(c=>c.classList.toggle('on',c.dataset.s===(S.lidStyle||'std')))}
+function syncLidUI(){const on=S.kind==='tuck'||S.kind==='gtuck';$('tLid').style.display=on?'':'none';$('tBot').style.display=S.kind==='tuck'?'':'none';[...$('botPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.bot||'C')));[...$('lidPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.lid||'A')));[...$('lidSty').children].forEach(c=>c.classList.toggle('on',c.dataset.s===(S.lidStyle||'std')))}
 $('lidSty').onclick=e=>{const v=e.target.dataset.s;if(!v||v===S.lidStyle)return;S.lidStyle=v;syncLidUI();fill();refit()};
+$('botPos').onclick=e=>{const l=e.target.dataset.l;if(!l||l===(S.bot||'C'))return;S.bot=l;syncLidUI();refit()};
 $('lidPos').onclick=e=>{const l=e.target.dataset.l;if(!l||l===S.lid)return;S.lid=l;syncLidUI();refit()};
 
 function draw(){
@@ -28,7 +29,7 @@ function draw(){
  const g=({
   mailer:buildM,
   rsc:buildR,
-  tuck:(L,W,H,T)=>buildT(L,W,H,T,0,S.lid==='C',S.lidStyle==='lock'),
+  tuck:(L,W,H,T)=>buildT(L,W,H,T,0,S.lid==='C',S.lidStyle==='lock',S.bot==='A'),
   gtuck:(L,W,H,T)=>buildT(L,W,H,T,1,S.lid==='C',S.lidStyle==='lock'),
   dd:buildD,
   divider:buildDV,
