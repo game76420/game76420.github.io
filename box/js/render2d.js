@@ -16,15 +16,19 @@ $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b
  $('tyH').style.display=$('ty').style.display=dvk?'none':'';
  $('l1').textContent=dvk?'A 長向隔板':'製造尺寸';$('l2').textContent=dvk?'B 寬向隔板':'內尺寸';
  $('thH').textContent=dvk?'紙板厚度':'自訂厚度';
+ S.lid='A';syncLidUI();
  fill();refit()};
+
+function syncLidUI(){const on=S.kind==='tuck'||S.kind==='gtuck';$('tLid').style.display=on?'':'none';[...$('lidPos').children].forEach(c=>c.classList.toggle('on',c.dataset.l===(S.lid||'A')))}
+$('lidPos').onclick=e=>{const l=e.target.dataset.l;if(!l||l===S.lid)return;S.lid=l;syncLidUI();refit()};
 
 function draw(){
  const [L,W,H]=S.m,T=S.T;
  const g=({
   mailer:buildM,
   rsc:buildR,
-  tuck:buildT,
-  gtuck:(L,W,H,T)=>buildT(L,W,H,T,1),
+  tuck:(L,W,H,T)=>buildT(L,W,H,T,0,S.lid==='C'),
+  gtuck:(L,W,H,T)=>buildT(L,W,H,T,1,S.lid==='C'),
   dd:buildD,
   divider:buildDV,
   gable:buildG,

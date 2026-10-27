@@ -1,5 +1,5 @@
 // ===== 插口式軟件盒（反向插口 Reverse Tuck End）：A/B/C/D 四面 + 左側糊邊；A 面上方為蓋、C 面下方為底插片，B/D 面上下各有防塵翼 =====
-function buildT(L,W,H,T,game){
+function buildT(L,W,H,T,game,lidC){
  // 依原站截圖（25/35/50/100 立方體、120×60×160 五種厚度）量測：C、D 面相對 A、B 面下移 sh（取代舊的補強邊）
  const sg=Math.min(4.7,.095*W),ti=.5,tg=Math.min(14.6,Math.max(5,.22*W)),u=Math.min(1,Math.max(0,(T-.75)/1.25)),
   sh=game?ip(T,[.2,.5,1,1.5,2,3],[.2,.5,.9,1.3,1.6,2]):ip(T,[.2,.5,1,2,3],[.2,.5,.8,.8,2]),
@@ -14,8 +14,10 @@ function buildT(L,W,H,T,game){
  one('C面',[[b,sh],[c,sh],[c,Hs],[b,Hs],[b,H]],'p2','p1',[[b,sh],[b,H]],[.05,.4]);
  one('D面',[[c,sh],...(arcOn?[{arc:[d-rx,sh,rx,ry,180,0]}]:[[d-gb,sh],[d,sh]]),[d,Hs],...(game?[]:arcOn?[{arc:[c+rx,Hs,rx,ry,0,-180]}]:[[c+gb,Hs]]),[c,Hs]],'p3','p2',[[c,sh],[c,Hs]],[.1,.5]);
  one('糊邊',[[0,0],[-gw,gc],[-gw,H-gc],[0,H]],'gl','p0',[[0,0],[0,H]],[.3,.45]);
- one('蓋',[[0,0],[L,0],[L,-W],[L-tl,-W],[tl,-W],[0,-W]],'lid','p0',[[0,0],[L,0]],[.62,.84]);
- one('插舌',[[ti,-W],[tl,-W],[L-tl,-W],[L-ti,-W],[L-ti,-W-tg,ri],[ti,-W-tg,ri]],'lt','lid',[[tl,-W],[L-tl,-W]],[.82,.97]);
+ // 蓋位置：預設在 A 面上方；lidC 時改接在 C 面上方（C 面頂邊為 y=sh）
+ const lx0=lidC?b:0,lx1=lidC?c:L,ly=lidC?sh:0;
+ one('蓋',[[lx0,ly],[lx1,ly],[lx1,ly-W],[lx1-tl,ly-W],[lx0+tl,ly-W],[lx0,ly-W]],'lid',lidC?'p2':'p0',[[lx0,ly],[lx1,ly]],[.62,.84]);
+ one('插舌',[[lx0+ti,ly-W],[lx0+tl,ly-W],[lx1-tl,ly-W],[lx1-ti,ly-W],[lx1-ti,ly-W-tg,ri],[lx0+ti,ly-W-tg,ri]],'lt','lid',[[lx0+tl,ly-W],[lx1-tl,ly-W]],[.82,.97]);
  if(!game)one('底',[[b,Hs],[c,Hs],[c,Hs+W],[c-tl,Hs+W],[b+tl,Hs+W],[b,Hs+W]],'bf','p2',[[b,Hs],[c,Hs]],[.62,.84]);
  if(!game)one('插舌',[[b+ti,Hs+W],[b+tl,Hs+W],[c-tl,Hs+W],[c-ti,Hs+W],[c-ti,Hs+W+tg,ri],[b+ti,Hs+W+tg,ri]],'bt','bf',[[b+tl,Hs+W],[c-tl,Hs+W]],[.82,.97]);
  // 防塵翼：頂端圓角後接陡斜邊，再接 45° 小斜邊回到折線端點
@@ -25,7 +27,7 @@ function buildT(L,W,H,T,game){
  if(!game)one('防塵翼',[[c+gb,Hs],[c+g,Hs+dh,rd],[d-.13*W,Hs+dh,rd],[d-.06*W,Hs+.3*dh],[d,Hs+sg],[d,Hs]],'dDb','p3',[[c+gb,Hs],[d,Hs]],[.5,.64]);
  [0,a].forEach(x=>Hn.push([[x,0],[x,H]]));Hn.push([[b,sh],[b,H]],[[c,sh],[c,Hs]]);
  Hn.push([[a+gb,0],[b,0]],[[a,H],[b-(game?0:gb),H]],[[c,sh],[d-gb,sh]],[[c+(game?0:gb),Hs],[d,Hs]],
-  [[0,0],[L,0]],[[0,H],[L,H]],[[b,sh],[c,sh]],[[b,Hs],[c,Hs]],[[tl,-W],[L-tl,-W]]);if(!game)Hn.push([[b+tl,Hs+W],[c-tl,Hs+W]]);
+  [[0,H],[L,H]],[[b,sh],[c,sh]],[[b,Hs],[c,Hs]],[[lx0+tl,ly-W],[lx1-tl,ly-W]]);if(!lidC)Hn.push([[0,0],[L,0]]);if(!game)Hn.push([[b+tl,Hs+W],[c-tl,Hs+W]]);
 
  // 自動鎖底：A 面底襯（中間缺口）、C 面底襯（斜肩＋中央舌片）、B/D 面斜肩小翼
  if(game){const r_=Math.max(0,Math.min(1.3,L/W-1)),fl=W<10.6?.745*W:W>60.6?.815*W:ip(W,[10.6,25,50,60.6],[7.9,18.9,39,49.4]),

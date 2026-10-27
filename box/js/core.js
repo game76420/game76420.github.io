@@ -35,7 +35,7 @@ const tgO=(t,T)=>{
 const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?tkO(t,T):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
 // 厚度上限隨尺寸變化
 const maxT=()=>S.kind==='divider'?5:S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
-const S={unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
+const S={lid:'A',unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
 const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
