@@ -63,7 +63,7 @@ function draw(){
   const dm=(ax,ay,bx,by,t,rot)=>{const cx=(ax+bx)/2,cy=(ay+by)/2,w=t.length*fs*.6+fs*1.2,n=Math.hypot(bx-ax,by-ay)||1,ux=(bx-ax)/n,uy=(by-ay)/n;
    return `<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#1677ff" stroke-width="${sw*1.1}"/>${hd(ax,ay,-ux,-uy)}${hd(bx,by,ux,uy)}<g transform="translate(${cx} ${cy})${rot?` rotate(${rot})`:''}"><rect x="${-w/2}" y="${-fs*.95}" width="${w}" height="${fs*1.9}" rx="${fs*.3}" style="fill:@CV"/><text y="${fs*.35}" font-size="${fs}" text-anchor="middle" fill="#1677ff">${t}</text></g>`};
   const ddDm=(D,v)=>dm(D.ox,D.oy+D.b*.75,D.ox+D.a,D.oy+D.b*.75,v[0])+dm(D.ox+D.a*.8,D.oy,D.ox+D.a*.8,D.oy+D.b,v[1])+dm(D.ox-D.h,D.oy+D.b*.12,D.ox,D.oy+D.b*.12,v[2]);
-  s+=S.kind==='divider'?g.D.map(D=>dm(D.ox,D.oy-g.gut*.5,D.ox+D.a,D.oy-g.gut*.5,'長 '+nf(D.a/k)+' '+S.unit)+dm(D.ox-g.gut*.5,D.oy,D.ox-g.gut*.5,D.oy+D.b,'寬 '+nf(D.b/k)+' '+S.unit,-90)).join(''):
+  s+=S.kind==='divider'?g.D.map(D=>dm(D.ox,D.oy-g.gut*.5,D.ox+D.a,D.oy-g.gut*.5,'長 '+nf(D.a/k)+' '+S.unit)+dm(D.ox-g.gut*.5,D.oy,D.ox-g.gut*.5,D.oy+D.b,'寬 '+nf(D.b/k)+' '+S.unit,-90)+(D.gx&&D.gv>.01?dm(D.gx[0],D.gy,D.gx[1],D.gy,(D.kind==='A'?'L ':'W ')+nf(D.gv/k)+' '+S.unit):'')).join(''):
      S.kind==='drawer'&&g.D?dm(g.D.ox,g.D.oy+g.D.b*.75,g.D.ox+g.D.a,g.D.oy+g.D.b*.75,dv[0])+dm(g.D.ox+g.D.a*.8,g.D.oy,g.D.ox+g.D.a*.8,g.D.oy+g.D.b,dv[1])+dm(g.D.ox+g.D.a*.15,g.D.oy-H+1,g.D.ox+g.D.a*.15,g.D.oy,dv[2]):
      S.kind==='tgable'?dm(0,H*.27,L,H*.27,dv[0])+dm(L,H*.73,L+W,H*.73,dv[1])+dm(L+W+L*.28,0,L+W+L*.28,H,dv[2]):
      S.kind==='gable'?dm(0,H*.62,L,H*.62,dv[0])+dm(L,H*.37,L+W,H*.37,dv[1])+dm(2*L+W+W*.747,0,2*L+W+W*.747,H,dv[2]):

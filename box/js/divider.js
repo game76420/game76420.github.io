@@ -50,7 +50,9 @@ function buildDV(L,W,H,T){
     l.push([x0,oy+H],[x0,h2],[xl,h2]);
    }
    P.push({n:`${kind} ${name}`,...shape(l),ly:fromTop?oy+H*.8:oy+H*.3,dv:{kind,ox,oy,a,b:H,s:starts[k]}});
-   if(k===0)D.push({ox:xl,oy,a:aw,b:H,kind,name,n,e});
+   if(k===0){   // gx/gy：第一、二槽之間的隔間淨寬標註（A 板=L 向、B 板=W 向）；僅 1 槽的內隔板則標板緣到槽
+    const sx=slots.length>=2?[ox+slots[0]+T,ox+slots[1]]:(!out&&slots.length===1?[ox,ox+slots[0]]:null);
+    D.push({ox:xl,oy,a:aw,b:H,kind,name,n,e,gx:sx,gy:fromTop?oy+H*.25:oy+H*.75,gv:sx?sx[1]-sx[0]:0})}
   }
   cx+=cols*(aw+gap)-gap+gut+gap;
  };
