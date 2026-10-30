@@ -76,7 +76,7 @@
 <aside class="right">
  <div id="pvSlot" style="flex:none"><div class="pv mini" id="mini" style="display:none" title="點擊切回刀模"></div>
  <div class="pv" id="pvBox"><canvas id="pvc"></canvas>
-  <div class="vm" id="vm"><button class="on" data-m="full">全彩</button><button data-m="xray">透視</button><button data-m="hidden">透視隱藏線</button></div>
+  <div class="vm" id="vm"><button class="on" data-m="full">全彩</button><button data-m="edge">全彩+框線</button><button data-m="xray">透視</button><button data-m="hidden">透視隱藏線</button></div>
   <svg class="r3" id="r3" viewBox="0 0 40 34"><text x="20" y="16" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="17" fill="#111">3D</text><path d="M5 22Q20 33 35 22" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round"/><path d="M36 17l1 8-7-2z" fill="#111"/></svg>
   <div class="peel"></div>
   <div class="sl"><span>展開</span><input type="range" id="fold" min="0" max="100" value="100"><span>閉合</span></div></div></div>
@@ -87,6 +87,7 @@
    <button id="dDXF"><b style="background:#222">DXF</b></button>
    <button id="d3D"><b style="background:#475569">3D</b><span class="t2">線條圖<br>DXF</span></button>
    <button id="dPNG"><b style="background:#16a34a">JPG</b></button>
+   <button id="dCopy" title="複製圖片到剪貼簿，可直接貼到 LINE"><b style="background:#06c755">複製</b><span class="t2">貼到 LINE</span></button>
   </div>
   <label class="hl"><input type="checkbox" id="oHide">隱藏線消除（只輸出可見線）</label>
  </div>
