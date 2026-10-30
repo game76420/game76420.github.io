@@ -70,7 +70,7 @@ input[type=number]::-webkit-inner-spin-button{display:none}input[type=number]{-m
 .fb b{font-size:15px;padding:6px 12px;border-radius:4px;color:#fff;line-height:1}
 .ff ul{padding-left:20px;color:#6b7280;font-size:14px;line-height:1.55;margin:10px 0 0}.ff li{margin-bottom:10px}
 .chat{position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:60px;height:60px;border-radius:50%;background:#111;color:#fff;border:0;font-size:26px;cursor:pointer;z-index:5}
-.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;display:none;z-index:9}
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 20px;border-radius:10px;font-size:15px;display:none;z-index:99;box-shadow:0 4px 16px rgba(0,0,0,.35);max-width:90vw;text-align:center}
 
 #home{display:none;min-height:100vh;background:#fff;color:#222}
 #home .top{display:flex;align-items:center;gap:10px;padding:14px 28px;border-bottom:1px solid var(--line);font-size:18px;font-weight:600}
