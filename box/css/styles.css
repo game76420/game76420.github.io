@@ -97,3 +97,33 @@ input[type=number]::-webkit-inner-spin-button{display:none}input[type=number]{-m
 .adv summary::-webkit-details-marker{display:none}
 .adv summary::after{content:'';width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .15s;margin-right:4px}
 .adv[open] summary::after{transform:rotate(-135deg)}
+
+.pv .vm{position:absolute;left:12px;top:12px;z-index:2;display:flex;gap:2px;background:#fff;border-radius:99px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.pv .vm button{border:0;background:transparent;color:#111;font:600 13px inherit;font-family:inherit;padding:7px 11px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.pv .vm button.on{background:#111;color:#fff}
+.fb .t2{font-size:14px;line-height:1.25;text-align:center}
+.ff .hl{display:flex;align-items:center;gap:10px;margin:16px 2px 0;font-size:14px;color:#222;cursor:pointer}
+.ff .hl input{width:16px;height:16px;margin:0;cursor:pointer}
+
+/* 刀模 / 3D 主畫面切換：3D 時主畫面顯示 3D，刀模縮到右上小圖 */
+.vt{position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:4;display:flex;gap:2px;background:#fff;border-radius:99px;padding:4px;box-shadow:0 1px 6px rgba(0,0,0,.15)}
+.vt button{border:0;background:transparent;color:#111;font:600 14px inherit;font-family:inherit;padding:7px 18px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.vt button.on{background:#111;color:#fff}
+#pvMain{display:none}
+.mid.m3d .stage,.mid.m3d .tb,.mid.m3d .leg{display:none}
+.mid.m3d #pvMain{display:block;height:calc(100vh - 28px);border-radius:16px;overflow:hidden;background:var(--canvas)}
+.mid.m3d #pvMain .pv{height:100%;border-radius:16px}
+.pv.mini{background:#fff;cursor:pointer;border:1px solid var(--line)}
+.pv.mini::after{content:'刀模・點擊放大';position:absolute;left:12px;top:10px;font-size:12px;color:#888;pointer-events:none}
+.pv.mini svg{padding:26px 10px 8px}
+@media(max-width:1100px){.mid.m3d #pvMain{height:62vh}}
+
+/* 打賞資訊 */
+.tip{background:var(--panel);border-radius:16px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);flex:none;font-size:13px;color:#555;line-height:1.55}
+.tip .tt{font-size:16px;font-weight:600;color:#222;margin-bottom:6px}
+.tip p{margin:0 0 10px}
+.tip .ti{display:flex;flex-direction:column;gap:2px;background:var(--in);border-radius:10px;padding:10px 12px;color:#222}
+.tip .no{font-size:16px;font-weight:600;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+.tip .tipcopy{margin-top:10px;width:100%;height:38px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--brand);font:600 14px inherit;font-family:inherit;cursor:pointer}
+.tip .tipcopy:hover{background:var(--soft)}
+.tip.home{max-width:420px;margin:28px auto 8px}
