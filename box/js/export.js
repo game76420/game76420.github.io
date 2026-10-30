@@ -35,3 +35,29 @@ $('dDXF').onclick=()=>{pick('dDXF');let t=`0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1
  G.cut.forEach(q=>{if(!q.c1)return L(q.a,q.b,'CUT',5);let l=q.a;for(let i=1;i<=24;i++){const m=bz(q,i/24);L(l,m,'CUT',5);l=m}});G.fold.forEach(q=>L(q.a,q.b,'CREASE',1));
  G.slots.forEach(q=>{const p=slotPts(q);p.forEach((a,i)=>{if(!(S.T<.85&&i===p.length-1))L(a,p[(i+1)%p.length],'CUT',5)})});
  t+='0\nENDSEC\n0\nEOF\n';save(nm()+'_DXF.zip',zip(nm()+'.dxf',t))};
+
+// ===== 3D 線條圖 DXF：輸出目前折疊狀態的稜線；勾選「隱藏線消除」時只輸出目前視角看得到的線（2D 投影） =====
+function edgeList(){const T3=THREE,o=[];TH.sc.updateMatrixWorld(true);
+ TH.content.traverse(n=>{if(!n.isLineSegments)return;const ps=n.geometry.attributes.position;
+  for(let i=0;i+1<ps.count;i+=2)o.push([new T3.Vector3().fromBufferAttribute(ps,i).applyMatrix4(n.matrixWorld),new T3.Vector3().fromBufferAttribute(ps,i+1).applyMatrix4(n.matrixWorld)])});return o}
+function visibleRuns(E){
+ const T3=THREE,cam=TH.cam,cp=cam.position.clone(),rc=new T3.Raycaster(),ms=[],eps=Math.max(.03,S.T*.3),out=[];
+ TH.content.traverse(n=>{if(n.isMesh)ms.push(n)});
+ const vis=p=>{const d=p.clone().sub(cp),dist=d.length();d.normalize();rc.set(cp,d);rc.near=0;rc.far=dist+1;const h=rc.intersectObjects(ms,false);return !h.length||h[0].distance>=dist-eps};
+ for(const [a,b] of E){const len=a.distanceTo(b),n=Math.max(1,Math.min(80,Math.ceil(len/2))),v=[];
+  for(let k=0;k<n;k++)v.push(vis(a.clone().lerp(b,(k+.5)/n)));
+  let s=-1;for(let k=0;k<=n;k++){const on=k<n&&v[k];if(on&&s<0)s=k;if(!on&&s>=0){out.push([a.clone().lerp(b,s/n),a.clone().lerp(b,k/n)]);s=-1}}}
+ return out}
+function dxf3d(hide){
+ const T3=THREE;show();const E=edgeList();let L;
+ if(hide){const sc=TH.lastDist*Math.tan(TH.cam.fov*Math.PI/360),as=TH.cam.aspect,
+   pj=p=>{const q=p.clone().project(TH.cam);return new T3.Vector3(q.x*as*sc,q.y*sc,0)};
+  L=visibleRuns(E).map(([a,b])=>[pj(a),pj(b)])}
+ else{const m=new T3.Matrix4();m.copy(TH.spin.matrixWorld);const iv=m.clone();iv.invert?iv.invert():iv.getInverse(m);L=E.map(([a,b])=>[a.clone().applyMatrix4(iv),b.clone().applyMatrix4(iv)])}
+ let t=`0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n9\n$INSUNITS\n70\n4\n0\nENDSEC\n0\nSECTION\n2\nTABLES\n0\nTABLE\n2\nLTYPE\n70\n1\n0\nLTYPE\n2\nCONTINUOUS\n70\n0\n3\nSolid line\n72\n65\n73\n0\n40\n0\n0\nENDTAB\n0\nTABLE\n2\nLAYER\n70\n1\n0\nLAYER\n2\nEDGE\n70\n0\n62\n7\n6\nCONTINUOUS\n0\nENDTAB\n0\nENDSEC\n0\nSECTION\n2\nENTITIES\n`;
+ const f=v=>v.toFixed(3);
+ for(const [a,b] of L){if(a.distanceTo(b)<1e-6)continue;t+=`0\nLINE\n8\nEDGE\n10\n${f(a.x)}\n20\n${f(a.y)}\n30\n${f(a.z)}\n11\n${f(b.x)}\n21\n${f(b.y)}\n31\n${f(b.z)}\n`}
+ return t+'0\nENDSEC\n0\nEOF\n'}
+$('d3D').onclick=()=>{pick('d3D');if(!TH.r||!TH.built){toast('此環境無法產生 3D 模型');return}
+ const hide=$('oHide').checked;toast(hide?'正在計算可見線…':'正在輸出 3D 線條圖…');
+ setTimeout(()=>{try{const n=nm()+(hide?'_3D線條圖(可見線)':'_3D線條圖');save(n+'_DXF.zip',zip(n+'.dxf',dxf3d(hide)))}catch(e){toast('輸出失敗：'+((e&&e.message)||e))}},30)};

@@ -1,6 +1,6 @@
 // ===== 首頁刀模縮圖、樣機資源庫與啟動 =====
 // ===== 主畫面：刀模縮圖 + 3D 樣機縮圖 =====
-function go(v){$('home').style.display=v==='home'?'block':'none';document.querySelector('.app').style.display=v==='home'?'none':'';
+function go(v){if(v==='home')setView('2d');$('home').style.display=v==='home'?'block':'none';document.querySelector('.app').style.display=v==='home'?'none':'';
  if(v!=='home'){refit();syncLid(true);show()}else scrollTo(0,0)}
 function openKind(b){const btn=$('kd').querySelector('[data-b="'+b+'"]');if(b!==S.kind)btn.click();go('edit')}
 function thumbSVG(){
@@ -24,3 +24,7 @@ $('back').onclick=()=>go('home');
 // ===== 啟動 =====
 init3d();$('stage').classList.add('sel');fill();draw();
 makeThumbs();go('home');
+// ===== 打賞：複製帳號 =====
+document.querySelectorAll('.tipcopy').forEach(b=>b.onclick=async()=>{const v=b.dataset.copy;let ok=false;
+ try{await navigator.clipboard.writeText(v);ok=true}catch(e){try{const t=document.createElement('textarea');t.value=v;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove()}catch(e2){}}
+ toast(ok?'已複製帳號：'+v:'請手動複製帳號：'+v)});

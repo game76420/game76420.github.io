@@ -79,4 +79,4 @@ function draw(){
  const k=kk(),f=a=>a.map(v=>S.unit==='in'?nf(v/k):Math.round(v*10)/10).join(' × ')+' '+S.unit;
  $('s1').textContent=f(S.m);$('s2').textContent=f(S.m.map((v,i)=>v+offs('in',T)[i]));$('s3').textContent=f(S.m.map((v,i)=>v+offs('out',T)[i]));
  if(S.kind==='divider'&&g.D){const f=D=>nf(D.a/k)+' × '+nf(D.b/k)+' '+S.unit+'　× '+D.n+' 片';const A=g.D.find(d=>d.kind==='A'),B=g.D.find(d=>d.kind==='B');$('s1').textContent=A?f(A):'—';$('s2').textContent=B?f(B):'—'}
- build3d(P,T);syncLid(true);show()}
+ build3d(P,T);syncLid(true);show();miniSync()}
