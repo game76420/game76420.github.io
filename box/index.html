@@ -22,6 +22,10 @@
   <div class="gi" data-b="divider"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">箱內隔板</div></div>
   <div class="gi" data-b="drawer"><div class="gc"><div class="dl"></div><div class="pr"><img alt=""></div></div><div class="nm">抽屜盒</div></div>
  </div>
+ <div class="tip home"><div class="tt">☕ 請我喝杯咖啡</div>
+   <p>如果這個工具幫到你，歡迎請我喝一杯咖啡，你的支持是我持續更新的動力，謝謝！</p>
+   <div class="ti"><span>中國信託（代碼 822）</span><span>戶名：張書維</span><span class="no">159540291165</span></div>
+   <button class="tipcopy" data-copy="159540291165">複製帳號</button></div>
 </div>
 <div class="app">
 <section class="box left">
@@ -60,26 +64,36 @@
   </div>
 </section>
 
-<section class="mid">
+<section class="mid" id="mid">
+ <div class="vt" id="vt"><button class="on" data-v="2d">刀模</button><button data-v="3d">3D</button></div>
  <div class="leg"><div class="l"><span><i style="border-color:#3aa800"></i>出血線</span><span><i style="border-color:#1c1ccf"></i>割線</span><span><i style="border-color:#e11"></i>折線</span></div>
   <p><em id="l1" style="font-style:normal">製造尺寸</em><br><span id="s1"></span></p><p><em id="l2" style="font-style:normal">內尺寸</em><br><span id="s2"></span></p><p><em id="l3" style="font-style:normal">外尺寸</em><br><span id="s3"></span></p></div>
  <div class="stage" id="stage"></div>
+ <div id="pvMain"></div>
  <div class="tb"><button id="bSel" class="on" title="選取">⬉</button><button id="bHand" title="平移">✋</button><hr><button id="zi" title="放大">＋</button><button id="zo" title="縮小">－</button><hr><button id="bDim" class="on" title="尺寸標註">✎</button><button id="bSet" title="進階設定">⚙</button></div>
 </section>
 
 <aside class="right">
+ <div id="pvSlot" style="flex:none"><div class="pv mini" id="mini" style="display:none" title="點擊切回刀模"></div>
  <div class="pv" id="pvBox"><canvas id="pvc"></canvas>
+  <div class="vm" id="vm"><button class="on" data-m="full">全彩</button><button data-m="xray">透視</button><button data-m="hidden">透視隱藏線</button></div>
   <svg class="r3" id="r3" viewBox="0 0 40 34"><text x="20" y="16" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="17" fill="#111">3D</text><path d="M5 22Q20 33 35 22" fill="none" stroke="#111" stroke-width="2.6" stroke-linecap="round"/><path d="M36 17l1 8-7-2z" fill="#111"/></svg>
   <div class="peel"></div>
-  <div class="sl"><span>展開</span><input type="range" id="fold" min="0" max="100" value="100"><span>閉合</span></div></div>
+  <div class="sl"><span>展開</span><input type="range" id="fold" min="0" max="100" value="100"><span>閉合</span></div></div></div>
  <div class="box ff"><h3>下載</h3>
   <div class="fb">
    <button class="on" id="dAI"><b style="background:#d97706">SVG</b></button>
    <button id="dPDF"><b style="background:#e5334b">PDF</b></button>
    <button id="dDXF"><b style="background:#222">DXF</b></button>
+   <button id="d3D"><b style="background:#475569">3D</b><span class="t2">線條圖<br>DXF</span></button>
    <button id="dPNG"><b style="background:#16a34a">JPG</b></button>
   </div>
+  <label class="hl"><input type="checkbox" id="oHide">隱藏線消除（只輸出可見線）</label>
  </div>
+ <div class="tip"><div class="tt">☕ 請我喝杯咖啡</div>
+   <p>如果這個工具幫到你，歡迎請我喝一杯咖啡，你的支持是我持續更新的動力，謝謝！</p>
+   <div class="ti"><span>中國信託（代碼 822）</span><span>戶名：張書維</span><span class="no">159540291165</span></div>
+   <button class="tipcopy" data-copy="159540291165">複製帳號</button></div>
 </aside>
 </div>
 <div class="toast" id="toast"></div>
