@@ -9,7 +9,7 @@ function thumbSVG(){
  const sl=G.slots.map(q=>'M'+slotPts(q).map(v=>v[0]+' '+v[1]).join('L')+'Z').join('');
  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${G.vx} ${G.vy} ${G.vw} ${G.vh}" preserveAspectRatio="xMidYMid meet"><path d="${fd}" stroke="#e4535e" stroke-width="1" vector-effect="non-scaling-stroke" fill="none"/><path d="${d}${sl}" stroke="#4d52a6" stroke-width="1" vector-effect="non-scaling-stroke" stroke-linejoin="round" fill="none"/></svg>`}
 function makeThumbs(){
- const cfg={mailer:{fold:76,yaw:.6},tgable:{fold:96,yaw:-.5},rsc:{fold:76,yaw:-.5},tuck:{fold:88,yaw:-.5},gtuck:{fold:88,yaw:-.5},dd:{fold:92,yaw:.6},gable:{fold:96,yaw:-.5},divider:{fold:100,yaw:-.5},drawer:{fold:80,yaw:.4}};
+ const cfg={mailer:{fold:76,yaw:.6},tgable:{fold:96,yaw:-.5},rsc:{fold:76,yaw:-.5},tuck:{fold:88,yaw:-.5},gtuck:{fold:88,yaw:-.5},tuckgb:{fold:90,yaw:-.5},dd:{fold:92,yaw:.6},gable:{fold:96,yaw:-.5},divider:{fold:100,yaw:-.5},drawer:{fold:80,yaw:.4}};
  document.querySelectorAll('.gi').forEach(g=>{const b=g.dataset.b;
   if(b!==S.kind)$('kd').querySelector('[data-b="'+b+'"]').click();
   g.querySelector('.dl').innerHTML=thumbSVG();

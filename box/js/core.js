@@ -38,13 +38,13 @@ const tgO=(t,T)=>{
 // 抽屜盒 (Drawer Box) 內/外尺寸補償：drawerOffs() 與全部厚度參數統一定義在 drawer.js（單一資料來源，依原站 7 個厚度 JSON 反推）
 const drawerO=(t,T)=>t==='mfg'?[0,0,0]:[0,1,2].map(j=>(t==='in'?-1:1)*drawerOffs(t==='in'?'in':'out',T)[j]);
 
-const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='drawer'?drawerO(t,T):S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):S.kind==='tuck'?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
+const offs=(t,T)=>t==='mfg'||S.kind==='divider'?[0,0,0]:S.kind==='drawer'?drawerO(t,T):S.kind==='tgable'?tgO(t,T):S.kind==='gable'?(t==='in'?[-gableOff(T),-gableOff(T),-gableOff(T)]:[0,0,0]):S.kind==='dd'?ddO(t,T):S.kind==='rsc'?(t==='in'?[-T,-T,-T]:[T,T,T]):S.kind==='gtuck'?gtO(t,T):(S.kind==='tuck'||S.kind==='tuckgb')?(S.lidStyle==='lock'?tlO(t,T):tkO(t,T)):t==='in'?lerpK(KI,T).map((v,i)=>-(v+(i===0?Math.max(0,1.5-T)*Math.min(1,Math.max(0,(S.m[2]-22)/28))+.0606*(Math.min(100,Math.max(22,S.m[2]))-62)*Math.min(1,Math.max(0,(T-.9)/.6)):0))):lerpK(KO,T);
 
 // 厚度上限隨尺寸變化（依原站截圖 8、9、10：尺寸小於 55mm 時上限為 0.5mm，小於 100mm 為 1mm，大於等於 100mm 為 3mm）
-const maxT=()=>S.kind==='divider'?5:S.kind==='drawer'?(Math.min(S.m[0],S.m[1])<=55?.5:Math.min(S.m[0],S.m[1])<=100?1:3):S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
+const maxT=()=>S.kind==='divider'?5:S.kind==='drawer'?(Math.min(S.m[0],S.m[1])<=55?.5:Math.min(S.m[0],S.m[1])<=100?1:3):S.kind==='tgable'?(Math.min(S.m[0],S.m[1])<50?1:S.m[1]<70?3:S.m[1]<130?4:5):S.kind==='tuck'||S.kind==='gtuck'||S.kind==='tuckgb'?(Math.min(...S.m)<=30?.5:Math.min(...S.m)<=55?1.5:3):S.kind==='dd'?(Math.min(S.m[1],S.m[2])<=30?.5:Math.min(5,Math.max(.5,Math.floor(S.m[0]*.04)/2))):S.kind==='rsc'?5:S.m[0]>=250?5:S.m[0]>=60?3:.5;
 
 const S={lid:'A',lidStyle:'std',unit:'mm',type:'mfg',kind:'mailer',m:[315,202,62],T:2,hand:false,nL:4,nW:3,dvOut:true,dvE:10};
-const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='drawer'?'抽屜盒刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':'飛機盒刀模';
+const nm=()=>S.kind==='divider'?'箱內隔板刀模':S.kind==='drawer'?'抽屜盒刀模':S.kind==='tgable'?'插口端山形盒刀模':S.kind==='gable'?'手提拱型盒刀模':S.kind==='dd'?'天地盒刀模':S.kind==='gtuck'?'插口式遊戲盒刀模':S.kind==='rsc'?'方形運輸箱刀模':S.kind==='tuck'?'插口式軟件盒刀模':S.kind==='tuckgb'?'插口式鎖底盒刀模':'飛機盒刀模';
 let V=null,touched=false;
 const kk=()=>S.unit==='in'?25.4:1;
 const nf=v=>S.unit==='in'?Math.round(v*1e4)/1e4:r2(v);
