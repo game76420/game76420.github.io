@@ -99,7 +99,7 @@ input[type=number]::-webkit-inner-spin-button{display:none}input[type=number]{-m
 .adv[open] summary::after{transform:rotate(-135deg)}
 
 .pv .vm{position:absolute;left:12px;top:12px;z-index:2;display:flex;gap:2px;background:#fff;border-radius:99px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.12)}
-.pv .vm button{border:0;background:transparent;color:#111;font:600 13px inherit;font-family:inherit;padding:7px 11px;border-radius:99px;cursor:pointer;white-space:nowrap}
+.pv .vm button{border:0;background:transparent;color:#111;font:600 12px inherit;font-family:inherit;padding:6px 9px;border-radius:99px;cursor:pointer;white-space:nowrap}
 .pv .vm button.on{background:#111;color:#fff}
 .fb .t2{font-size:14px;line-height:1.25;text-align:center}
 .ff .hl{display:flex;align-items:center;gap:10px;margin:16px 2px 0;font-size:14px;color:#222;cursor:pointer}
