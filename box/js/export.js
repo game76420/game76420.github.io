@@ -15,6 +15,17 @@ $('dAI').onclick=()=>{pick('dAI');save(nm()+'.svg',svgBlob())};
 $('dPNG').onclick=()=>{pick('dPNG');const k=Math.min(150/25.4,4096/Math.max(G.vw,G.vh)),w=Math.round(G.vw*k),h=Math.round(G.vh*k),img=new Image();
  img.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);c.toBlob(b=>save(nm()+'.jpg',b),'image/jpeg',.92)};
  img.onerror=()=>toast('圖片轉換失敗');img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgOut())};
+// 複製圖片到剪貼簿（剪貼簿只接受 PNG；以 Promise 傳入 ClipboardItem 以保留點擊授權，Safari 也可用）
+$('dCopy').onclick=async()=>{
+ const k=Math.min(150/25.4,4096/Math.max(G.vw,G.vh)),w=Math.round(G.vw*k),h=Math.round(G.vh*k);
+ const mk=()=>new Promise((ok,no)=>{const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);c.toBlob(b=>b?ok(b):no(new Error('toBlob')),'image/png')};img.onerror=()=>no(new Error('img'));img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgOut())});
+ try{
+  if(!navigator.clipboard||!window.ClipboardItem)throw new Error('unsupported');
+  await navigator.clipboard.write([new ClipboardItem({'image/png':mk()})]);
+  toast('已複製圖片，可直接到 LINE 貼上（Ctrl/⌘+V）');
+ }catch(e){
+  toast('此瀏覽器/環境無法複製圖片，請改用 JPG 下載');
+ }};
 $('dPDF').onclick=()=>{pick('dPDF');const sc=2.83465,w=G.vw*sc,h=G.vh*sc,X=x=>((x-G.vx)*sc).toFixed(2),Y=y=>(h-(y-G.vy)*sc).toFixed(2);
  const ln=a=>a.map(q=>q.c1?`${X(q.a[0])} ${Y(q.a[1])} m ${X(q.c1[0])} ${Y(q.c1[1])} ${X(q.c2[0])} ${Y(q.c2[1])} ${X(q.b[0])} ${Y(q.b[1])} c`:`${X(q.a[0])} ${Y(q.a[1])} m ${X(q.b[0])} ${Y(q.b[1])} l`).join('\n')+'\nS\n';
  const sl=G.slots.map(q=>{const a=slotPts(q);return a.map((v,i)=>`${X(v[0])} ${Y(v[1])} ${i?'l':'m'}`).join('\n')+(S.T<.85?'\nS\n':'\nh S\n')}).join('');

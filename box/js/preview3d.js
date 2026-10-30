@@ -20,8 +20,8 @@ function init3d(){
  const d1=new T3.DirectionalLight(0xffffff,.42);d1.position.set(-300,-500,800);TH.sc.add(d1);
  const d2=new T3.DirectionalLight(0xffffff,.14);d2.position.set(500,300,200);TH.sc.add(d2);const d3=new T3.DirectionalLight(0xffffff,.3);d3.position.set(0,-800,250);TH.sc.add(d3);
  TH.spin=new T3.Group();TH.sc.add(TH.spin);TH.content=new T3.Group();TH.spin.add(TH.content);
- TH.mat=new T3.MeshLambertMaterial({map:tex(MATS[cur.c].items[cur.i].col),side:T3.DoubleSide});
- // 檢視模式材質：透視＝半透明面＋全部線條；透視隱藏線＝面只寫深度不上色，線條做深度測試（被擋住的線消失）
+ TH.mat=new T3.MeshLambertMaterial({map:tex(MATS[cur.c].items[cur.i].col),side:T3.DoubleSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+ // 檢視模式材質：全彩＋框線＝貼圖面（略往後偏移避免線條閃爍）＋深度測試的邊線；透視＝半透明面＋全部線條；透視隱藏線＝面只寫深度不上色，線條做深度測試（被擋住的線消失）
  TH.matX=new T3.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.1,side:T3.DoubleSide,depthWrite:false});
  TH.matH=new T3.MeshBasicMaterial({colorWrite:false,side:T3.DoubleSide,polygonOffset:true,polygonOffsetFactor:2,polygonOffsetUnits:2});
  TH.lnX=new T3.LineBasicMaterial({color:0x1f2937,transparent:true,depthTest:false});
@@ -158,17 +158,17 @@ function show(){
  TH.cam.lookAt(panX,0,sz.z*-.05+panY);
  {const pr=Math.hypot(panX,panY),mg=rad*1.6+pr;TH.cam.near=Math.max(dist-mg,dist*.05,.5);TH.cam.far=dist+mg+rad;}
  TH.cam.updateProjectionMatrix();
- const m=Math.max(sz.x,sz.y)*1.5;TH.sh.scale.set(m,m*.7,1);TH.sh.position.set(0,0,-sz.z/2-.3);TH.sh.visible=TH.mode==='full';
+ const m=Math.max(sz.x,sz.y)*1.5;TH.sh.scale.set(m,m*.7,1);TH.sh.position.set(0,0,-sz.z/2-.3);TH.sh.visible=TH.mode==='full'||TH.mode==='edge';
  TH.r.render(TH.sc,TH.cam)}
 $('fold').oninput=()=>{syncLid(false);show()};
 
-// ===== 檢視模式：全彩 / 透視 / 透視隱藏線 =====
+// ===== 檢視模式：全彩 / 全彩+框線 / 透視 / 透視隱藏線 =====
 function applyMode(){
  if(!TH.content)return;const m=TH.mode;
  TH.content.traverse(o=>{
   if(o.isMesh)o.material=m==='xray'?TH.matX:m==='hidden'?TH.matH:TH.mat;
   else if(o.isLineSegments){o.visible=m!=='full';o.material=m==='xray'?TH.lnX:TH.lnH}});
- if(TH.sh)TH.sh.visible=m==='full'}
+ if(TH.sh)TH.sh.visible=m==='full'||m==='edge'}
 $('vm').onclick=e=>{const m=e.target.dataset.m;if(!m||m===TH.mode)return;TH.mode=m;[...$('vm').children].forEach(c=>c.classList.toggle('on',c.dataset.m===m));applyMode();show()};
 
 // ===== 主畫面切換：刀模 ⇄ 3D（3D 時刀模縮成右上小圖，點小圖可切回） =====
