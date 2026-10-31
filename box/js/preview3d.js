@@ -60,7 +60,7 @@ function init3d(){
   show();
  },{passive:false});
 
- const reset3d=()=>{TH.yaw=S.kind==='rsc'?-.5:0;TH.el=.55;TH.zoom=1;TH.panX=0;TH.panY=0;show()};
+ const reset3d=()=>{TH.yaw=S.kind==='hook'?Math.PI-.5:S.kind==='rsc'?-.5:0;TH.el=.55;TH.zoom=1;TH.panX=0;TH.panY=0;show()};
  $('r3').onclick=reset3d;
  cv.addEventListener('dblclick',reset3d);
  new ResizeObserver(show).observe($('pvBox'))}
@@ -70,8 +70,19 @@ function build3d(P,T){
  while(TH.content.children.length){const o=TH.content.children[0];TH.content.remove(o);o.traverse(x=>{if(x.geometry)x.geometry.dispose()})}
  TH.div=false;if(S.kind==='divider'){buildDiv3d(P,T);return}
  const by={},list=[];
+ // 圓弧轉折：帶 rd 的摺線，兩側面板各退縮 rd，中間以切線圓弧殼（半徑隨摺角變化）銜接
+ const clipHP=(poly,A,m,r)=>{const out=[],n=poly.length,f=q=>(q[0]-A[0])*m[0]+(q[1]-A[1])*m[1]-r;
+  for(let i=0;i<n;i++){const a=poly[i],b=poly[(i+1)%n],fa=f(a),fb=f(b);if(fa>=0)out.push(a);
+   if((fa>=0)!==(fb>=0)){const t=fa/(fa-fb);out.push([a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t])}}return out};
+ const PM={},clipped={};for(const p of P)if(p.id)PM[p.id]=p;
+ for(const p of P){if(!p.id||!p.rd||!p.par||!PM[p.par]||!p.hg)continue;
+  const A=p.hg[0],B=p.hg[1],ux=B[0]-A[0],uy=B[1]-A[1],un=Math.hypot(ux,uy);if(un<1e-9)continue;
+  const nx=ux/un,ny=uy/un,cx=p.pts.reduce((a,q)=>a+q[0],0)/p.pts.length-A[0],cy=p.pts.reduce((a,q)=>a+q[1],0)/p.pts.length-A[1],
+   d=cx*nx+cy*ny;let mx=cx-d*nx,my=cy-d*ny;const ml=Math.hypot(mx,my);if(ml<1e-9)continue;mx/=ml;my/=ml;
+  clipped[p.id]=clipHP(clipped[p.id]||p.pts,A,[mx,my],p.rd);
+  const pp=PM[p.par];clipped[pp.id]=clipHP(clipped[pp.id]||pp.pts,A,[-mx,-my],p.rd)}
  for(const p of P){if(!p.id)continue;const A=p.hg?p.hg[0]:[0,0],pts=[];
-  for(const q of p.pts){const v=[q[0]-A[0],-(q[1]-A[1])],l=pts[pts.length-1];if(!l||Math.hypot(l.x-v[0],l.y-v[1])>1e-6)pts.push(new T3.Vector2(v[0],v[1]))}
+  for(const q of (clipped[p.id]||p.pts)){const v=[q[0]-A[0],-(q[1]-A[1])],l=pts[pts.length-1];if(!l||Math.hypot(l.x-v[0],l.y-v[1])>1e-6)pts.push(new T3.Vector2(v[0],v[1]))}
   if(pts.length>2&&pts[0].distanceTo(pts[pts.length-1])<1e-6)pts.pop();
   const grp=new T3.Group();const shp=new T3.Shape(pts);
   for(const [hx,hy,hw,hh] of p.holes||[]){const x0=hx+.25,x1=hx+hw-.25,r=(x1-x0)/2,cx=(x0+x1)/2,hp=[];
@@ -82,6 +93,7 @@ function build3d(P,T){
    for(let i=0;i<=12;i++){const t=-Math.PI/2+Math.PI*i/12;hp.push([cx+a+r*Math.cos(t),cy+r*Math.sin(t)])}
    for(let i=0;i<=12;i++){const t=Math.PI/2+Math.PI*i/12;hp.push([cx-a+r*Math.cos(t),cy+r*Math.sin(t)])}
    shp.holes.push(new T3.Path(hp.map(q=>new T3.Vector2(q[0]-A[0],-(q[1]-A[1])))))}
+  for(const poly of p.hp||[])shp.holes.push(new T3.Path(poly.map(q=>new T3.Vector2(q[0]-A[0],-(q[1]-A[1])))));
   const geo=new T3.ExtrudeGeometry(shp,{depth:T,bevelEnabled:false});grp.add(new T3.Mesh(geo,TH.mat));
   const eg=new T3.LineSegments(new T3.EdgesGeometry(geo,25),TH.lnH);eg.renderOrder=1;eg.visible=false;grp.add(eg);
   grp.userData={p,A};by[p.id]=grp;list.push(grp)}
@@ -90,9 +102,12 @@ function build3d(P,T){
     const xs=p.pts.map(q=>q[0]),ys=p.pts.map(q=>q[1]);
     grp.userData.lid={o3:p.o3,c:new T3.Vector3((Math.min(...xs)+Math.max(...xs))/2,-(Math.min(...ys)+Math.max(...ys))/2,0)}}
    TH.content.add(grp);continue}
-  const par=by[p.par],Ap=par.userData.A;par.add(grp);grp.position.set(A[0]-Ap[0],-(A[1]-Ap[1]),0);grp.userData.y0=grp.position.y;
+  const par=by[p.par],Ap=par.userData.A;par.add(grp);grp.position.set(A[0]-Ap[0],-(A[1]-Ap[1]),0);grp.userData.y0=grp.position.y;grp.userData.x0=grp.position.x;
   const B=p.hg[1],ux=B[0]-A[0],uy=-(B[1]-A[1]),n=Math.hypot(ux,uy),cx=p.pts.reduce((a,q)=>a+q[0],0)/p.pts.length-A[0],cy=-(p.pts.reduce((a,q)=>a+q[1],0)/p.pts.length-A[1]);
-  grp.userData.axis=new T3.Vector3(ux/n,uy/n,0);grp.userData.sgn=(Math.sign((ux/n)*cy-(uy/n)*cx)||1)*(p.dir||1)}
+  grp.userData.axis=new T3.Vector3(ux/n,uy/n,0);grp.userData.sgn=(Math.sign((ux/n)*cy-(uy/n)*cx)||1)*(p.dir||1);
+  if(p.rd&&clipped[p.id]){const nn=new T3.Vector3(ux/n,uy/n,0),dd=cx*nn.x+cy*nn.y,ep=new T3.Vector3(cx-dd*nn.x,cy-dd*nn.y,0).normalize(),
+    sm=new T3.Mesh(new T3.BufferGeometry(),TH.mat);sm.matrixAutoUpdate=false;sm.matrix.makeBasis(ep,new T3.Vector3(0,0,1),nn);sm.matrix.setPosition(grp.position);
+    par.add(sm);grp.userData.shell=sm;grp.userData.shd={r:p.rd,len:n,T}}}
  TH.content.rotation.x=S.kind!=='mailer'&&S.kind!=='dd'&&S.kind!=='drawer'?Math.PI/2:0;TH.list=list;TH.built=true;
  TH.content.position.set(0,0,0);TH.spin.rotation.z=0;TH.spin.updateMatrixWorld(true);TH.lidP=undefined;
  TH.fixBox=(S.kind==='dd'||S.kind==='drawer')?new T3.Box3().setFromObject(TH.content):null;applyMode()}
@@ -119,16 +134,22 @@ function poseDiv(t){
   g.quaternion.copy(u.qf).slerp(u.qa,e);g.position.lerpVectors(u.pf,u.pa,e);g.position.z+=Math.sin(Math.PI*e)*H*.5}}
 function syncLid(snap){}
 
+function updShell(u,phi){const T3=THREE,{r,len,T}=u.shd,sm=u.shell;phi=Math.max(phi,1e-3);
+ const rho=r/Math.tan(phi/2),ri=Math.max(rho-T,0),ns=Math.max(1,Math.ceil(phi/.2)),pts=[];
+ for(let i=0;i<=ns;i++){const a=phi*i/ns;pts.push(new T3.Vector2(-r+rho*Math.sin(a),rho-rho*Math.cos(a)))}
+ for(let i=ns;i>=0;i--){const a=phi*i/ns;pts.push(new T3.Vector2(-r+ri*Math.sin(a),rho-ri*Math.cos(a)))}
+ sm.geometry.dispose();sm.geometry=new T3.ExtrudeGeometry(new T3.Shape(pts),{depth:len,bevelEnabled:false,curveSegments:1,steps:1})}
+
 function show(){
  if(!TH.r||!TH.built)return;const t=$('fold').value/100,T3=THREE;
  $('fold').style.setProperty('--p',$('fold').value+'%');
- for(const g of TH.list){const u=g.userData;if(!u.axis)continue;const w=u.p.w;{const x=Math.min(1,Math.max(0,(t-w[0])/(w[1]-w[0]))),k=u.p.bump?Math.sin(Math.PI*x):u.p.id==='lid'?x*x:u.p.id==='flap'?Math.pow(x,2.5):sm(x),ang=u.p.bump||u.p.ang||Math.PI/2;g.quaternion.setFromAxisAngle(u.axis,u.sgn*ang*k);if(u.p.sh)g.position.y=u.y0+u.p.sh*k}}
+ for(const g of TH.list){const u=g.userData;if(!u.axis)continue;const w=u.p.w;{const x=Math.min(1,Math.max(0,(t-w[0])/(w[1]-w[0]))),k=u.p.bump?Math.sin(Math.PI*x):u.p.id==='lid'?x*x:u.p.id==='flap'?Math.pow(x,2.5):sm(x),ang=u.p.bump||(u.p.ang!=null?u.p.ang:Math.PI/2);g.quaternion.setFromAxisAngle(u.axis,u.sgn*ang*k);if(u.shell)updShell(u,ang*k);if(u.p.sh)g.position.y=u.y0+u.p.sh*k;if(u.p.shx)g.position.x=u.x0+u.p.shx*k}}
  
  for(const g of TH.list){const lid=g.userData.lid;if(!lid)continue;
   const o=lid.o3,c=lid.c,Hbox=o[3]||o[2];
   if(S.kind==='drawer'){
    // 抽屜滑入動作：折疊進度在 0.70 ~ 0.98 時托盤平滑滑入套筒
-   const eSlide=sm((t-0.70)/(0.98-0.70));
+   const eSlide=sm((t-0.86)/(1-0.86));
    g.position.x=o[0]*eSlide;
   }else{
    // 天地盒蓋子翻轉動作

@@ -2,11 +2,11 @@
 $('kd').onclick=e=>{const b=e.target.dataset.b;if(!b||b===S.kind)return;S.kind=b;[...$('kd').children].forEach(c=>c.classList.toggle('on',c.dataset.b===b));
  S.type='mfg';[...$('ty').children].forEach(c=>c.classList.toggle('on',c.dataset.k==='mfg'));
  const r=b!=='mailer'&&b!=='dd'&&b!=='drawer';
- S.m=b==='divider'?[300,200,100]:b==='drawer'?[341.6,241.6,61]:b==='tgable'?[302,152,182]:b==='gable'?[302,152,182]:b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:b==='tuckgb'?[120.6,60.6,182]:[315,202,62];
- cur=b==='rsc'||b==='divider'?{c:1,i:2}:(b==='tuck'||b==='gtuck'||b==='tuckgb'||b==='drawer')?{c:0,i:0}:{c:1,i:1};
+ S.m=b==='divider'?[300,200,100]:b==='drawer'?[341.6,241.6,61]:b==='hook'?[100,40,120]:b==='tgable'?[302,152,182]:b==='gable'?[302,152,182]:b==='dd'?[361,261,52]:b==='rsc'?[300,200,200]:b==='gtuck'?[120.6,60.6,161.1]:b==='tuck'?[120,60,160]:b==='tuckgb'?[120.6,60.6,182]:[315,202,62];
+ cur=b==='rsc'||b==='divider'?{c:1,i:2}:(b==='tuck'||b==='gtuck'||b==='tuckgb'||b==='drawer'||b==='hook')?{c:0,i:0}:{c:1,i:1};
  const it=MATS[cur.c].items[cur.i];
- S.T=b==='dd'||b==='gable'||b==='tgable'?1.5:(b==='tuck'||b==='gtuck'||b==='tuckgb'||b==='drawer')?.5:it.t;
- TH.yaw=r?-.5:0;TH.zoom=1;TH.panX=0;TH.panY=0;
+ S.T=b==='dd'||b==='gable'||b==='tgable'?1.5:(b==='tuck'||b==='gtuck'||b==='tuckgb'||b==='drawer'||b==='hook')?.5:it.t;
+ TH.yaw=b==='hook'?Math.PI-.5:r?-.5:0;TH.zoom=1;TH.panX=0;TH.panY=0;
  $('matName').textContent=it.n;$('dot').style.background=it.col;$('dot').style.border=it.w?'1px solid #ebebeb':'0';setMat3d(it.col);
  // 拱型盒原站只有「製造尺寸 / 內尺寸」，其餘盒型支援全部三種
  [...$('ty').children].forEach(c=>{if(c.dataset.k==='out')c.style.display=b==='gable'?'none':''});
@@ -36,7 +36,8 @@ function draw(){
   divider:buildDV,
   gable:buildG,
   tgable:buildTG,
-  drawer:buildDrawer
+  drawer:buildDrawer,
+  hook:buildHook
  })[S.kind](L,W,H,T);
  const {P,Hn}=g,B=3;
  const hk=new Set(Hn.map(h=>key(h[0],h[1])));
@@ -69,7 +70,7 @@ function draw(){
      S.kind==='tgable'?dm(0,H*.27,L,H*.27,dv[0])+dm(L,H*.73,L+W,H*.73,dv[1])+dm(L+W+L*.28,0,L+W+L*.28,H,dv[2]):
      S.kind==='gable'?dm(0,H*.62,L,H*.62,dv[0])+dm(L,H*.37,L+W,H*.37,dv[1])+dm(2*L+W+W*.747,0,2*L+W+W*.747,H,dv[2]):
      S.kind==='dd'?ddDm(g.D,dv)+(g.D2?ddDm(g.D2,[g.D2.a,g.D2.b,g.D2.h].map((v,i)=>nf((v+offs(S.type,T)[i])/k)+' '+S.unit)):''):
-     S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'||S.kind==='tuckgb'?dm(L+W+L*(S.kind==='rsc'?.33:.75),0,L+W+L*(S.kind==='rsc'?.33:.75),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):
+     S.kind==='rsc'||S.kind==='tuck'||S.kind==='gtuck'||S.kind==='tuckgb'||S.kind==='hook'?dm(L+W+L*(S.kind==='rsc'?.33:.75),0,L+W+L*(S.kind==='rsc'?.33:.75),H,dv[2])+dm(0,H*.75,L,H*.75,dv[0])+dm(L,H*.25,L+W,H*.25,dv[1]):
      dm(L/2,-H,L/2,0,dv[2])+dm(L*.75,0,L*.75,W,dv[1])+dm(0,W*.9,L,W*.9,dv[0]);
   s+='</g>'}
  s+='</svg>';

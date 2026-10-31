@@ -91,11 +91,11 @@ function buildDrawer(L, W, H, T) {
   const sy5 = sy4 + sh3;
 
   one('封套糊邊', [[taper, sy0], [sw - taper, sy0], [sw, sy1], [0, sy1]],
-    'sl_gl', 'sl_p0', [[0, sy1], [sw, sy1]], [0.35, 0.45]);
+    'sl_gl', 'sl_p0', [[0, sy1], [sw, sy1]], [0.26, 0.34]);
   one('封套頂面', [[0, sy1], [sw, sy1], [sw, sy2], [0, sy2]], 'sl_p0', null, null, [0, 0]);
-  one('封套側板1', [[0, sy2], [sw, sy2], [sw, sy3], [0, sy3]], 'sl_p1', 'sl_p0', [[0, sy2], [sw, sy2]], [0.05, 0.25]);
-  one('封套底面', [[0, sy3], [sw, sy3], [sw, sy4], [0, sy4]], 'sl_p2', 'sl_p1', [[0, sy3], [sw, sy3]], [0.15, 0.35]);
-  one('封套側板2', [[0, sy4], [sw, sy4], [sw, sy5], [0, sy5]], 'sl_p3', 'sl_p2', [[0, sy4], [sw, sy4]], [0.25, 0.45]);
+  one('封套側板1', [[0, sy2], [sw, sy2], [sw, sy3], [0, sy3]], 'sl_p1', 'sl_p0', [[0, sy2], [sw, sy2]], [0.08, 0.20]);
+  one('封套底面', [[0, sy3], [sw, sy3], [sw, sy4], [0, sy4]], 'sl_p2', 'sl_p1', [[0, sy3], [sw, sy3]], [0.12, 0.26]);
+  one('封套側板2', [[0, sy4], [sw, sy4], [sw, sy5], [0, sy5]], 'sl_p3', 'sl_p2', [[0, sy4], [sw, sy4]], [0.16, 0.30]);
 
   /* ========================================================
      【2. 右側：內托盤 (Tray)】
@@ -119,16 +119,16 @@ function buildDrawer(L, W, H, T) {
 
     // 側牆（左右各內縮 T，與角隅接合）
     one('托盤側壁_' + nm, [pt(xl + t, 0), pt(xr - t, 0), pt(xr - t, H), pt(xl + t, H)],
-      wId, 'tr_bot', hl(xl + t, 0, xr - t, 0), [0.10, 0.30]);
+      wId, 'tr_bot', hl(xl + t, 0, xr - t, 0), [0.10, 0.18]);
     // 窄折條（頂緣圓角 r9.75）
     one('托盤窄折條_' + nm, [pt(xl + t, H), pt(xl + t, dS1, rS), pt(xr - t, dS1, rS), pt(xr - t, H)],
-      sId, wId, hl(xl + t, H, xr - t, H), [0.32, 0.45]);
+      sId, wId, hl(xl + t, H, xr - t, H), [0.34, 0.42]);
     // 內折板（中央窄片，貫穿窄折條到小折邊）
     one('托盤內折板_' + nm, [pt(xP0, dS1), pt(xP0, dTF), pt(xP1, dTF), pt(xP1, dS1)],
-      pId, sId, hl(xP0, dS1, xP1, dS1), [0.47, 0.60]);
+      pId, sId, hl(xP0, dS1, xP1, dS1), [0.42, 0.52]);
     // 小折邊（外緣圓角）
     one('托盤小折邊_' + nm, [pt(xP0, dTF), pt(xP0, dLip, rL), pt(xP1, dLip, rL), pt(xP1, dTF)],
-      lId, pId, hl(xP0, dTF, xP1, dTF), [0.62, 0.75]);
+      lId, pId, hl(xP0, dTF, xP1, dTF), [0.52, 0.60]);
 
     // 長翅（含插槽、45° 小倒角）；dirOut: -1 向左、+1 向右
     const wingShape = (xIn, dirOut) => {
@@ -145,8 +145,8 @@ function buildDrawer(L, W, H, T) {
       }
       return arr;
     };
-    one('托盤長翅_' + nm + '左', wingShape(xP0, -1), 'tr_wg' + key + 'L', pId, hl(xP0, dNear, xP0, dTF), [0.62, 0.75], { dir: -1 });
-    one('托盤長翅_' + nm + '右', wingShape(xP1, +1), 'tr_wg' + key + 'R', pId, hl(xP1, dNear, xP1, dTF), [0.62, 0.75], { dir: -1 }); // dir:-1 → 長翅向盒內折
+    one('托盤長翅_' + nm + '左', wingShape(xP0, -1), 'tr_wg' + key + 'L', pId, hl(xP0, dNear, xP0, dTF), [0.20, 0.34], { dir: -1 });
+    one('托盤長翅_' + nm + '右', wingShape(xP1, +1), 'tr_wg' + key + 'R', pId, hl(xP1, dNear, xP1, dTF), [0.20, 0.34], { dir: -1 }); // dir:-1 → 長翅向盒內折
   };
   horiz('N', '上', -1, false);   // 上側插槽開在遠端邊
   horiz('S', '下', +1, true);    // 下側插槽開在近端邊
@@ -160,13 +160,13 @@ function buildDrawer(L, W, H, T) {
     const vl = (e, ya, yb_) => [[X(e), ya], [X(e), yb_]];
 
     one('托盤側壁_' + nm, [[E, yt], [X(H), yt], [X(H), yb], [E, yb]],
-      wId, 'tr_bot', vl(0, yt, yb), [0.15, 0.30]);
+      wId, 'tr_bot', vl(0, yt, yb), [0.08, 0.17]);
     one('托盤窄折條_' + nm, [[X(H), yt], [X(dS1), yt, rF], [X(dS1), yb, rF], [X(H), yb]],
-      sId, wId, vl(H, yt, yb), [0.32, 0.45]);
+      sId, wId, vl(H, yt, yb), [0.60, 0.68]);
     one('托盤內折板_' + nm, [[X(dS1), y0], [X(dTF), y0], [X(dTF), y1], [X(dS1), y1]],
-      pId, sId, vl(dS1, y0, y1), [0.47, 0.60]);
+      pId, sId, vl(dS1, y0, y1), [0.66, 0.75]);
     one('托盤小折邊_' + nm, [[X(dTF), y0], [X(dLip), y0, rL], [X(dLip), y1, rL], [X(dTF), y1]],
-      lId, pId, vl(dTF, y0, y1), [0.62, 0.75]);
+      lId, pId, vl(dTF, y0, y1), [0.74, 0.82]);
   };
   vert('W', '左', -1);
   vert('E', '右', +1);
@@ -174,7 +174,7 @@ function buildDrawer(L, W, H, T) {
   /* ---- (C) 四角角隅：45° 折線 + 15° 斜切 ---- */
   const corner = (id, nm, cx, sx, cy, sy, par) => {
     const C = [cx, cy], A = [cx, cy + sy * H], B = [cx + sx * H, cy], Pp = [cx + sx * gs, cy + sy * gs];
-    one('角隅_' + nm, [C, A, Pp, B], id, par, [C, A], [0.18, 0.40]);
+    one('角隅_' + nm, [C, A, Pp, B], id, par, [C, A], [0.12, 0.22]);
     Hn.push([C, Pp]);
   };
   corner('tr_gNW', 'NW', xl + t, -1, yt, -1, 'tr_wN');
