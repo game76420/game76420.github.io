@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>電腦升級選配單｜《燕雲十六聲》順跑升級</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+      color: #0F172A;
+    }
+    .card-radio {
+      transition: all 0.15s ease-in-out;
+    }
+    .card-radio:not(.locked):active {
+      transform: scale(0.99);
+    }
+  </style>
+</head>
+<body class="antialiased pb-28">
+
+  <!-- 主容器：單欄置中，最大寬度 680px -->
+  <div class="max-w-[680px] mx-auto px-4 pt-6 sm:pt-10 space-y-6">
+
+    <!-- 1. 頂部標題與現有設備 -->
+    <header class="space-y-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+          電腦升級選配單
+        </h1>
+        <p class="text-base text-slate-600 mt-1">
+          《燕雲十六聲》順跑升級・已幫您排除不相容零件
+        </p>
+      </div>
+
+      <!-- 現有沿用設備精簡小卡片 -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm text-sm sm:text-base">
+        <div class="font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+          <span class="text-emerald-600">✓</span>
+          <span>免重買！以下原有設備直接沿用：</span>
+        </div>
+        <p class="text-slate-600 leading-relaxed">
+          顯示卡 <strong class="text-slate-800">RTX 5060</strong>、電源供應器、三顆硬碟（512G SSD + 240G SSD + 2TB HDD），以及原有記憶體 <strong class="text-slate-800">威剛 DDR4 16G×2（共 32GB）</strong>。
+        </p>
+      </div>
+    </header>
+
+    <!-- 2. 快速懶人包 -->
+    <section class="space-y-2.5">
+      <div class="text-sm font-bold text-slate-500 px-1">
+        懶得自己挑？點選下方推薦組合一鍵套用：
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        <button type="button" onclick="applyPreset('single')" class="bg-white hover:bg-blue-50/70 border border-slate-200 hover:border-blue-400 rounded-2xl p-3.5 text-left shadow-sm transition-all cursor-pointer">
+          <div class="text-xs font-bold text-slate-500">省錢單開</div>
+          <div class="font-bold text-slate-900 text-base mt-0.5">單開順跑推薦</div>
+          <div class="text-blue-600 font-black text-lg mt-1">$8,400</div>
+        </button>
+
+        <button type="button" onclick="applyPreset('dual')" class="bg-blue-50/60 hover:bg-blue-50 border-2 border-blue-500 rounded-2xl p-3.5 text-left shadow-sm transition-all cursor-pointer relative">
+          <span class="absolute top-2.5 right-2.5 bg-blue-600 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">最推薦</span>
+          <div class="text-xs font-bold text-blue-700">雙開首選</div>
+          <div class="font-bold text-slate-900 text-base mt-0.5">雙開 64G 推薦</div>
+          <div class="text-blue-600 font-black text-lg mt-1">$22,050</div>
+        </button>
+
+        <button type="button" onclick="applyPreset('ddr5')" class="bg-white hover:bg-blue-50/70 border border-slate-200 hover:border-blue-400 rounded-2xl p-3.5 text-left shadow-sm transition-all cursor-pointer">
+          <div class="text-xs font-bold text-slate-500">新款規格</div>
+          <div class="font-bold text-slate-900 text-base mt-0.5">DDR5 旗艦雙開</div>
+          <div class="text-blue-600 font-black text-lg mt-1">$43,640</div>
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. 步驟式自選區 -->
+    <main class="space-y-5">
+
+      <!-- 步驟 1：選擇處理器 -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-3.5">1. 選擇處理器 (CPU)</h2>
+        <div id="cpu-list" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 步驟 2：選擇主機板 -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-3.5">2. 選擇主機板</h2>
+        <div id="mb-list" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 步驟 3：選擇散熱器 -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3.5">
+          <h2 class="text-lg font-bold text-slate-900">3. 選擇散熱器</h2>
+          <span id="cooler-hint" class="hidden text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+            選 i7 已自動鎖定搭配水冷
+          </span>
+        </div>
+        <div id="cooler-list" class="space-y-2.5"></div>
+      </section>
+
+      <!-- 步驟 4：記憶體加購 -->
+      <section class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+        <h2 class="text-lg font-bold text-slate-900 mb-2">4. 記憶體加購</h2>
+        <p id="ram-guide-text" class="text-sm text-slate-600 mb-3.5"></p>
+        <div id="ram-list" class="space-y-2.5"></div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- 4. 底部固定懸浮結帳條 -->
+  <div class="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-4px_20px_rgba(15,23,42,0.06)] z-30">
+    <div class="max-w-[680px] mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+      <div>
+        <div class="text-xl sm:text-2xl font-black text-slate-900">
+          預估總價：<span class="text-blue-600" id="footer-total-price">$22,050</span>
+        </div>
+        <div class="text-xs sm:text-sm font-medium text-slate-600 mt-0.5" id="footer-status-text">
+          總記憶體 64GB・適合雙開
+        </div>
+      </div>
+
+      <button type="button" onclick="openSummaryModal()" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm sm:text-base px-5 py-3.5 rounded-xl shadow-sm transition-colors shrink-0 cursor-pointer">
+        複製選配清單傳給店家
+      </button>
+    </div>
+  </div>
+
+  <!-- 確認彈窗 (Modal) -->
+  <div id="quote-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2 text-emerald-600 font-bold text-base">
+          <span class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-sm">✓</span>
+          <span>已複製！請直接貼上 LINE 傳送即可</span>
+        </div>
+        <button type="button" onclick="closeSummaryModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold px-2 cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+        <pre id="modal-quote-preview" class="text-sm text-slate-800 whitespace-pre-wrap font-sans leading-relaxed"></pre>
+      </div>
+
+      <div class="flex gap-2.5 pt-1">
+        <button type="button" onclick="copyTextAgain()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-colors cursor-pointer">
+          再次複製文字
+        </button>
+        <button type="button" onclick="closeSummaryModal()" class="px-5 py-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-colors cursor-pointer">
+          關閉
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 零件選項資料（極簡白話版）
+    // ==========================================
+    const CPU_OPTIONS = [
+      {
+        id: 'i5-14400f',
+        title: 'Intel i5-14400F',
+        desc: '適合單開遊戲，高 CP 值',
+        price: 4900
+      },
+      {
+        id: 'i5-14400',
+        title: 'Intel i5-14400',
+        desc: '適合單開遊戲，含內建顯示',
+        price: 5900
+      },
+      {
+        id: 'i7-14700f',
+        title: 'Intel i7-14700F',
+        desc: '適合雙開遊戲、高效能，需預訂',
+        price: 9650
+      }
+    ];
+
+    const MB_OPTIONS = [
+      {
+        id: 'gb-b760m-d4',
+        title: '技嘉 B760M GAMING PLUS WIFI D4',
+        desc: '可沿用舊記憶體・有 Wi-Fi',
+        ddr: 'DDR4',
+        price: 3500
+      },
+      {
+        id: 'asus-prime-d5',
+        title: '華碩 PRIME B760M-A-CSM',
+        desc: '新款 DDR5 專用・需買新記憶體',
+        ddr: 'DDR5',
+        price: 3100
+      },
+      {
+        id: 'asus-tuf-d5',
+        title: '華碩 TUF GAMING B760M-PLUS WIFI II',
+        desc: '新款 DDR5 專用・有 Wi-Fi・需買新記憶體',
+        ddr: 'DDR5',
+        price: 4490
+      }
+    ];
+
+    const COOLER_OPTIONS = [
+      {
+        id: 'stock',
+        title: '不加購（使用原廠風扇，僅限 i5）',
+        desc: '使用盒裝內附基本風扇',
+        price: 0
+      },
+      {
+        id: 'tower',
+        title: 'CyberSLIM CS6 ARGB 塔扇',
+        desc: '比原廠安靜涼爽，適合 i5',
+        price: 1000
+      },
+      {
+        id: 'aio240',
+        title: '全漢 AE24 240 水冷散熱器',
+        desc: '強力散熱，選 i7 必搭',
+        price: 1500
+      }
+    ];
+
+    const RAM_OPTIONS_DDR4 = [
+      {
+        id: 'd4-none',
+        title: '不加購（沿用原本 32GB，單開夠用）',
+        desc: '直接沿用您原本的威剛 DDR4 16G×2',
+        totalGB: 32,
+        price: 0
+      },
+      {
+        id: 'd4-add32',
+        title: '加購 2 條 美光 DDR4 16G（湊滿 64GB，雙開推薦）',
+        desc: '含原記憶體共 4 條插滿（$3,700 × 2）',
+        totalGB: 64,
+        price: 7400
+      }
+    ];
+
+    const RAM_OPTIONS_DDR5 = [
+      {
+        id: 'd5-32g',
+        title: '威剛 DDR5 16G × 2 條（共 32GB，單開夠用）',
+        desc: '全新 DDR5 雙通道（$7,000 × 2）',
+        totalGB: 32,
+        price: 14000
+      },
+      {
+        id: 'd5-64g',
+        title: '威剛 DDR5 32G × 2 條（共 64GB，雙開推薦）',
+        desc: '全新 DDR5 大容量雙通道（$14,000 × 2）',
+        totalGB: 64,
+        price: 28000
+      }
+    ];
+
+    // ==========================================
+    // 目前選購狀態（預設：雙開 64G 推薦）
+    // ==========================================
+    let state = {
+      cpu: 'i7-14700f',
+      mb: 'gb-b760m-d4',
+      cooler: 'aio240',
+      ram: 'd4-add32'
+    };
+
+    let latestGeneratedText = '';
+
+    // ==========================================
+    // 選取操作與智慧防呆
+    // ==========================================
+    function selectCPU(id) {
+      state.cpu = id;
+      // 防呆：若選擇 i7-14700F，自動切換並鎖定只能選水冷
+      if (id === 'i7-14700f') {
+        state.cooler = 'aio240';
+      }
+      render();
+    }
+
+    function selectMB(id) {
+      state.mb = id;
+      const mbObj = MB_OPTIONS.find(m => m.id === id);
+      // 切換主機板時，自動切換對應的記憶體選項
+      if (mbObj.ddr === 'DDR4') {
+        if (!state.ram.startsWith('d4-')) {
+          state.ram = 'd4-add32';
+        }
+      } else {
+        if (!state.ram.startsWith('d5-')) {
+          state.ram = 'd5-64g';
+        }
+      }
+      render();
+    }
+
+    function selectCooler(id) {
+      // 防呆：i7 鎖定只能選水冷
+      if (state.cpu === 'i7-14700f' && id !== 'aio240') return;
+      state.cooler = id;
+      render();
+    }
+
+    function selectRam(id) {
+      state.ram = id;
+      render();
+    }
+
+    function applyPreset(type) {
+      if (type === 'single') {
+        state = { cpu: 'i5-14400f', mb: 'gb-b760m-d4', cooler: 'stock', ram: 'd4-none' };
+      } else if (type === 'dual') {
+        state = { cpu: 'i7-14700f', mb: 'gb-b760m-d4', cooler: 'aio240', ram: 'd4-add32' };
+      } else if (type === 'ddr5') {
+        state = { cpu: 'i7-14700f', mb: 'asus-tuf-d5', cooler: 'aio240', ram: 'd5-64g' };
+      }
+      render();
+    }
+
+    // ==========================================
+    // 畫面渲染
+    // ==========================================
+    function formatPrice(num) {
+      return '$' + num.toLocaleString('zh-TW');
+    }
+
+    function createOptionCard({ title, desc, price, selected, locked, onClick }) {
+      const baseClass = locked
+        ? 'locked opacity-45 cursor-not-allowed bg-slate-50 border-slate-200'
+        : selected
+          ? 'cursor-pointer bg-blue-50/50 border-blue-600 ring-1 ring-blue-600'
+          : 'cursor-pointer bg-white hover:bg-slate-50 border-slate-200';
+
+      return `
+        <div onclick="${locked ? '' : onClick}" class="card-radio rounded-xl border p-4 flex items-center justify-between gap-3 ${baseClass}">
+          <div class="flex items-start gap-3">
+            <div class="mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+              selected ? 'border-blue-600' : 'border-slate-300'
+            }">
+              ${selected ? '<div class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>' : ''}
+            </div>
+            <div>
+              <div class="font-bold text-base text-slate-900 leading-snug">${title}</div>
+              <div class="text-sm text-slate-500 mt-0.5">${desc}</div>
+            </div>
+          </div>
+          <div class="font-black text-base sm:text-lg shrink-0 ${selected ? 'text-blue-600' : 'text-slate-800'}">
+            ${formatPrice(price)}
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      // 1. 渲染 CPU
+      document.getElementById('cpu-list').innerHTML = CPU_OPTIONS.map(item =>
+        createOptionCard({
+          title: item.title,
+          desc: item.desc,
+          price: item.price,
+          selected: state.cpu === item.id,
+          locked: false,
+          onClick: `selectCPU('${item.id}')`
+        })
+      ).join('');
+
+      // 2. 渲染主機板
+      document.getElementById('mb-list').innerHTML = MB_OPTIONS.map(item =>
+        createOptionCard({
+          title: item.title,
+          desc: item.desc,
+          price: item.price,
+          selected: state.mb === item.id,
+          locked: false,
+          onClick: `selectMB('${item.id}')`
+        })
+      ).join('');
+
+      // 3. 渲染散熱器
+      const isI7 = state.cpu === 'i7-14700f';
+      const coolerHint = document.getElementById('cooler-hint');
+      if (isI7) {
+        coolerHint.classList.remove('hidden');
+      } else {
+        coolerHint.classList.add('hidden');
+      }
+
+      document.getElementById('cooler-list').innerHTML = COOLER_OPTIONS.map(item => {
+        const locked = isI7 && item.id !== 'aio240';
+        return createOptionCard({
+          title: item.title,
+          desc: locked ? '選擇 i7 處理器時無法選用此項' : item.desc,
+          price: item.price,
+          selected: state.cooler === item.id,
+          locked,
+          onClick: `selectCooler('${item.id}')`
+        });
+      }).join('');
+
+      // 4. 渲染記憶體（依主機板自動切換顯示，不顯示不相容項目）
+      const selectedMB = MB_OPTIONS.find(m => m.id === state.mb);
+      const guideEl = document.getElementById('ram-guide-text');
+      const ramListEl = document.getElementById('ram-list');
+
+      if (selectedMB.ddr === 'DDR4') {
+        guideEl.innerHTML = '目前選擇 DDR4 主機板，已自動沿用您原本的 32GB 記憶體：';
+        ramListEl.innerHTML = RAM_OPTIONS_DDR4.map(item =>
+          createOptionCard({
+            title: item.title,
+            desc: item.desc,
+            price: item.price,
+            selected: state.ram === item.id,
+            locked: false,
+            onClick: `selectRam('${item.id}')`
+          })
+        ).join('');
+      } else {
+        guideEl.innerHTML = '<span class="text-amber-700 font-medium">提醒：您選擇了新款 DDR5 主機板，原本的舊 DDR4 記憶體無法沿用，請選擇新記憶體：</span>';
+        ramListEl.innerHTML = RAM_OPTIONS_DDR5.map(item =>
+          createOptionCard({
+            title: item.title,
+            desc: item.desc,
+            price: item.price,
+            selected: state.ram === item.id,
+            locked: false,
+            onClick: `selectRam('${item.id}')`
+          })
+        ).join('');
+      }
+
+      // 5. 更新底部結帳列
+      const cpuObj = CPU_OPTIONS.find(c => c.id === state.cpu);
+      const coolerObj = COOLER_OPTIONS.find(c => c.id === state.cooler);
+      const ramList = selectedMB.ddr === 'DDR4' ? RAM_OPTIONS_DDR4 : RAM_OPTIONS_DDR5;
+      const ramObj = ramList.find(r => r.id === state.ram);
+
+      const totalPrice = cpuObj.price + selectedMB.price + coolerObj.price + ramObj.price;
+      document.getElementById('footer-total-price').textContent = formatPrice(totalPrice);
+
+      const suitText = ramObj.totalGB >= 64
+        ? `總記憶體 ${ramObj.totalGB}GB・適合雙開`
+        : `總記憶體 ${ramObj.totalGB}GB・適合單開`;
+      document.getElementById('footer-status-text').textContent = suitText;
+    }
+
+    // ==========================================
+    // 產生純文字清單並複製（不列出 $0 沿用項目）
+    // ==========================================
+    function buildQuoteText() {
+      const cpuObj = CPU_OPTIONS.find(c => c.id === state.cpu);
+      const mbObj = MB_OPTIONS.find(m => m.id === state.mb);
+      const coolerObj = COOLER_OPTIONS.find(c => c.id === state.cooler);
+      const ramList = mbObj.ddr === 'DDR4' ? RAM_OPTIONS_DDR4 : RAM_OPTIONS_DDR5;
+      const ramObj = ramList.find(r => r.id === state.ram);
+
+      const totalPrice = cpuObj.price + mbObj.price + coolerObj.price + ramObj.price;
+
+      const lines = [
+        '【電腦升級選配清單】',
+        `• 處理器：${cpuObj.title} (${formatPrice(cpuObj.price)})`,
+        `• 主機板：${mbObj.title} (${formatPrice(mbObj.price)})`
+      ];
+
+      // 僅列出需要花費的新購項目（不列出 $0 項目）
+      if (coolerObj.price > 0) {
+        lines.push(`• 散熱器：${coolerObj.title} (${formatPrice(coolerObj.price)})`);
+      }
+
+      if (ramObj.price > 0) {
+        lines.push(`• 記憶體：${ramObj.title} (${formatPrice(ramObj.price)})`);
+      }
+
+      lines.push('--------------------');
+      lines.push(`升級後總記憶體：${ramObj.totalGB}GB`);
+      lines.push(`零件預估總價：NT$ ${totalPrice.toLocaleString('zh-TW')}`);
+
+      return lines.join('\n');
+    }
+
+    function executeCopy(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+      } catch (e) {
+        console.error('Copy failed', e);
+      }
+      document.body.removeChild(textarea);
+    }
+
+    function openSummaryModal() {
+      latestGeneratedText = buildQuoteText();
+      executeCopy(latestGeneratedText);
+      document.getElementById('modal-quote-preview').textContent = latestGeneratedText;
+      document.getElementById('quote-modal').classList.remove('hidden');
+    }
+
+    function copyTextAgain() {
+      executeCopy(latestGeneratedText);
+    }
+
+    function closeSummaryModal() {
+      document.getElementById('quote-modal').classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', render);
+  </script>
+</body>
+</html>
