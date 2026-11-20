@@ -33,6 +33,7 @@ button.x{color:#dc2626}
 .info{font-size:12px;color:var(--mut);margin-top:8px}
 textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;display:none;margin-top:8px}
 .full{grid-column:1/-1}
+.sl{display:flex;gap:8px;align-items:center}.sl input[type=range]{flex:1;padding:0}.sl input[type=number]{width:84px}
 .tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
 #v3{display:block;margin-top:10px}#v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}#v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
 </style>
@@ -148,14 +149,15 @@ function ui(){
   <label>字型<select data-k="f">${FONTS.map(([nm,v])=>`<option value="${esc(v)}"${v===l.f?" selected":""}>${nm}</option>`)}</select></label>
   <label>字級 (mm)<input data-k="s" type="number" step="0.5" value="${l.s}"></label>
   <label>字距<input data-k="ls" type="number" step="0.5" value="${l.ls}"></label>
-  <label>距杯底 (mm)<input data-k="y" type="number" step="0.5" value="${l.y}"></label>
-  <label>左右偏移 (mm)<input data-k="dx" type="number" step="0.5" value="${l.dx}"></label>
+  <label class="full">上下偏移（距杯底 mm，越大越靠上）<span class="sl"><input data-k="y" type="number" step="0.5" value="${l.y}"><input data-k="y" type="range" min="0" max="${Math.ceil(geo().L)}" step="0.5" value="${l.y}"></span></label>
+  <label class="full">左右偏移（mm）<span class="sl"><input data-k="dx" type="number" step="0.5" value="${l.dx}"><input data-k="dx" type="range" min="${-Math.ceil(geo().a*(geo().Rb+geo().L/2)/2)}" max="${Math.ceil(geo().a*(geo().Rb+geo().L/2)/2)}" step="0.5" value="${l.dx}"></span></label>
   <label>顏色<input data-k="c" type="color" value="${l.c}"></label></div>
   <div class="row"><label class="chk"><input data-k="on" type="checkbox"${l.on!==false?" checked":""}>顯示</label><label class="chk"><input data-k="b" type="checkbox"${l.b?" checked":""}>粗體</label><button class="x" data-del="${i}" style="margin-left:auto">刪除</button></div></div>`).join("");
 }
 $("layers").addEventListener("input",e=>{
   const k=e.target.dataset.k;if(!k)return;
   const l=layers[e.target.closest(".card").dataset.i];
+  e.target.closest(".card").querySelectorAll(`[data-k="${k}"]`).forEach(x=>{if(x!==e.target&&x.type!=="checkbox")x.value=e.target.value;});
   l[k]=(k==="b"||k==="on")?e.target.checked:(["t","f","c"].includes(k)?e.target.value:parseFloat(e.target.value)||0);
   draw();
 });
