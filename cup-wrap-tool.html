@@ -92,6 +92,13 @@ textarea.ed{display:block;position:absolute;z-index:5;margin:0;border:1px dashed
 .seg{display:flex}.seg button{flex:1;border-radius:0;padding:4px 0;font-size:12px}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
 .ph{display:block;font-size:11px;color:var(--mut);letter-spacing:.04em;margin-bottom:4px}
 textarea.tx,.dock textarea.tx{display:block;width:100%;height:56px;margin:0 0 4px;font-size:13px;line-height:1.4;font-family:inherit}
+/* 右側面板：避免橫向溢出（桌面版 320px 寬） */
+.dock{overflow-x:hidden}
+.g>*,.g2>*,.two>*,.dock label{min-width:0}
+label:not(.chk)>input:not([type=checkbox]):not([type=range]),label:not(.chk)>select{width:100%}
+.locks{display:flex;flex-wrap:wrap;gap:4px 14px;width:100%}
+.locks .chk{font-size:12px}
+.dock .row{min-width:0}
 /* 3D 預覽籤頁 */
 .ws:is([data-v="3d"],[data-v="front"]) #vpflat,.ws:is([data-v="3d"],[data-v="front"]) #vpfan{display:none}
 .ws:not([data-v="3d"]):not([data-v="front"]) #vp3d{display:none}
@@ -131,7 +138,7 @@ textarea.tx,.dock textarea.tx{display:block;width:100%;height:56px;margin:0 0 4p
     </div>
   </section>
   <aside class="dock">
-    <details class="pn" id="pn3d" open><summary>3D 預覽</summary><div class="pb" id="w3d"><div id="v3c"></div><div class="row" id="rowF"><span class="chk" style="color:var(--mut)">旋轉角度</span><div class="sl"><input type="range" id="fang" min="0" max="359" step="1" value="0"><span id="fval">0°</span></div><button data-a="0" title="設計正中央">0° 正面</button><button data-a="90">90°</button><button data-a="180" title="接縫（封邊）側">180° 背面</button><button data-a="270">270°</button></div><div class="row" style="margin-top:6px"><button id="auto">暫停旋轉</button><button id="pan" title="開啟後直接拖曳即可平移；也可按住 Alt 或滑鼠中鍵拖曳、雙指一起移動">平移模式</button><button id="reset">重設視角</button><button id="png">匯出 PNG</button><label class="chk lkl"><input type="checkbox" id="lockY">鎖定 Y 軸（左右旋轉）</label><label class="chk lkl"><input type="checkbox" id="lockX">鎖定 X 軸（上下傾斜）</label><label class="chk lkl" title="Z 軸旋轉：Shift＋拖曳、滑鼠右鍵拖曳，或雙指扭轉"><input type="checkbox" id="lockZ">鎖定 Z 軸（畫面旋轉）</label></div></div></details>
+    <details class="pn" id="pn3d" open><summary>3D 預覽</summary><div class="pb" id="w3d"><div id="v3c"></div><div class="row" id="rowF"><span class="chk" style="color:var(--mut)">旋轉角度</span><div class="sl"><input type="range" id="fang" min="0" max="359" step="1" value="0"><span id="fval">0°</span></div><button data-a="0" title="設計正中央">0° 正面</button><button data-a="90">90°</button><button data-a="180" title="接縫（封邊）側">180° 背面</button><button data-a="270">270°</button></div><div class="row" style="margin-top:6px"><button id="auto">暫停旋轉</button><button id="pan" title="開啟後直接拖曳即可平移；也可按住 Alt 或滑鼠中鍵拖曳、雙指一起移動">平移模式</button><button id="reset">重設視角</button><button id="png">匯出 PNG</button><div class="locks"><label class="chk lkl"><input type="checkbox" id="lockY">鎖定 Y 軸（左右旋轉）</label><label class="chk lkl"><input type="checkbox" id="lockX">鎖定 X 軸（上下傾斜）</label><label class="chk lkl" title="Z 軸旋轉：Shift＋拖曳、滑鼠右鍵拖曳，或雙指扭轉"><input type="checkbox" id="lockZ">鎖定 Z 軸（畫面旋轉）</label></div></div></div></details>
     <details class="pn" open><summary>圖層</summary><div class="pb"><div id="lylist"></div><div class="row"><button id="ltop">置頂</button><button id="lbot">置底</button></div></div></details>
     <details class="pn" open><summary>屬性</summary><div class="pb" id="props"></div></details>
     <details class="pn" open><summary>杯子尺寸（mm）</summary><div class="pb">
@@ -567,7 +574,7 @@ function fitOrtho(asp){const o=T.ocam,hv=T.dist/3.2*.62;
   o.position.set(0,0,T.dist);o.lookAt(0,0,0);const H=2*hv*T.zoom;o.translateX(-T.panX*H);o.translateY(T.panY*H);o.updateProjectionMatrix();}
 $("fang").oninput=()=>{if(!T)return;T.yaw=+$("fang").value*Math.PI/180;T.auto=false;$("auto").textContent="自動旋轉";};
 document.querySelectorAll("#rowF button[data-a]").forEach(b=>b.onclick=()=>{if(!T)return;T.yaw=+b.dataset.a*Math.PI/180;T.auto=false;$("auto").textContent="自動旋轉";});
-function size3d(){if(!T)return;const c=$("v3c"),big=$("ws").dataset.v==="3d",w=c.clientWidth||320,hh=big?(c.clientHeight||300):Math.min(w,300);if(T.lw===w&&T.lh===hh)return;T.lw=w;T.lh=hh;T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();}
+function size3d(){if(!T)return;const c=$("v3c"),big=/^(3d|front)$/.test($("ws").dataset.v),w=c.clientWidth||320,hh=big?(c.clientHeight||300):Math.min(w,300);if(T.lw===w&&T.lh===hh)return;T.lw=w;T.lh=hh;T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();}
 addEventListener("resize",size3d);
 function loop(){
   if(T.running)return;T.running=true;
