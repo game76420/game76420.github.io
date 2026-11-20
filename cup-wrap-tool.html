@@ -125,9 +125,12 @@ label:not(.chk)>input:not([type=checkbox]):not([type=range]),label:not(.chk)>sel
 .ws[data-v="quad"] :is(#v3c,#v4c){flex:1;min-height:0;position:relative}
 .ws[data-v="quad"] :is(#v3c,#v4c) canvas{position:absolute;left:0;top:0;touch-action:none}
 @media(max-width:899px){
- .ws[data-v="quad"] .views{display:flex;flex-direction:column}
- .ws[data-v="quad"] .vp{flex:none;overflow:visible}
- .ws[data-v="quad"] :is(#v3c,#v4c){flex:none;height:min(100vw,360px)}
+ .ws[data-v="quad"] .views{
+   display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+   grid-template-rows:repeat(2,minmax(190px,1fr));gap:6px;padding:6px;
+ }
+ .ws[data-v="quad"] .vp{min-width:0;min-height:190px;overflow:hidden}
+ .ws[data-v="quad"] :is(#v3c,#v4c){flex:1;min-height:0;height:auto}
 }
 </style>
 </head>
@@ -144,13 +147,13 @@ label:not(.chk)>input:not([type=checkbox]):not([type=range]),label:not(.chk)>sel
     <label class="btn" title="置入圖片"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>圖片<input type="file" id="file" accept="image/*" multiple></label>
     <button id="delsel" class="x" title="刪除選取（Delete）"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>刪除</button>
   </nav>
-  <section class="ws" id="ws" data-v="both">
-    <div class="tabs"><button data-v="both" class="on">並排</button><button data-v="quad">四格</button><button data-v="flat">平面設計</button><button data-v="fan">扇形展開圖</button><button data-v="3d">3D 預覽</button><button data-v="front">正視圖</button></div>
+  <section class="ws" id="ws" data-v="quad">
+    <div class="tabs"><button data-v="both">並排</button><button data-v="quad" class="on">四格</button><button data-v="flat">平面設計</button><button data-v="fan">扇形展開圖</button><button data-v="3d">3D 預覽</button><button data-v="front">正視圖</button></div>
     <div class="views">
       <div class="vp" id="vpflat"><div class="cap">平面設計區</div><div class="box" id="flat"></div></div>
       <div class="vp" id="vpfan"><div class="cap">扇形展開圖（輸出內容 · 可直接選取、拖曳、縮放物件，雙擊文字改內容）</div><div class="box" id="pv"></div></div>
       <div class="vp" id="vp3d"><div class="cap" id="cap3d">3D 預覽（拖曳旋轉 · 滾輪縮放 · Shift／右鍵拖曳或雙指扭轉＝Z 軸旋轉 · Alt／中鍵拖曳或「平移模式」＝平移）</div></div>
-      <div class="vp" id="vpfront"><div class="cap">正視圖（平行投影 · 與 3D 同步旋轉）</div><div id="v4c"></div></div>
+      <div class="vp" id="vpfront"><div class="cap">正視圖（平行投影 · 可直接拖曳旋轉，與 3D 同步）</div><div id="v4c"></div></div>
     </div>
   </section>
   <aside class="dock">
@@ -791,6 +794,21 @@ function ensure4(){
   const r=new THREE.WebGLRenderer({antialias:true,alpha:true});
   r.setPixelRatio(Math.min(devicePixelRatio||1,2));r.outputEncoding=THREE.sRGBEncoding;
   $("v4c").appendChild(r.domElement);T.r2=r;
+   let last=null;
+   r.domElement.addEventListener("pointerdown",e=>{
+     last={x:e.clientX,y:e.clientY};T.auto=false;
+     $("auto").textContent="自動旋轉";
+     r.domElement.setPointerCapture(e.pointerId);
+   });
+   r.domElement.addEventListener("pointermove",e=>{
+     if(!last)return;
+     const dx=e.clientX-last.x;
+     T.yaw+=dx*.01;
+     last={x:e.clientX,y:e.clientY};
+   });
+   const stop=()=>{last=null;};
+   r.domElement.addEventListener("pointerup",stop);
+   r.domElement.addEventListener("pointercancel",stop);
 }
 function size4(){
   if(!T||!T.r2||$("ws").dataset.v!=="quad")return;
@@ -957,7 +975,7 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   if(v==="quad")$("vp3d").appendChild($("v3c"));else $("w3d").prepend($("v3c"));$("pn3d").style.display=big?"none":"";
   if(T){T.lw=0;size3d();requestAnimationFrame(size3d);}
 });
-if(matchMedia("(max-width:899px)").matches)document.querySelector('.tabs button[data-v="flat"]').click();
+document.querySelector('.tabs button[data-v="quad"]').click();
 if(window.ResizeObserver){const ro=new ResizeObserver(size3d);ro.observe($("v3c"));ro.observe($("v4c"));}
 </script>
 </body>
