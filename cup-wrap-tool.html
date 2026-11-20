@@ -865,11 +865,11 @@ async function update3d(){
   /* 封邊縫：外層搭接片（含圖案）疊在內層上，自由邊有細陰影 */
   const seamParts=[];
   if($("seam").checked&&ao>0){
-    const strip=(p0,p1,off,mat,K)=>{const P2=[],U2=[],I2=[];
+    const strip=(p0,p1,off,mat,K,ps=0)=>{const P2=[],U2=[],I2=[];
       for(let j=0;j<=M;j++){const q=j/M,r=Rb+L*q,rho=br+(tr-br)*q+off,y=-h/2+h*q;
         for(let i=0;i<=K;i++){const p=p0+(p1-p0)*i/K,psi=(p-fs)/(a0/2)*Math.PI;
           P2.push(rho*Math.sin(psi),y,rho*Math.cos(psi));
-          U2.push((r*Math.sin(p)-vx0)/vw,1-(-r*Math.cos(p)-vy0)/vh);}}
+          {const pt=p+ps;U2.push((r*Math.sin(pt)-vx0)/vw,1-(-r*Math.cos(pt)-vy0)/vh);}}}
       for(let j=0;j<M;j++)for(let i=0;i<K;i++){const A=j*(K+1)+i,B=A+1,C=A+K+1,D=C+1;I2.push(A,B,C,B,D,C);}
       const g2=new THREE.BufferGeometry();
       g2.setAttribute("position",new THREE.Float32BufferAttribute(P2,3));
@@ -877,7 +877,8 @@ async function update3d(){
       g2.setIndex(I2);g2.computeVertexNormals();return new THREE.Mesh(g2,mat);};
     const right=$("ovs").value==="R",end=fs+a0/2,start=fs-a0/2,th=0.4;
     const pA=right?end:start-ao,pB=right?end+ao:start;
-    seamParts.push(strip(pA,pB,th,new THREE.MeshStandardMaterial({map:tex,roughness:.75}),24));
+    /* 搭接片蓋在杯身另一端上：貼圖取「被蓋住的那一段」(偏移一圈 a0)，圖案才會連續，不會露出展開圖封邊區的白底 */
+    seamParts.push(strip(pA,pB,th,new THREE.MeshStandardMaterial({map:tex,roughness:.75}),24,right?-a0:a0));
     const dp=0.7/(Rb+L/2),pe=right?pB:pA;
     const e0=right?pe-dp:pe,e1=right?pe:pe+dp;
     seamParts.push(strip(e0,e1,th+0.05,new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false}),2));
