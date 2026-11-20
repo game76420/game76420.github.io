@@ -3,50 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>扇形杯套文字排版工具</title>
+<title>杯套設計工具</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f5f2;--fg:#1c1c1a;--card:#fff;--bd:#d8d6d0;--ac:#c2410c;--mut:#6b6a66;--pv:#fff;
+:root{--bg:#f6f5f2;--fg:#1c1c1a;--card:#fff;--bd:#d8d6d0;--ac:#c2410c;--mut:#6b6a66;--pv:#ececea;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--fg:#ece9e2;--card:#222220;--bd:#3a3935;--ac:#fb923c;--mut:#9a978f;--pv:#2a2a28}}
 :root[data-theme="dark"]{--bg:#171716;--fg:#ece9e2;--card:#222220;--bd:#3a3935;--ac:#fb923c;--mut:#9a978f;--pv:#2a2a28}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Noto Sans TC",system-ui,sans-serif}
-main{max-width:1100px;margin:0 auto;padding:14px;display:grid;gap:14px}
-@media(min-width:900px){main{grid-template-columns:1.3fr 1fr;align-items:start}.pv{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto}}
+main{max-width:1180px;margin:0 auto;padding:14px;display:grid;gap:14px}
+@media(min-width:900px){main{grid-template-columns:1.35fr 1fr;align-items:start}.pv{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto}}
 h1{font-size:18px;margin:0 0 2px}
-.sub{color:var(--mut);font-size:13px;margin:0 0 10px}
+.sub{color:var(--mut);font-size:13px;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
-.pvbox{background:var(--pv);border:1px solid var(--bd);border-radius:12px;padding:6px;overflow-x:auto}
-.pvbox svg{width:100%;height:auto;display:block;max-height:42vh}
+.card.sel{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}
+.box{background:var(--pv);border:1px solid var(--bd);border-radius:12px;padding:6px;overflow:hidden}
+.box svg{width:100%;height:auto;display:block}
+#flat{touch-action:none}
+#flat svg{max-height:36vh;user-select:none;-webkit-user-select:none}
+#pv svg{max-height:34vh}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+@media(max-width:640px){.two{grid-template-columns:1fr}}
 label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
-input,select,button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 8px;min-width:0}
+input,select,button,.btn{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 8px;min-width:0}
 input[type=color]{padding:2px;height:36px}
 .g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
-button{cursor:pointer}
+button,.btn{cursor:pointer;display:inline-block;text-align:center}
+.btn input{display:none}
 button.p{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
 button.x{color:#dc2626}
 .chk{flex-direction:row;align-items:center;gap:6px;font-size:13px;color:var(--fg)}
-.info{font-size:12px;color:var(--mut);margin-top:8px}
+.info{font-size:12px;color:var(--mut);margin-top:6px}
+.cap{font-size:12px;color:var(--mut);margin:8px 0 4px}
 textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;display:none;margin-top:8px}
 .full{grid-column:1/-1}
 .sl{display:flex;gap:8px;align-items:center}.sl input[type=range]{flex:1;padding:0}.sl input[type=number]{width:84px}
-.tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
-#v3{display:block;margin-top:10px}#v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}#v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
+.ly{display:flex;align-items:center;gap:6px;padding:4px 6px;border:1px solid var(--bd);border-radius:8px;margin-top:6px;background:var(--bg);cursor:pointer}
+.ly.sel{border-color:var(--ac);box-shadow:0 0 0 1px var(--ac)}.ly.over{outline:2px dashed var(--ac)}
+.ly .th{width:28px;height:28px;flex:none;border:1px solid var(--bd);border-radius:6px;display:grid;place-items:center;overflow:hidden;font-weight:700;background:var(--card)}
+.ly .th img{width:100%;height:100%;object-fit:cover}
+.ly .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.ly button{padding:2px 8px}.ly button:disabled{opacity:.35;cursor:default}
+#v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
+#v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
 </style>
 </head>
 <body>
 <main>
 <section class="pv">
-  <h1>扇形杯套文字排版工具</h1>
-  <p class="sub">文字會沿著扇形弧線排列，貼回杯子後不會變形。</p>
-  <div class="info" style="margin:0 0 4px">2D 展開圖</div>
-  <div class="pvbox" id="pv"></div>
-  <div id="v3"><div class="info" style="margin:0 0 4px">3D 預覽</div><div id="v3c"></div>
-    <div class="row"><button id="auto">暫停旋轉</button><button id="reset">重設視角</button><span class="info" style="margin:0">左右拖曳旋轉（電腦可上下拖曳傾斜、滾輪縮放）</span></div></div>
+  <h1>杯套設計工具</h1>
+  <p class="sub">在下方「平面設計區」直接排版，工具會自動變形成扇形。</p>
+  <div class="row" style="margin-top:0">
+    <button class="p" id="addt">＋ 文字</button>
+    <label class="btn">＋ 圖片<input type="file" id="file" accept="image/*" multiple></label>
+    <button class="x" id="delsel">刪除選取</button>
+  </div>
+  <div class="cap">平面設計區（拖曳移動；8 個控制點縮放：四角等比、四邊單向拉伸，Shift 反轉；方向鍵微調；可拖入圖片）</div>
+  <div class="box" id="flat"></div>
+  <div class="two">
+    <div><div class="cap" style="margin-top:0">扇形展開圖（輸出內容）</div><div class="box" id="pv"></div></div>
+    <div><div class="cap" style="margin-top:0">3D 預覽</div><div id="v3c"></div>
+      <div class="row" style="margin-top:6px"><button id="auto">暫停旋轉</button><button id="reset">重設視角</button></div></div>
+  </div>
   <div class="info" id="info"></div>
   <div class="row">
     <button class="p" id="dl">下載 SVG</button>
@@ -57,9 +79,13 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
 </section>
 
 <section>
+  <div class="card"><b>圖層</b> <span class="info">上方＝最上層，可拖曳或按 ▲▼ 調整順序</span>
+    <div id="lylist"></div>
+    <div class="row"><button id="ltop">置頂</button><button id="lbot">置底</button></div></div>
+  <div id="props"></div>
   <div class="card">
     <b>杯子尺寸（mm）</b>
-    <div class="g2" style="grid-template-columns:repeat(3,1fr)">
+    <div class="g" style="margin-top:8px">
       <label>杯口外徑<input type="number" id="top" value="90" step="0.5"></label>
       <label>杯底外徑<input type="number" id="bot" value="60" step="0.5"></label>
       <label>杯身高度<input type="number" id="h" value="95" step="0.5"></label>
@@ -76,27 +102,23 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
       <label>出血 (mm)<input type="number" id="bl" value="3" step="0.5" min="0"></label>
     </div>
   </div>
-  <div class="card"><b>圖片（自動變形成扇形）</b>
-    <div class="row"><input type="file" id="file" accept="image/*" multiple></div>
-    <div class="info">直接上傳沒有變形的平面圖（JPG／PNG）即可，工具會依扇形弧線自動套用變形。圖片在文字下方。</div>
-    <div id="imgs"></div></div>
-  <div id="layers"></div>
-  <button class="p" id="add" style="width:100%">＋ 新增文字</button>
-</section>
+  </section>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 const FONTS=[["黑體","Noto Sans TC, sans-serif"],["明體","Noto Serif TC, serif"],["Arial","Arial, sans-serif"],["Georgia","Georgia, serif"],["Courier","Courier New, monospace"]];
-let layers=[
- {t:"COFFEE",f:FONTS[0][1],s:14,y:48,dx:0,ls:1,c:"#7c2d12",b:true},
- {t:"手沖咖啡 · 每日現磨",f:FONTS[0][1],s:6,y:34,dx:0,ls:1,c:"#1c1c1a",b:false}
+let objs=[
+ {type:"t",t:"COFFEE",f:FONTS[0][1],s:14,sx:1,y:48,dx:0,ls:1,c:"#7c2d12",b:true,lock:true},
+ {type:"t",t:"手沖咖啡 · 每日現磨",f:FONTS[0][1],s:6,sx:1,y:34,dx:0,ls:1,c:"#1c1c1a",b:false,lock:true}
 ];
+let sel=null,drag=null,raf=0,T=null,texTimer=0,tok=0;
 const $=id=>document.getElementById(id);
-const esc=s=>s.replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 const n=id=>parseFloat($(id).value)||0;
 const f2=v=>+v.toFixed(3);
 
+/* ---------- 幾何 ---------- */
 function geo(){
   const top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
   const L=Math.hypot(h,(top-bot)/2);
@@ -108,87 +130,63 @@ function geo(){
   const y1=Math.max(-Ri*Math.cos(hI),-Ro*Math.cos(ho));
   return{L,Rt,Rb,a,top,a0,ao,fs,bx:{x:-xs,y:-Ro,w:2*xs,h:y1+Ro,bl,Ro,Ri,ho,hi:hI}};
 }
-function build(withGuides,bgc,hi){
-  const{L,Rt,Rb,a,a0,ao,fs}=geo(),half=a/2,pad=8,large=a>Math.PI?1:0;
+/* 文字逐字定位：sx＝水平拉伸倍率 */
+const mctx=document.createElement("canvas").getContext("2d");
+function glyphs(l){
+  mctx.font=(l.b?700:400)+" "+l.s+"px "+l.f;
+  const k=l.sx||1,cs=[...l.t],ws=cs.map(c=>mctx.measureText(c).width*k),ls=l.ls*k;
+  const tot=ws.reduce((p,w)=>p+w,0)+ls*Math.max(0,cs.length-1);
+  let x=l.dx-tot/2;const out=[];
+  cs.forEach((c,i)=>{out.push({c,w:ws[i],x:x+ws[i]/2});x+=ws[i]+ls;});
+  return{out,tot};
+}
+function bbox(o){
+  if(o.type==="t"){const tot=Math.max(glyphs(o).tot,1);return{x:o.dx-tot/2,y:-o.y-.85*o.s,w:tot,h:1.1*o.s};}
+  return{x:o.dx-o.w/2,y:-o.y-o.h/2,w:o.w,h:o.h};
+}
+function applyBox(o,nb){
+  if(o.type==="i"){o.w=+nb.w.toFixed(2);o.h=+nb.h.toFixed(2);o.dx=+(nb.x+nb.w/2).toFixed(2);o.y=+(-nb.y-nb.h/2).toFixed(2);return;}
+  o.s=+Math.max(.5,nb.h/1.1).toFixed(2);o.sx=1;
+  o.sx=+Math.max(.05,nb.w/(glyphs(o).tot||1)).toFixed(3);
+  o.dx=+(nb.x+nb.w/2).toFixed(2);o.y=+(-nb.y-.85*o.s).toFixed(2);
+}
+
+/* ---------- 扇形輸出 SVG ---------- */
+function build(wg,bgc,hi){
+  const g=geo(),{L,Rt,Rb,a,a0,ao,fs,bx:B}=g,half=a/2,pad=8,large=a>Math.PI?1:0,xs=-B.x,rcx=Rb+L/2;
   const P=(r,t)=>f2(r*Math.sin(t))+" "+f2(-r*Math.cos(t));
-  const B=geo().bx,xs=-B.x;
   const vw=2*xs+2*pad,vh=B.h+2*pad;
   let s=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${f2(vw)}mm" height="${f2(vh)}mm" viewBox="${f2(-xs-pad)} ${f2(B.y-pad)} ${f2(vw)} ${f2(vh)}">`;
   if(bgc)s+=`<rect x="${f2(-xs-pad)}" y="${f2(B.y-pad)}" width="${f2(vw)}" height="${f2(vh)}" fill="${bgc}"/>`;
-  let defs="",txt="";
-  layers.forEach((l,i)=>{
-    if(l.on===false)return;const r=Rb+l.y;
-    defs+=`<path id="arc${i}" d="M ${P(r,-half)} A ${f2(r)} ${f2(r)} 0 ${large} 1 ${P(r,half)}"/>`;
-    txt+=`<text font-family="${esc(l.f)}" font-size="${l.s}" font-weight="${l.b?700:400}" letter-spacing="${l.ls}" fill="${l.c}" text-anchor="middle"><textPath href="#arc${i}" startOffset="${f2(r*(half+fs)+l.dx)}">${esc(l.t)}</textPath></text>`;
+  const kk=hi?Math.min(10,3000/(2*xs)):(drag?2:4);
+  let art="";
+  objs.forEach((o,i)=>{if(o.on===false)return;
+    if(o.type==="i"){art+=`<image id="img${i}" x="${f2(B.x)}" y="${f2(B.y)}" width="${f2(B.w)}" height="${f2(B.h)}" xlink:href="${warpURI(o,kk)}"/>`;return;}
+    const r=Rb+o.y,k=r/rcx*(o.sx||1);let gs="";
+    glyphs(o).out.forEach(q=>{if(!q.c.trim())return;const t=fs+q.x/rcx;
+      gs+=`<text transform="translate(${P(r,t)}) rotate(${f2(t*180/Math.PI)}) scale(${f2(k)} 1)">${esc(q.c)}</text>`;});
+    art+=`<g font-family="${esc(o.f)}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${o.c}" text-anchor="middle">${gs}</g>`;
   });
-  let pic="";const kk=hi?Math.min(10,3000/(2*xs)):4;
-  images.forEach((im,i)=>{if(im.on===false)return;pic+=`<image id="img${i}" x="${f2(B.x)}" y="${f2(B.y)}" width="${f2(B.w)}" height="${f2(B.h)}" xlink:href="${warpURI(im,kk)}"/>`;});
-  s+=`<defs>${defs}</defs><g id="artwork">${pic}${txt}</g>`;
-  if(withGuides){
-    const sf=Rb+n("safe");
-    let ovg="",bld="";
-    if(B.bl>0){const lO=2*B.ho>Math.PI?1:0,lI=2*B.hi>Math.PI?1:0;
-      bld=`<path stroke="#06b6d4" stroke-dasharray="2 1" d="M ${P(B.Ri,-B.hi)} L ${P(B.Ro,-B.ho)} A ${f2(B.Ro)} ${f2(B.Ro)} 0 ${lO} 1 ${P(B.Ro,B.ho)} L ${P(B.Ri,B.hi)} A ${f2(B.Ri)} ${f2(B.Ri)} 0 ${lI} 0 ${P(B.Ri,-B.hi)} Z"/>`;}
+  s+=`<g id="artwork">${art}</g>`;
+  if(wg){
+    const sf=Rb+n("safe");let ovg="",bld="";
     if(ao>1e-6){const right=fs<0,b=right?fs+a0/2:fs-a0/2,e=right?half:-half;
       ovg=`<path fill="#f59e0b" fill-opacity="0.18" stroke="none" d="M ${P(Rb,b)} L ${P(Rt,b)} A ${f2(Rt)} ${f2(Rt)} 0 0 ${right?1:0} ${P(Rt,e)} L ${P(Rb,e)} A ${f2(Rb)} ${f2(Rb)} 0 0 ${right?0:1} ${P(Rb,b)} Z"/><path stroke="#f59e0b" stroke-dasharray="1.5 1" d="M ${P(Rb,b)} L ${P(Rt,b)}"/>`;}
+    if(B.bl>0){const lO=2*B.ho>Math.PI?1:0,lI=2*B.hi>Math.PI?1:0;
+      bld=`<path stroke="#06b6d4" stroke-dasharray="2 1" d="M ${P(B.Ri,-B.hi)} L ${P(B.Ro,-B.ho)} A ${f2(B.Ro)} ${f2(B.Ro)} 0 ${lO} 1 ${P(B.Ro,B.ho)} L ${P(B.Ri,B.hi)} A ${f2(B.Ri)} ${f2(B.Ri)} 0 ${lI} 0 ${P(B.Ri,-B.hi)} Z"/>`;}
     s+=`<g id="guides" fill="none" stroke-width="0.3"><path stroke="#e11d48" stroke-dasharray="2 1" d="M ${P(Rb,-half)} L ${P(Rt,-half)} A ${f2(Rt)} ${f2(Rt)} 0 ${large} 1 ${P(Rt,half)} L ${P(Rb,half)} A ${f2(Rb)} ${f2(Rb)} 0 ${large} 0 ${P(Rb,-half)} Z"/>`+
     `<path stroke="#2563eb" stroke-dasharray="1 1" d="M ${P(sf,-half)} A ${f2(sf)} ${f2(sf)} 0 ${large} 1 ${P(sf,half)}"/>`+
     `<path stroke="#16a34a" stroke-dasharray="0.6 1.4" d="M ${P(Rb,fs)} L ${P(Rt,fs)}"/>`+ovg+bld+`</g>`;
   }
   return s+"</svg>";
 }
-function draw(){
-  $("pv").innerHTML=build(true,$("bg").value);
-  schedule3d();
-  const g=geo();
-  $("info").textContent=`扇形角度 ${(g.a*180/Math.PI).toFixed(2)}°　外半徑 ${g.Rt.toFixed(1)} mm　內半徑 ${g.Rb.toFixed(1)} mm　斜高 ${g.L.toFixed(1)} mm　紅線＝刀模，藍線＝杯底留白，綠線＝中線`;
-}
-function ui(){
-  $("layers").innerHTML=layers.map((l,i)=>`<div class="card" data-i="${i}"><div class="g">
-  <label class="full">文字<input data-k="t" value="${esc(l.t)}"></label>
-  <label>字型<select data-k="f">${FONTS.map(([nm,v])=>`<option value="${esc(v)}"${v===l.f?" selected":""}>${nm}</option>`)}</select></label>
-  <label>字級 (mm)<input data-k="s" type="number" step="0.5" value="${l.s}"></label>
-  <label>字距<input data-k="ls" type="number" step="0.5" value="${l.ls}"></label>
-  <label class="full">上下偏移（距杯底 mm，越大越靠上）<span class="sl"><input data-k="y" type="number" step="0.5" value="${l.y}"><input data-k="y" type="range" min="0" max="${Math.ceil(geo().L)}" step="0.5" value="${l.y}"></span></label>
-  <label class="full">左右偏移（mm）<span class="sl"><input data-k="dx" type="number" step="0.5" value="${l.dx}"><input data-k="dx" type="range" min="${-Math.ceil(geo().a*(geo().Rb+geo().L/2)/2)}" max="${Math.ceil(geo().a*(geo().Rb+geo().L/2)/2)}" step="0.5" value="${l.dx}"></span></label>
-  <label>顏色<input data-k="c" type="color" value="${l.c}"></label></div>
-  <div class="row"><label class="chk"><input data-k="on" type="checkbox"${l.on!==false?" checked":""}>顯示</label><label class="chk"><input data-k="b" type="checkbox"${l.b?" checked":""}>粗體</label><button class="x" data-del="${i}" style="margin-left:auto">刪除</button></div></div>`).join("");
-}
-$("layers").addEventListener("input",e=>{
-  const k=e.target.dataset.k;if(!k)return;
-  const l=layers[e.target.closest(".card").dataset.i];
-  e.target.closest(".card").querySelectorAll(`[data-k="${k}"]`).forEach(x=>{if(x!==e.target&&x.type!=="checkbox")x.value=e.target.value;});
-  l[k]=(k==="b"||k==="on")?e.target.checked:(["t","f","c"].includes(k)?e.target.value:parseFloat(e.target.value)||0);
-  draw();
-});
-$("layers").addEventListener("click",e=>{
-  if(e.target.dataset.del!==undefined){layers.splice(+e.target.dataset.del,1);ui();draw();}
-});
-$("add").onclick=()=>{layers.push({t:"新文字",f:FONTS[0][1],s:8,y:20,dx:0,ls:0,c:"#1c1c1a",b:false});ui();draw();};
-["top","bot","h","safe","bg","ov","ovs","bl"].forEach(id=>$(id).addEventListener("input",draw));
 
-const out=()=>{const s=build($("guides").checked,null,true);images.forEach(im=>{im.c={};im.u={};});return s;};
-let dl=null;
-(async()=>{try{dl=await window.claude.use("downloads");}catch(e){}})();
-$("dl").onclick=async()=>{
-  const svg='<?xml version="1.0" encoding="UTF-8"?>\n'+out();
-  try{ if(dl){await dl.save({filename:"cup-wrap.svg",data:svg});return;} }catch(e){ if(e&&e.code==="declined")return; }
-  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));a.download="cup-wrap.svg";document.body.appendChild(a);a.click();a.remove();}catch(e){}
-  showCode(svg);
-};
-$("cp").onclick=async()=>{
-  const svg=out();
-  try{await navigator.clipboard.writeText(svg);$("cp").textContent="已複製 ✓";setTimeout(()=>$("cp").textContent="複製 SVG 原始碼",1500);}
-  catch(e){showCode(svg);}
-};
-function showCode(svg){const t=$("ta");t.style.display="block";t.value=svg;t.select();}
-/* ---------- 圖片變形 ---------- */
-let images=[];
+/* ---------- 圖片變形（平面 → 扇形） ---------- */
 const imgSig=(im,k)=>{const g=geo();return [g.Rt,g.Rb,g.a,g.fs,g.bx.bl,im.w,im.h,im.y,im.dx,k].join();};
 function warpCanvas(im,k){
   const sig=imgSig(im,k);im.c=im.c||{};
   if(im.c[k]&&im.c[k].sig===sig)return im.c[k].cv;
-  const{Rt,Rb,a,fs,bx}=geo(),half=a/2,vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h,bl=bx.bl;
+  const{Rt,Rb,L,a,fs,bx}=geo(),half=a/2,vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h,bl=bx.bl;
   const cw=Math.ceil(vw*k),ch=Math.ceil(vh*k);
   const cv=document.createElement("canvas");cv.width=cw;cv.height=ch;
   if(!(im.w>.1&&im.h>.1)){im.c[k]={sig,cv};return cv;}
@@ -196,13 +194,13 @@ function warpCanvas(im,k){
   const sw=Math.max(2,Math.min(im.img.naturalWidth,Math.ceil(im.w*k))),sh=Math.max(2,Math.min(im.img.naturalHeight,Math.ceil(im.h*k)));
   const sc=document.createElement("canvas");sc.width=sw;sc.height=sh;
   const sx=sc.getContext("2d");sx.imageSmoothingQuality="high";sx.drawImage(im.img,0,0,sw,sh);
-  const s=sx.getImageData(0,0,sw,sh).data,rc=Rb+im.y,phi0=im.dx/rc+fs;
+  const s=sx.getImageData(0,0,sw,sh).data,rcx=Rb+L/2,rcy=Rb+im.y;
   for(let py=0;py<ch;py++){const Y=vy0+(py+.5)/k;
     for(let px=0;px<cw;px++){
       const X=vx0+(px+.5)/k,r=Math.hypot(X,Y);
       if(r<Rb-bl||r>Rt+bl)continue;
       const phi=Math.atan2(X,-Y),lim=half+Math.asin(Math.min(1,bl/r));if(phi<-lim||phi>lim)continue;
-      const u=((phi-phi0)*rc+im.w/2)/im.w,v=(rc+im.h/2-r)/im.h;
+      const u=((phi-fs)*rcx-im.dx+im.w/2)/im.w,v=(rcy+im.h/2-r)/im.h;
       if(u<0||u>1||v<0||v>1)continue;
       const fx=Math.min(sw-1,Math.max(0,u*sw-.5)),fy=Math.min(sh-1,Math.max(0,v*sh-.5));
       const x0=fx|0,y0=fy|0,x1=Math.min(sw-1,x0+1),y1=Math.min(sh-1,y0+1),tx=fx-x0,ty=fy-y0,i=(py*cw+px)*4;
@@ -218,53 +216,207 @@ function warpURI(im,k){
   if(!im.u[k]||im.u[k].sig!==sig)im.u[k]={sig,uri:warpCanvas(im,k).toDataURL("image/png")};
   return im.u[k].uri;
 }
-function imgUi(){
-  $("imgs").innerHTML=images.map((im,j)=>`<div class="card" data-j="${j}" style="margin:8px 0 0"><div style="font-size:13px;margin-bottom:6px;word-break:break-all">${esc(im.name)}</div><div class="g">
-  <label>寬 (mm)<input data-k="w" type="number" step="0.5" value="${im.w}"></label>
-  <label>高 (mm)<input data-k="h" type="number" step="0.5" value="${im.h}"></label>
-  <label>中心距杯底 (mm)<input data-k="y" type="number" step="0.5" value="${im.y}"></label>
-  <label>左右偏移 (mm)<input data-k="dx" type="number" step="0.5" value="${im.dx}"></label></div>
-  <div class="row"><label class="chk"><input data-k="on" type="checkbox"${im.on!==false?" checked":""}>顯示</label><label class="chk"><input data-k="lock" type="checkbox"${im.lock?" checked":""}>鎖定比例</label><button data-fill="${j}">滿版（拉伸）</button><button class="x" data-del="${j}" style="margin-left:auto">刪除</button></div></div>`).join("");
+
+/* ---------- 平面設計區 ---------- */
+function flatSVG(){
+  const g=geo(),{L,Rb,a,a0,ao,fs,bx:B}=g,rc=Rb+L/2,half=a/2,bl=B.bl;
+  const u0=(-half-fs)*rc,u1=(half-fs)*rc,eb=Math.asin(Math.min(1,bl/Math.max(.1,Rb-bl)))*rc;
+  const b0=u0-eb,b1=u1+eb,pad=5,vw=b1-b0+2*pad,vh=L+2*bl+2*pad,vy=-(L+bl)-pad;
+  const sw=vw/700,hs=vw/45,d=`${f2(sw*6)} ${f2(sw*3)}`;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${f2(b0-pad)} ${f2(vy)} ${f2(vw)} ${f2(vh)}">`;
+  s+=`<rect x="${f2(b0)}" y="${f2(-(L+bl))}" width="${f2(b1-b0)}" height="${f2(L+2*bl)}" fill="${$("bg").value}"/>`;
+  objs.forEach(o=>{if(o.on===false)return;
+    if(o.type==="i"){s+=`<image x="${f2(o.dx-o.w/2)}" y="${f2(-o.y-o.h/2)}" width="${f2(o.w)}" height="${f2(o.h)}" href="${o.thumb}" preserveAspectRatio="none"/>`;return;}
+    let gs="";
+    glyphs(o).out.forEach(q=>{if(q.c.trim())gs+=`<text transform="translate(${f2(q.x)} ${f2(-o.y)}) scale(${f2(o.sx||1)} 1)">${esc(q.c)}</text>`;});
+    s+=`<g font-family="${esc(o.f)}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${o.c}" text-anchor="middle">${gs}</g>`;});
+  s+=`<g fill="none" stroke-width="${f2(sw)}" pointer-events="none">`;
+  if(ao>1e-6){const right=fs<0,m=(a0/2)*rc,x0=right?m:u0,x1=right?u1:-m;
+    s+=`<rect x="${f2(x0)}" y="${f2(-L)}" width="${f2(x1-x0)}" height="${f2(L)}" fill="#f59e0b" fill-opacity="0.18" stroke="none"/><path stroke="#f59e0b" stroke-dasharray="${d}" d="M ${f2(right?m:-m)} ${f2(-L)} V 0"/>`;}
+  s+=`<rect x="${f2(u0)}" y="${f2(-L)}" width="${f2(u1-u0)}" height="${f2(L)}" stroke="#e11d48" stroke-dasharray="${d}"/>`;
+  if(bl>0)s+=`<rect x="${f2(b0)}" y="${f2(-(L+bl))}" width="${f2(b1-b0)}" height="${f2(L+2*bl)}" stroke="#06b6d4" stroke-dasharray="${d}"/>`;
+  s+=`<path stroke="#2563eb" stroke-dasharray="${d}" d="M ${f2(u0)} ${f2(-n("safe"))} H ${f2(u1)}"/><path stroke="#16a34a" stroke-dasharray="${f2(sw*2)} ${f2(sw*4)}" d="M 0 ${f2(-L)} V 0"/></g>`;
+  objs.forEach((o,i)=>{if(o.on===false)return;const b=bbox(o);
+    s+=`<rect data-o="${i}" x="${f2(b.x)}" y="${f2(b.y)}" width="${f2(b.w)}" height="${f2(b.h)}" fill="#000" fill-opacity="0" style="cursor:move"/>`;});
+  if(sel&&sel.on!==false){const b=bbox(sel);
+    s+=`<rect x="${f2(b.x)}" y="${f2(b.y)}" width="${f2(b.w)}" height="${f2(b.h)}" fill="none" stroke="#c2410c" stroke-width="${f2(sw*1.5)}" pointer-events="none"/>`;
+    [1,3,5,7,0,2,4,6].forEach(i=>{const[hx,hy]=HD[i],px=b.x+(hx+1)/2*b.w,py=b.y+(hy+1)/2*b.h,cu=`cursor:${CUR[i]}-resize`;
+      s+=`<rect data-h="${i}" x="${f2(px-hs*.7)}" y="${f2(py-hs*.7)}" width="${f2(hs*1.4)}" height="${f2(hs*1.4)}" fill="#000" fill-opacity="0" style="${cu}"/>`+
+      `<rect data-h="${i}" x="${f2(px-hs/2)}" y="${f2(py-hs/2)}" width="${f2(hs)}" height="${f2(hs)}" fill="#fff" stroke="#c2410c" stroke-width="${f2(sw*1.5)}" style="${cu}"/>`;});
+  }
+  return s+"</svg>";
 }
-$("imgs").addEventListener("input",e=>{
-  const k=e.target.dataset.k;if(!k)return;
-  const card=e.target.closest(".card"),im=images[card.dataset.j];
-  if(k==="on"){im.on=e.target.checked;draw();return;}
-  if(k==="lock"){im.lock=e.target.checked;return;}
-  im[k]=parseFloat(e.target.value)||0;
-  const ra=im.img.naturalHeight/im.img.naturalWidth;
-  if(im.lock&&k==="w"&&im.w>0){im.h=+(im.w*ra).toFixed(2);card.querySelector('[data-k="h"]').value=im.h;}
-  if(im.lock&&k==="h"&&im.h>0){im.w=+(im.h/ra).toFixed(2);card.querySelector('[data-k="w"]').value=im.w;}
+/* 八個控制點：0左上 1上 2右上 3右 4右下 5下 6左下 7左 */
+const HD=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]],CUR=["nwse","ns","nesw","ew","nwse","ns","nesw","ew"];
+function flatPt(e){const sv=$("flat").querySelector("svg"),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse());}
+$("flat").addEventListener("pointerdown",e=>{
+  const t=e.target.closest("[data-o],[data-h]"),p=flatPt(e);
+  if(!t){sel=null;ui();draw();return;}
+  e.preventDefault();
+  if(t.dataset.h!==undefined&&sel)drag={m:"r",h:+t.dataset.h,b0:bbox(sel)};
+  else{sel=objs[+t.dataset.o];drag={m:"m",p0:p,dx0:sel.dx,y0:sel.y};ui();}
   draw();
 });
-$("imgs").addEventListener("click",e=>{
-  const d=e.target.dataset;
-  if(d.del!==undefined){images.splice(+d.del,1);imgUi();draw();}
-  if(d.fill!==undefined){const im=images[+d.fill],g=geo();const rc=g.Rb+g.L/2,bl=g.bx.bl;im.w=+((g.a+2*Math.asin(Math.min(1,bl/Math.max(.1,g.Rb-bl))))*rc).toFixed(1);im.h=+(g.L+2*bl).toFixed(1);im.y=+(g.L/2).toFixed(1);im.dx=+(-g.fs*(g.Rb+g.L/2)).toFixed(1);im.lock=false;imgUi();draw();}
+$("flat").addEventListener("dblclick",e=>{
+  const t=e.target.closest("[data-o]");if(!t)return;const o=objs[+t.dataset.o];if(o.type!=="t")return;
+  sel=o;ui();const c=$("props").querySelector('[data-k="t"]');if(c){c.scrollIntoView({block:"nearest"});c.focus();c.select();}
 });
-$("file").onchange=e=>{
-  [...e.target.files].forEach(f=>{
-    const rd=new FileReader();
-    rd.onload=()=>{const img=new Image();img.onload=()=>{
-      const g=geo(),ra=img.naturalHeight/img.naturalWidth;
-      let w=Math.min(g.a*(g.Rb+g.L/2)*.5,60),h=w*ra;
-      if(h>g.L*.9){h=g.L*.9;w=h/ra;}
-      images.push({img,name:f.name,w:+w.toFixed(1),h:+h.toFixed(1),y:+(g.L/2).toFixed(1),dx:0,lock:true});
-      imgUi();draw();
-    };img.src=rd.result;};
-    rd.readAsDataURL(f);
-  });
-  e.target.value="";
-};
-/* ---------- 3D ---------- */
-let T=null,texTimer=0,view="2d",tok=0;
-function setView(v){
-  view=v;$("pv").style.display=v==="2d"?"":"none";$("v3").style.display=v==="3d"?"block":"none";
-  $("t2").classList.toggle("on",v==="2d");$("t3").classList.toggle("on",v==="3d");
-  if(v==="3d"){ensure3d();if(T){size3d();update3d();loop();}}
+addEventListener("pointermove",e=>{
+  if(!drag||!sel)return;const p=flatPt(e),it=sel;
+  if(drag.m==="m"){
+    const raw=drag.dx0+p.x-drag.p0.x;
+    it.dx=Math.abs(raw)<1?0:+raw.toFixed(2);
+    it.y=+(drag.y0-(p.y-drag.p0.y)).toFixed(2);
+  }else{
+    const[hx,hy]=HD[drag.h],b=drag.b0;
+    let x0=b.x,x1=b.x+b.w,y0=b.y,y1=b.y+b.h;
+    if(hx>0)x1=Math.max(p.x,x0+.5);else if(hx<0)x0=Math.min(p.x,x1-.5);
+    if(hy>0)y1=Math.max(p.y,y0+.5);else if(hy<0)y0=Math.min(p.y,y1-.5);
+    if(hx&&hy&&!!it.lock!==e.shiftKey){
+      const sc=Math.max((x1-x0)/b.w,(y1-y0)/b.h);
+      if(hx>0)x1=x0+b.w*sc;else x0=x1-b.w*sc;
+      if(hy>0)y1=y0+b.h*sc;else y0=y1-b.h*sc;
+    }
+    applyBox(it,{x:x0,y:y0,w:x1-x0,h:y1-y0});
+  }
+  syncCard();draw();
+});
+const endDrag=()=>{if(drag){drag=null;draw();}};
+addEventListener("pointerup",endDrag);addEventListener("pointercancel",endDrag);
+addEventListener("keydown",e=>{
+  if(!sel||/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  const st=e.shiftKey?5:.5;
+  if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();delSel();return;}
+  const m={ArrowLeft:[-st,0],ArrowRight:[st,0],ArrowUp:[0,st],ArrowDown:[0,-st]}[e.key];
+  if(m){e.preventDefault();sel.dx=+(sel.dx+m[0]).toFixed(2);sel.y=+(sel.y+m[1]).toFixed(2);syncCard();draw();}
+});
+function delSel(){if(!sel)return;objs.splice(objs.indexOf(sel),1);sel=null;ui();draw();}
+$("delsel").onclick=delSel;
+$("addt").onclick=()=>{const g=geo();objs.push({type:"t",t:"新文字",f:FONTS[0][1],s:8,sx:1,y:+(g.L/2).toFixed(1),dx:0,ls:0,c:"#1c1c1a",b:false,lock:true});sel=objs[objs.length-1];ui();draw();};
+
+/* ---------- 圖層與屬性 ---------- */
+const mv=(i,j)=>{const[o]=objs.splice(i,1);objs.splice(j,0,o);};
+function ui(){lyUi();propsUi();}
+function lyUi(){
+  const N=objs.length;
+  $("lylist").innerHTML=N?objs.map((o,i)=>i).reverse().map(i=>{const o=objs[i];
+    return `<div class="ly${o===sel?" sel":""}" draggable="true" data-o="${i}"><input type="checkbox" data-a="on" title="顯示／隱藏"${o.on!==false?" checked":""}><span class="th">${o.type==="i"?`<img src="${o.thumb}" alt="">`:"T"}</span><span class="nm">${esc(o.type==="i"?o.name:(o.t||"（空白文字）"))}</span><button data-a="up" title="上移一層"${i===N-1?" disabled":""}>▲</button><button data-a="dn" title="下移一層"${i===0?" disabled":""}>▼</button><button class="x" data-a="del" title="刪除">✕</button></div>`;}).join(""):`<div class="info">尚無圖層，請新增文字或圖片。</div>`;
 }
-view="3d";
-function schedule3d(){if(!T||view!=="3d")return;clearTimeout(texTimer);texTimer=setTimeout(update3d,150);}
+function propsUi(){
+  const o=sel,g=geo(),mx=Math.ceil(g.a*(g.Rb+g.L/2)/2);
+  if(!o){$("props").innerHTML=`<div class="card info">點選圖層或畫面上的物件即可編輯屬性。</div>`;return;}
+  $("props").innerHTML=o.type==="t"?`<div class="card sel"><b style="font-size:13px">文字屬性</b><div class="g" style="margin-top:6px">
+  <label class="full">文字<input data-k="t" value="${esc(o.t)}"></label>
+  <label>字型<select data-k="f">${FONTS.map(([nm,v])=>`<option value="${esc(v)}"${v===o.f?" selected":""}>${nm}</option>`).join("")}</select></label>
+  <label>字級 (mm)<input data-k="s" type="number" step="0.5" value="${o.s}"></label>
+  <label>字距<input data-k="ls" type="number" step="0.5" value="${o.ls}"></label>
+  <label>水平拉伸 (×)<input data-k="sx" type="number" step="0.05" min="0.05" value="${o.sx||1}"></label>
+  <label>顏色<input data-k="c" type="color" value="${o.c}"></label>
+  <label class="full">上下偏移（距杯底 mm）<span class="sl"><input data-k="y" type="number" step="0.5" value="${o.y}"><input data-k="y" type="range" min="0" max="${Math.ceil(g.L)}" step="0.5" value="${o.y}"></span></label>
+  <label class="full">左右偏移（mm）<span class="sl"><input data-k="dx" type="number" step="0.5" value="${o.dx}"><input data-k="dx" type="range" min="${-mx}" max="${mx}" step="0.5" value="${o.dx}"></span></label></div>
+  <div class="row"><label class="chk"><input data-k="b" type="checkbox"${o.b?" checked":""}>粗體</label><label class="chk"><input data-k="lock" type="checkbox"${o.lock?" checked":""}>角點鎖定比例</label></div></div>`
+  :`<div class="card sel"><div style="font-size:13px;margin-bottom:6px;word-break:break-all"><b>圖片</b> ${esc(o.name)}</div><div class="g">
+  <label>寬 (mm)<input data-k="w" type="number" step="0.5" value="${o.w}"></label>
+  <label>高 (mm)<input data-k="h" type="number" step="0.5" value="${o.h}"></label>
+  <label>中心距杯底<input data-k="y" type="number" step="0.5" value="${o.y}"></label>
+  <label>左右偏移<input data-k="dx" type="number" step="0.5" value="${o.dx}"></label></div>
+  <div class="row"><label class="chk"><input data-k="lock" type="checkbox"${o.lock?" checked":""}>角點鎖定比例</label><button data-fill="1">滿版（拉伸）</button></div></div>`;
+}
+function syncCard(){
+  if(!sel)return;
+  $("props").querySelectorAll("[data-k]").forEach(x=>{const k=x.dataset.k;if(x.type==="checkbox"||["t","f","c"].includes(k))return;x.value=sel[k];});
+}
+$("lylist").addEventListener("click",e=>{
+  const r=e.target.closest(".ly");if(!r)return;
+  const i=+r.dataset.o,a=e.target.dataset.a,o=objs[i];
+  if(a==="on"){o.on=e.target.checked;draw();return;}
+  if(a==="up"&&i<objs.length-1){mv(i,i+1);sel=o;}
+  else if(a==="dn"&&i>0){mv(i,i-1);sel=o;}
+  else if(a==="del"){objs.splice(i,1);if(sel===o)sel=null;}
+  else if(a)return;
+  else sel=o;
+  ui();draw();
+});
+let dsrc=null;
+$("lylist").addEventListener("dragstart",e=>{const r=e.target.closest(".ly");if(!r)return;dsrc=+r.dataset.o;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain","layer");}catch(_){}});
+$("lylist").addEventListener("dragover",e=>{if(dsrc===null)return;e.preventDefault();document.querySelectorAll(".ly.over").forEach(x=>x.classList.remove("over"));const r=e.target.closest(".ly");if(r)r.classList.add("over");});
+$("lylist").addEventListener("drop",e=>{e.preventDefault();const r=e.target.closest(".ly");if(r&&dsrc!==null&&+r.dataset.o!==dsrc){mv(dsrc,+r.dataset.o);lyUi();draw();}dsrc=null;});
+$("lylist").addEventListener("dragend",()=>{dsrc=null;lyUi();});
+$("ltop").onclick=()=>{if(!sel)return;mv(objs.indexOf(sel),objs.length-1);ui();draw();};
+$("lbot").onclick=()=>{if(!sel)return;mv(objs.indexOf(sel),0);ui();draw();};
+$("props").addEventListener("input",e=>{
+  const k=e.target.dataset.k;if(!k||!sel)return;const o=sel,P=$("props");
+  if(k==="lock"){o.lock=e.target.checked;return;}
+  P.querySelectorAll(`[data-k="${k}"]`).forEach(x=>{if(x!==e.target&&x.type!=="checkbox")x.value=e.target.value;});
+  if(o.type==="t"){
+    o[k]=k==="b"?e.target.checked:(["t","f","c"].includes(k)?e.target.value:parseFloat(e.target.value)||0);
+    if(k==="sx")o.sx=Math.max(.05,o.sx);
+    if(["t","f","b"].includes(k)){loadFonts();lyUi();}
+  }else{
+    o[k]=parseFloat(e.target.value)||0;
+    const ra=o.img.naturalHeight/o.img.naturalWidth;
+    if(o.lock&&k==="w"&&o.w>0){o.h=+(o.w*ra).toFixed(2);P.querySelector('[data-k="h"]').value=o.h;}
+    if(o.lock&&k==="h"&&o.h>0){o.w=+(o.h/ra).toFixed(2);P.querySelector('[data-k="w"]').value=o.w;}
+  }
+  draw();
+});
+$("props").addEventListener("click",e=>{
+  if(e.target.dataset.fill===undefined||!sel||sel.type!=="i")return;
+  const im=sel,g=geo(),rc=g.Rb+g.L/2,bl=g.bx.bl;
+  im.w=+((g.a+2*Math.asin(Math.min(1,bl/Math.max(.1,g.Rb-bl))))*rc).toFixed(1);im.h=+(g.L+2*bl).toFixed(1);
+  im.y=+(g.L/2).toFixed(1);im.dx=+(-g.fs*rc).toFixed(1);im.lock=false;ui();draw();
+});
+function addFile(f,pos){
+  const rd=new FileReader();
+  rd.onload=()=>{const img=new Image();img.onload=()=>{
+    if(!img.naturalWidth)return;
+    const g=geo(),ra=img.naturalHeight/img.naturalWidth,rc=g.Rb+g.L/2;
+    let w=Math.min(g.a0*rc*.5,60),h=w*ra;if(h>g.L*.9){h=g.L*.9;w=h/ra;}
+    const c=document.createElement("canvas"),sc=Math.min(1,480/Math.max(img.naturalWidth,img.naturalHeight));
+    c.width=Math.max(1,Math.round(img.naturalWidth*sc));c.height=Math.max(1,Math.round(img.naturalHeight*sc));
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    const png=/png|gif|webp|svg/.test(f.type);
+    objs.push({type:"i",img,name:f.name,thumb:c.toDataURL(png?"image/png":"image/jpeg",.8),w:+w.toFixed(1),h:+h.toFixed(1),
+      y:pos?+(-pos.y).toFixed(1):+(g.L/2).toFixed(1),dx:pos?+pos.x.toFixed(1):0,lock:true});
+    sel=objs[objs.length-1];ui();draw();
+  };img.src=rd.result;};
+  rd.readAsDataURL(f);
+}
+$("file").onchange=e=>{[...e.target.files].forEach(f=>addFile(f));e.target.value="";};
+$("flat").addEventListener("dragover",e=>e.preventDefault());
+$("flat").addEventListener("drop",e=>{e.preventDefault();[...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(f=>addFile(f,flatPt(e)));});
+
+/* ---------- 繪製 ---------- */
+function loadFonts(){objs.filter(o=>o.type==="t").forEach(l=>document.fonts.load((l.b?700:400)+" 20px "+l.f,l.t).then(draw).catch(()=>{}));}
+function draw(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;doDraw();});}
+function doDraw(){
+  $("flat").innerHTML=flatSVG();
+  $("pv").innerHTML=build(true,$("bg").value);
+  const g=geo();
+  $("info").textContent=`扇形角度 ${(g.a*180/Math.PI).toFixed(2)}°　外半徑 ${g.Rt.toFixed(1)} mm　內半徑 ${g.Rb.toFixed(1)} mm　斜高 ${g.L.toFixed(1)} mm　紅＝刀模　青＝出血　藍＝杯底留白　橘＝封邊　綠＝中線`;
+  schedule3d();
+}
+["top","bot","h","safe","bg","ov","ovs","bl"].forEach(id=>$(id).addEventListener("input",()=>{ui();draw();}));
+
+/* ---------- 輸出 ---------- */
+const out=()=>{const s=build($("guides").checked,null,true);objs.forEach(o=>{if(o.type==="i"){o.c={};o.u={};}});return s;};
+let dl=null;
+(async()=>{try{dl=await window.claude.use("downloads");}catch(e){}})();
+$("dl").onclick=async()=>{
+  const svg='<?xml version="1.0" encoding="UTF-8"?>\n'+out();
+  try{if(dl){await dl.save({filename:"cup-wrap.svg",data:svg});return;}}catch(e){if(e&&e.code==="declined")return;}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml"}));a.download="cup-wrap.svg";document.body.appendChild(a);a.click();a.remove();}catch(e){}
+  showCode(svg);
+};
+$("cp").onclick=async()=>{
+  const svg=out();
+  try{await navigator.clipboard.writeText(svg);$("cp").textContent="已複製 ✓";setTimeout(()=>$("cp").textContent="複製 SVG 原始碼",1500);}
+  catch(e){showCode(svg);}
+};
+function showCode(svg){const t=$("ta");t.style.display="block";t.value=svg;t.select();}
+
+/* ---------- 3D ---------- */
+function schedule3d(){if(!T)return;clearTimeout(texTimer);texTimer=setTimeout(update3d,drag?400:150);}
 function ensure3d(){
   if(T)return;
   if(!window.THREE){$("v3c").textContent="3D 函式庫載入失敗";return;}
@@ -277,24 +429,20 @@ function ensure3d(){
   const dl=new THREE.DirectionalLight(0xffffff,.55);dl.position.set(60,120,200);scene.add(dl);
   const group=new THREE.Group();group.rotation.order="YXZ";scene.add(group);
   T={renderer,scene,camera,group,auto:true,yaw:0,pitch:.25,zoom:1,dist:300,parts:[]};
-  const el=renderer.domElement;let drag=null;
-  el.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY];T.auto=false;$("auto").textContent="自動旋轉";el.setPointerCapture(e.pointerId);});
-  el.addEventListener("pointermove",e=>{if(!drag)return;T.yaw+=(e.clientX-drag[0])*.01;
-    if(e.pointerType==="mouse")T.pitch=Math.max(-.3,Math.min(1,T.pitch+(e.clientY-drag[1])*.01));drag=[e.clientX,e.clientY];});
-  const up=()=>{drag=null;};el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);
+  const el=renderer.domElement;let dr=null;
+  el.addEventListener("pointerdown",e=>{dr=[e.clientX,e.clientY];T.auto=false;$("auto").textContent="自動旋轉";el.setPointerCapture(e.pointerId);});
+  el.addEventListener("pointermove",e=>{if(!dr)return;T.yaw+=(e.clientX-dr[0])*.01;
+    if(e.pointerType==="mouse")T.pitch=Math.max(-.3,Math.min(1,T.pitch+(e.clientY-dr[1])*.01));dr=[e.clientX,e.clientY];});
+  const up=()=>{dr=null;};el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);
   el.addEventListener("wheel",e=>{e.preventDefault();T.zoom=Math.max(.4,Math.min(2.5,T.zoom*(e.deltaY>0?1.08:.92)));},{passive:false});
 }
 $("auto").onclick=()=>{if(!T)return;T.auto=!T.auto;$("auto").textContent=T.auto?"暫停旋轉":"自動旋轉";};
 $("reset").onclick=()=>{if(!T)return;T.yaw=0;T.pitch=.25;T.zoom=1;};
-function size3d(){
-  if(!T)return;const w=$("v3c").clientWidth||360,hh=Math.min(w,340);
-  T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();
-}
-addEventListener("resize",()=>{if(view==="3d")size3d();});
+function size3d(){if(!T)return;const w=$("v3c").clientWidth||320,hh=Math.min(w,340);T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();}
+addEventListener("resize",size3d);
 function loop(){
   if(T.running)return;T.running=true;
   (function f(){
-    if(view!=="3d"){T.running=false;return;}
     if(T.auto)T.yaw+=.006;
     T.group.rotation.set(T.pitch,T.yaw,0);
     T.camera.position.set(0,0,T.dist*T.zoom);T.camera.lookAt(0,0,0);
@@ -303,23 +451,24 @@ function loop(){
 }
 async function update3d(){
   if(!T)return;const my=++tok;
-  const{Rt,Rb,L,a,a0,fs}=geo(),half=a/2,top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
-  const bx=geo().bx,vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h;
+  const{Rb,L,a0,fs,bx}=geo(),top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
+  const vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h;
   const k=Math.min(8,2048/Math.max(vw,vh));
   const cv=document.createElement("canvas");cv.width=Math.ceil(vw*k);cv.height=Math.ceil(vh*k);
   const ctx=cv.getContext("2d");
   ctx.fillStyle=$("bg").value;ctx.fillRect(0,0,cv.width,cv.height);
-  await Promise.all(layers.map(l=>document.fonts.load((l.b?700:400)+" 20px "+l.f,l.t).catch(()=>{})));
+  await Promise.all(objs.filter(o=>o.type==="t").map(l=>document.fonts.load((l.b?700:400)+" 20px "+l.f,l.t).catch(()=>{})));
   if(my!==tok)return;
-  images.forEach(im=>{if(im.on===false)return;try{ctx.drawImage(warpCanvas(im,k),0,0);}catch(e){}});
-  ctx.scale(k,k);ctx.translate(-vx0,-vy0);ctx.textBaseline="alphabetic";
-  for(const l of layers){
+  ctx.textBaseline="alphabetic";ctx.textAlign="center";
+  const rcx=Rb+L/2;
+  for(const l of objs){
     if(l.on===false)continue;
+    if(l.type==="i"){try{ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(warpCanvas(l,k),0,0);}catch(e){}continue;}
+    ctx.setTransform(k,0,0,k,-k*vx0,-k*vy0);
     ctx.font=(l.b?700:400)+" "+l.s+"px "+l.f;ctx.fillStyle=l.c;
-    const r=Rb+l.y,chars=[...l.t],ws=chars.map(c=>ctx.measureText(c).width);
-    let pos=r*(half+fs)+l.dx-(ws.reduce((p,w)=>p+w,0)+l.ls*(chars.length-1))/2;
-    chars.forEach((c,i)=>{const w=ws[i],t=-half+(pos+w/2)/r;
-      ctx.save();ctx.translate(r*Math.sin(t),-r*Math.cos(t));ctx.rotate(t);ctx.fillText(c,-w/2,0);ctx.restore();pos+=w+l.ls;});
+    const r=Rb+l.y;
+    glyphs(l).out.forEach(q=>{if(!q.c.trim())return;const t=fs+q.x/rcx;
+      ctx.save();ctx.translate(r*Math.sin(t),-r*Math.cos(t));ctx.rotate(t);ctx.scale(r/rcx*(l.sx||1),1);ctx.fillText(q.c,0,0);ctx.restore();});
   }
   const N=128,M=10,P=[],UV=[],I=[],tr=top/2,br=bot/2;
   for(let j=0;j<=M;j++){const q=j/M,r=Rb+L*q,rho=br+(tr-br)*q,y=-h/2+h*q;
@@ -340,8 +489,10 @@ async function update3d(){
   T.parts=[outer,inner,cap,rim];T.parts.forEach(m=>T.group.add(m));
   T.dist=Math.max(h,top)*3.2;
 }
-ui();draw();
+
+ui();loadFonts();doDraw();
 ensure3d();if(T){size3d();update3d();loop();}
+document.fonts.ready.then(draw);
 </script>
 </body>
 </html>
