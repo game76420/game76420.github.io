@@ -6,15 +6,13 @@
 <title>杯套設計工具</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f5f2;--fg:#1c1c1a;--card:#fff;--bd:#d8d6d0;--ac:#c2410c;--mut:#6b6a66;--pv:#ececea;
+:root{--bg:#fafafa;--fg:#222;--card:#f0f0f0;--bd:#c8c8c8;--ac:#1473e6;--mut:#6b6b6b;--pv:#d9d9d9;--hd:#e2e2e2;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171716;--fg:#ece9e2;--card:#222220;--bd:#3a3935;--ac:#fb923c;--mut:#9a978f;--pv:#2a2a28}}
-:root[data-theme="dark"]{--bg:#171716;--fg:#ece9e2;--card:#222220;--bd:#3a3935;--ac:#fb923c;--mut:#9a978f;--pv:#2a2a28}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#262626;--fg:#e6e6e6;--card:#323232;--bd:#454545;--ac:#2d8ceb;--mut:#9a9a9a;--pv:#535353;--hd:#2b2b2b}}
+:root[data-theme="dark"]{--bg:#262626;--fg:#e6e6e6;--card:#323232;--bd:#454545;--ac:#2d8ceb;--mut:#9a9a9a;--pv:#535353;--hd:#2b2b2b}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Noto Sans TC",system-ui,sans-serif}
-main{max-width:1180px;margin:0 auto;padding:14px;display:grid;gap:14px}
-@media(min-width:900px){main{grid-template-columns:1.35fr 1fr;align-items:start}.pv{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto}}
 h1{font-size:18px;margin:0 0 2px}
 .sub{color:var(--mut);font-size:13px;margin:0 0 8px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
@@ -22,8 +20,7 @@ h1{font-size:18px;margin:0 0 2px}
 .box{background:var(--pv);border:1px solid var(--bd);border-radius:12px;padding:6px;overflow:hidden}
 .box svg{width:100%;height:auto;display:block}
 #flat{touch-action:none}
-#flat svg{max-height:36vh;user-select:none;-webkit-user-select:none}
-#pv svg{max-height:34vh}
+#flat svg{user-select:none;-webkit-user-select:none}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 @media(max-width:640px){.two{grid-template-columns:1fr}}
 label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
@@ -50,41 +47,78 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
 .ly button{padding:2px 8px}.ly button:disabled{opacity:.35;cursor:default}
 #v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}
 #v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
+#v3c.lk canvas{cursor:default}
+button:disabled{opacity:.4;cursor:default}
+html,body{height:100%}
+body{display:flex;flex-direction:column;overflow:hidden}
+.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 10px;background:var(--card);border-bottom:1px solid var(--bd);flex:none}
+.top h1{font-size:14px;margin:0 6px 0 0;white-space:nowrap}.top .sp{flex:1}.top .grp{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.top button{padding:4px 10px;font-size:13px}
+.app{flex:1;min-height:0;display:grid;grid-template-columns:64px minmax(0,1fr) 320px}
+.tb{background:var(--card);border-right:1px solid var(--bd);display:flex;flex-direction:column;gap:4px;padding:6px;align-items:center}
+.tb button,.tb .btn{width:50px;padding:6px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;border-color:transparent;background:transparent}
+.tb button:hover,.tb .btn:hover{background:var(--bg);border-color:var(--bd)}
+.tb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.ws{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--pv)}
+.tabs{display:flex;gap:1px;background:var(--hd);border-bottom:1px solid var(--bd);flex:none}
+.tabs button{border:0;border-radius:0;background:var(--hd);color:var(--mut);padding:5px 14px;font-size:12px}
+.tabs button.on{background:var(--pv);color:var(--fg)}
+.views{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px}
+.vp{flex:1;min-height:0;display:flex;flex-direction:column}
+.vp .cap{margin:0 0 4px}
+.vp .box{flex:1;min-height:0;background:transparent;border:0;padding:0}
+.ws .box svg{width:100%;height:100%}
+.ws[data-v="flat"] #vpfan,.ws[data-v="fan"] #vpflat{display:none}
+.dock{background:var(--card);border-left:1px solid var(--bd);overflow-y:auto;min-height:0}
+.pn{border-bottom:1px solid var(--bd)}
+.pn>summary{cursor:pointer;list-style:none;padding:6px 10px;background:var(--hd);font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--mut);display:flex;justify-content:space-between}
+.pn>summary::-webkit-details-marker{display:none}
+.pn>summary::after{content:"▾"}.pn:not([open])>summary::after{content:"▸"}
+.pb{padding:10px}
+.dock .card{border:0;border-radius:0;background:transparent;padding:0;margin:0;box-shadow:none}
+.dock textarea{width:calc(100% - 20px);margin:10px}
+.sb{flex:none;border-top:1px solid var(--bd);background:var(--card);padding:3px 10px;font-size:11px;color:var(--mut);white-space:nowrap;overflow-x:auto}
+@media(max-width:899px){
+ body{height:auto;overflow:auto;display:block}
+ .app{display:flex;flex-direction:column}
+ .tb{flex-direction:row;border-right:0;border-bottom:1px solid var(--bd);overflow-x:auto}
+ .vp .box{flex:none;height:62vw;min-height:220px}
+ .dock{border-left:0;overflow:visible}
+}
+#vpflat{position:relative}
+textarea.ed{display:block;position:absolute;z-index:5;margin:0;border:1px dashed var(--ac);border-radius:0;outline:none;resize:none;overflow:hidden;white-space:pre;box-sizing:border-box}
+#vpflat.tool svg *{cursor:text!important}
+.tb button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.seg{display:flex}.seg button{flex:1;border-radius:0;padding:4px 0;font-size:12px}.seg button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.ph{display:block;font-size:11px;color:var(--mut);letter-spacing:.04em;margin-bottom:4px}
+textarea.tx,.dock textarea.tx{display:block;width:100%;height:56px;margin:0 0 4px;font-size:13px;line-height:1.4;font-family:inherit}
 </style>
 </head>
 <body>
-<main>
-<section class="pv">
-  <h1>杯套設計工具</h1>
-  <p class="sub">在下方「平面設計區」直接排版，工具會自動變形成扇形。</p>
-  <div class="row" style="margin-top:0">
-    <button class="p" id="addt">＋ 文字</button>
-    <label class="btn">＋ 圖片<input type="file" id="file" accept="image/*" multiple></label>
-    <button class="x" id="delsel">刪除選取</button>
-  </div>
-  <div class="cap">平面設計區（拖曳移動；8 個控制點縮放：四角等比、四邊單向拉伸，Shift 反轉；方向鍵微調；可拖入圖片）</div>
-  <div class="box" id="flat"></div>
-  <div class="two">
-    <div><div class="cap" style="margin-top:0">扇形展開圖（輸出內容）</div><div class="box" id="pv"></div></div>
-    <div><div class="cap" style="margin-top:0">3D 預覽</div><div id="v3c"></div>
-      <div class="row" style="margin-top:6px"><button id="auto">暫停旋轉</button><button id="reset">重設視角</button></div></div>
-  </div>
-  <div class="info" id="info"></div>
-  <div class="row">
-    <button class="p" id="dl">下載 SVG</button>
-    <button id="cp">複製 SVG 原始碼</button>
-    <label class="chk"><input type="checkbox" id="guides" checked>輸出含刀模線</label>
-  </div>
-  <textarea id="ta" readonly></textarea>
-</section>
-
-<section>
-  <div class="card"><b>圖層</b> <span class="info">上方＝最上層，可拖曳或按 ▲▼ 調整順序</span>
-    <div id="lylist"></div>
-    <div class="row"><button id="ltop">置頂</button><button id="lbot">置底</button></div></div>
-  <div id="props"></div>
-  <div class="card">
-    <b>杯子尺寸（mm）</b>
+<header class="top">
+  <h1>☕ 杯套設計工具</h1><span class="sp"></span>
+  <div class="grp"><label class="chk"><input type="checkbox" id="guides" checked>輸出含刀模線</label><button id="cp">複製 SVG 原始碼</button><button class="p" id="dl">下載 SVG</button></div>
+</header>
+<div class="app">
+  <nav class="tb">
+    <button id="tsel" class="on" title="選取工具（V）"><svg viewBox="0 0 24 24"><path d="M6 3l12 8-5.5 1.5L10 18z"/></svg>選取</button>
+    <button id="addt" title="橫書文字工具（T）：點畫面輸入"><svg viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>橫書</button>
+    <button id="addv" title="直書文字工具：點畫面輸入"><svg viewBox="0 0 24 24"><path d="M4 5h10M9 5v14M18 6v2M18 11v2M18 16v2"/></svg>直書</button>
+    <label class="btn" title="置入圖片"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>圖片<input type="file" id="file" accept="image/*" multiple></label>
+    <button id="delsel" class="x" title="刪除選取（Delete）"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>刪除</button>
+  </nav>
+  <section class="ws" id="ws" data-v="both">
+    <div class="tabs"><button data-v="both" class="on">並排</button><button data-v="flat">平面設計</button><button data-v="fan">扇形展開圖</button></div>
+    <div class="views">
+      <div class="vp" id="vpflat"><div class="cap">平面設計區</div><div class="box" id="flat"></div></div>
+      <div class="vp" id="vpfan"><div class="cap">扇形展開圖（輸出內容）</div><div class="box" id="pv"></div></div>
+    </div>
+  </section>
+  <aside class="dock">
+    <details class="pn" open><summary>3D 預覽</summary><div class="pb"><div id="v3c"></div><div class="row" style="margin-top:6px"><button id="auto">暫停旋轉</button><button id="reset">重設視角</button><button id="png">匯出 PNG</button><label class="chk"><input type="checkbox" id="lockY">鎖定 Y 軸（左右旋轉）</label><label class="chk"><input type="checkbox" id="lockX">鎖定 X 軸（上下傾斜）</label></div></div></details>
+    <details class="pn" open><summary>圖層</summary><div class="pb"><div id="lylist"></div><div class="row"><button id="ltop">置頂</button><button id="lbot">置底</button></div></div></details>
+    <details class="pn" open><summary>屬性</summary><div class="pb" id="props"></div></details>
+    <details class="pn" open><summary>杯子尺寸（mm）</summary><div class="pb">
     <div class="g" style="margin-top:8px">
       <label>杯口外徑<input type="number" id="top" value="90" step="0.5"></label>
       <label>杯底外徑<input type="number" id="bot" value="60" step="0.5"></label>
@@ -101,9 +135,11 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
     <div class="g2">
       <label>出血 (mm)<input type="number" id="bl" value="3" step="0.5" min="0"></label>
     </div>
-  </div>
-  </section>
-</main>
+  </div></details>
+    <textarea id="ta" readonly></textarea>
+  </aside>
+</div>
+<footer class="sb"><span>拖曳移動 · 8 控制點縮放（Shift 反轉比例）· 方向鍵微調 · 文字：按 T 再點畫面輸入，雙擊文字直接編輯（Enter 換行、Esc 結束）</span> ｜ <span id="info"></span></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -112,6 +148,7 @@ let objs=[
  {type:"t",t:"COFFEE",f:FONTS[0][1],s:14,sx:1,y:48,dx:0,ls:1,c:"#7c2d12",b:true,lock:true},
  {type:"t",t:"手沖咖啡 · 每日現磨",f:FONTS[0][1],s:6,sx:1,y:34,dx:0,ls:1,c:"#1c1c1a",b:false,lock:true}
 ];
+let ed=null,editing=null,tool=null,lastO=null,lastT=0;
 let sel=null,drag=null,raf=0,T=null,texTimer=0,tok=0;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
@@ -132,24 +169,41 @@ function geo(){
 }
 /* 文字逐字定位：sx＝水平拉伸倍率 */
 const mctx=document.createElement("canvas").getContext("2d");
+function ax(o,W){return o.al==="l"?0:o.al==="r"?W:W/2;}
 function glyphs(l){
+  const lines=String(l.t).split("\n"),n=lines.length,kx=l.sx||1,lh=l.lh||1.2,al=l.al||"c",out=[];
+  if(l.v){/* 直書：多行＝多欄，由右向左；al＝欄內 l上/c中/r下 */
+    const ky=l.sy||1,adv=(l.s+l.ls)*ky,pitch=lh*l.s*kx,W=l.s*kx+(n-1)*pitch;
+    const Hs=lines.map(t=>Math.max(0,[...t].length*adv-l.ls*ky)),H=Math.max(...Hs,0);
+    lines.forEach((t,j)=>{const cx=l.dx+W/2-l.s*kx/2-j*pitch;
+      const top=al==="l"?l.y+H/2:al==="r"?l.y-H/2+Hs[j]:l.y+Hs[j]/2;
+      [...t].forEach((c,i)=>out.push({c,x:cx,yb:top-l.s*ky/2-i*adv-.3*l.s*ky}));});
+    return{out,tot:W,H};
+  }
   mctx.font=(l.b?700:400)+" "+l.s+"px "+l.f;
-  const k=l.sx||1,cs=[...l.t],ws=cs.map(c=>mctx.measureText(c).width*k),ls=l.ls*k;
-  const tot=ws.reduce((p,w)=>p+w,0)+ls*Math.max(0,cs.length-1);
-  let x=l.dx-tot/2;const out=[];
-  cs.forEach((c,i)=>{out.push({c,w:ws[i],x:x+ws[i]/2});x+=ws[i]+ls;});
-  return{out,tot};
+  const ls=l.ls*kx,data=lines.map(t=>{const cs=[...t],ws=cs.map(c=>mctx.measureText(c).width*kx);return{cs,ws,tot:ws.reduce((p,w)=>p+w,0)+ls*Math.max(0,cs.length-1)};});
+  const W=Math.max(...data.map(d=>d.tot),0),L0=l.dx-ax(l,W);
+  data.forEach((d,j)=>{let x=al==="l"?L0:al==="r"?L0+W-d.tot:L0+(W-d.tot)/2;
+    d.cs.forEach((c,i)=>{out.push({c,w:d.ws[i],x:x+d.ws[i]/2,yb:l.y-j*lh*l.s});x+=d.ws[i]+ls;});});
+  return{out,tot:W,H:0};
 }
 function bbox(o){
-  if(o.type==="t"){const tot=Math.max(glyphs(o).tot,1);return{x:o.dx-tot/2,y:-o.y-.85*o.s,w:tot,h:1.1*o.s};}
+  if(o.type==="t"&&o.v){const g=glyphs(o);return{x:o.dx-g.tot/2,y:-o.y-g.H/2,w:Math.max(g.tot,1),h:Math.max(g.H,1)};}
+  if(o.type==="t"){const g=glyphs(o),n=String(o.t).split("\n").length,W=Math.max(g.tot,1);return{x:o.dx-ax(o,W),y:-o.y-.85*o.s,w:W,h:1.1*o.s+(n-1)*(o.lh||1.2)*o.s};}
   return{x:o.dx-o.w/2,y:-o.y-o.h/2,w:o.w,h:o.h};
 }
 function applyBox(o,nb){
   if(o.type==="i"){o.w=+nb.w.toFixed(2);o.h=+nb.h.toFixed(2);o.dx=+(nb.x+nb.w/2).toFixed(2);o.y=+(-nb.y-nb.h/2).toFixed(2);return;}
-  o.s=+Math.max(.5,nb.h/1.1).toFixed(2);o.sx=1;
+  const L=String(o.t).split("\n"),n=L.length,lh=o.lh||1.2;
+  if(o.v){const m=Math.max(...L.map(t=>[...t].length),1);
+    o.s=+Math.max(.5,nb.w/((o.sx||1)*(1+(n-1)*lh))).toFixed(2);
+    o.sy=+Math.max(.05,nb.h/((m*o.s+(m-1)*o.ls)||1)).toFixed(3);
+    o.dx=+(nb.x+nb.w/2).toFixed(2);o.y=+(-nb.y-nb.h/2).toFixed(2);return;}
+  o.s=+Math.max(.5,nb.h/(1.1+(n-1)*lh)).toFixed(2);o.sx=1;
   o.sx=+Math.max(.05,nb.w/(glyphs(o).tot||1)).toFixed(3);
-  o.dx=+(nb.x+nb.w/2).toFixed(2);o.y=+(-nb.y-.85*o.s).toFixed(2);
+  o.dx=+(nb.x+ax(o,nb.w)).toFixed(2);o.y=+(-nb.y-.85*o.s).toFixed(2);
 }
+function centerAt(o,cx,cy){o.dx=0;o.y=0;const b=bbox(o);o.dx=+(cx-b.x-b.w/2).toFixed(2);o.y=+(b.y+b.h/2-cy).toFixed(2);}
 
 /* ---------- 扇形輸出 SVG ---------- */
 function build(wg,bgc,hi){
@@ -162,9 +216,9 @@ function build(wg,bgc,hi){
   let art="";
   objs.forEach((o,i)=>{if(o.on===false)return;
     if(o.type==="i"){art+=`<image id="img${i}" x="${f2(B.x)}" y="${f2(B.y)}" width="${f2(B.w)}" height="${f2(B.h)}" xlink:href="${warpURI(o,kk)}"/>`;return;}
-    const r=Rb+o.y,k=r/rcx*(o.sx||1);let gs="";
-    glyphs(o).out.forEach(q=>{if(!q.c.trim())return;const t=fs+q.x/rcx;
-      gs+=`<text transform="translate(${P(r,t)}) rotate(${f2(t*180/Math.PI)}) scale(${f2(k)} 1)">${esc(q.c)}</text>`;});
+    const sy=o.v?(o.sy||1):1;let gs="";
+    glyphs(o).out.forEach(q=>{if(!q.c.trim())return;const r=Rb+q.yb,t=fs+q.x/rcx;
+      gs+=`<text transform="translate(${P(r,t)}) rotate(${f2(t*180/Math.PI)}) scale(${f2(r/rcx*(o.sx||1))} ${f2(sy)})">${esc(q.c)}</text>`;});
     art+=`<g font-family="${esc(o.f)}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${o.c}" text-anchor="middle">${gs}</g>`;
   });
   s+=`<g id="artwork">${art}</g>`;
@@ -227,8 +281,9 @@ function flatSVG(){
   s+=`<rect x="${f2(b0)}" y="${f2(-(L+bl))}" width="${f2(b1-b0)}" height="${f2(L+2*bl)}" fill="${$("bg").value}"/>`;
   objs.forEach(o=>{if(o.on===false)return;
     if(o.type==="i"){s+=`<image x="${f2(o.dx-o.w/2)}" y="${f2(-o.y-o.h/2)}" width="${f2(o.w)}" height="${f2(o.h)}" href="${o.thumb}" preserveAspectRatio="none"/>`;return;}
+    if(o===editing)return;
     let gs="";
-    glyphs(o).out.forEach(q=>{if(q.c.trim())gs+=`<text transform="translate(${f2(q.x)} ${f2(-o.y)}) scale(${f2(o.sx||1)} 1)">${esc(q.c)}</text>`;});
+    glyphs(o).out.forEach(q=>{if(q.c.trim())gs+=`<text transform="translate(${f2(q.x)} ${f2(-q.yb)}) scale(${f2(o.sx||1)} ${f2(o.v?(o.sy||1):1)})">${esc(q.c)}</text>`;});
     s+=`<g font-family="${esc(o.f)}" font-size="${o.s}" font-weight="${o.b?700:400}" fill="${o.c}" text-anchor="middle">${gs}</g>`;});
   s+=`<g fill="none" stroke-width="${f2(sw)}" pointer-events="none">`;
   if(ao>1e-6){const right=fs<0,m=(a0/2)*rc,x0=right?m:u0,x1=right?u1:-m;
@@ -239,10 +294,10 @@ function flatSVG(){
   objs.forEach((o,i)=>{if(o.on===false)return;const b=bbox(o);
     s+=`<rect data-o="${i}" x="${f2(b.x)}" y="${f2(b.y)}" width="${f2(b.w)}" height="${f2(b.h)}" fill="#000" fill-opacity="0" style="cursor:move"/>`;});
   if(sel&&sel.on!==false){const b=bbox(sel);
-    s+=`<rect x="${f2(b.x)}" y="${f2(b.y)}" width="${f2(b.w)}" height="${f2(b.h)}" fill="none" stroke="#c2410c" stroke-width="${f2(sw*1.5)}" pointer-events="none"/>`;
+    s+=`<rect x="${f2(b.x)}" y="${f2(b.y)}" width="${f2(b.w)}" height="${f2(b.h)}" fill="none" stroke="#2680eb" stroke-width="${f2(sw*1.5)}" pointer-events="none"/>`;
     [1,3,5,7,0,2,4,6].forEach(i=>{const[hx,hy]=HD[i],px=b.x+(hx+1)/2*b.w,py=b.y+(hy+1)/2*b.h,cu=`cursor:${CUR[i]}-resize`;
       s+=`<rect data-h="${i}" x="${f2(px-hs*.7)}" y="${f2(py-hs*.7)}" width="${f2(hs*1.4)}" height="${f2(hs*1.4)}" fill="#000" fill-opacity="0" style="${cu}"/>`+
-      `<rect data-h="${i}" x="${f2(px-hs/2)}" y="${f2(py-hs/2)}" width="${f2(hs)}" height="${f2(hs)}" fill="#fff" stroke="#c2410c" stroke-width="${f2(sw*1.5)}" style="${cu}"/>`;});
+      `<rect data-h="${i}" x="${f2(px-hs/2)}" y="${f2(py-hs/2)}" width="${f2(hs)}" height="${f2(hs)}" fill="#fff" stroke="#2680eb" stroke-width="${f2(sw*1.5)}" style="${cu}"/>`;});
   }
   return s+"</svg>";
 }
@@ -250,16 +305,19 @@ function flatSVG(){
 const HD=[[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]],CUR=["nwse","ns","nesw","ew","nwse","ns","nesw","ew"];
 function flatPt(e){const sv=$("flat").querySelector("svg"),p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(sv.getScreenCTM().inverse());}
 $("flat").addEventListener("pointerdown",e=>{
+  endEdit();
   const t=e.target.closest("[data-o],[data-h]"),p=flatPt(e);
+  if(tool){e.preventDefault();const o0=t&&t.dataset.o!==undefined?objs[+t.dataset.o]:null;
+    if(o0&&o0.type==="t"){sel=o0;setTool(null);ui();startEdit(o0);return;}
+    const v=tool==="v",o={type:"t",t:"",f:FONTS[0][1],s:8,sx:1,sy:1,lh:1.2,al:v?"c":"l",dx:+p.x.toFixed(2),y:+(-p.y).toFixed(2),ls:0,c:"#1c1c1a",b:false,lock:true,v};
+    objs.push(o);sel=o;setTool(null);ui();startEdit(o);return;}
   if(!t){sel=null;ui();draw();return;}
   e.preventDefault();
   if(t.dataset.h!==undefined&&sel)drag={m:"r",h:+t.dataset.h,b0:bbox(sel)};
-  else{sel=objs[+t.dataset.o];drag={m:"m",p0:p,dx0:sel.dx,y0:sel.y};ui();}
+  else{const o=objs[+t.dataset.o],now=performance.now();
+    if(o.type==="t"&&o===sel&&o===lastO&&now-lastT<400){lastT=0;startEdit(o);return;}
+    lastO=o;lastT=now;sel=o;drag={m:"m",p0:p,dx0:sel.dx,y0:sel.y};ui();}
   draw();
-});
-$("flat").addEventListener("dblclick",e=>{
-  const t=e.target.closest("[data-o]");if(!t)return;const o=objs[+t.dataset.o];if(o.type!=="t")return;
-  sel=o;ui();const c=$("props").querySelector('[data-k="t"]');if(c){c.scrollIntoView({block:"nearest"});c.focus();c.select();}
 });
 addEventListener("pointermove",e=>{
   if(!drag||!sel)return;const p=flatPt(e),it=sel;
@@ -292,6 +350,7 @@ addEventListener("keydown",e=>{
 });
 function delSel(){if(!sel)return;objs.splice(objs.indexOf(sel),1);sel=null;ui();draw();}
 $("delsel").onclick=delSel;
+$("addv").onclick=()=>{const g=geo();objs.push({type:"t",t:"直書文字",f:FONTS[0][1],s:8,sx:1,sy:1,y:+(g.L/2).toFixed(1),dx:0,ls:1,c:"#1c1c1a",b:false,lock:true,v:true});sel=objs[objs.length-1];ui();draw();};
 $("addt").onclick=()=>{const g=geo();objs.push({type:"t",t:"新文字",f:FONTS[0][1],s:8,sx:1,y:+(g.L/2).toFixed(1),dx:0,ls:0,c:"#1c1c1a",b:false,lock:true});sel=objs[objs.length-1];ui();draw();};
 
 /* ---------- 圖層與屬性 ---------- */
@@ -300,21 +359,28 @@ function ui(){lyUi();propsUi();}
 function lyUi(){
   const N=objs.length;
   $("lylist").innerHTML=N?objs.map((o,i)=>i).reverse().map(i=>{const o=objs[i];
-    return `<div class="ly${o===sel?" sel":""}" draggable="true" data-o="${i}"><input type="checkbox" data-a="on" title="顯示／隱藏"${o.on!==false?" checked":""}><span class="th">${o.type==="i"?`<img src="${o.thumb}" alt="">`:"T"}</span><span class="nm">${esc(o.type==="i"?o.name:(o.t||"（空白文字）"))}</span><button data-a="up" title="上移一層"${i===N-1?" disabled":""}>▲</button><button data-a="dn" title="下移一層"${i===0?" disabled":""}>▼</button><button class="x" data-a="del" title="刪除">✕</button></div>`;}).join(""):`<div class="info">尚無圖層，請新增文字或圖片。</div>`;
+    return `<div class="ly${o===sel?" sel":""}" draggable="true" data-o="${i}"><input type="checkbox" data-a="on" title="顯示／隱藏"${o.on!==false?" checked":""}><span class="th">${o.type==="i"?`<img src="${o.thumb}" alt="">`:"T"}</span><span class="nm">${esc(o.type==="i"?o.name:(o.t.replace(/\n/g," ")||"（空白文字）"))}</span><button data-a="up" title="上移一層"${i===N-1?" disabled":""}>▲</button><button data-a="dn" title="下移一層"${i===0?" disabled":""}>▼</button><button class="x" data-a="del" title="刪除">✕</button></div>`;}).join(""):`<div class="info">尚無圖層，請新增文字或圖片。</div>`;
 }
 function propsUi(){
   const o=sel,g=geo(),mx=Math.ceil(g.a*(g.Rb+g.L/2)/2);
   if(!o){$("props").innerHTML=`<div class="card info">點選圖層或畫面上的物件即可編輯屬性。</div>`;return;}
-  $("props").innerHTML=o.type==="t"?`<div class="card sel"><b style="font-size:13px">文字屬性</b><div class="g" style="margin-top:6px">
-  <label class="full">文字<input data-k="t" value="${esc(o.t)}"></label>
-  <label>字型<select data-k="f">${FONTS.map(([nm,v])=>`<option value="${esc(v)}"${v===o.f?" selected":""}>${nm}</option>`).join("")}</select></label>
+  $("props").innerHTML=o.type==="t"?`<div class="card sel"><b class="ph">字元</b>
+  <textarea class="tx" data-k="t" rows="2" placeholder="輸入文字（Enter 換行）">${esc(o.t)}</textarea>
+  <div class="g" style="margin-top:6px">
+  <label class="full">字型<select data-k="f">${FONTS.map(([nm,v])=>`<option value="${esc(v)}"${v===o.f?" selected":""}>${nm}</option>`).join("")}</select></label>
   <label>字級 (mm)<input data-k="s" type="number" step="0.5" value="${o.s}"></label>
-  <label>字距<input data-k="ls" type="number" step="0.5" value="${o.ls}"></label>
-  <label>水平拉伸 (×)<input data-k="sx" type="number" step="0.05" min="0.05" value="${o.sx||1}"></label>
-  <label>顏色<input data-k="c" type="color" value="${o.c}"></label>
-  <label class="full">上下偏移（距杯底 mm）<span class="sl"><input data-k="y" type="number" step="0.5" value="${o.y}"><input data-k="y" type="range" min="0" max="${Math.ceil(g.L)}" step="0.5" value="${o.y}"></span></label>
-  <label class="full">左右偏移（mm）<span class="sl"><input data-k="dx" type="number" step="0.5" value="${o.dx}"><input data-k="dx" type="range" min="${-mx}" max="${mx}" step="0.5" value="${o.dx}"></span></label></div>
-  <div class="row"><label class="chk"><input data-k="b" type="checkbox"${o.b?" checked":""}>粗體</label><label class="chk"><input data-k="lock" type="checkbox"${o.lock?" checked":""}>角點鎖定比例</label></div></div>`
+  <label>行距 (×)<input data-k="lh" type="number" step="0.05" min="0.5" value="${o.lh||1.2}"></label>
+  <label>字距 (mm)<input data-k="ls" type="number" step="0.5" value="${o.ls}"></label>
+  <label>水平縮放 (%)<input data-k="sxp" type="number" step="5" min="5" value="${Math.round((o.sx||1)*100)}"></label>
+  ${o.v?`<label>垂直縮放 (%)<input data-k="syp" type="number" step="5" min="5" value="${Math.round((o.sy||1)*100)}"></label>`:""}
+  <label>顏色<input data-k="c" type="color" value="${o.c}"></label></div>
+  <div class="row"><label class="chk"><input data-k="b" type="checkbox"${o.b?" checked":""}>粗體</label><label class="chk"><input data-k="v" type="checkbox"${o.v?" checked":""}>垂直排列</label></div>
+  <b class="ph" style="margin-top:12px">段落</b>
+  <div class="seg">${(o.v?[["l","靠上"],["c","置中"],["r","靠下"]]:[["l","左對齊"],["c","置中"],["r","右對齊"]]).map(([k,nm])=>`<button data-al="${k}" class="${(o.al||"c")===k?"on":""}">${nm}</button>`).join("")}</div>
+  <b class="ph" style="margin-top:12px">位置</b><div class="g2" style="margin-top:0">
+  <label>左右（${o.v?"中心":"對齊點"} mm）<input data-k="dx" type="number" step="0.5" value="${o.dx}"></label>
+  <label>上下（${o.v?"中心":"基線"} mm）<input data-k="y" type="number" step="0.5" value="${o.y}"></label></div>
+  <div class="row"><label class="chk"><input data-k="lock" type="checkbox"${o.lock?" checked":""}>角點鎖定比例</label></div></div>`
   :`<div class="card sel"><div style="font-size:13px;margin-bottom:6px;word-break:break-all"><b>圖片</b> ${esc(o.name)}</div><div class="g">
   <label>寬 (mm)<input data-k="w" type="number" step="0.5" value="${o.w}"></label>
   <label>高 (mm)<input data-k="h" type="number" step="0.5" value="${o.h}"></label>
@@ -324,7 +390,7 @@ function propsUi(){
 }
 function syncCard(){
   if(!sel)return;
-  $("props").querySelectorAll("[data-k]").forEach(x=>{const k=x.dataset.k;if(x.type==="checkbox"||["t","f","c"].includes(k))return;x.value=sel[k];});
+  $("props").querySelectorAll("[data-k]").forEach(x=>{const k=x.dataset.k;if(x.type==="checkbox"||["t","f","c"].includes(k))return;x.value=k==="sxp"?Math.round((sel.sx||1)*100):k==="syp"?Math.round((sel.sy||1)*100):sel[k];});
 }
 $("lylist").addEventListener("click",e=>{
   const r=e.target.closest(".ly");if(!r)return;
@@ -347,10 +413,15 @@ $("lbot").onclick=()=>{if(!sel)return;mv(objs.indexOf(sel),0);ui();draw();};
 $("props").addEventListener("input",e=>{
   const k=e.target.dataset.k;if(!k||!sel)return;const o=sel,P=$("props");
   if(k==="lock"){o.lock=e.target.checked;return;}
+  if(k==="sxp"||k==="syp"){o[k==="sxp"?"sx":"sy"]=Math.max(.05,(parseFloat(e.target.value)||100)/100);draw();return;}
+  if(k==="v"){/* 切換橫直書時保持視覺中心不動 */
+    const b=bbox(o),cx=b.x+b.w/2,cy=b.y+b.h/2;o.v=e.target.checked;o.sy=o.sy||1;
+    centerAt(o,cx,cy);propsUi();draw();return;}
   P.querySelectorAll(`[data-k="${k}"]`).forEach(x=>{if(x!==e.target&&x.type!=="checkbox")x.value=e.target.value;});
   if(o.type==="t"){
     o[k]=k==="b"?e.target.checked:(["t","f","c"].includes(k)?e.target.value:parseFloat(e.target.value)||0);
     if(k==="sx")o.sx=Math.max(.05,o.sx);
+    if(k==="sy")o.sy=Math.max(.05,o.sy);
     if(["t","f","b"].includes(k)){loadFonts();lyUi();}
   }else{
     o[k]=parseFloat(e.target.value)||0;
@@ -361,6 +432,8 @@ $("props").addEventListener("input",e=>{
   draw();
 });
 $("props").addEventListener("click",e=>{
+  const al=e.target.dataset.al;
+  if(al&&sel&&sel.type==="t"){const b=bbox(sel);sel.al=al;if(!sel.v)sel.dx=+(b.x+ax(sel,b.w)).toFixed(2);propsUi();draw();return;}
   if(e.target.dataset.fill===undefined||!sel||sel.type!=="i")return;
   const im=sel,g=geo(),rc=g.Rb+g.L/2,bl=g.bx.bl;
   im.w=+((g.a+2*Math.asin(Math.min(1,bl/Math.max(.1,g.Rb-bl))))*rc).toFixed(1);im.h=+(g.L+2*bl).toFixed(1);
@@ -394,7 +467,7 @@ function doDraw(){
   $("pv").innerHTML=build(true,$("bg").value);
   const g=geo();
   $("info").textContent=`扇形角度 ${(g.a*180/Math.PI).toFixed(2)}°　外半徑 ${g.Rt.toFixed(1)} mm　內半徑 ${g.Rb.toFixed(1)} mm　斜高 ${g.L.toFixed(1)} mm　紅＝刀模　青＝出血　藍＝杯底留白　橘＝封邊　綠＝中線`;
-  schedule3d();
+  schedule3d();posEd();
 }
 ["top","bot","h","safe","bg","ov","ovs","bl"].forEach(id=>$(id).addEventListener("input",()=>{ui();draw();}));
 
@@ -430,20 +503,35 @@ function ensure3d(){
   const group=new THREE.Group();group.rotation.order="YXZ";scene.add(group);
   T={renderer,scene,camera,group,auto:true,yaw:0,pitch:.25,zoom:1,dist:300,parts:[]};
   const el=renderer.domElement;let dr=null;
-  el.addEventListener("pointerdown",e=>{dr=[e.clientX,e.clientY];T.auto=false;$("auto").textContent="自動旋轉";el.setPointerCapture(e.pointerId);});
-  el.addEventListener("pointermove",e=>{if(!dr)return;T.yaw+=(e.clientX-dr[0])*.01;
-    if(e.pointerType==="mouse")T.pitch=Math.max(-.3,Math.min(1,T.pitch+(e.clientY-dr[1])*.01));dr=[e.clientX,e.clientY];});
+  el.addEventListener("pointerdown",e=>{if(T.lockY&&T.lockX)return;dr=[e.clientX,e.clientY];T.auto=false;$("auto").textContent="自動旋轉";el.setPointerCapture(e.pointerId);});
+  el.addEventListener("pointermove",e=>{if(!dr)return;if(!T.lockY)T.yaw+=(e.clientX-dr[0])*.01;
+    if(e.pointerType==="mouse"&&!T.lockX)T.pitch=Math.max(-.3,Math.min(1,T.pitch+(e.clientY-dr[1])*.01));dr=[e.clientX,e.clientY];});
   const up=()=>{dr=null;};el.addEventListener("pointerup",up);el.addEventListener("pointercancel",up);
   el.addEventListener("wheel",e=>{e.preventDefault();T.zoom=Math.max(.4,Math.min(2.5,T.zoom*(e.deltaY>0?1.08:.92)));},{passive:false});
 }
 $("auto").onclick=()=>{if(!T)return;T.auto=!T.auto;$("auto").textContent=T.auto?"暫停旋轉":"自動旋轉";};
 $("reset").onclick=()=>{if(!T)return;T.yaw=0;T.pitch=.25;T.zoom=1;};
-function size3d(){if(!T)return;const w=$("v3c").clientWidth||320,hh=Math.min(w,340);T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();}
+const sync3dLock=()=>{if(!T)return;T.lockY=$("lockY").checked;T.lockX=$("lockX").checked;$("auto").disabled=T.lockY;$("v3c").classList.toggle("lk",T.lockY&&T.lockX);};
+$("lockY").onchange=$("lockX").onchange=sync3dLock;
+$("png").onclick=async()=>{
+  if(!T)return;
+  const S=1600,R=T.renderer,el=R.domElement,pr=R.getPixelRatio();
+  R.setPixelRatio(1);R.setSize(S,S,false);T.camera.aspect=1;T.camera.updateProjectionMatrix();
+  R.render(T.scene,T.camera);
+  const c=document.createElement("canvas");c.width=c.height=S;const x=c.getContext("2d");
+  x.drawImage(el,0,0,S,S);
+  R.setPixelRatio(pr);T.lw=0;size3d();
+  const blob=await new Promise(r=>c.toBlob(r,"image/png"));
+  if(!blob)return;
+  try{if(dl){await dl.save({filename:"cup-3d.png",data:blob});return;}}catch(e){if(e&&e.code==="declined")return;}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="cup-3d.png";document.body.appendChild(a);a.click();a.remove();}catch(e){}
+};
+function size3d(){if(!T)return;const w=$("v3c").clientWidth||320,hh=Math.min(w,300);if(T.lw===w&&T.lh===hh)return;T.lw=w;T.lh=hh;T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();}
 addEventListener("resize",size3d);
 function loop(){
   if(T.running)return;T.running=true;
   (function f(){
-    if(T.auto)T.yaw+=.006;
+    if(T.auto&&!T.lockY)T.yaw+=.006;
     T.group.rotation.set(T.pitch,T.yaw,0);
     T.camera.position.set(0,0,T.dist*T.zoom);T.camera.lookAt(0,0,0);
     T.renderer.render(T.scene,T.camera);requestAnimationFrame(f);
@@ -466,9 +554,9 @@ async function update3d(){
     if(l.type==="i"){try{ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(warpCanvas(l,k),0,0);}catch(e){}continue;}
     ctx.setTransform(k,0,0,k,-k*vx0,-k*vy0);
     ctx.font=(l.b?700:400)+" "+l.s+"px "+l.f;ctx.fillStyle=l.c;
-    const r=Rb+l.y;
-    glyphs(l).out.forEach(q=>{if(!q.c.trim())return;const t=fs+q.x/rcx;
-      ctx.save();ctx.translate(r*Math.sin(t),-r*Math.cos(t));ctx.rotate(t);ctx.scale(r/rcx*(l.sx||1),1);ctx.fillText(q.c,0,0);ctx.restore();});
+    const sy=l.v?(l.sy||1):1;
+    glyphs(l).out.forEach(q=>{if(!q.c.trim())return;const r=Rb+q.yb,t=fs+q.x/rcx;
+      ctx.save();ctx.translate(r*Math.sin(t),-r*Math.cos(t));ctx.rotate(t);ctx.scale(r/rcx*(l.sx||1),sy);ctx.fillText(q.c,0,0);ctx.restore();});
   }
   const N=128,M=10,P=[],UV=[],I=[],tr=top/2,br=bot/2;
   for(let j=0;j<=M;j++){const q=j/M,r=Rb+L*q,rho=br+(tr-br)*q,y=-h/2+h*q;
@@ -493,6 +581,41 @@ async function update3d(){
 ui();loadFonts();doDraw();
 ensure3d();if(T){size3d();update3d();loop();}
 document.fonts.ready.then(draw);
+function setTool(t){tool=t;$("addt").classList.toggle("on",t==="t");$("addv").classList.toggle("on",t==="v");$("tsel").classList.toggle("on",!t);$("vpflat").classList.toggle("tool",!!t);}
+$("addt").onclick=()=>setTool(tool==="t"?null:"t");
+$("addv").onclick=()=>setTool(tool==="v"?null:"v");
+$("tsel").onclick=()=>setTool(null);
+addEventListener("keydown",e=>{
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(e.key==="t"||e.key==="T")setTool(e.shiftKey?"v":"t");else if(e.key==="v"||e.key==="V"||e.key==="Escape")setTool(null);
+});
+function startEdit(o){
+  endEdit();if(o.type!=="t")return;
+  editing=o;sel=o;ui();
+  ed=document.createElement("textarea");ed.className="ed";ed.value=o.t;ed.spellcheck=false;
+  $("vpflat").appendChild(ed);posEd();draw();ed.focus();ed.select();
+  ed.addEventListener("input",()=>{o.t=ed.value;const px=$("props").querySelector('[data-k="t"]');if(px)px.value=o.t;lyUi();draw();});
+  ed.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();endEdit();}});
+  ed.addEventListener("blur",endEdit);
+}
+function endEdit(){
+  if(!ed)return;const e=ed,o=editing;ed=null;editing=null;e.remove();
+  if(o&&o.t.trim()===""){objs.splice(objs.indexOf(o),1);if(sel===o)sel=null;}
+  ui();draw();
+}
+function posEd(){
+  if(!ed||!editing)return;const o=editing,sv=$("flat").querySelector("svg");if(!sv)return;
+  const m=sv.getScreenCTM(),b=bbox(o),r=$("vpflat").getBoundingClientRect(),k=m.a,pad=4;
+  const lhpx=(o.v?1:(o.lh||1.2))*o.s*k;
+  Object.assign(ed.style,{left:m.a*b.x+m.e-r.left-pad+"px",top:m.d*b.y+m.f-r.top-pad+"px",
+    width:Math.max(b.w*k,70)+2*pad+"px",height:Math.max(b.h*k,o.s*k*1.2)+2*pad+"px",padding:pad+"px",
+    font:`${o.b?700:400} ${o.s*k}px/${lhpx}px ${o.f}`,color:o.c,background:$("bg").value,
+    textAlign:o.al==="l"?"left":o.al==="r"?"right":"center",letterSpacing:o.ls*k+"px",
+    writingMode:o.v?"vertical-rl":"horizontal-tb",textOrientation:"upright"});
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{$("ws").dataset.v=b.dataset.v;document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));});
+if(matchMedia("(max-width:899px)").matches)document.querySelector('.tabs button[data-v="flat"]').click();
+if(window.ResizeObserver)new ResizeObserver(size3d).observe($("v3c"));
 </script>
 </body>
 </html>
