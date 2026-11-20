@@ -14,12 +14,12 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 "Noto Sans TC",system-ui,sans-serif}
 main{max-width:1100px;margin:0 auto;padding:14px;display:grid;gap:14px}
-@media(min-width:900px){main{grid-template-columns:1.3fr 1fr;align-items:start}.pv{position:sticky;top:14px}}
+@media(min-width:900px){main{grid-template-columns:1.3fr 1fr;align-items:start}.pv{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto}}
 h1{font-size:18px;margin:0 0 2px}
 .sub{color:var(--mut);font-size:13px;margin:0 0 10px}
 .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:10px}
 .pvbox{background:var(--pv);border:1px solid var(--bd);border-radius:12px;padding:6px;overflow-x:auto}
-.pvbox svg{width:100%;height:auto;display:block;max-height:70vh}
+.pvbox svg{width:100%;height:auto;display:block;max-height:42vh}
 label{display:flex;flex-direction:column;font-size:12px;color:var(--mut);gap:2px}
 input,select,button{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:7px 8px;min-width:0}
 input[type=color]{padding:2px;height:36px}
@@ -34,7 +34,7 @@ button.x{color:#dc2626}
 textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;display:none;margin-top:8px}
 .full{grid-column:1/-1}
 .tabs{display:flex;gap:6px;margin-bottom:8px}.tabs button.on{background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700}
-#v3{display:none}#v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}#v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
+#v3{display:block;margin-top:10px}#v3c{background:var(--pv);border:1px solid var(--bd);border-radius:12px;overflow:hidden}#v3c canvas{display:block;width:100%!important;touch-action:pan-y;cursor:grab}
 </style>
 </head>
 <body>
@@ -42,9 +42,9 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
 <section class="pv">
   <h1>扇形杯套文字排版工具</h1>
   <p class="sub">文字會沿著扇形弧線排列，貼回杯子後不會變形。</p>
-  <div class="tabs"><button id="t2" class="on">2D 展開圖</button><button id="t3">3D 預覽</button></div>
+  <div class="info" style="margin:0 0 4px">2D 展開圖</div>
   <div class="pvbox" id="pv"></div>
-  <div id="v3"><div id="v3c"></div>
+  <div id="v3"><div class="info" style="margin:0 0 4px">3D 預覽</div><div id="v3c"></div>
     <div class="row"><button id="auto">暫停旋轉</button><button id="reset">重設視角</button><span class="info" style="margin:0">左右拖曳旋轉（電腦可上下拖曳傾斜、滾輪縮放）</span></div></div>
   <div class="info" id="info"></div>
   <div class="row">
@@ -244,7 +244,7 @@ function setView(v){
   $("t2").classList.toggle("on",v==="2d");$("t3").classList.toggle("on",v==="3d");
   if(v==="3d"){ensure3d();if(T){size3d();update3d();loop();}}
 }
-$("t2").onclick=()=>setView("2d");$("t3").onclick=()=>setView("3d");
+view="3d";
 function schedule3d(){if(!T||view!=="3d")return;clearTimeout(texTimer);texTimer=setTimeout(update3d,150);}
 function ensure3d(){
   if(T)return;
@@ -268,7 +268,7 @@ function ensure3d(){
 $("auto").onclick=()=>{if(!T)return;T.auto=!T.auto;$("auto").textContent=T.auto?"暫停旋轉":"自動旋轉";};
 $("reset").onclick=()=>{if(!T)return;T.yaw=0;T.pitch=.25;T.zoom=1;};
 function size3d(){
-  if(!T)return;const w=$("v3c").clientWidth||360,hh=Math.min(w,460);
+  if(!T)return;const w=$("v3c").clientWidth||360,hh=Math.min(w,340);
   T.renderer.setSize(w,hh);T.camera.aspect=w/hh;T.camera.updateProjectionMatrix();
 }
 addEventListener("resize",()=>{if(view==="3d")size3d();});
@@ -322,6 +322,7 @@ async function update3d(){
   T.dist=Math.max(h,top)*3.2;
 }
 ui();draw();
+ensure3d();if(T){size3d();update3d();loop();}
 </script>
 </body>
 </html>
