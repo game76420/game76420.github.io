@@ -67,6 +67,13 @@ textarea{width:100%;height:120px;font:11px monospace;background:var(--bg);color:
       <label>杯底留白（mm）<input type="number" id="safe" value="4" step="0.5"></label>
       <label>杯身底色<input type="color" id="bg" value="#ffffff"></label>
     </div>
+    <div class="g2">
+      <label>封邊（黏貼）寬度 (mm)<input type="number" id="ov" value="6" step="0.5" min="0"></label>
+      <label>封邊位置<select id="ovs"><option value="R">右側</option><option value="L">左側</option></select></label>
+    </div>
+    <div class="g2">
+      <label>出血 (mm)<input type="number" id="bl" value="3" step="0.5" min="0"></label>
+    </div>
   </div>
   <div class="card"><b>圖片（自動變形成扇形）</b>
     <div class="row"><input type="file" id="file" accept="image/*" multiple></div>
@@ -92,30 +99,40 @@ const f2=v=>+v.toFixed(3);
 function geo(){
   const top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
   const L=Math.hypot(h,(top-bot)/2);
-  const Rt=L*top/(top-bot),Rb=Rt-L,a=Math.PI*top/Rt;
-  return{L,Rt,Rb,a,top};
+  const Rt=L*top/(top-bot),Rb=Rt-L,a0=Math.PI*top/Rt,ao=Math.max(0,n("ov"))/Rt,a=a0+ao;
+  const fs=$("ovs").value==="R"?-ao/2:ao/2;
+  const half=a/2,bl=Math.max(0,n("bl")),Ro=Rt+bl,Ri=Math.max(0.1,Rb-bl);
+  const ho=half+Math.asin(Math.min(1,bl/Ro)),hI=half+Math.asin(Math.min(1,bl/Ri));
+  const xs=Math.max(Ro*Math.sin(Math.min(ho,Math.PI/2)),Ri*Math.sin(Math.min(hI,Math.PI/2)));
+  const y1=Math.max(-Ri*Math.cos(hI),-Ro*Math.cos(ho));
+  return{L,Rt,Rb,a,top,a0,ao,fs,bx:{x:-xs,y:-Ro,w:2*xs,h:y1+Ro,bl,Ro,Ri,ho,hi:hI}};
 }
 function build(withGuides,bgc,hi){
-  const{L,Rt,Rb,a}=geo(),half=a/2,pad=8,large=a>Math.PI?1:0;
+  const{L,Rt,Rb,a,a0,ao,fs}=geo(),half=a/2,pad=8,large=a>Math.PI?1:0;
   const P=(r,t)=>f2(r*Math.sin(t))+" "+f2(-r*Math.cos(t));
-  const xs=Rt*Math.sin(Math.min(half,Math.PI/2));
-  const yMax=-Rb*Math.cos(half),vw=2*xs+2*pad,vh=(yMax+Rt)+2*pad;
-  let s=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${f2(vw)}mm" height="${f2(vh)}mm" viewBox="${f2(-xs-pad)} ${f2(-Rt-pad)} ${f2(vw)} ${f2(vh)}">`;
-  if(bgc)s+=`<rect x="${f2(-xs-pad)}" y="${f2(-Rt-pad)}" width="${f2(vw)}" height="${f2(vh)}" fill="${bgc}"/>`;
+  const B=geo().bx,xs=-B.x;
+  const vw=2*xs+2*pad,vh=B.h+2*pad;
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${f2(vw)}mm" height="${f2(vh)}mm" viewBox="${f2(-xs-pad)} ${f2(B.y-pad)} ${f2(vw)} ${f2(vh)}">`;
+  if(bgc)s+=`<rect x="${f2(-xs-pad)}" y="${f2(B.y-pad)}" width="${f2(vw)}" height="${f2(vh)}" fill="${bgc}"/>`;
   let defs="",txt="";
   layers.forEach((l,i)=>{
     if(l.on===false)return;const r=Rb+l.y;
     defs+=`<path id="arc${i}" d="M ${P(r,-half)} A ${f2(r)} ${f2(r)} 0 ${large} 1 ${P(r,half)}"/>`;
-    txt+=`<text font-family="${esc(l.f)}" font-size="${l.s}" font-weight="${l.b?700:400}" letter-spacing="${l.ls}" fill="${l.c}" text-anchor="middle"><textPath href="#arc${i}" startOffset="${f2(r*half+l.dx)}">${esc(l.t)}</textPath></text>`;
+    txt+=`<text font-family="${esc(l.f)}" font-size="${l.s}" font-weight="${l.b?700:400}" letter-spacing="${l.ls}" fill="${l.c}" text-anchor="middle"><textPath href="#arc${i}" startOffset="${f2(r*(half+fs)+l.dx)}">${esc(l.t)}</textPath></text>`;
   });
   let pic="";const kk=hi?Math.min(10,3000/(2*xs)):4;
-  images.forEach((im,i)=>{if(im.on===false)return;pic+=`<image id="img${i}" x="${f2(-xs)}" y="${f2(-Rt)}" width="${f2(2*xs)}" height="${f2(Rt-Rb*Math.cos(half))}" xlink:href="${warpURI(im,kk)}"/>`;});
+  images.forEach((im,i)=>{if(im.on===false)return;pic+=`<image id="img${i}" x="${f2(B.x)}" y="${f2(B.y)}" width="${f2(B.w)}" height="${f2(B.h)}" xlink:href="${warpURI(im,kk)}"/>`;});
   s+=`<defs>${defs}</defs><g id="artwork">${pic}${txt}</g>`;
   if(withGuides){
     const sf=Rb+n("safe");
+    let ovg="",bld="";
+    if(B.bl>0){const lO=2*B.ho>Math.PI?1:0,lI=2*B.hi>Math.PI?1:0;
+      bld=`<path stroke="#06b6d4" stroke-dasharray="2 1" d="M ${P(B.Ri,-B.hi)} L ${P(B.Ro,-B.ho)} A ${f2(B.Ro)} ${f2(B.Ro)} 0 ${lO} 1 ${P(B.Ro,B.ho)} L ${P(B.Ri,B.hi)} A ${f2(B.Ri)} ${f2(B.Ri)} 0 ${lI} 0 ${P(B.Ri,-B.hi)} Z"/>`;}
+    if(ao>1e-6){const right=fs<0,b=right?fs+a0/2:fs-a0/2,e=right?half:-half;
+      ovg=`<path fill="#f59e0b" fill-opacity="0.18" stroke="none" d="M ${P(Rb,b)} L ${P(Rt,b)} A ${f2(Rt)} ${f2(Rt)} 0 0 ${right?1:0} ${P(Rt,e)} L ${P(Rb,e)} A ${f2(Rb)} ${f2(Rb)} 0 0 ${right?0:1} ${P(Rb,b)} Z"/><path stroke="#f59e0b" stroke-dasharray="1.5 1" d="M ${P(Rb,b)} L ${P(Rt,b)}"/>`;}
     s+=`<g id="guides" fill="none" stroke-width="0.3"><path stroke="#e11d48" stroke-dasharray="2 1" d="M ${P(Rb,-half)} L ${P(Rt,-half)} A ${f2(Rt)} ${f2(Rt)} 0 ${large} 1 ${P(Rt,half)} L ${P(Rb,half)} A ${f2(Rb)} ${f2(Rb)} 0 ${large} 0 ${P(Rb,-half)} Z"/>`+
     `<path stroke="#2563eb" stroke-dasharray="1 1" d="M ${P(sf,-half)} A ${f2(sf)} ${f2(sf)} 0 ${large} 1 ${P(sf,half)}"/>`+
-    `<path stroke="#16a34a" stroke-dasharray="0.6 1.4" d="M ${P(Rb,0)} L ${P(Rt,0)}"/></g>`;
+    `<path stroke="#16a34a" stroke-dasharray="0.6 1.4" d="M ${P(Rb,fs)} L ${P(Rt,fs)}"/>`+ovg+bld+`</g>`;
   }
   return s+"</svg>";
 }
@@ -146,7 +163,7 @@ $("layers").addEventListener("click",e=>{
   if(e.target.dataset.del!==undefined){layers.splice(+e.target.dataset.del,1);ui();draw();}
 });
 $("add").onclick=()=>{layers.push({t:"新文字",f:FONTS[0][1],s:8,y:20,dx:0,ls:0,c:"#1c1c1a",b:false});ui();draw();};
-["top","bot","h","safe","bg"].forEach(id=>$(id).addEventListener("input",draw));
+["top","bot","h","safe","bg","ov","ovs","bl"].forEach(id=>$(id).addEventListener("input",draw));
 
 const out=()=>{const s=build($("guides").checked,null,true);images.forEach(im=>{im.c={};im.u={};});return s;};
 let dl=null;
@@ -165,11 +182,11 @@ $("cp").onclick=async()=>{
 function showCode(svg){const t=$("ta");t.style.display="block";t.value=svg;t.select();}
 /* ---------- 圖片變形 ---------- */
 let images=[];
-const imgSig=(im,k)=>{const g=geo();return [g.Rt,g.Rb,g.a,im.w,im.h,im.y,im.dx,k].join();};
+const imgSig=(im,k)=>{const g=geo();return [g.Rt,g.Rb,g.a,g.fs,g.bx.bl,im.w,im.h,im.y,im.dx,k].join();};
 function warpCanvas(im,k){
   const sig=imgSig(im,k);im.c=im.c||{};
   if(im.c[k]&&im.c[k].sig===sig)return im.c[k].cv;
-  const{Rt,Rb,a}=geo(),half=a/2,xs=Rt*Math.sin(Math.min(half,Math.PI/2)),vx0=-xs,vy0=-Rt,vw=2*xs,vh=Rt-Rb*Math.cos(half);
+  const{Rt,Rb,a,fs,bx}=geo(),half=a/2,vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h,bl=bx.bl;
   const cw=Math.ceil(vw*k),ch=Math.ceil(vh*k);
   const cv=document.createElement("canvas");cv.width=cw;cv.height=ch;
   if(!(im.w>.1&&im.h>.1)){im.c[k]={sig,cv};return cv;}
@@ -177,12 +194,12 @@ function warpCanvas(im,k){
   const sw=Math.max(2,Math.min(im.img.naturalWidth,Math.ceil(im.w*k))),sh=Math.max(2,Math.min(im.img.naturalHeight,Math.ceil(im.h*k)));
   const sc=document.createElement("canvas");sc.width=sw;sc.height=sh;
   const sx=sc.getContext("2d");sx.imageSmoothingQuality="high";sx.drawImage(im.img,0,0,sw,sh);
-  const s=sx.getImageData(0,0,sw,sh).data,rc=Rb+im.y,phi0=im.dx/rc;
+  const s=sx.getImageData(0,0,sw,sh).data,rc=Rb+im.y,phi0=im.dx/rc+fs;
   for(let py=0;py<ch;py++){const Y=vy0+(py+.5)/k;
     for(let px=0;px<cw;px++){
       const X=vx0+(px+.5)/k,r=Math.hypot(X,Y);
-      if(r<Rb||r>Rt)continue;
-      const phi=Math.atan2(X,-Y);if(phi<-half||phi>half)continue;
+      if(r<Rb-bl||r>Rt+bl)continue;
+      const phi=Math.atan2(X,-Y),lim=half+Math.asin(Math.min(1,bl/r));if(phi<-lim||phi>lim)continue;
       const u=((phi-phi0)*rc+im.w/2)/im.w,v=(rc+im.h/2-r)/im.h;
       if(u<0||u>1||v<0||v>1)continue;
       const fx=Math.min(sw-1,Math.max(0,u*sw-.5)),fy=Math.min(sh-1,Math.max(0,v*sh-.5));
@@ -221,7 +238,7 @@ $("imgs").addEventListener("input",e=>{
 $("imgs").addEventListener("click",e=>{
   const d=e.target.dataset;
   if(d.del!==undefined){images.splice(+d.del,1);imgUi();draw();}
-  if(d.fill!==undefined){const im=images[+d.fill],g=geo();im.w=+(g.a*(g.Rb+g.L/2)).toFixed(1);im.h=+g.L.toFixed(1);im.y=+(g.L/2).toFixed(1);im.dx=0;im.lock=false;imgUi();draw();}
+  if(d.fill!==undefined){const im=images[+d.fill],g=geo();const rc=g.Rb+g.L/2,bl=g.bx.bl;im.w=+((g.a+2*Math.asin(Math.min(1,bl/Math.max(.1,g.Rb-bl))))*rc).toFixed(1);im.h=+(g.L+2*bl).toFixed(1);im.y=+(g.L/2).toFixed(1);im.dx=+(-g.fs*(g.Rb+g.L/2)).toFixed(1);im.lock=false;imgUi();draw();}
 });
 $("file").onchange=e=>{
   [...e.target.files].forEach(f=>{
@@ -284,8 +301,8 @@ function loop(){
 }
 async function update3d(){
   if(!T)return;const my=++tok;
-  const{Rt,Rb,L,a}=geo(),half=a/2,top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
-  const xs=Rt*Math.sin(Math.min(half,Math.PI/2)),vx0=-xs,vy0=-Rt,vw=2*xs,vh=Rt-Rb*Math.cos(half);
+  const{Rt,Rb,L,a,a0,fs}=geo(),half=a/2,top=n("top"),bot=Math.min(n("bot"),top-0.1),h=n("h");
+  const bx=geo().bx,vx0=bx.x,vy0=bx.y,vw=bx.w,vh=bx.h;
   const k=Math.min(8,2048/Math.max(vw,vh));
   const cv=document.createElement("canvas");cv.width=Math.ceil(vw*k);cv.height=Math.ceil(vh*k);
   const ctx=cv.getContext("2d");
@@ -298,13 +315,13 @@ async function update3d(){
     if(l.on===false)continue;
     ctx.font=(l.b?700:400)+" "+l.s+"px "+l.f;ctx.fillStyle=l.c;
     const r=Rb+l.y,chars=[...l.t],ws=chars.map(c=>ctx.measureText(c).width);
-    let pos=r*half+l.dx-(ws.reduce((p,w)=>p+w,0)+l.ls*(chars.length-1))/2;
+    let pos=r*(half+fs)+l.dx-(ws.reduce((p,w)=>p+w,0)+l.ls*(chars.length-1))/2;
     chars.forEach((c,i)=>{const w=ws[i],t=-half+(pos+w/2)/r;
       ctx.save();ctx.translate(r*Math.sin(t),-r*Math.cos(t));ctx.rotate(t);ctx.fillText(c,-w/2,0);ctx.restore();pos+=w+l.ls;});
   }
   const N=128,M=10,P=[],UV=[],I=[],tr=top/2,br=bot/2;
   for(let j=0;j<=M;j++){const q=j/M,r=Rb+L*q,rho=br+(tr-br)*q,y=-h/2+h*q;
-    for(let i=0;i<=N;i++){const p=-half+a*i/N,psi=p/half*Math.PI;
+    for(let i=0;i<=N;i++){const p=fs-a0/2+a0*i/N,psi=(p-fs)/(a0/2)*Math.PI;
       P.push(rho*Math.sin(psi),y,rho*Math.cos(psi));
       UV.push((r*Math.sin(p)-vx0)/vw,1-(-r*Math.cos(p)-vy0)/vh);}}
   for(let j=0;j<M;j++)for(let i=0;i<N;i++){const A=j*(N+1)+i,B=A+1,C=A+N+1,D=C+1;I.push(A,B,C,B,D,C);}
