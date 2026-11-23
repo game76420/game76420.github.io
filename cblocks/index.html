@@ -155,10 +155,10 @@ class Game{
   if(this.stack[col].length===this.rows){this.gameOver()}else this.q.push(col)
 }}}for(const b of [...this.matched])if(b.y<=-this.cellX){this.matched.splice(this.matched.indexOf(b),1);const ix=this.blocks.indexOf(b);if(ix>=0)this.blocks.splice(ix,1)}}}
  gameOver(){this.over=true;this.running=false;clearTimeout(this.timer);this.onSound('gameover')}
- match(word){let result=null,depth=0;for(let col=0;col<this.cols;col++){const a=this.active[col];if(a&&a.word===word){depth=this.progress[col];a.vx=0;a.vy=-2*a.vy;this.active[col]=null;this.progress[col]=0;this.q.push(col);result=a;depth=this.rows-depth;break}const st=this.stack[col];if(st.length&&st[0].word===word){result=st.shift();result.vx=0;result.vy=-500;depth=1;break}}
+ match(ch){let result=null,depth=0;for(let col=0;col<this.cols;col++){const a=this.active[col];if(a&&a.char===ch){depth=this.progress[col];a.vx=0;a.vy=-2*a.vy;this.active[col]=null;this.progress[col]=0;this.q.push(col);result=a;depth=this.rows-depth;break}const st=this.stack[col];if(st.length&&st[0].char===ch){result=st.shift();result.vx=0;result.vy=-500;depth=1;break}}
  if(result){this.matched.push(result);this.onSound('correct');this.count172++;if(depth<=1){this.score++;this.count184++}else{this.score+=depth;this.count180+=depth}this.emit();return true}
  this.onSound('wrong');this.count176++;this.emit();return false}
- inputChar(ch){if(!this.running||this.paused)return;const w=this.commonChars?commonWord(ch):cp950Word(ch);if(w!=null)this.match(w)}
+ inputChar(ch){if(!this.running||this.paused)return;const w=this.commonChars?commonWord(ch):cp950Word(ch);if(w!=null)this.match(ch[0])}
  tick(){
   if(!this.running||this.paused)return;
   // Python source parity: one native timer event first calls sub_407D10
